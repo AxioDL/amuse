@@ -75,3 +75,9 @@ int main(int argc, char* argv[])
     return 0;
 }
 ```
+
+#### Tool
+
+In addition to the library, a command-line tool for performing various pipeline
+tasks is provided. Compilers for audio groups and song data, as well as basic
+playback functionality is available via the tool.
