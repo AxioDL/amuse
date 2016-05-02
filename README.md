@@ -25,7 +25,7 @@ Here's an example usage:
 ```cpp
 #include <amuse/amuse.hpp>
 #include "MyVoiceAllocator.hpp"
-#inlcude "MyAudioGroupLoader.hpp"
+#include "MyAudioGroupLoader.hpp"
 
 int main(int argc, char* argv[])
 {
