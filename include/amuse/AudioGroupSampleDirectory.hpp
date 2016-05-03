@@ -35,7 +35,7 @@ public:
         void swapBig();
     };
 private:
-    std::vector<Entry> m_entries;
+    std::vector<std::pair<Entry, ADPCMParms>> m_entries;
 public:
     AudioGroupSampleDirectory(const unsigned char* data);
 };

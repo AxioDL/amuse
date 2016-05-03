@@ -23,10 +23,13 @@ enum class VoiceState
 class Voice : public Entity
 {
     friend class Engine;
+    int m_vid;
+    bool m_emitter;
     std::unique_ptr<IBackendVoice> m_backendVoice;
     SoundMacroState m_state;
+    Voice* m_sibling = nullptr;
 public:
-    Voice(Engine& engine, int groupId);
+    Voice(Engine& engine, int groupId, int vid, bool emitter);
 
     /** Request specified count of audio frames (samples) from voice,
      *  internally advancing the voice stream */
@@ -34,6 +37,15 @@ public:
 
     /** Get current state of voice */
     VoiceState state() const;
+
+    /** Get VoiceId of this voice (unique to all currently-playing voices) */
+    int vid() const {return m_vid;}
+
+    /** Allocate parallel macro and tie to voice for possible emitter influence */
+    Voice* startSiblingMacro(int8_t addNote, int macroId, int macroStep);
+
+    /** Load specified SoundMacro ID of within group into voice */
+    bool loadSoundMacro(int macroId, int macroStep=0);
 
     /** Signals voice to begin fade-out, eventually reaching silence */
     void keyOff();

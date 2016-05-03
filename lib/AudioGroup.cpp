@@ -22,9 +22,9 @@ bool AudioGroup::songInGroup(int songId) const
 
 const AudioGroupSampleDirectory::Entry* AudioGroup::getSfxEntry(int sfxId) const
 {
-    for (const AudioGroupSampleDirectory::Entry& ent : m_sdir.m_entries)
-        if (ent.m_sfxId == sfxId)
-            return &ent;
+    for (const auto& ent : m_sdir.m_entries)
+        if (ent.first.m_sfxId == sfxId)
+            return &ent.first;
     return nullptr;
 }
 

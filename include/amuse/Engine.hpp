@@ -21,10 +21,10 @@ class Engine
 {
     IBackendVoiceAllocator& m_backend;
     std::unordered_map<int, std::unique_ptr<AudioGroup>> m_audioGroups;
-    std::list<std::unique_ptr<Voice>> m_activeVoices;
-    std::list<std::unique_ptr<Emitter>> m_activeEmitters;
-    std::list<std::unique_ptr<Sequencer>> m_activeSequencers;
-    Voice* _allocateVoice(int groupId, double sampleRate, bool dynamicPitch);
+    std::list<Voice> m_activeVoices;
+    std::list<Emitter> m_activeEmitters;
+    std::list<Sequencer> m_activeSequencers;
+    Voice* _allocateVoice(int groupId, double sampleRate, bool dynamicPitch, bool emitter);
     AudioGroup* _findGroupFromSfxId(int sfxId, const AudioGroupSampleDirectory::Entry*& entOut) const;
     AudioGroup* _findGroupFromSongId(int songId) const;
 public:
@@ -48,6 +48,9 @@ public:
 
     /** Start song playing from loaded audio groups */
     Sequencer* seqPlay(int songId, const unsigned char* arrData);
+
+    /** Find voice from VoiceId */
+    Voice* findVoice(int vid);
 };
 
 }

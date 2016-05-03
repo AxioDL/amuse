@@ -13,13 +13,12 @@ Engine::Engine(IBackendVoiceAllocator& backend)
 : m_backend(backend)
 {}
 
-Voice* Engine::_allocateVoice(int groupId, double sampleRate, bool dynamicPitch)
+Voice* Engine::_allocateVoice(int groupId, double sampleRate, bool dynamicPitch, bool emitter)
 {
-    std::unique_ptr<Voice> vox = std::make_unique<Voice>(*this, groupId);
-    vox->m_backendVoice = m_backend.allocateVoice(*vox, sampleRate, dynamicPitch);
-    Voice* ret = vox.get();
-    m_activeVoices.push_back(std::move(vox));
-    return ret;
+    m_activeVoices.emplace_back(*this, groupId, m_activeVoices.size(), emitter);
+    m_activeVoices.back().m_backendVoice =
+        m_backend.allocateVoice(m_activeVoices.back(), sampleRate, dynamicPitch);
+    return &m_activeVoices.back();
 }
 
 AudioGroup* Engine::_findGroupFromSfxId(int sfxId, const AudioGroupSampleDirectory::Entry*& entOut) const
@@ -61,7 +60,7 @@ void Engine::removeAudioGroup(int groupId)
 {
     for (auto it = m_activeVoices.begin() ; it != m_activeVoices.end() ;)
     {
-        if ((*it)->getGroupId() == groupId)
+        if (it->getGroupId() == groupId)
         {
             it = m_activeVoices.erase(it);
             continue;
@@ -71,7 +70,7 @@ void Engine::removeAudioGroup(int groupId)
 
     for (auto it = m_activeEmitters.begin() ; it != m_activeEmitters.end() ;)
     {
-        if ((*it)->getGroupId() == groupId)
+        if (it->getGroupId() == groupId)
         {
             it = m_activeEmitters.erase(it);
             continue;
@@ -81,7 +80,7 @@ void Engine::removeAudioGroup(int groupId)
 
     for (auto it = m_activeSequencers.begin() ; it != m_activeSequencers.end() ;)
     {
-        if ((*it)->getGroupId() == groupId)
+        if (it->getGroupId() == groupId)
         {
             it = m_activeSequencers.erase(it);
             continue;
@@ -100,7 +99,7 @@ Voice* Engine::fxStart(int sfxId, float vol, float pan)
     if (!grp)
         return nullptr;
 
-    Voice* ret = _allocateVoice(grp->groupId(), entry->m_sampleRate, true);
+    Voice* ret = _allocateVoice(grp->groupId(), entry->m_sampleRate, true, false);
     ret->setVolume(vol);
     ret->setPanning(pan);
     return ret;
@@ -115,23 +114,31 @@ Emitter* Engine::addEmitter(const Vector3f& pos, const Vector3f& dir, float maxD
     if (!grp)
         return nullptr;
 
-    Voice* vox = _allocateVoice(grp->groupId(), entry->m_sampleRate, true);
-    std::unique_ptr<Emitter> emtr = std::make_unique<Emitter>(*this, grp->groupId(), *vox);
-    Emitter* ret = emtr.get();
-    ret->setPos(pos);
-    ret->setDir(dir);
-    ret->setMaxDist(maxDist);
-    ret->setFalloff(falloff);
-    ret->setMinVol(minVol);
-    ret->setMaxVol(maxVol);
+    Voice* vox = _allocateVoice(grp->groupId(), entry->m_sampleRate, true, true);
+    m_activeEmitters.emplace_back(*this, grp->groupId(), *vox);
+    Emitter& ret = m_activeEmitters.back();
+    ret.setPos(pos);
+    ret.setDir(dir);
+    ret.setMaxDist(maxDist);
+    ret.setFalloff(falloff);
+    ret.setMinVol(minVol);
+    ret.setMaxVol(maxVol);
 
-    m_activeEmitters.push_back(std::move(emtr));
-    return ret;
+    return &ret;
 }
 
 /** Start song playing from loaded audio groups */
 Sequencer* Engine::seqPlay(int songId, const unsigned char* arrData)
 {
+}
+
+/** Find voice from VoiceId */
+Voice* Engine::findVoice(int vid)
+{
+    for (Voice& vox : m_activeVoices)
+        if (vox.vid() == vid)
+            return &vox;
+    return nullptr;
 }
 
 }

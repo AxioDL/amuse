@@ -46,7 +46,7 @@ int main(int argc, char* argv[])
     int sfxId = 0x1337;
     float vol = 1.0f;
     float pan = 0.0f;
-    int voiceId = snd.fxStart(sfxId, vol, pan);
+    Voice* voice = snd.fxStart(sfxId, vol, pan);
 
     /* Play for ~5 sec */
     int passedFrames = 0;
@@ -57,10 +57,10 @@ int main(int argc, char* argv[])
         WaitForVSync();
     }
 
-    /* Stopping a SoundMacro is accomplished by sending the engine a
+    /* Stopping a SoundMacro is accomplished by sending a
      * MIDI-style 'KeyOff' message for the voice
      */
-    snd.fxKeyOff(voiceId);
+    voice.keyOff();
     
     /* Play for 2 more seconds to allow the macro to gracefully fade-out */
     passedFrames = 0;
