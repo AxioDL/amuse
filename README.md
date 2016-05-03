@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
     /* Stopping a SoundMacro is accomplished by sending a
      * MIDI-style 'KeyOff' message for the voice
      */
-    voice.keyOff();
+    voice->keyOff();
     
     /* Play for 2 more seconds to allow the macro to gracefully fade-out */
     passedFrames = 0;
