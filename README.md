@@ -18,7 +18,8 @@ the OS' audio system fed.
 
 The client must provide the implementation for allocating and mixing audio
 voices, since this may drastically differ from target to target.
-`amuse::IVoiceAllocator` is the pure-virtual interface to implement for this.
+`amuse::IBackendVoiceAllocator` is the pure-virtual interface to implement
+for this.
 
 Here's an example usage:
 
