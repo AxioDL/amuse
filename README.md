@@ -30,7 +30,7 @@ Here's an example usage:
 int main(int argc, char* argv[])
 {
     /* Up to the client to implement voice allocation and mixing */
-    std::unique_ptr<amuse::IVoiceAllocator> voxAlloc = MakeMyVoiceAllocator();
+    std::unique_ptr<amuse::IBackendVoiceAllocator> voxAlloc = MakeMyVoiceAllocator();
 
     /* Application just needs one per audio output (not per channel) */
     amuse::Engine snd(*voxAlloc);
