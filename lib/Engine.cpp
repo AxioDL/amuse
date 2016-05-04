@@ -15,7 +15,7 @@ Engine::Engine(IBackendVoiceAllocator& backend)
 
 Voice* Engine::_allocateVoice(int groupId, double sampleRate, bool dynamicPitch, bool emitter)
 {
-    m_activeVoices.emplace_back(*this, groupId, m_activeVoices.size(), emitter);
+    m_activeVoices.emplace_back(*this, groupId, m_nextVid++, emitter);
     m_activeVoices.back().m_backendVoice =
         m_backend.allocateVoice(m_activeVoices.back(), sampleRate, dynamicPitch);
     return &m_activeVoices.back();
@@ -43,6 +43,12 @@ AudioGroup* Engine::_findGroupFromSongId(int songId) const
 /** Update all active audio entities and fill OS audio buffers as needed */
 void Engine::pumpEngine()
 {
+    int maxVid = -1;
+    for (Voice& vox : m_activeVoices)
+    {
+        maxVid = std::max(maxVid, vox.vid());
+    }
+    m_nextVid = maxVid + 1;
 }
 
 /** Add audio group data pointers to engine; must remain resident! */

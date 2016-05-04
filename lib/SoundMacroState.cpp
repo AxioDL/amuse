@@ -35,7 +35,7 @@ void SoundMacroState::initialize(const unsigned char* ptr)
     m_sampleEnd = false;
     m_loopCountdown = -1;
     m_lastPlayMacroVid = -1;
-    memcpy(&m_header, ptr, sizeof(Header));
+    m_header = *reinterpret_cast<const Header*>(ptr);
     m_header.swapBig();
 }
 
@@ -55,7 +55,7 @@ void SoundMacroState::initialize(const unsigned char* ptr, float ticksPerSec,
     m_sampleEnd = false;
     m_loopCountdown = -1;
     m_lastPlayMacroVid = -1;
-    memcpy(&m_header, ptr, sizeof(Header));
+    m_header = *reinterpret_cast<const Header*>(ptr);
     m_header.swapBig();
 }
 
@@ -235,8 +235,8 @@ bool SoundMacroState::advance(Voice& vox, float dt)
             int8_t addNote = cmd.m_data[0];
             int16_t macroId = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
             int16_t macroStep = *reinterpret_cast<int16_t*>(&cmd.m_data[3]);
-            int8_t priority = cmd.m_data[5];
-            int8_t maxVoices = cmd.m_data[6];
+            //int8_t priority = cmd.m_data[5];
+            //int8_t maxVoices = cmd.m_data[6];
 
             Voice* sibVox = vox.startSiblingMacro(addNote, macroId, macroStep);
             if (sibVox)
@@ -254,13 +254,15 @@ bool SoundMacroState::advance(Voice& vox, float dt)
                 if (m_lastPlayMacroVid != -1)
                 {
                     Voice* otherVox = vox.getEngine().findVoice(m_lastPlayMacroVid);
-                    otherVox->keyOff();
+                    if (otherVox)
+                        otherVox->keyOff();
                 }
             }
             else
             {
                 Voice* otherVox = vox.getEngine().findVoice(m_variables[vid]);
-                otherVox->keyOff();
+                if (otherVox)
+                    otherVox->keyOff();
             }
 
             break;
