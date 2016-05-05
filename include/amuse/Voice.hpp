@@ -58,6 +58,7 @@ public:
     void setPedal(bool pedal);
     void setDoppler(float doppler);
     void setReverbVol(float rvol);
+    void setAdsr(int adsrIdx, uint8_t type);
 
 };
 

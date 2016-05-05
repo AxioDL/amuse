@@ -285,8 +285,32 @@ bool SoundMacroState::advance(Voice& vox, float dt)
             break;
         }
         case Op::PianoPan:
+        {
+            int8_t scale = cmd.m_data[0];
+            int8_t cenKey = cmd.m_data[1];
+            int8_t cenPan = cmd.m_data[2];
+
+            int32_t pan = int32_t(m_midiKey - cenKey) * scale / 127 + cenPan;
+            pan = std::max(-127, std::min(127, pan));
+            vox.setPanning(pan / 127.f);
+            break;
+        }
         case Op::SetAdsr:
+        {
+            int16_t tableId = *reinterpret_cast<int16_t*>(&cmd.m_data[0]);
+            uint8_t type = cmd.m_data[2];
+            vox.setAdsr(tableId, type);
+            break;
+        }
         case Op::ScaleVolume:
+        {
+            int8_t scale = cmd.m_data[0];
+            int8_t add = cmd.m_data[1];
+            int16_t curve = *reinterpret_cast<int16_t*>(&cmd.m_data[2]);
+            bool orgVel = cmd.m_data[4];
+
+            break;
+        }
         case Op::Panning:
         case Op::Envelope:
         case Op::StartSample:
