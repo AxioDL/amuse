@@ -25,6 +25,7 @@ public:
     bool sfxInGroup(int sfxId) const;
     bool songInGroup(int songId) const;
 
+    const AudioGroupPool& getPool() const;
     const AudioGroupSampleDirectory::Entry* getSfxEntry(int sfxId) const;
 };
 

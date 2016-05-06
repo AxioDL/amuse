@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <vector>
 #include <unordered_map>
+#include "Entity.hpp"
 
 namespace amuse
 {
@@ -20,9 +21,6 @@ struct ADSR
     uint8_t releaseFine; /* 0-255ms */
     uint8_t releaseCoarse; /* 0-65280ms */
 };
-
-/** Curves for mapping velocity to volume and other functional mappings */
-using Curves = uint8_t[128];
 
 /** Maps individual MIDI keys to sound-entity as indexed in table
  *  (macro-voice, keymap, layer) */
@@ -51,20 +49,15 @@ struct LayerMapping
 /** Database of functional objects within Audio Group */
 class AudioGroupPool
 {
-    std::unordered_map<int, const unsigned char*> m_soundMacros;
-    std::unordered_map<int, const unsigned char*> m_tables;
-    std::unordered_map<int, const Keymap*> m_keymaps;
-    std::unordered_map<int, std::vector<const LayerMapping*>> m_layers;
+    std::unordered_map<ObjectId, const unsigned char*> m_soundMacros;
+    std::unordered_map<ObjectId, const unsigned char*> m_tables;
+    std::unordered_map<ObjectId, const Keymap*> m_keymaps;
+    std::unordered_map<ObjectId, std::vector<const LayerMapping*>> m_layers;
 public:
     AudioGroupPool(const unsigned char* data);
-    const ADSR* tableAsAdsr(int id) const
-    {
-        auto search = m_tables.find(id);
-        if (search == m_tables.cend())
-            return nullptr;
-        return reinterpret_cast<const ADSR*>(search->second);
-    }
-    const Curves* tableAsCurves(int id) const {return reinterpret_cast<const Curves*>(tableAsAdsr(id));}
+    const ADSR* tableAsAdsr(ObjectId id) const;
+    const Curve* tableAsCurves(ObjectId id) const
+    {return reinterpret_cast<const Curve*>(tableAsAdsr(id));}
 };
 
 }

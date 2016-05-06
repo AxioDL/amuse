@@ -1,5 +1,6 @@
 #include "amuse/AudioGroupPool.hpp"
 #include "amuse/Common.hpp"
+#include "amuse/Entity.hpp"
 
 namespace amuse
 {
@@ -30,7 +31,7 @@ AudioGroupPool::AudioGroupPool(const unsigned char* data)
         while (*reinterpret_cast<const uint32_t*>(cur) != 0xffffffff)
         {
             uint32_t size = SBig(*reinterpret_cast<const uint32_t*>(cur));
-            uint16_t id = SBig(*reinterpret_cast<const uint16_t*>(cur + 4));
+            ObjectId id = *reinterpret_cast<const ObjectId*>(cur + 4);
             m_soundMacros[id] = cur + 8;
             cur += size;
         }
@@ -42,7 +43,7 @@ AudioGroupPool::AudioGroupPool(const unsigned char* data)
         while (*reinterpret_cast<const uint32_t*>(cur) != 0xffffffff)
         {
             uint32_t size = SBig(*reinterpret_cast<const uint32_t*>(cur));
-            uint16_t id = SBig(*reinterpret_cast<const uint16_t*>(cur + 4));
+            ObjectId id = *reinterpret_cast<const ObjectId*>(cur + 4);
             m_tables[id] = cur + 8;
             cur += size;
         }
@@ -54,7 +55,7 @@ AudioGroupPool::AudioGroupPool(const unsigned char* data)
         while (*reinterpret_cast<const uint32_t*>(cur) != 0xffffffff)
         {
             uint32_t size = SBig(*reinterpret_cast<const uint32_t*>(cur));
-            uint16_t id = SBig(*reinterpret_cast<const uint16_t*>(cur + 4));
+            ObjectId id = *reinterpret_cast<const ObjectId*>(cur + 4);
             m_keymaps[id] = reinterpret_cast<const Keymap*>(cur + 8);
             cur += size;
         }
@@ -66,7 +67,7 @@ AudioGroupPool::AudioGroupPool(const unsigned char* data)
         while (*reinterpret_cast<const uint32_t*>(cur) != 0xffffffff)
         {
             uint32_t size = SBig(*reinterpret_cast<const uint32_t*>(cur));
-            uint16_t id = SBig(*reinterpret_cast<const uint16_t*>(cur + 4));
+            ObjectId id = *reinterpret_cast<const ObjectId*>(cur + 4);
             std::vector<const LayerMapping*>& mappingsOut = m_layers[id];
 
             uint32_t count = SBig(*reinterpret_cast<const uint32_t*>(cur+8));
@@ -78,6 +79,14 @@ AudioGroupPool::AudioGroupPool(const unsigned char* data)
             cur += size;
         }
     }
+}
+
+const ADSR* AudioGroupPool::tableAsAdsr(ObjectId id) const
+{
+    auto search = m_tables.find(id);
+    if (search == m_tables.cend())
+        return nullptr;
+    return reinterpret_cast<const ADSR*>(search->second);
 }
 
 }

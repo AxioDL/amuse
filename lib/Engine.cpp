@@ -13,9 +13,9 @@ Engine::Engine(IBackendVoiceAllocator& backend)
 : m_backend(backend)
 {}
 
-Voice* Engine::_allocateVoice(int groupId, double sampleRate, bool dynamicPitch, bool emitter)
+Voice* Engine::_allocateVoice(const AudioGroup& group, double sampleRate, bool dynamicPitch, bool emitter)
 {
-    m_activeVoices.emplace_back(*this, groupId, m_nextVid++, emitter);
+    m_activeVoices.emplace_back(*this, group, m_nextVid++, emitter);
     m_activeVoices.back().m_backendVoice =
         m_backend.allocateVoice(m_activeVoices.back(), sampleRate, dynamicPitch);
     return &m_activeVoices.back();
@@ -66,7 +66,7 @@ void Engine::removeAudioGroup(int groupId)
 {
     for (auto it = m_activeVoices.begin() ; it != m_activeVoices.end() ;)
     {
-        if (it->getGroupId() == groupId)
+        if (it->getAudioGroup().groupId() == groupId)
         {
             it = m_activeVoices.erase(it);
             continue;
@@ -76,7 +76,7 @@ void Engine::removeAudioGroup(int groupId)
 
     for (auto it = m_activeEmitters.begin() ; it != m_activeEmitters.end() ;)
     {
-        if (it->getGroupId() == groupId)
+        if (it->getAudioGroup().groupId() == groupId)
         {
             it = m_activeEmitters.erase(it);
             continue;
@@ -86,7 +86,7 @@ void Engine::removeAudioGroup(int groupId)
 
     for (auto it = m_activeSequencers.begin() ; it != m_activeSequencers.end() ;)
     {
-        if (it->getGroupId() == groupId)
+        if (it->getAudioGroup().groupId() == groupId)
         {
             it = m_activeSequencers.erase(it);
             continue;
@@ -105,7 +105,7 @@ Voice* Engine::fxStart(int sfxId, float vol, float pan)
     if (!grp)
         return nullptr;
 
-    Voice* ret = _allocateVoice(grp->groupId(), entry->m_sampleRate, true, false);
+    Voice* ret = _allocateVoice(*grp, entry->m_sampleRate, true, false);
     ret->setVolume(vol);
     ret->setPanning(pan);
     return ret;
@@ -120,8 +120,8 @@ Emitter* Engine::addEmitter(const Vector3f& pos, const Vector3f& dir, float maxD
     if (!grp)
         return nullptr;
 
-    Voice* vox = _allocateVoice(grp->groupId(), entry->m_sampleRate, true, true);
-    m_activeEmitters.emplace_back(*this, grp->groupId(), *vox);
+    Voice* vox = _allocateVoice(*grp, entry->m_sampleRate, true, true);
+    m_activeEmitters.emplace_back(*this, *grp, *vox);
     Emitter& ret = m_activeEmitters.back();
     ret.setPos(pos);
     ret.setDir(dir);

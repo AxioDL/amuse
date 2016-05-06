@@ -28,8 +28,10 @@ class Voice : public Entity
     std::unique_ptr<IBackendVoice> m_backendVoice;
     SoundMacroState m_state;
     Voice* m_sibling = nullptr;
+    uint8_t m_lastNote = 0;
 public:
-    Voice(Engine& engine, int groupId, int vid, bool emitter);
+    Voice(Engine& engine, const AudioGroup& group, int vid, bool emitter);
+    Voice(Engine& engine, const AudioGroup& group, ObjectId oid, int vid, bool emitter);
 
     /** Request specified count of audio frames (samples) from voice,
      *  internally advancing the voice stream */
@@ -42,23 +44,33 @@ public:
     int vid() const {return m_vid;}
 
     /** Allocate parallel macro and tie to voice for possible emitter influence */
-    Voice* startSiblingMacro(int8_t addNote, int macroId, int macroStep);
+    Voice* startSiblingMacro(int8_t addNote, ObjectId macroId, int macroStep);
 
     /** Load specified SoundMacro ID of within group into voice */
-    bool loadSoundMacro(int macroId, int macroStep=0);
+    bool loadSoundMacro(ObjectId macroId, int macroStep=0);
 
     /** Signals voice to begin fade-out, eventually reaching silence */
     void keyOff();
 
+    void startSample(int16_t sampId, int32_t offset);
+    void stopSample();
     void setVolume(float vol);
     void setPanning(float pan);
     void setSurroundPanning(float span);
-    void setPitchBend(float pitch);
+    void setPitchKey(int32_t cents);
     void setModulation(float mod);
     void setPedal(bool pedal);
     void setDoppler(float doppler);
     void setReverbVol(float rvol);
-    void setAdsr(int adsrIdx, uint8_t type);
+    void setAdsr(ObjectId adsrId);
+    void setPitchFrequency(uint32_t hz, uint16_t fine);
+    void setPitchAdsr(ObjectId adsrId, int32_t cents);
+
+    uint8_t getLastNote() const {return m_lastNote;}
+    int8_t getCtrlValue(uint8_t ctrl) const;
+    int8_t getPitchWheel() const;
+    int8_t getModWheel() const;
+    int8_t getAftertouch() const;
 
 };
 

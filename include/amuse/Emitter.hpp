@@ -13,7 +13,7 @@ class Emitter : public Entity
 {
     Voice& m_vox;
 public:
-    Emitter(Engine& engine, int groupId, Voice& vox);
+    Emitter(Engine& engine, const AudioGroup& group, Voice& vox);
 
     void setPos(const Vector3f& pos);
     void setDir(const Vector3f& dir);

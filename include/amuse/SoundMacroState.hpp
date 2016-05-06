@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <random>
+#include "Entity.hpp"
 
 namespace amuse
 {
@@ -14,7 +15,7 @@ class SoundMacroState
     struct Header
     {
         uint32_t m_size;
-        uint16_t m_macroId;
+        ObjectId m_macroId;
         uint8_t m_volume;
         uint8_t m_pan;
         void swapBig();
@@ -78,7 +79,7 @@ class SoundMacroState
         PitchWheelSelect,
         ModWheelSelect,
         PedalSelect,
-        PortaSelect,
+        PortASelect,
         ReverbSelect,
         SpanSelect,
         DopplerSelect,
@@ -112,15 +113,50 @@ class SoundMacroState
     const unsigned char* m_ptr = nullptr; /**< pointer to selected SoundMacro data */
     std::vector<int> m_pc; /**< 'program counter' stack for the active SoundMacro */
 
+    float m_curVol; /**< cumulative (final) volume level sent to voice */
+    bool m_volDirty; /**< set when voice needs updated volume */
+
+    float m_curPan; /**< cumulative (final) volume level sent to voice */
+    bool m_panDirty; /**< set when voice needs updated pan */
+
+    float m_curSpan; /**< cumulative (final) volume level sent to voice */
+    bool m_spanDirty; /**< set when voice needs updated span */
+
     float m_ticksPerSec; /**< ratio for resolving ticks in commands that use them */
-    uint8_t m_midiKey; /**< Key played for this macro invocation */
-    uint8_t m_midiVel; /**< Velocity played for this macro invocation */
-    uint8_t m_midiMod; /**< Modulation played for this macro invocation */
+    uint8_t m_initVel; /**< Velocity played for this macro invocation */
+    uint8_t m_initMod; /**< Modulation played for this macro invocation */
+    uint8_t m_initKey; /**< Key played for this macro invocation */
+    uint8_t m_curVel; /**< Current velocity played for this macro invocation */
+    uint8_t m_curMod; /**< Current modulation played for this macro invocation */
+    uint32_t m_curKey; /**< Current key played for this macro invocation (in cents) */
+    uint32_t m_pitchSweep1; /**< Current value of PITCHSWEEP1 controller (in cents) */
+    uint32_t m_pitchSweep2; /**< Current value of PITCHSWEEP2 controller (in cents) */
+    int16_t m_pitchSweep1Add; /**< Value to add to PITCHSWEEP1 controller each cycle */
+    int16_t m_pitchSweep2Add; /**< Value to add to PITCHSWEEP2 controller each cycle */
+    uint8_t m_pitchSweep1Times; /**< Remaining times to advance PITCHSWEEP1 controller */
+    uint8_t m_pitchSweep2Times; /**< Remaining times to advance PITCHSWEEP2 controller */
+    bool m_pitchDirty; /**< set when voice needs latest pitch computation */
     std::linear_congruential_engine<uint32_t, 0x41c64e6d, 0x3039, UINT32_MAX> m_random;
 
     float m_execTime; /**< time in seconds of SoundMacro execution */
     bool m_keyoff; /**< keyoff message has been received */
     bool m_sampleEnd; /**< sample has finished playback */
+
+    float m_envelopeTime; /**< time since last ENVELOPE command, -1 for no active volume-sweep */
+    float m_envelopeDur; /**< requested duration of last ENVELOPE command */
+    uint8_t m_envelopeStart; /**< initial value for last ENVELOPE command */
+    uint8_t m_envelopeEnd; /**< final value for last ENVELOPE command */
+    const Curve* m_envelopeCurve; /**< curve to use for ENVELOPE command */
+
+    float m_panningTime; /**< time since last PANNING command, -1 for no active pan-sweep */
+    float m_panningDur; /**< requested duration of last PANNING command */
+    uint8_t m_panPos; /**< initial pan value of last PANNING command */
+    uint8_t m_panWidth; /**< delta pan value to target of last PANNING command */
+
+    float m_spanningTime; /**< time since last SPANNING command, -1 for no active span-sweep */
+    float m_spanningDur; /**< requested duration of last SPANNING command */
+    uint8_t m_spanPos; /**< initial pan value of last SPANNING command */
+    uint8_t m_spanWidth; /**< delta pan value to target of last SPANNING command */
 
     bool m_inWait = false; /**< set when timer/keyoff/sampleend wait active */
     bool m_keyoffWait = false; /**< set when active wait is a keyoff wait */
@@ -129,6 +165,81 @@ class SoundMacroState
 
     int m_loopCountdown = -1; /**< countdown for current loop */
     int m_lastPlayMacroVid = -1; /**< VoiceId from last PlayMacro command */
+
+    bool m_useAdsrControllers; /**< when set, use the following controllers for envelope times */
+    uint8_t m_midiAttack; /**< Attack MIDI controller */
+    uint8_t m_midiDecay; /**< Decay MIDI controller */
+    uint8_t m_midiSustain; /**< Sustain MIDI controller */
+    uint8_t m_midiRelease; /**< Release MIDI controller */
+
+    uint8_t m_portamentoMode; /**< (0: Off, 1: On, 2: MIDI specified) */
+    uint8_t m_portamentoType; /**< (0: New key pressed while old key pressed, 1: Always) */
+    float m_portamentoTime; /**< portamento transition time, 0.f will perform legato */
+
+    int32_t m_vibratoLevel; /**< scale of vibrato effect (in cents) */
+    int32_t m_vibratoModLevel; /**< scale of vibrato mod-wheel influence (in cents) */
+    float m_vibratoPeriod; /**< vibrato wave period-time, 0.f will disable vibrato */
+    bool m_vibratoModWheel; /**< vibrato scaled with mod-wheel if set */
+
+    float m_tremoloScale; /**< minimum volume factor produced via LFO */
+    float m_tremoloModScale; /**< minimum volume factor produced via LFO, scaled via mod wheel */
+
+    float m_lfoPeriods[2]; /**< time-periods for LFO1 and LFO2 */
+
+    /** Used to store LFO-reference parameters for compatible state systems */
+    struct LFOSel
+    {
+        enum class Combine : uint8_t
+        {
+            Set,
+            Add,
+            Mult
+        };
+        enum class VarType : uint8_t
+        {
+            Ctrl,
+            Var
+        };
+
+        /** Represents one term of the LFO formula assembled via *_SELECT commands */
+        struct Component
+        {
+            uint8_t m_midiCtrl;
+            float m_scale;
+            Combine m_combine;
+            VarType m_varType;
+
+            Component(uint8_t midiCtrl, float scale, Combine combine, VarType varType)
+            : m_midiCtrl(midiCtrl), m_scale(scale), m_combine(combine), m_varType(varType) {}
+        };
+        std::vector<Component> m_comps; /**< Components built up by the macro */
+
+        /** Combine additional component(s) to LFO calcuation */
+        void addComponent(uint8_t midiCtrl, float scale,
+                          Combine combine, VarType varType);
+
+        /** Calculate current scaled LFO value */
+        float evaluate(Voice& vox, const SoundMacroState& st);
+
+        /** Determine if this LFOSel is valid to use */
+        operator bool() const {return m_comps.size() != 0;}
+    };
+
+    LFOSel m_volumeSel;
+    LFOSel m_panSel;
+    LFOSel m_pitchWheelSel;
+    LFOSel m_modWheelSel;
+    LFOSel m_pedalSel;
+    LFOSel m_portASel;
+    LFOSel m_reverbSel;
+    LFOSel m_preAuxASel;
+    LFOSel m_preAuxBSel;
+    LFOSel m_auxAFxSel;
+    LFOSel m_auxBFxSel;
+    LFOSel m_postAuxB;
+    LFOSel m_spanSel;
+    LFOSel m_dopplerSel;
+    LFOSel m_tremoloSel;
 
     int32_t m_variables[256]; /**< 32-bit variables set with relevant commands */
 

@@ -25,7 +25,7 @@ class Engine
     std::list<Emitter> m_activeEmitters;
     std::list<Sequencer> m_activeSequencers;
     int m_nextVid = 0;
-    Voice* _allocateVoice(int groupId, double sampleRate, bool dynamicPitch, bool emitter);
+    Voice* _allocateVoice(const AudioGroup& group, double sampleRate, bool dynamicPitch, bool emitter);
     AudioGroup* _findGroupFromSfxId(int sfxId, const AudioGroupSampleDirectory::Entry*& entOut) const;
     AudioGroup* _findGroupFromSongId(int songId) const;
 public:
