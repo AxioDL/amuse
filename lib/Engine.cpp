@@ -15,10 +15,20 @@ Engine::Engine(IBackendVoiceAllocator& backend)
 
 Voice* Engine::_allocateVoice(const AudioGroup& group, double sampleRate, bool dynamicPitch, bool emitter)
 {
-    m_activeVoices.emplace_back(*this, group, m_nextVid++, emitter);
+    auto it = m_activeVoices.emplace(m_activeVoices.end(), *this, group, m_nextVid++, emitter);
     m_activeVoices.back().m_backendVoice =
         m_backend.allocateVoice(m_activeVoices.back(), sampleRate, dynamicPitch);
+    m_activeVoices.back().m_engineIt = it;
     return &m_activeVoices.back();
+}
+
+std::list<Voice>::iterator Engine::_destroyVoice(Voice* voice)
+{
+#ifndef NDEBUG
+    assert(this == &voice->getEngine());
+#endif
+    voice->_destroy();
+    return m_activeVoices.erase(voice->m_engineIt);
 }
 
 AudioGroup* Engine::_findGroupFromSfxId(int sfxId, const AudioGroupSampleDirectory::Entry*& entOut) const
@@ -145,6 +155,32 @@ Voice* Engine::findVoice(int vid)
         if (vox.vid() == vid)
             return &vox;
     return nullptr;
+}
+
+/** Stop all voices in `kg`, stops immediately (no KeyOff) when `flag` set */
+void Engine::killKeygroup(uint8_t kg, uint8_t flag)
+{
+    for (auto it = m_activeVoices.begin() ; it != m_activeVoices.end() ;)
+    {
+        if (it->m_keygroup == kg)
+        {
+            if (flag)
+            {
+                it = _destroyVoice(&*it);
+                continue;
+            }
+            it->keyOff();
+        }
+        ++it;
+    }
+}
+
+/** Send all voices using `macroId` the message `val` */
+void Engine::sendMacroMessage(ObjectId macroId, int32_t val)
+{
+    for (auto it = m_activeVoices.begin() ; it != m_activeVoices.end() ; ++it)
+        if (it->getObjectId() == macroId)
+            it->message(val);
 }
 
 }

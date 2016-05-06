@@ -4,6 +4,10 @@
 namespace amuse
 {
 
+#ifndef M_PIF
+#define M_PIF 3.14159265358979323846f /* pi */
+#endif
+
 #undef bswap16
 #undef bswap32
 #undef bswap64

@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <memory>
+#include <list>
 #include "SoundMacroState.hpp"
 #include "Entity.hpp"
 
@@ -23,12 +24,19 @@ enum class VoiceState
 class Voice : public Entity
 {
     friend class Engine;
-    int m_vid;
-    bool m_emitter;
-    std::unique_ptr<IBackendVoice> m_backendVoice;
-    SoundMacroState m_state;
-    Voice* m_sibling = nullptr;
-    uint8_t m_lastNote = 0;
+    template <class U, class A>
+    friend class std::list;
+    int m_vid; /**< VoiceID of this voice instance */
+    bool m_emitter; /**< Voice is part of an Emitter */
+    std::list<Voice>::iterator m_engineIt; /**< Iterator to self within Engine's list for quick deletion */
+    std::unique_ptr<IBackendVoice> m_backendVoice; /**< Handle to client-implemented backend voice */
+    SoundMacroState m_state; /**< State container for SoundMacro playback */
+    Voice *m_nextSibling = nullptr, *m_prevSibling = nullptr; /**< Sibling voice links for PLAYMACRO usage */
+    uint8_t m_lastNote = 0; /**< Last MIDI semitone played by voice */
+    uint8_t m_keygroup = 0; /**< Keygroup voice is a member of */
+
+    void _destroy();
+
 public:
     Voice(Engine& engine, const AudioGroup& group, int vid, bool emitter);
     Voice(Engine& engine, const AudioGroup& group, ObjectId oid, int vid, bool emitter);
@@ -47,10 +55,13 @@ public:
     Voice* startSiblingMacro(int8_t addNote, ObjectId macroId, int macroStep);
 
     /** Load specified SoundMacro ID of within group into voice */
-    bool loadSoundMacro(ObjectId macroId, int macroStep=0);
+    bool loadSoundMacro(ObjectId macroId, int macroStep=0, bool pushPc=false);
 
     /** Signals voice to begin fade-out, eventually reaching silence */
     void keyOff();
+
+    /** Sends numeric message to voice and all siblings */
+    void message(int32_t val);
 
     void startSample(int16_t sampId, int32_t offset);
     void stopSample();
@@ -65,9 +76,12 @@ public:
     void setAdsr(ObjectId adsrId);
     void setPitchFrequency(uint32_t hz, uint16_t fine);
     void setPitchAdsr(ObjectId adsrId, int32_t cents);
+    void setPitchWheelRange(int8_t up, int8_t down);
+    void setKeygroup(uint8_t kg) {m_keygroup = kg;}
 
     uint8_t getLastNote() const {return m_lastNote;}
     int8_t getCtrlValue(uint8_t ctrl) const;
+    void setCtrlValue(uint8_t ctrl, int8_t val);
     int8_t getPitchWheel() const;
     int8_t getModWheel() const;
     int8_t getAftertouch() const;

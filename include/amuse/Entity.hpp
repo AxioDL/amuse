@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <functional>
+#include <assert.h>
 
 namespace amuse
 {
@@ -33,13 +34,25 @@ struct ObjectId
 /** Common 'engine child' class */
 class Entity
 {
+    /* Only the Engine will manage Entity lifetimes */
+    friend class Engine;
+    friend class SoundMacroState;
+    bool m_destroyed = false;
 protected:
+    void _destroy() {m_destroyed = true;}
     Engine& m_engine;
     const AudioGroup& m_audioGroup;
     ObjectId m_objectId; /* if applicable */
 public:
     Entity(Engine& engine, const AudioGroup& group, ObjectId oid=ObjectId())
     : m_engine(engine), m_audioGroup(group), m_objectId(oid) {}
+    ~Entity()
+    {
+#ifndef NDEBUG
+        /* Ensure proper destruction procedure followed */
+        assert(m_destroyed);
+#endif
+    }
 
     Engine& getEngine() {return m_engine;}
     const AudioGroup& getAudioGroup() const {return m_audioGroup;}

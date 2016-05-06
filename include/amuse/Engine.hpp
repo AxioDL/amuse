@@ -3,7 +3,9 @@
 
 #include <memory>
 #include <list>
+#include <random>
 #include <unordered_map>
+#include <unordered_set>
 #include "Emitter.hpp"
 #include "AudioGroupSampleDirectory.hpp"
 
@@ -24,8 +26,10 @@ class Engine
     std::list<Voice> m_activeVoices;
     std::list<Emitter> m_activeEmitters;
     std::list<Sequencer> m_activeSequencers;
+    std::linear_congruential_engine<uint32_t, 0x41c64e6d, 0x3039, UINT32_MAX> m_random;
     int m_nextVid = 0;
     Voice* _allocateVoice(const AudioGroup& group, double sampleRate, bool dynamicPitch, bool emitter);
+    std::list<Voice>::iterator _destroyVoice(Voice* voice);
     AudioGroup* _findGroupFromSfxId(int sfxId, const AudioGroupSampleDirectory::Entry*& entOut) const;
     AudioGroup* _findGroupFromSongId(int songId) const;
 public:
@@ -52,6 +56,15 @@ public:
 
     /** Find voice from VoiceId */
     Voice* findVoice(int vid);
+
+    /** Stop all voices in `kg`, stops immediately (no KeyOff) when `flag` set */
+    void killKeygroup(uint8_t kg, uint8_t flag);
+
+    /** Send all voices using `macroId` the message `val` */
+    void sendMacroMessage(ObjectId macroId, int32_t val);
+
+    /** Obtain next random number from engine's PRNG */
+    uint32_t nextRandom() {return m_random();}
 };
 
 }

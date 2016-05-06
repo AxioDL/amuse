@@ -2,7 +2,8 @@
 #define __AMUSE_SOUNDMACROSTATE_HPP__
 
 #include <stdint.h>
-#include <random>
+#include <vector>
+#include <list>
 #include "Entity.hpp"
 
 namespace amuse
@@ -63,6 +64,7 @@ class SoundMacroState
         Return,
         GoSub,
         TrapEvent = 0x28,
+        UntrapEvent,
         SendMessage,
         GetMessage,
         GetVid,
@@ -79,7 +81,7 @@ class SoundMacroState
         PitchWheelSelect,
         ModWheelSelect,
         PedalSelect,
-        PortASelect,
+        PortamentoSelect,
         ReverbSelect,
         SpanSelect,
         DopplerSelect,
@@ -110,16 +112,16 @@ class SoundMacroState
         void swapBig();
     };
 
-    const unsigned char* m_ptr = nullptr; /**< pointer to selected SoundMacro data */
-    std::vector<int> m_pc; /**< 'program counter' stack for the active SoundMacro */
+    /** 'program counter' stack for the active SoundMacro */
+    std::vector<std::pair<const unsigned char*, int>> m_pc;
 
-    float m_curVol; /**< cumulative (final) volume level sent to voice */
+    float m_curVol; /**< final volume sent to voice */
     bool m_volDirty; /**< set when voice needs updated volume */
 
-    float m_curPan; /**< cumulative (final) volume level sent to voice */
+    float m_curPan; /**< final pan sent to voice */
     bool m_panDirty; /**< set when voice needs updated pan */
 
-    float m_curSpan; /**< cumulative (final) volume level sent to voice */
+    float m_curSpan; /**< final span sent to voice */
     bool m_spanDirty; /**< set when voice needs updated span */
 
     float m_ticksPerSec; /**< ratio for resolving ticks in commands that use them */
@@ -136,7 +138,6 @@ class SoundMacroState
     uint8_t m_pitchSweep1Times; /**< Remaining times to advance PITCHSWEEP1 controller */
     uint8_t m_pitchSweep2Times; /**< Remaining times to advance PITCHSWEEP2 controller */
     bool m_pitchDirty; /**< set when voice needs latest pitch computation */
-    std::linear_congruential_engine<uint32_t, 0x41c64e6d, 0x3039, UINT32_MAX> m_random;
 
     float m_execTime; /**< time in seconds of SoundMacro execution */
     bool m_keyoff; /**< keyoff message has been received */
@@ -230,7 +231,7 @@ class SoundMacroState
     LFOSel m_pitchWheelSel;
     LFOSel m_modWheelSel;
     LFOSel m_pedalSel;
-    LFOSel m_portASel;
+    LFOSel m_portamentoSel;
     LFOSel m_reverbSel;
     LFOSel m_preAuxASel;
     LFOSel m_preAuxBSel;
@@ -242,6 +243,19 @@ class SoundMacroState
     LFOSel m_tremoloSel;
 
     int32_t m_variables[256]; /**< 32-bit variables set with relevant commands */
+
+    /** Messages pending processing for this SoundMacro voice */
+    std::list<int32_t> m_messageQueue;
+
+    /** Event registration data for TRAP_EVENT */
+    struct EventTrap
+    {
+        ObjectId macroId;
+        uint16_t macroStep;
+    };
+    EventTrap m_keyoffTrap;
+    EventTrap m_sampleEndTrap;
+    EventTrap m_messageTrap;
 
 public:
     /** initialize state for SoundMacro data at `ptr` */
@@ -255,10 +269,13 @@ public:
     bool advance(Voice& vox, float dt);
 
     /** keyoff event */
-    void keyoff();
+    void keyoffNotify(Voice& vox);
 
     /** sample end event */
-    void sampleEnd();
+    void sampleEndNotify(Voice& vox);
+
+    /** SEND_MESSAGE receive event */
+    void messageNotify(Voice& vox, int32_t val);
 };
 
 }
