@@ -438,7 +438,7 @@ bool SoundMacroState::advance(Voice& vox, float dt)
             //int8_t priority = cmd.m_data[5];
             //int8_t maxVoices = cmd.m_data[6];
 
-            Voice* sibVox = vox.startSiblingMacro(addNote, macroId, macroStep);
+            Voice* sibVox = vox.startChildMacro(addNote, macroId, macroStep);
             if (sibVox)
                 m_lastPlayMacroVid = sibVox->vid();
 

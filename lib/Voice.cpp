@@ -1,31 +1,36 @@
 #include "amuse/Voice.hpp"
+#include "amuse/Submix.hpp"
 #include "amuse/IBackendVoice.hpp"
 
 namespace amuse
 {
 
-Voice::Voice(Engine& engine, const AudioGroup& group, int vid, bool emitter)
-: Entity(engine, group), m_vid(vid), m_emitter(emitter)
-{}
-
-Voice::Voice(Engine& engine, const AudioGroup& group, ObjectId oid, int vid, bool emitter)
-: Entity(engine, group, oid), m_vid(vid), m_emitter(emitter)
-{}
-
 void Voice::_destroy()
 {
     Entity::_destroy();
-    if (m_prevSibling)
-        m_prevSibling->m_nextSibling = m_nextSibling;
-    if (m_nextSibling)
-        m_nextSibling->m_prevSibling = m_prevSibling;
+    if (m_submix)
+        m_submix->m_activeVoices.erase(this);
+}
+
+Voice::Voice(Engine& engine, const AudioGroup& group, int vid, bool emitter, Submix* smx)
+: Entity(engine, group), m_vid(vid), m_emitter(emitter), m_submix(smx)
+{
+    if (m_submix)
+        m_submix->m_activeVoices.insert(this);
+}
+
+Voice::Voice(Engine& engine, const AudioGroup& group, ObjectId oid, int vid, bool emitter, Submix* smx)
+: Entity(engine, group, oid), m_vid(vid), m_emitter(emitter), m_submix(smx)
+{
+    if (m_submix)
+        m_submix->m_activeVoices.insert(this);
 }
 
 size_t Voice::supplyAudio(size_t frames, int16_t* data)
 {
 }
 
-Voice* Voice::startSiblingMacro(int8_t addNote, ObjectId macroId, int macroStep)
+Voice* Voice::startChildMacro(int8_t addNote, ObjectId macroId, int macroStep)
 {
 }
 

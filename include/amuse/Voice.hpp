@@ -11,6 +11,7 @@
 namespace amuse
 {
 class IBackendVoice;
+class Submix;
 
 /** State of voice over lifetime */
 enum class VoiceState
@@ -24,26 +25,28 @@ enum class VoiceState
 class Voice : public Entity
 {
     friend class Engine;
-    template <class U, class A>
-    friend class std::list;
     int m_vid; /**< VoiceID of this voice instance */
     bool m_emitter; /**< Voice is part of an Emitter */
+    Submix* m_submix = nullptr; /**< Submix this voice outputs to (or NULL for the main output mix) */
     std::list<Voice>::iterator m_engineIt; /**< Iterator to self within Engine's list for quick deletion */
     std::unique_ptr<IBackendVoice> m_backendVoice; /**< Handle to client-implemented backend voice */
     SoundMacroState m_state; /**< State container for SoundMacro playback */
-    Voice *m_nextSibling = nullptr, *m_prevSibling = nullptr; /**< Sibling voice links for PLAYMACRO usage */
+    std::list<Voice> m_childVoices; /**< Child voices for PLAYMACRO usage */
     uint8_t m_lastNote = 0; /**< Last MIDI semitone played by voice */
     uint8_t m_keygroup = 0; /**< Keygroup voice is a member of */
 
     void _destroy();
 
 public:
-    Voice(Engine& engine, const AudioGroup& group, int vid, bool emitter);
-    Voice(Engine& engine, const AudioGroup& group, ObjectId oid, int vid, bool emitter);
+    Voice(Engine& engine, const AudioGroup& group, int vid, bool emitter, Submix* smx);
+    Voice(Engine& engine, const AudioGroup& group, ObjectId oid, int vid, bool emitter, Submix* smx);
 
     /** Request specified count of audio frames (samples) from voice,
      *  internally advancing the voice stream */
     size_t supplyAudio(size_t frames, int16_t* data);
+
+    /** Obtain pointer to Voice's Submix */
+    Submix* getSubmix() {return m_submix;}
 
     /** Get current state of voice */
     VoiceState state() const;
@@ -52,7 +55,7 @@ public:
     int vid() const {return m_vid;}
 
     /** Allocate parallel macro and tie to voice for possible emitter influence */
-    Voice* startSiblingMacro(int8_t addNote, ObjectId macroId, int macroStep);
+    Voice* startChildMacro(int8_t addNote, ObjectId macroId, int macroStep);
 
     /** Load specified SoundMacro ID of within group into voice */
     bool loadSoundMacro(ObjectId macroId, int macroStep=0, bool pushPc=false);

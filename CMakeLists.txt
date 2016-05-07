@@ -10,7 +10,13 @@ set(SOURCES
     lib/Listener.cpp
     lib/Sequencer.cpp
     lib/SoundMacroState.cpp
-    lib/Voice.cpp)
+    lib/Voice.cpp
+    lib/Submix.cpp
+    lib/EffectBase.cpp
+    lib/EffectReverbHi.cpp
+    lib/EffectReverbStd.cpp
+    lib/EffectChorus.cpp
+    lib/EffectDelay.cpp)
 
 set(HEADERS
     include/amuse/AudioGroup.hpp
@@ -26,8 +32,15 @@ set(HEADERS
     include/amuse/Sequencer.hpp
     include/amuse/SoundMacroState.hpp
     include/amuse/Voice.hpp
+    include/amuse/Submix.hpp
+    include/amuse/IBackendSubmix.hpp
     include/amuse/IBackendVoice.hpp
     include/amuse/IBackendVoiceAllocator.hpp
+    include/amuse/EffectBase.hpp
+    include/amuse/EffectReverbHi.hpp
+    include/amuse/EffectReverbStd.hpp
+    include/amuse/EffectChorus.hpp
+    include/amuse/EffectDelay.hpp
     include/amuse/Common.hpp
     include/amuse/amuse.hpp)
 

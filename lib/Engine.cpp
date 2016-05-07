@@ -1,5 +1,6 @@
 #include "amuse/Engine.hpp"
 #include "amuse/Voice.hpp"
+#include "amuse/Submix.hpp"
 #include "amuse/Sequencer.hpp"
 #include "amuse/IBackendVoice.hpp"
 #include "amuse/IBackendVoiceAllocator.hpp"
@@ -13,13 +14,22 @@ Engine::Engine(IBackendVoiceAllocator& backend)
 : m_backend(backend)
 {}
 
-Voice* Engine::_allocateVoice(const AudioGroup& group, double sampleRate, bool dynamicPitch, bool emitter)
+Voice* Engine::_allocateVoice(const AudioGroup& group, double sampleRate,
+                              bool dynamicPitch, bool emitter, Submix* smx)
 {
-    auto it = m_activeVoices.emplace(m_activeVoices.end(), *this, group, m_nextVid++, emitter);
+    auto it = m_activeVoices.emplace(m_activeVoices.end(), *this, group, m_nextVid++, emitter, smx);
     m_activeVoices.back().m_backendVoice =
         m_backend.allocateVoice(m_activeVoices.back(), sampleRate, dynamicPitch);
     m_activeVoices.back().m_engineIt = it;
     return &m_activeVoices.back();
+}
+
+Submix* Engine::_allocateSubmix(Submix* smx)
+{
+    auto it = m_activeSubmixes.emplace(m_activeSubmixes.end(), *this, smx);
+    m_activeSubmixes.back().m_backendSubmix = m_backend.allocateSubmix(m_activeSubmixes.back());
+    m_activeSubmixes.back().m_engineIt = it;
+    return &m_activeSubmixes.back();
 }
 
 std::list<Voice>::iterator Engine::_destroyVoice(Voice* voice)
@@ -29,6 +39,15 @@ std::list<Voice>::iterator Engine::_destroyVoice(Voice* voice)
 #endif
     voice->_destroy();
     return m_activeVoices.erase(voice->m_engineIt);
+}
+
+std::list<Submix>::iterator Engine::_destroySubmix(Submix* smx)
+{
+#ifndef NDEBUG
+    assert(this == &smx->getEngine());
+#endif
+    smx->_destroy();
+    return m_activeSubmixes.erase(smx->m_engineIt);
 }
 
 AudioGroup* Engine::_findGroupFromSfxId(int sfxId, const AudioGroupSampleDirectory::Entry*& entOut) const
@@ -62,13 +81,14 @@ void Engine::pumpEngine()
 }
 
 /** Add audio group data pointers to engine; must remain resident! */
-bool Engine::addAudioGroup(int groupId, const AudioGroupData& data)
+const AudioGroup* Engine::addAudioGroup(int groupId, const AudioGroupData& data)
 {
     std::unique_ptr<AudioGroup> grp = std::make_unique<AudioGroup>(groupId, data);
     if (!grp)
-        return false;
+        return nullptr;
+    AudioGroup* ret = grp.get();
     m_audioGroups.emplace(std::make_pair(groupId, std::move(grp)));
-    return true;
+    return ret;
 }
 
 /** Remove audio group from engine */
@@ -78,6 +98,7 @@ void Engine::removeAudioGroup(int groupId)
     {
         if (it->getAudioGroup().groupId() == groupId)
         {
+            it->_destroy();
             it = m_activeVoices.erase(it);
             continue;
         }
@@ -88,6 +109,7 @@ void Engine::removeAudioGroup(int groupId)
     {
         if (it->getAudioGroup().groupId() == groupId)
         {
+            it->_destroy();
             it = m_activeEmitters.erase(it);
             continue;
         }
@@ -98,6 +120,7 @@ void Engine::removeAudioGroup(int groupId)
     {
         if (it->getAudioGroup().groupId() == groupId)
         {
+            it->_destroy();
             it = m_activeSequencers.erase(it);
             continue;
         }
@@ -107,15 +130,54 @@ void Engine::removeAudioGroup(int groupId)
     m_audioGroups.erase(groupId);
 }
 
+/** Create new Submix (a.k.a 'Studio') within root mix engine */
+Submix* Engine::addSubmix(Submix* smx)
+{
+    return _allocateSubmix(smx);
+}
+
+/** Remove Submix and deallocate */
+void Engine::removeSubmix(Submix* smx)
+{
+    /* Delete all voices bound to submix */
+    for (auto it = m_activeVoices.begin() ; it != m_activeVoices.end() ;)
+    {
+        Submix* vsmx = it->getSubmix();
+        if (vsmx && vsmx == smx)
+        {
+            it->_destroy();
+            it = m_activeVoices.erase(it);
+            continue;
+        }
+        ++it;
+    }
+
+    /* Delete all submixes bound to submix */
+    for (auto it = m_activeSubmixes.begin() ; it != m_activeSubmixes.end() ;)
+    {
+        Submix* ssmx = it->getParentSubmix();
+        if (ssmx && ssmx == smx)
+        {
+            it->_destroy();
+            it = m_activeSubmixes.erase(it);
+            continue;
+        }
+        ++it;
+    }
+
+    /* Delete submix */
+    _destroySubmix(smx);
+}
+
 /** Start soundFX playing from loaded audio groups */
-Voice* Engine::fxStart(int sfxId, float vol, float pan)
+Voice* Engine::fxStart(int sfxId, float vol, float pan, Submix* smx)
 {
     const AudioGroupSampleDirectory::Entry* entry;
     AudioGroup* grp = _findGroupFromSfxId(sfxId, entry);
     if (!grp)
         return nullptr;
 
-    Voice* ret = _allocateVoice(*grp, entry->m_sampleRate, true, false);
+    Voice* ret = _allocateVoice(*grp, entry->m_sampleRate, true, false, smx);
     ret->setVolume(vol);
     ret->setPanning(pan);
     return ret;
@@ -123,14 +185,14 @@ Voice* Engine::fxStart(int sfxId, float vol, float pan)
 
 /** Start soundFX playing from loaded audio groups, attach to positional emitter */
 Emitter* Engine::addEmitter(const Vector3f& pos, const Vector3f& dir, float maxDist,
-                            float falloff, int sfxId, float minVol, float maxVol)
+                            float falloff, int sfxId, float minVol, float maxVol, Submix* smx)
 {
     const AudioGroupSampleDirectory::Entry* entry;
     AudioGroup* grp = _findGroupFromSfxId(sfxId, entry);
     if (!grp)
         return nullptr;
 
-    Voice* vox = _allocateVoice(*grp, entry->m_sampleRate, true, true);
+    Voice* vox = _allocateVoice(*grp, entry->m_sampleRate, true, true, smx);
     m_activeEmitters.emplace_back(*this, *grp, *vox);
     Emitter& ret = m_activeEmitters.back();
     ret.setPos(pos);

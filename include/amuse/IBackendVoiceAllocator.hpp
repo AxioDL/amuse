@@ -6,7 +6,9 @@
 namespace amuse
 {
 class IBackendVoice;
+class IBackendSubmix;
 class Voice;
+class Submix;
 
 /**
  * @brief Client-implemented voice allocator
@@ -18,6 +20,9 @@ public:
 
     /** Amuse obtains a new voice from the platform this way */
     virtual std::unique_ptr<IBackendVoice> allocateVoice(Voice& clientVox, double sampleRate, bool dynamicPitch)=0;
+
+    /** Amuse obtains a new submix from the platform this way */
+    virtual std::unique_ptr<IBackendSubmix> allocateSubmix(Submix& clientSmx)=0;
 };
 
 }

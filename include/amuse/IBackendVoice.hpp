@@ -18,6 +18,13 @@ enum class AudioChannel
     Unknown = 0xff
 };
 
+/** Same structure from boo, used to represent interleaved speaker layout */
+struct ChannelMap
+{
+    unsigned m_channelCount = 0;
+    AudioChannel m_channels[8] = {};
+};
+
 /**
  * @brief Client-implemented voice instance
  */

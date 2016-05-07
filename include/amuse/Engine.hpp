@@ -13,6 +13,7 @@ namespace amuse
 {
 class IBackendVoiceAllocator;
 class Voice;
+class Submix;
 class Emitter;
 class Sequencer;
 class AudioGroup;
@@ -26,10 +27,14 @@ class Engine
     std::list<Voice> m_activeVoices;
     std::list<Emitter> m_activeEmitters;
     std::list<Sequencer> m_activeSequencers;
+    std::list<Submix> m_activeSubmixes;
     std::linear_congruential_engine<uint32_t, 0x41c64e6d, 0x3039, UINT32_MAX> m_random;
     int m_nextVid = 0;
-    Voice* _allocateVoice(const AudioGroup& group, double sampleRate, bool dynamicPitch, bool emitter);
+    Voice* _allocateVoice(const AudioGroup& group, double sampleRate,
+                          bool dynamicPitch, bool emitter, Submix* smx);
+    Submix* _allocateSubmix(Submix* smx);
     std::list<Voice>::iterator _destroyVoice(Voice* voice);
+    std::list<Submix>::iterator _destroySubmix(Submix* smx);
     AudioGroup* _findGroupFromSfxId(int sfxId, const AudioGroupSampleDirectory::Entry*& entOut) const;
     AudioGroup* _findGroupFromSongId(int songId) const;
 public:
@@ -39,17 +44,24 @@ public:
     void pumpEngine();
 
     /** Add audio group data pointers to engine; must remain resident! */
-    bool addAudioGroup(int groupId, const AudioGroupData& data);
+    const AudioGroup* addAudioGroup(int groupId, const AudioGroupData& data);
 
     /** Remove audio group from engine */
     void removeAudioGroup(int groupId);
 
+    /** Create new Submix (a.k.a 'Studio') within root mix engine */
+    Submix* addSubmix(Submix* parent=nullptr);
+
+    /** Remove Submix and deallocate */
+    void removeSubmix(Submix* smx);
+
     /** Start soundFX playing from loaded audio groups */
-    Voice* fxStart(int sfxId, float vol, float pan);
+    Voice* fxStart(int sfxId, float vol, float pan, Submix* smx=nullptr);
 
     /** Start soundFX playing from loaded audio groups, attach to positional emitter */
     Emitter* addEmitter(const Vector3f& pos, const Vector3f& dir, float maxDist,
-                        float falloff, int sfxId, float minVol, float maxVol);
+                        float falloff, int sfxId, float minVol, float maxVol,
+                        Submix* smx=nullptr);
 
     /** Start song playing from loaded audio groups */
     Sequencer* seqPlay(int songId, const unsigned char* arrData);
