@@ -4,7 +4,7 @@
 3D positional audio and surround-output capabilities.
 
 The project is designed for compatibility with Audio Groups and Song data
-found in PC/N64/GCN/GBA games using the *MusyX* audio engine, providing an
+found in PC/N64/GCN/GBA games using the *MusyX* audio engine; providing an
 alternate runtime library to use for sequencing these games' audio libraries.
 
 #### Library
@@ -19,7 +19,10 @@ the OS' audio system fed.
 The client must provide the implementation for allocating and mixing audio
 voices, since this may drastically differ from target to target.
 `amuse::IBackendVoiceAllocator` is the pure-virtual interface to implement
-for this.
+for this. Alternatively, if [Boo](https://github.com/AxioDL/boo) is present
+in the CMake project tree, Amuse will be compiled with a backend supporting
+multiple popular low-level audio APIs. Windows, OS X, and Linux all have
+excellent support this way.
 
 Here's an example usage:
 
