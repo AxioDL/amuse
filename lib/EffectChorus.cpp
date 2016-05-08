@@ -17,43 +17,35 @@ EffectChorus::EffectChorus(uint32_t baseDelay, uint32_t variation,
     memset(buf, 0, m_blockSamples * AMUSE_CHORUS_NUM_BLOCKS * 8 * sizeof(int32_t));
     size_t chanPitch = m_blockSamples * AMUSE_CHORUS_NUM_BLOCKS;
 
-    x0_lastLeft[0] = buf;
-    x0_lastLeft[1] = x0_lastLeft[0] + m_blockSamples;
-    x0_lastLeft[2] = x0_lastLeft[0] + m_blockSamples * 2;
+    for (int i=0 ; i<AMUSE_CHORUS_NUM_BLOCKS ; ++i)
+        x0_lastLeft[i] = buf + m_blockSamples * i;
 
-    xc_lastRight[0] = buf + chanPitch;
-    xc_lastRight[1] = xc_lastRight[0] + m_blockSamples;
-    xc_lastRight[2] = xc_lastRight[0] + m_blockSamples * 2;
+    for (int i=0 ; i<AMUSE_CHORUS_NUM_BLOCKS ; ++i)
+        xc_lastRight[i] = buf + chanPitch + m_blockSamples * i;
 
-    x18_lastRearLeft[0] = buf + chanPitch * 2;
-    x18_lastRearLeft[1] = x18_lastRearLeft[0] + m_blockSamples;
-    x18_lastRearLeft[2] = x18_lastRearLeft[0] + m_blockSamples * 2;
+    for (int i=0 ; i<AMUSE_CHORUS_NUM_BLOCKS ; ++i)
+        x18_lastRearLeft[i] = buf + chanPitch * 2 + m_blockSamples * i;
 
-    x18_lastRearRight[0] = buf + chanPitch * 3;
-    x18_lastRearRight[1] = x18_lastRearRight[0] + m_blockSamples;
-    x18_lastRearRight[2] = x18_lastRearRight[0] + m_blockSamples * 2;
+    for (int i=0 ; i<AMUSE_CHORUS_NUM_BLOCKS ; ++i)
+        x18_lastRearRight[i] = buf + chanPitch * 3 + m_blockSamples * i;
 
-    x18_lastCenter[0] = buf + chanPitch * 4;
-    x18_lastCenter[1] = x18_lastCenter[0] + m_blockSamples;
-    x18_lastCenter[2] = x18_lastCenter[0] + m_blockSamples * 2;
+    for (int i=0 ; i<AMUSE_CHORUS_NUM_BLOCKS ; ++i)
+        x18_lastCenter[i] = buf + chanPitch * 4 + m_blockSamples * i;
 
-    x18_lastLFE[0] = buf + chanPitch * 5;
-    x18_lastLFE[1] = x18_lastLFE[0] + m_blockSamples;
-    x18_lastLFE[2] = x18_lastLFE[0] + m_blockSamples * 2;
+    for (int i=0 ; i<AMUSE_CHORUS_NUM_BLOCKS ; ++i)
+        x18_lastLFE[i] = buf + chanPitch * 5 + m_blockSamples * i;
 
-    x18_lastSideLeft[0] = buf + chanPitch * 6;
-    x18_lastSideLeft[1] = x18_lastSideLeft[0] + m_blockSamples;
-    x18_lastSideLeft[2] = x18_lastSideLeft[0] + m_blockSamples * 2;
+    for (int i=0 ; i<AMUSE_CHORUS_NUM_BLOCKS ; ++i)
+        x18_lastSideLeft[i] = buf + chanPitch * 6 + m_blockSamples * i;
 
-    x18_lastSideRight[0] = buf + chanPitch * 7;
-    x18_lastSideRight[1] = x18_lastSideRight[0] + m_blockSamples;
-    x18_lastSideRight[2] = x18_lastSideRight[0] + m_blockSamples * 2;
+    for (int i=0 ; i<AMUSE_CHORUS_NUM_BLOCKS ; ++i)
+        x18_lastSideRight[i] = buf + chanPitch * 7 + m_blockSamples * i;
 
     x6c_src.x88_trigger = chanPitch;
 
-    x5c_currentPosHi = m_blockSamples * 2 - ((x90_baseDelay - 5) * m_sampleRate / 1000.f);
+    x5c_currentPosHi = m_blockSamples * 2 - ((x90_baseDelay - 5) * (m_sampleRate / 1000.0));
     uint32_t temp = (x5c_currentPosHi + (x24_currentLast - 1) * m_blockSamples);
-    x5c_currentPosHi = temp - ((temp * 8 / 15) >> 8) * chanPitch;
+    x5c_currentPosHi = temp - int32_t(temp * 15 / (m_sampleRate / 1000.0)) * chanPitch;
 
     x68_pitchOffsetPeriod = (x98_period * 2 / 10 + 1) & ~1;
     x60_pitchOffset = x94_variation * 2048 / x68_pitchOffsetPeriod;
