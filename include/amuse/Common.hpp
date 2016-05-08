@@ -2,12 +2,46 @@
 #define __AMUSE_COMMON_HPP__
 
 #include <algorithm>
+#include <limits.h>
 
 namespace amuse
 {
 
 template <typename T>
 static inline T clamp(T a, T val, T b) {return std::max<T>(a, std::min<T>(b, val));}
+
+template <typename T>
+static inline T ClampFull(float in) {return in;}
+
+template <>
+inline int16_t ClampFull<int16_t>(float in)
+{
+    if (in < SHRT_MIN)
+        return SHRT_MIN;
+    else if (in > SHRT_MAX)
+        return SHRT_MAX;
+    return in;
+}
+
+template <>
+inline int32_t ClampFull<int32_t>(float in)
+{
+    if (in < INT_MIN)
+        return INT_MIN;
+    else if (in > INT_MAX)
+        return INT_MAX;
+    return in;
+}
+
+template <>
+inline float ClampFull<float>(float in)
+{
+    if (in < -1.f)
+        return -1.f;
+    else if (in > 1.f)
+        return 1.f;
+    return in;
+}
 
 #ifndef M_PIF
 #define M_PIF 3.14159265358979323846f /* pi */

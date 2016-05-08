@@ -8,14 +8,11 @@ namespace amuse
 {
 class ChannelMap;
 
+template <typename T>
 class EffectBase
 {
 public:
-    virtual void applyEffect(int16_t* audio, size_t frameCount,
-                             const ChannelMap& chanMap, double sampleRate)=0;
-    virtual void applyEffect(int32_t* audio, size_t frameCount,
-                             const ChannelMap& chanMap, double sampleRate)=0;
-    virtual void applyEffect(float* audio, size_t frameCount,
+    virtual void applyEffect(T* audio, size_t frameCount,
                              const ChannelMap& chanMap, double sampleRate)=0;
 };
 
