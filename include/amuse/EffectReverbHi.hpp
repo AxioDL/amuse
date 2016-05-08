@@ -15,6 +15,15 @@ class EffectReverbHi : public EffectBase
     float m_damping; /**< [0.0, 1.0] damping factor influencing low-pass filter of reflections */
     float m_preDelay; /**< [0.0, 0.1] time in seconds before initial reflection heard */
     float m_crosstalk; /**< [0.0, 100.0] factor defining how much reflections are allowed to bleed to other channels */
+public:
+    EffectReverbHi(float coloration, float mix, float time,
+                   float damping, float preDelay, float crosstalk);
+    void applyEffect(int16_t* audio, size_t frameCount,
+                     const ChannelMap& chanMap, double sampleRate);
+    void applyEffect(int32_t* audio, size_t frameCount,
+                     const ChannelMap& chanMap, double sampleRate);
+    void applyEffect(float* audio, size_t frameCount,
+                     const ChannelMap& chanMap, double sampleRate);
 };
 
 }

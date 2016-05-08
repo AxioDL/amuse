@@ -48,20 +48,20 @@ bool BooBackendSubmix::SubmixCallback::canApplyEffect() const
     return m_parent.m_clientSmx.canApplyEffect();
 }
 
-void BooBackendSubmix::SubmixCallback::applyEffect(int16_t* audio, const boo::ChannelMap& chanMap,
-                                                   double sampleRate) const
+void BooBackendSubmix::SubmixCallback::applyEffect(int16_t* audio, size_t frameCount,
+                                                   const boo::ChannelMap& chanMap, double sampleRate) const
 {
     return m_parent.m_clientSmx.applyEffect(audio, reinterpret_cast<const ChannelMap&>(chanMap), sampleRate);
 }
 
-void BooBackendSubmix::SubmixCallback::applyEffect(int32_t* audio, const boo::ChannelMap& chanMap,
-                                                   double sampleRate) const
+void BooBackendSubmix::SubmixCallback::applyEffect(int32_t* audio, size_t frameCount,
+                                                   const boo::ChannelMap& chanMap, double sampleRate) const
 {
     return m_parent.m_clientSmx.applyEffect(audio, reinterpret_cast<const ChannelMap&>(chanMap), sampleRate);
 }
 
-void BooBackendSubmix::SubmixCallback::applyEffect(float* audio, const boo::ChannelMap& chanMap,
-                                                   double sampleRate) const
+void BooBackendSubmix::SubmixCallback::applyEffect(float* audio, size_t frameCount,
+                                                   const boo::ChannelMap& chanMap, double sampleRate) const
 {
     return m_parent.m_clientSmx.applyEffect(audio, reinterpret_cast<const ChannelMap&>(chanMap), sampleRate);
 }

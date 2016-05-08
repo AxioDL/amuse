@@ -14,6 +14,15 @@ class EffectReverbStd : public EffectBase
     float m_time; /**< [0.01, 10.0] time in seconds for reflection decay */
     float m_damping; /**< [0.0, 1.0] damping factor influencing low-pass filter of reflections */
     float m_preDelay; /**< [0.0, 0.1] time in seconds before initial reflection heard */
+public:
+    EffectReverbStd(float coloration, float mix, float time,
+                    float damping, float preDelay);
+    void applyEffect(int16_t* audio, size_t frameCount,
+                     const ChannelMap& chanMap, double sampleRate);
+    void applyEffect(int32_t* audio, size_t frameCount,
+                     const ChannelMap& chanMap, double sampleRate);
+    void applyEffect(float* audio, size_t frameCount,
+                     const ChannelMap& chanMap, double sampleRate);
 };
 
 }

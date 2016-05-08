@@ -1,8 +1,13 @@
 #ifndef __AMUSE_COMMON_HPP__
 #define __AMUSE_COMMON_HPP__
 
+#include <algorithm>
+
 namespace amuse
 {
+
+template <typename T>
+static inline T clamp(T a, T val, T b) {return std::max<T>(a, std::min<T>(b, val));}
 
 #ifndef M_PIF
 #define M_PIF 3.14159265358979323846f /* pi */
