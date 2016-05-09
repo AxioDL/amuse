@@ -3,24 +3,33 @@
 
 #include "EffectBase.hpp"
 #include <stdint.h>
+#include <memory>
 
 namespace amuse
 {
 
 /** Mixes the audio back into itself after specified delay */
-class EffectDelay : public EffectBase
+template <typename T>
+class EffectDelay : public EffectBase<T>
 {
-    uint32_t m_delay[8]; /**< [10, 5000] time in ms of each channel's delay */
-    uint32_t m_feedback[8]; /**< [0, 100] percent to mix delayed signal with input signal */
-    uint32_t m_output[8]; /**< [0, 100] total output percent */
+    uint32_t x0_currentSize[8];
+    uint32_t xc_currentPos[8];
+    uint32_t x18_currentFeedback[8];
+    uint32_t x24_currentOutput[8];
+
+    std::unique_ptr<T[]> x30_chanLines[8];
+
+    uint32_t x3c_delay[8]; /**< [10, 5000] time in ms of each channel's delay */
+    uint32_t x48_feedback[8]; /**< [0, 100] percent to mix delayed signal with input signal */
+    uint32_t x54_output[8]; /**< [0, 100] total output percent */
+
+    uint32_t m_sampsPerMs;
+    uint32_t m_blockSamples;
+    bool m_dirty = true;
+    void _update();
 public:
-    EffectDelay(uint32_t initDelay, uint32_t initFeedback, uint32_t initOutput);
-    void applyEffect(int16_t* audio, size_t frameCount,
-                     const ChannelMap& chanMap, double sampleRate);
-    void applyEffect(int32_t* audio, size_t frameCount,
-                     const ChannelMap& chanMap, double sampleRate);
-    void applyEffect(float* audio, size_t frameCount,
-                     const ChannelMap& chanMap, double sampleRate);
+    EffectDelay(uint32_t initDelay, uint32_t initFeedback, uint32_t initOutput, double sampleRate);
+    void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap);
 };
 
 }

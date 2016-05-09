@@ -59,7 +59,7 @@ class EffectChorus : public EffectBase<T>
     uint32_t x94_variation; /**< [0, 5] time error (in ms) to set delay within */
     uint32_t x98_period; /**< [500, 10000] time (in ms) of one delay-shift cycle */
 
-    double m_sampsPerMs;
+    uint32_t m_sampsPerMs;
     uint32_t m_blockSamples;
     bool m_dirty = true;
 
@@ -68,8 +68,7 @@ class EffectChorus : public EffectBase<T>
 public:
     ~EffectChorus();
     EffectChorus(uint32_t baseDelay, uint32_t variation, uint32_t period, double sampleRate);
-    void applyEffect(T* audio, size_t frameCount,
-                     const ChannelMap& chanMap, double sampleRate);
+    void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap);
 };
 
 }

@@ -12,8 +12,7 @@ template <typename T>
 class EffectBase
 {
 public:
-    virtual void applyEffect(T* audio, size_t frameCount,
-                             const ChannelMap& chanMap, double sampleRate)=0;
+    virtual void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap)=0;
 };
 
 }
