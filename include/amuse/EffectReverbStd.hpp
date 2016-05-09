@@ -7,7 +7,8 @@ namespace amuse
 {
 
 /** Reverb effect with configurable reflection filtering */
-class EffectReverbStd : public EffectBase
+template <typename T>
+class EffectReverbStd : public EffectBase<T>
 {
     float m_coloration; /**< [0.0, 1.0] influences filter coefficients to define surface characteristics of a room */
     float m_mix; /**< [0.0, 1.0] dry/wet mix factor of reverb effect */

@@ -57,3 +57,8 @@ add_library(amuse
             ${SOURCES}
             ${HEADERS}
             ${EXTRAS})
+
+if(TARGET boo)
+  add_executable(amusetool driver/main.cpp)
+  target_link_libraries(amusetool amuse boo ${BOO_SYS_LIBS} logvisor)
+endif()

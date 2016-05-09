@@ -38,4 +38,20 @@ bool Voice::loadSoundMacro(ObjectId macroId, int macroStep, bool pushPc)
 {
 }
 
+void Voice::keyOff()
+{
+}
+
+void Voice::message(int32_t val)
+{
+}
+
+void Voice::setVolume(float vol)
+{
+}
+
+void Voice::setPanning(float pan)
+{
+}
+
 }

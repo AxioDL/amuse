@@ -343,7 +343,7 @@ void EffectChorus<T>::applyEffect(T* audio, size_t frameCount, const ChannelMap&
             }
         }
 
-        audio = outBuf;
+        audio += bs * chanMap.m_channelCount;
         remFrames -= bs;
 
         size_t chanPitch = m_blockSamples * AMUSE_CHORUS_NUM_BLOCKS;

@@ -21,13 +21,13 @@ void SoundMacroState::Command::swapBig()
     words[1] = SBig(words[1]);
 }
 
-void SoundMacroState::LFOSel::addComponent(uint8_t midiCtrl, float scale,
+void SoundMacroState::Evaluator::addComponent(uint8_t midiCtrl, float scale,
                                            Combine combine, VarType varType)
 {
     m_comps.push_back({midiCtrl, scale, combine, varType});
 }
 
-float SoundMacroState::LFOSel::evaluate(Voice& vox, const SoundMacroState& st)
+float SoundMacroState::Evaluator::evaluate(Voice& vox, const SoundMacroState& st)
 {
     float value = 0.f;
 
@@ -978,8 +978,8 @@ bool SoundMacroState::advance(Voice& vox, float dt)
         {
             uint8_t ctrl = cmd.m_data[0];
             int16_t perc = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
-            LFOSel::Combine combine = LFOSel::Combine(cmd.m_data[3]);
-            LFOSel::VarType vtype = LFOSel::VarType(cmd.m_data[4]);
+            Evaluator::Combine combine = Evaluator::Combine(cmd.m_data[3]);
+            Evaluator::VarType vtype = Evaluator::VarType(cmd.m_data[4]);
             uint8_t fine = cmd.m_data[5];
             m_volumeSel.addComponent(ctrl, (perc + fine / 100.f) / 100.f, combine, vtype);
             break;
@@ -988,8 +988,8 @@ bool SoundMacroState::advance(Voice& vox, float dt)
         {
             uint8_t ctrl = cmd.m_data[0];
             int16_t perc = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
-            LFOSel::Combine combine = LFOSel::Combine(cmd.m_data[3]);
-            LFOSel::VarType vtype = LFOSel::VarType(cmd.m_data[4]);
+            Evaluator::Combine combine = Evaluator::Combine(cmd.m_data[3]);
+            Evaluator::VarType vtype = Evaluator::VarType(cmd.m_data[4]);
             uint8_t fine = cmd.m_data[5];
             m_panSel.addComponent(ctrl, (perc + fine / 100.f) / 100.f, combine, vtype);
             break;
@@ -998,8 +998,8 @@ bool SoundMacroState::advance(Voice& vox, float dt)
         {
             uint8_t ctrl = cmd.m_data[0];
             int16_t perc = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
-            LFOSel::Combine combine = LFOSel::Combine(cmd.m_data[3]);
-            LFOSel::VarType vtype = LFOSel::VarType(cmd.m_data[4]);
+            Evaluator::Combine combine = Evaluator::Combine(cmd.m_data[3]);
+            Evaluator::VarType vtype = Evaluator::VarType(cmd.m_data[4]);
             uint8_t fine = cmd.m_data[5];
             m_pitchWheelSel.addComponent(ctrl, (perc + fine / 100.f) / 100.f, combine, vtype);
             break;
@@ -1008,8 +1008,8 @@ bool SoundMacroState::advance(Voice& vox, float dt)
         {
             uint8_t ctrl = cmd.m_data[0];
             int16_t perc = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
-            LFOSel::Combine combine = LFOSel::Combine(cmd.m_data[3]);
-            LFOSel::VarType vtype = LFOSel::VarType(cmd.m_data[4]);
+            Evaluator::Combine combine = Evaluator::Combine(cmd.m_data[3]);
+            Evaluator::VarType vtype = Evaluator::VarType(cmd.m_data[4]);
             uint8_t fine = cmd.m_data[5];
             m_modWheelSel.addComponent(ctrl, (perc + fine / 100.f) / 100.f, combine, vtype);
             break;
@@ -1018,8 +1018,8 @@ bool SoundMacroState::advance(Voice& vox, float dt)
         {
             uint8_t ctrl = cmd.m_data[0];
             int16_t perc = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
-            LFOSel::Combine combine = LFOSel::Combine(cmd.m_data[3]);
-            LFOSel::VarType vtype = LFOSel::VarType(cmd.m_data[4]);
+            Evaluator::Combine combine = Evaluator::Combine(cmd.m_data[3]);
+            Evaluator::VarType vtype = Evaluator::VarType(cmd.m_data[4]);
             uint8_t fine = cmd.m_data[5];
             m_pedalSel.addComponent(ctrl, (perc + fine / 100.f) / 100.f, combine, vtype);
             break;
@@ -1028,8 +1028,8 @@ bool SoundMacroState::advance(Voice& vox, float dt)
         {
             uint8_t ctrl = cmd.m_data[0];
             int16_t perc = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
-            LFOSel::Combine combine = LFOSel::Combine(cmd.m_data[3]);
-            LFOSel::VarType vtype = LFOSel::VarType(cmd.m_data[4]);
+            Evaluator::Combine combine = Evaluator::Combine(cmd.m_data[3]);
+            Evaluator::VarType vtype = Evaluator::VarType(cmd.m_data[4]);
             uint8_t fine = cmd.m_data[5];
             m_portamentoSel.addComponent(ctrl, (perc + fine / 100.f) / 100.f, combine, vtype);
             break;
@@ -1038,8 +1038,8 @@ bool SoundMacroState::advance(Voice& vox, float dt)
         {
             uint8_t ctrl = cmd.m_data[0];
             int16_t perc = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
-            LFOSel::Combine combine = LFOSel::Combine(cmd.m_data[3]);
-            LFOSel::VarType vtype = LFOSel::VarType(cmd.m_data[4]);
+            Evaluator::Combine combine = Evaluator::Combine(cmd.m_data[3]);
+            Evaluator::VarType vtype = Evaluator::VarType(cmd.m_data[4]);
             uint8_t fine = cmd.m_data[5];
             m_reverbSel.addComponent(ctrl, (perc + fine / 100.f) / 100.f, combine, vtype);
             break;
@@ -1048,8 +1048,8 @@ bool SoundMacroState::advance(Voice& vox, float dt)
         {
             uint8_t ctrl = cmd.m_data[0];
             int16_t perc = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
-            LFOSel::Combine combine = LFOSel::Combine(cmd.m_data[3]);
-            LFOSel::VarType vtype = LFOSel::VarType(cmd.m_data[4]);
+            Evaluator::Combine combine = Evaluator::Combine(cmd.m_data[3]);
+            Evaluator::VarType vtype = Evaluator::VarType(cmd.m_data[4]);
             uint8_t fine = cmd.m_data[5];
             m_spanSel.addComponent(ctrl, (perc + fine / 100.f) / 100.f, combine, vtype);
             break;
@@ -1058,8 +1058,8 @@ bool SoundMacroState::advance(Voice& vox, float dt)
         {
             uint8_t ctrl = cmd.m_data[0];
             int16_t perc = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
-            LFOSel::Combine combine = LFOSel::Combine(cmd.m_data[3]);
-            LFOSel::VarType vtype = LFOSel::VarType(cmd.m_data[4]);
+            Evaluator::Combine combine = Evaluator::Combine(cmd.m_data[3]);
+            Evaluator::VarType vtype = Evaluator::VarType(cmd.m_data[4]);
             uint8_t fine = cmd.m_data[5];
             m_dopplerSel.addComponent(ctrl, (perc + fine / 100.f) / 100.f, combine, vtype);
             break;
@@ -1068,8 +1068,8 @@ bool SoundMacroState::advance(Voice& vox, float dt)
         {
             uint8_t ctrl = cmd.m_data[0];
             int16_t perc = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
-            LFOSel::Combine combine = LFOSel::Combine(cmd.m_data[3]);
-            LFOSel::VarType vtype = LFOSel::VarType(cmd.m_data[4]);
+            Evaluator::Combine combine = Evaluator::Combine(cmd.m_data[3]);
+            Evaluator::VarType vtype = Evaluator::VarType(cmd.m_data[4]);
             uint8_t fine = cmd.m_data[5];
             m_tremoloSel.addComponent(ctrl, (perc + fine / 100.f) / 100.f, combine, vtype);
             break;
@@ -1078,8 +1078,8 @@ bool SoundMacroState::advance(Voice& vox, float dt)
         {
             uint8_t ctrl = cmd.m_data[0];
             int16_t perc = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
-            LFOSel::Combine combine = LFOSel::Combine(cmd.m_data[3]);
-            LFOSel::VarType vtype = LFOSel::VarType(cmd.m_data[4]);
+            Evaluator::Combine combine = Evaluator::Combine(cmd.m_data[3]);
+            Evaluator::VarType vtype = Evaluator::VarType(cmd.m_data[4]);
             uint8_t fine = cmd.m_data[5];
             m_preAuxASel.addComponent(ctrl, (perc + fine / 100.f) / 100.f, combine, vtype);
             break;
@@ -1088,8 +1088,8 @@ bool SoundMacroState::advance(Voice& vox, float dt)
         {
             uint8_t ctrl = cmd.m_data[0];
             int16_t perc = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
-            LFOSel::Combine combine = LFOSel::Combine(cmd.m_data[3]);
-            LFOSel::VarType vtype = LFOSel::VarType(cmd.m_data[4]);
+            Evaluator::Combine combine = Evaluator::Combine(cmd.m_data[3]);
+            Evaluator::VarType vtype = Evaluator::VarType(cmd.m_data[4]);
             uint8_t fine = cmd.m_data[5];
             m_preAuxBSel.addComponent(ctrl, (perc + fine / 100.f) / 100.f, combine, vtype);
             break;
@@ -1098,8 +1098,8 @@ bool SoundMacroState::advance(Voice& vox, float dt)
         {
             uint8_t ctrl = cmd.m_data[0];
             int16_t perc = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
-            LFOSel::Combine combine = LFOSel::Combine(cmd.m_data[3]);
-            LFOSel::VarType vtype = LFOSel::VarType(cmd.m_data[4]);
+            Evaluator::Combine combine = Evaluator::Combine(cmd.m_data[3]);
+            Evaluator::VarType vtype = Evaluator::VarType(cmd.m_data[4]);
             uint8_t fine = cmd.m_data[5];
             m_postAuxB.addComponent(ctrl, (perc + fine / 100.f) / 100.f, combine, vtype);
             break;
@@ -1108,8 +1108,8 @@ bool SoundMacroState::advance(Voice& vox, float dt)
         {
             uint8_t ctrl = cmd.m_data[0];
             int16_t perc = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
-            LFOSel::Combine combine = LFOSel::Combine(cmd.m_data[3]);
-            LFOSel::VarType vtype = LFOSel::VarType(cmd.m_data[4]);
+            Evaluator::Combine combine = Evaluator::Combine(cmd.m_data[3]);
+            Evaluator::VarType vtype = Evaluator::VarType(cmd.m_data[4]);
             uint8_t fine = cmd.m_data[5];
             m_auxAFxSel.addComponent(ctrl, (perc + fine / 100.f) / 100.f, combine, vtype);
             break;
@@ -1118,8 +1118,8 @@ bool SoundMacroState::advance(Voice& vox, float dt)
         {
             uint8_t ctrl = cmd.m_data[0];
             int16_t perc = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
-            LFOSel::Combine combine = LFOSel::Combine(cmd.m_data[3]);
-            LFOSel::VarType vtype = LFOSel::VarType(cmd.m_data[4]);
+            Evaluator::Combine combine = Evaluator::Combine(cmd.m_data[3]);
+            Evaluator::VarType vtype = Evaluator::VarType(cmd.m_data[4]);
             uint8_t fine = cmd.m_data[5];
             m_auxBFxSel.addComponent(ctrl, (perc + fine / 100.f) / 100.f, combine, vtype);
             break;

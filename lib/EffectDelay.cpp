@@ -46,6 +46,9 @@ void EffectDelay<T>::_update()
 template <typename T>
 void EffectDelay<T>::applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap)
 {
+    if (m_dirty)
+        _update();
+
     for (size_t f=0 ; f<frameCount ;)
     {
         for (int c=0 ; c<chanMap.m_channelCount ; ++c)

@@ -187,8 +187,8 @@ class SoundMacroState
 
     float m_lfoPeriods[2]; /**< time-periods for LFO1 and LFO2 */
 
-    /** Used to store LFO-reference parameters for compatible state systems */
-    struct LFOSel
+    /** Used to build a multi-component formula for overriding controllers */
+    struct Evaluator
     {
         enum class Combine : uint8_t
         {
@@ -202,7 +202,7 @@ class SoundMacroState
             Var
         };
 
-        /** Represents one term of the LFO formula assembled via *_SELECT commands */
+        /** Represents one term of the formula assembled via *_SELECT commands */
         struct Component
         {
             uint8_t m_midiCtrl;
@@ -215,32 +215,32 @@ class SoundMacroState
         };
         std::vector<Component> m_comps; /**< Components built up by the macro */
 
-        /** Combine additional component(s) to LFO calcuation */
+        /** Combine additional component(s) to formula */
         void addComponent(uint8_t midiCtrl, float scale,
                           Combine combine, VarType varType);
 
-        /** Calculate current scaled LFO value */
+        /** Calculate value */
         float evaluate(Voice& vox, const SoundMacroState& st);
 
-        /** Determine if this LFOSel is valid to use */
+        /** Determine if able to use */
         operator bool() const {return m_comps.size() != 0;}
     };
 
-    LFOSel m_volumeSel;
-    LFOSel m_panSel;
-    LFOSel m_pitchWheelSel;
-    LFOSel m_modWheelSel;
-    LFOSel m_pedalSel;
-    LFOSel m_portamentoSel;
-    LFOSel m_reverbSel;
-    LFOSel m_preAuxASel;
-    LFOSel m_preAuxBSel;
-    LFOSel m_auxAFxSel;
-    LFOSel m_auxBFxSel;
-    LFOSel m_postAuxB;
-    LFOSel m_spanSel;
-    LFOSel m_dopplerSel;
-    LFOSel m_tremoloSel;
+    Evaluator m_volumeSel;
+    Evaluator m_panSel;
+    Evaluator m_pitchWheelSel;
+    Evaluator m_modWheelSel;
+    Evaluator m_pedalSel;
+    Evaluator m_portamentoSel;
+    Evaluator m_reverbSel;
+    Evaluator m_preAuxASel;
+    Evaluator m_preAuxBSel;
+    Evaluator m_auxAFxSel;
+    Evaluator m_auxBFxSel;
+    Evaluator m_postAuxB;
+    Evaluator m_spanSel;
+    Evaluator m_dopplerSel;
+    Evaluator m_tremoloSel;
 
     int32_t m_variables[256]; /**< 32-bit variables set with relevant commands */
 
