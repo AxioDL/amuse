@@ -2,6 +2,7 @@
 #define __AMUSE_EFFECTCHORUS_HPP__
 
 #include "EffectBase.hpp"
+#include "Common.hpp"
 #include <stdint.h>
 
 namespace amuse
@@ -55,6 +56,27 @@ public:
     ~EffectChorus();
     EffectChorus(uint32_t baseDelay, uint32_t variation, uint32_t period, double sampleRate);
     void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap);
+
+    void setBaseDelay(uint32_t baseDelay)
+    {
+        baseDelay = clamp(5u, baseDelay, 15u);
+        x90_baseDelay = baseDelay;
+        m_dirty = true;
+    }
+
+    void setVariation(uint32_t variation)
+    {
+        variation = clamp(0u, variation, 5u);
+        x94_variation = variation;
+        m_dirty = true;
+    }
+
+    void setPeriod(uint32_t period)
+    {
+        period = clamp(500u, period, 10000u);
+        x98_period = period;
+        m_dirty = true;
+    }
 };
 
 }
