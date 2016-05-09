@@ -144,36 +144,16 @@ EffectChorus<T>::EffectChorus(uint32_t baseDelay, uint32_t variation,
 : x90_baseDelay(clamp(5u, baseDelay, 15u)),
   x94_variation(clamp(0u, variation, 5u)),
   x98_period(clamp(500u, period, 10000u)),
-  m_sampsPerMs(sampleRate / 1000.0),
-  m_blockSamples(m_sampsPerMs * 160 / 32)
+  m_sampsPerMs(std::ceil(sampleRate / 1000.0)),
+  m_blockSamples(m_sampsPerMs * 5)
 {
     T* buf = new T[m_blockSamples * AMUSE_CHORUS_NUM_BLOCKS * 8];
     memset(buf, 0, m_blockSamples * AMUSE_CHORUS_NUM_BLOCKS * 8 * sizeof(T));
     size_t chanPitch = m_blockSamples * AMUSE_CHORUS_NUM_BLOCKS;
 
-    for (int i=0 ; i<AMUSE_CHORUS_NUM_BLOCKS ; ++i)
-        x0_lastLeft[i] = buf + m_blockSamples * i;
-
-    for (int i=0 ; i<AMUSE_CHORUS_NUM_BLOCKS ; ++i)
-        xc_lastRight[i] = buf + chanPitch + m_blockSamples * i;
-
-    for (int i=0 ; i<AMUSE_CHORUS_NUM_BLOCKS ; ++i)
-        x18_lastRearLeft[i] = buf + chanPitch * 2 + m_blockSamples * i;
-
-    for (int i=0 ; i<AMUSE_CHORUS_NUM_BLOCKS ; ++i)
-        x18_lastRearRight[i] = buf + chanPitch * 3 + m_blockSamples * i;
-
-    for (int i=0 ; i<AMUSE_CHORUS_NUM_BLOCKS ; ++i)
-        x18_lastCenter[i] = buf + chanPitch * 4 + m_blockSamples * i;
-
-    for (int i=0 ; i<AMUSE_CHORUS_NUM_BLOCKS ; ++i)
-        x18_lastLFE[i] = buf + chanPitch * 5 + m_blockSamples * i;
-
-    for (int i=0 ; i<AMUSE_CHORUS_NUM_BLOCKS ; ++i)
-        x18_lastSideLeft[i] = buf + chanPitch * 6 + m_blockSamples * i;
-
-    for (int i=0 ; i<AMUSE_CHORUS_NUM_BLOCKS ; ++i)
-        x18_lastSideRight[i] = buf + chanPitch * 7 + m_blockSamples * i;
+    for (int c=0 ; c<8 ; ++c)
+        for (int i=0 ; i<AMUSE_CHORUS_NUM_BLOCKS ; ++i)
+            x0_lastChans[c][i] = buf + chanPitch * c + m_blockSamples * i;
 
     x6c_src.x88_trigger = chanPitch;
 }
@@ -189,7 +169,7 @@ void EffectChorus<T>::_update()
     uint32_t temp = (x5c_currentPosHi + (x24_currentLast - 1) * m_blockSamples);
     x5c_currentPosHi = temp % (chanPitch / fifteenSamps * fifteenSamps);
 
-    x68_pitchOffsetPeriod = (x98_period * 2 / 10 + 1) & ~1;
+    x68_pitchOffsetPeriod = (x98_period / 5 + 1) & ~1;
     x64_pitchOffsetPeriodCount = x68_pitchOffsetPeriod / 2;
     x60_pitchOffset = x94_variation * 2048 / x68_pitchOffsetPeriod;
 
@@ -199,7 +179,7 @@ void EffectChorus<T>::_update()
 template <typename T>
 EffectChorus<T>::~EffectChorus()
 {
-    delete[] x0_lastLeft[0];
+    delete[] x0_lastChans[0][0];
 }
 
 template <typename T>
@@ -313,52 +293,22 @@ void EffectChorus<T>::applyEffect(T* audio, size_t frameCount, const ChannelMap&
     {
         uint8_t next = x24_currentLast + 1;
         uint8_t buf = next % 3;
-        T* leftBuf = x0_lastLeft[buf];
-        T* rightBuf = xc_lastRight[buf];
-        T* rearLeftBuf = x18_lastRearLeft[buf];
-        T* rearRightBuf = x18_lastRearRight[buf];
-        T* centerBuf = x18_lastCenter[buf];
-        T* lfeBuf = x18_lastLFE[buf];
-        T* sideLeftBuf = x18_lastSideLeft[buf];
-        T* sideRightBuf = x18_lastSideRight[buf];
+        T* bufs[8] =
+        {
+            x0_lastChans[0][buf],
+            x0_lastChans[1][buf],
+            x0_lastChans[2][buf],
+            x0_lastChans[3][buf],
+            x0_lastChans[4][buf],
+            x0_lastChans[5][buf],
+            x0_lastChans[6][buf],
+            x0_lastChans[7][buf],
+        };
 
         T* inBuf = audio;
         for (size_t s=0 ; f<frameCount && s<m_blockSamples ; ++s, ++f)
-        {
-            for (size_t c=0 ; c<chanMap.m_channelCount ; ++c)
-            {
-                switch (chanMap.m_channels[c])
-                {
-                case AudioChannel::FrontLeft:
-                    *leftBuf++ = *inBuf++;
-                    break;
-                case AudioChannel::FrontRight:
-                    *rightBuf++ = *inBuf++;
-                    break;
-                case AudioChannel::RearLeft:
-                    *rearLeftBuf++ = *inBuf++;
-                    break;
-                case AudioChannel::RearRight:
-                    *rearRightBuf++ = *inBuf++;
-                    break;
-                case AudioChannel::FrontCenter:
-                    *centerBuf++ = *inBuf++;
-                    break;
-                case AudioChannel::LFE:
-                    *lfeBuf++ = *inBuf++;
-                    break;
-                case AudioChannel::SideLeft:
-                    *sideLeftBuf++ = *inBuf++;
-                    break;
-                case AudioChannel::SideRight:
-                    *sideRightBuf++ = *inBuf++;
-                    break;
-                default:
-                    inBuf++;
-                    break;
-                }
-            }
-        }
+            for (size_t c=0 ; c<chanMap.m_channelCount && c<8 ; ++c)
+                *bufs[c]++ = *inBuf++;
 
         x6c_src.x84_pitchHi = (x60_pitchOffset >> 16) + 1;
         x6c_src.x80_pitchLo = (x60_pitchOffset << 16);
@@ -372,48 +322,14 @@ void EffectChorus<T>::applyEffect(T* audio, size_t frameCount, const ChannelMap&
 
         T* outBuf = audio;
         size_t bs = std::min(remFrames, size_t(m_blockSamples));
-        for (size_t c=0 ; c<chanMap.m_channelCount ; ++c)
+        for (size_t c=0 ; c<chanMap.m_channelCount && c<8 ; ++c)
         {
             x6c_src.x7c_posHi = x5c_currentPosHi;
             x6c_src.x78_posLo = x58_currentPosLo;
 
             x6c_src.x6c_dest = outBuf++;
-            switch (chanMap.m_channels[c])
-            {
-            case AudioChannel::FrontLeft:
-                x6c_src.x70_smpBase = x0_lastLeft[0];
-                x6c_src.x74_old = x28_oldLeft;
-                break;
-            case AudioChannel::FrontRight:
-                x6c_src.x70_smpBase = xc_lastRight[0];
-                x6c_src.x74_old = x38_oldRight;
-                break;
-            case AudioChannel::RearLeft:
-                x6c_src.x70_smpBase = x18_lastRearLeft[0];
-                x6c_src.x74_old = x48_oldRearLeft;
-                break;
-            case AudioChannel::RearRight:
-                x6c_src.x70_smpBase = x18_lastRearRight[0];
-                x6c_src.x74_old = x48_oldRearRight;
-                break;
-            case AudioChannel::FrontCenter:
-                x6c_src.x70_smpBase = x18_lastCenter[0];
-                x6c_src.x74_old = x48_oldCenter;
-                break;
-            case AudioChannel::LFE:
-                x6c_src.x70_smpBase = x18_lastLFE[0];
-                x6c_src.x74_old = x48_oldLFE;
-                break;
-            case AudioChannel::SideLeft:
-                x6c_src.x70_smpBase = x18_lastSideLeft[0];
-                x6c_src.x74_old = x48_oldSideLeft;
-                break;
-            case AudioChannel::SideRight:
-                x6c_src.x70_smpBase = x18_lastSideRight[0];
-                x6c_src.x74_old = x48_oldSideRight;
-                break;
-            default: break;
-            }
+            x6c_src.x70_smpBase = x0_lastChans[c][0];
+            x6c_src.x74_old = x28_oldChans[c];
 
             switch (x6c_src.x84_pitchHi)
             {

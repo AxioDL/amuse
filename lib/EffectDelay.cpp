@@ -9,8 +9,8 @@ namespace amuse
 template <typename T>
 EffectDelay<T>::EffectDelay(uint32_t initDelay, uint32_t initFeedback,
                             uint32_t initOutput, double sampleRate)
-: m_sampsPerMs(sampleRate / 1000.0),
-  m_blockSamples(m_sampsPerMs * 160 / 32)
+: m_sampsPerMs(std::ceil(sampleRate / 1000.0)),
+  m_blockSamples(m_sampsPerMs * 5)
 {
     initDelay = clamp(10u, initDelay, 5000u);
     initFeedback = clamp(0u, initFeedback, 100u);
@@ -50,14 +50,17 @@ void EffectDelay<T>::applyEffect(T* audio, size_t frameCount, const ChannelMap& 
     {
         for (int c=0 ; c<chanMap.m_channelCount ; ++c)
         {
+            T* chanAud = audio + c;
             for (int i=0 ; i<m_blockSamples && f<frameCount ; ++i, ++f)
             {
+                T& liveSamp = chanAud[chanMap.m_channelCount * i];
                 T& samp = x30_chanLines[c][xc_currentPos[c] * m_blockSamples + i];
-                samp = samp * x18_currentFeedback[c] / 128 + *audio;
-                *audio++ = samp * x24_currentOutput[c] / 128;
+                samp = ClampFull<T>(samp * x18_currentFeedback[c] / 128 + liveSamp);
+                liveSamp = samp * x24_currentOutput[c] / 128;
             }
             xc_currentPos = (xc_currentPos[c] + 1) % x0_currentSize[c];
         }
+        audio += chanMap.m_channelCount * m_blockSamples;
     }
 }
 
