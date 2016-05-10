@@ -46,7 +46,7 @@ set(HEADERS
 
 unset(EXTRAS)
 if(TARGET boo)
-  include_directories(${BOO_INCLUDE_DIR})
+  include_directories(${BOO_INCLUDE_DIR} ${LOGVISOR_INCLUDE_DIR})
   list(APPEND EXTRAS lib/BooBackend.cpp include/amuse/BooBackend.hpp)
 endif()
 
