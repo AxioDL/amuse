@@ -35,7 +35,7 @@ struct SongGroupIndex : AudioGroupIndex
         uint8_t reverb;
         uint8_t chorus;
     };
-    std::unordered_map<int, std::array<const MIDISetup*, 16>> m_midiSetups;
+    std::unordered_map<int, const std::array<MIDISetup, 16>*> m_midiSetups;
 };
 
 /** Root index of SFXGroup */

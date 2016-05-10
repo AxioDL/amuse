@@ -70,6 +70,17 @@ AudioGroupProject::AudioGroupProject(const unsigned char* data)
                 idx.m_drumPages[drumEntries->programNo] = drumEntries;
                 ++drumEntries;
             }
+
+            /* MIDI setups */
+            const uint8_t* setupData = data + header.midiSetupsOff;
+            const uint8_t* setupEnd = data + header.groupEndOff;
+            while (setupData < setupEnd)
+            {
+                uint32_t songId = SBig(*reinterpret_cast<const uint32_t*>(setupData));
+                idx.m_midiSetups[songId] =
+                    reinterpret_cast<const std::array<SongGroupIndex::MIDISetup, 16>*>(setupData + 4);
+                setupData += 5 * 16 + 4;
+            }
         }
         else if (header.type == GroupType::SFX)
         {
