@@ -7,6 +7,14 @@
 namespace amuse
 {
 
+#ifndef PRISize
+#ifdef _MSC_VER
+#define PRISize "Iu"
+#else
+#define PRISize "zu"
+#endif
+#endif
+
 template <typename T>
 static inline T clamp(T a, T val, T b) {return std::max<T>(a, std::min<T>(b, val));}
 
