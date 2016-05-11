@@ -23,6 +23,11 @@ BooBackendVoice::BooBackendVoice(boo::IAudioSubmix& submix, Voice& clientVox,
   m_booVoice(submix.allocateNewMonoVoice(sampleRate, &m_cb, dynamicPitch))
 {}
 
+void BooBackendVoice::resetSampleRate(double sampleRate)
+{
+    m_booVoice->resetSampleRate(sampleRate);
+}
+
 void BooBackendVoice::setMatrixCoefficients(const float coefs[8])
 {
     m_booVoice->setMonoMatrixCoefficients(coefs);
@@ -98,6 +103,11 @@ BooBackendVoiceAllocator::allocateVoice(Voice& clientVox, double sampleRate, boo
 std::unique_ptr<IBackendSubmix> BooBackendVoiceAllocator::allocateSubmix(Submix& clientSmx)
 {
     return std::make_unique<BooBackendSubmix>(m_booEngine, clientSmx);
+}
+
+AudioChannelSet BooBackendVoiceAllocator::getAvailableSet()
+{
+    return AudioChannelSet(m_booEngine.getAvailableSet());
 }
 
 }

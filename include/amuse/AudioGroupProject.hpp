@@ -9,7 +9,14 @@
 namespace amuse
 {
 
-struct AudioGroupIndex {};
+/** Common index members of SongGroups and SFXGroups */
+struct AudioGroupIndex
+{
+    const uint16_t* m_soundMacroIndex;
+    const uint16_t* m_tablesIndex;
+    const uint16_t* m_keymapsIndex;
+    const uint16_t* m_layersIndex;
+};
 
 /** Root index of SongGroup */
 struct SongGroupIndex : AudioGroupIndex

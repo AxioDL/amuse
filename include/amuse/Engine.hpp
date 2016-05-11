@@ -28,6 +28,7 @@ class Engine
     std::list<Emitter> m_activeEmitters;
     std::list<Sequencer> m_activeSequencers;
     std::list<Submix> m_activeSubmixes;
+    std::unordered_map<uint16_t, std::pair<AudioGroup*, ObjectId>> m_sfxLookup;
     std::linear_congruential_engine<uint32_t, 0x41c64e6d, 0x3039, UINT32_MAX> m_random;
     int m_nextVid = 0;
     Voice* _allocateVoice(const AudioGroup& group, double sampleRate,
@@ -35,8 +36,6 @@ class Engine
     Submix* _allocateSubmix(Submix* smx);
     std::list<Voice>::iterator _destroyVoice(Voice* voice);
     std::list<Submix>::iterator _destroySubmix(Submix* smx);
-    AudioGroup* _findGroupFromSfxId(int sfxId, const AudioGroupSampleDirectory::Entry*& entOut) const;
-    AudioGroup* _findGroupFromSongId(int songId) const;
 public:
     Engine(IBackendVoiceAllocator& backend);
 
@@ -64,7 +63,7 @@ public:
                         Submix* smx=nullptr);
 
     /** Start song playing from loaded audio groups */
-    Sequencer* seqPlay(int songId, const unsigned char* arrData);
+    Sequencer* seqPlay(int groupId, int songId, const unsigned char* arrData);
 
     /** Find voice from VoiceId */
     Voice* findVoice(int vid);

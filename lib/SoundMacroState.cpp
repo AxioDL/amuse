@@ -511,7 +511,7 @@ bool SoundMacroState::advance(Voice& vox, float dt)
             int32_t eval = int32_t(orgVel ? m_initVel : m_curVel) * scale / 127 + add;
             eval = std::max(0, std::min(127, eval));
 
-            if (curve.id != 0)
+            if (curve != 0)
             {
                 const Curve* curveData = vox.getAudioGroup().getPool().tableAsCurves(curve);
                 if (curveData)
@@ -558,7 +558,7 @@ bool SoundMacroState::advance(Voice& vox, float dt)
             m_envelopeStart = m_curVel;
             m_envelopeEnd = eval;
 
-            if (curve.id != 0)
+            if (curve != 0)
                 m_envelopeCurve = vox.getAudioGroup().getPool().tableAsCurves(curve);
             else
                 m_envelopeCurve = nullptr;
@@ -632,7 +632,7 @@ bool SoundMacroState::advance(Voice& vox, float dt)
             m_envelopeStart = 0.f;
             m_envelopeEnd = eval;
 
-            if (curve.id != 0)
+            if (curve != 0)
                 m_envelopeCurve = vox.getAudioGroup().getPool().tableAsCurves(curve);
             else
                 m_envelopeCurve = nullptr;
@@ -1333,7 +1333,7 @@ void SoundMacroState::keyoffNotify(Voice& vox)
     if (m_inWait && m_keyoffWait)
         m_inWait = false;
 
-    if (m_keyoffTrap.macroId.id != 0xff)
+    if (m_keyoffTrap.macroId != 0xffff)
     {
         if (m_keyoffTrap.macroId == m_header.m_macroId)
             m_pc.back().second = m_keyoffTrap.macroStep;
@@ -1348,7 +1348,7 @@ void SoundMacroState::sampleEndNotify(Voice& vox)
     if (m_inWait && m_sampleEndWait)
         m_inWait = false;
 
-    if (m_sampleEndTrap.macroId.id != 0xff)
+    if (m_sampleEndTrap.macroId != 0xffff)
     {
         if (m_sampleEndTrap.macroId == m_header.m_macroId)
             m_pc.back().second = m_sampleEndTrap.macroStep;
@@ -1361,7 +1361,7 @@ void SoundMacroState::messageNotify(Voice& vox, int32_t val)
 {
     m_messageQueue.push_back(val);
 
-    if (m_messageTrap.macroId.id != 0xff)
+    if (m_messageTrap.macroId != 0xffff)
     {
         if (m_messageTrap.macroId == m_header.m_macroId)
             m_pc.back().second = m_messageTrap.macroStep;

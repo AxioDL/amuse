@@ -21,15 +21,7 @@ enum class ObjectType : uint8_t
 
 /** Common ID structure statically tagging
  *  SoundMacros, Tables, Keymaps, Layers */
-struct ObjectId
-{
-    ObjectType type = ObjectType::Invalid;
-    uint8_t id = 0xff;
-    bool operator ==(const ObjectId& other) const
-    {return *reinterpret_cast<const uint16_t*>(this) == reinterpret_cast<const uint16_t&>(other);}
-    bool operator !=(const ObjectId& other) const
-    {return *reinterpret_cast<const uint16_t*>(this) != reinterpret_cast<const uint16_t&>(other);}
-};
+using ObjectId = uint16_t;
 
 /** Common 'engine child' class */
 class Entity
@@ -63,15 +55,6 @@ public:
  *  (defined here for visibility)*/
 using Curve = uint8_t[128];
 
-}
-
-namespace std
-{
-template <> struct hash<amuse::ObjectId>
-{
-    size_t operator()(const amuse::ObjectId& val) const noexcept
-    {return std::hash<uint16_t>()(reinterpret_cast<const uint16_t&>(val));}
-};
 }
 
 #endif // __AMUSE_ENTITY_HPP__

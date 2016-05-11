@@ -27,6 +27,7 @@ public:
                     double sampleRate, bool dynamicPitch);
     BooBackendVoice(boo::IAudioSubmix& submix, Voice& clientVox,
                     double sampleRate, bool dynamicPitch);
+    void resetSampleRate(double sampleRate);
     void setMatrixCoefficients(const float coefs[8]);
     void setPitchRatio(double ratio);
     void start();
@@ -66,6 +67,7 @@ public:
     BooBackendVoiceAllocator(boo::IAudioVoiceEngine& booEngine);
     std::unique_ptr<IBackendVoice> allocateVoice(Voice& clientVox, double sampleRate, bool dynamicPitch);
     std::unique_ptr<IBackendSubmix> allocateSubmix(Submix& clientSmx);
+    AudioChannelSet getAvailableSet();
 };
 
 }

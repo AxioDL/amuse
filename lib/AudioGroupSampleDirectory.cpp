@@ -21,8 +21,11 @@ void AudioGroupSampleDirectory::ADPCMParms::swapBig()
     m_bytesPerFrame = SBig(m_bytesPerFrame);
     m_hist1 = SBig(m_hist1);
     m_hist2 = SBig(m_hist2);
-    for (int i=0 ; i<16 ; ++i)
-        m_coefs[i] = SBig(m_coefs[i]);
+    for (int i=0 ; i<8 ; ++i)
+    {
+        m_coefs[i][0] = SBig(m_coefs[i][0]);
+        m_coefs[i][1] = SBig(m_coefs[i][1]);
+    }
 }
 
 AudioGroupSampleDirectory::AudioGroupSampleDirectory(const unsigned char* data)

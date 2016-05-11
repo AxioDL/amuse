@@ -16,7 +16,9 @@ set(SOURCES
     lib/EffectReverbHi.cpp
     lib/EffectReverbStd.cpp
     lib/EffectChorus.cpp
-    lib/EffectDelay.cpp)
+    lib/EffectDelay.cpp
+    lib/SurroundProfiles.cpp
+    lib/dsp.c)
 
 set(HEADERS
     include/amuse/AudioGroup.hpp
@@ -41,12 +43,14 @@ set(HEADERS
     include/amuse/EffectReverbStd.hpp
     include/amuse/EffectChorus.hpp
     include/amuse/EffectDelay.hpp
+    include/amuse/SurroundProfiles.hpp
     include/amuse/Common.hpp
-    include/amuse/amuse.hpp)
+    include/amuse/amuse.hpp
+    include/amuse/dsp.h)
 
 unset(EXTRAS)
 if(TARGET boo)
-  include_directories(${BOO_INCLUDE_DIR} ${LOGVISOR_INCLUDE_DIR})
+  include_directories(${BOO_INCLUDE_DIR} ${LOGVISOR_INCLUDE_DIR} ${ATHENA_INCLUDE_DIR})
   list(APPEND EXTRAS lib/BooBackend.cpp include/amuse/BooBackend.hpp)
 endif()
 
@@ -59,6 +63,6 @@ add_library(amuse
             ${EXTRAS})
 
 if(TARGET boo)
-  add_executable(amusetool driver/main.cpp)
-  target_link_libraries(amusetool amuse boo ${BOO_SYS_LIBS} logvisor)
+  add_executable(amusetool WIN32 driver/main.cpp)
+  target_link_libraries(amusetool amuse boo ${BOO_SYS_LIBS} logvisor athena-core)
 endif()

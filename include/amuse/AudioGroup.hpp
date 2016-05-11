@@ -9,11 +9,14 @@ namespace amuse
 {
 class AudioGroupData;
 
+using Sample = std::pair<AudioGroupSampleDirectory::Entry,
+                         AudioGroupSampleDirectory::ADPCMParms>;
+
 class AudioGroup
 {
     int m_groupId;
-    AudioGroupPool m_pool;
     AudioGroupProject m_proj;
+    AudioGroupPool m_pool;
     AudioGroupSampleDirectory m_sdir;
     const unsigned char* m_samp;
     bool m_valid;
@@ -25,8 +28,10 @@ public:
     bool sfxInGroup(int sfxId) const;
     bool songInGroup(int songId) const;
 
-    const AudioGroupPool& getPool() const;
-    const AudioGroupSampleDirectory::Entry* getSfxEntry(int sfxId) const;
+    const Sample* getSample(int sfxId) const;
+    const unsigned char* getSampleData(uint32_t offset) const;
+    const AudioGroupProject& getProj() const {return m_proj;}
+    const AudioGroupPool& getPool() const {return m_pool;}
 };
 
 }

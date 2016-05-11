@@ -33,6 +33,9 @@ class IBackendVoice
 public:
     virtual ~IBackendVoice() = default;
 
+    /** Set new sample rate into platform voice (may result in artifacts while playing) */
+    virtual void resetSampleRate(double sampleRate)=0;
+
     /** Set channel-gains for audio source (AudioChannel enum for array index) */
     virtual void setMatrixCoefficients(const float coefs[8])=0;
 

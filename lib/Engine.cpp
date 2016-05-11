@@ -6,6 +6,7 @@
 #include "amuse/IBackendVoiceAllocator.hpp"
 #include "amuse/AudioGroupData.hpp"
 #include "amuse/AudioGroup.hpp"
+#include "amuse/Common.hpp"
 
 namespace amuse
 {
@@ -50,25 +51,6 @@ std::list<Submix>::iterator Engine::_destroySubmix(Submix* smx)
     return m_activeSubmixes.erase(smx->m_engineIt);
 }
 
-AudioGroup* Engine::_findGroupFromSfxId(int sfxId, const AudioGroupSampleDirectory::Entry*& entOut) const
-{
-    for (const auto& grp : m_audioGroups)
-    {
-        entOut = grp.second->getSfxEntry(sfxId);
-        if (entOut)
-            return grp.second.get();
-    }
-    return nullptr;
-}
-
-AudioGroup* Engine::_findGroupFromSongId(int songId) const
-{
-    for (const auto& grp : m_audioGroups)
-        if (grp.second->songInGroup(songId))
-            return grp.second.get();
-    return nullptr;
-}
-
 /** Update all active audio entities and fill OS audio buffers as needed */
 void Engine::pumpEngine()
 {
@@ -88,12 +70,28 @@ const AudioGroup* Engine::addAudioGroup(int groupId, const AudioGroupData& data)
         return nullptr;
     AudioGroup* ret = grp.get();
     m_audioGroups.emplace(std::make_pair(groupId, std::move(grp)));
+
+    /* setup SFX index for contained objects */
+    for (const auto& pair : ret->getProj().sfxGroups())
+    {
+        const SFXGroupIndex& sfxGroup = pair.second;
+        m_sfxLookup.reserve(m_sfxLookup.size() + sfxGroup.m_sfxEntries.size());
+        for (const auto& pair : sfxGroup.m_sfxEntries)
+            m_sfxLookup[pair.first] = std::make_pair(ret, pair.second->objId);
+    }
+
     return ret;
 }
 
 /** Remove audio group from engine */
 void Engine::removeAudioGroup(int groupId)
 {
+    auto search = m_audioGroups.find(groupId);
+    if (search == m_audioGroups.end())
+        return;
+    AudioGroup* grp = search->second.get();
+
+    /* Destroy runtime entities within group */
     for (auto it = m_activeVoices.begin() ; it != m_activeVoices.end() ;)
     {
         if (it->getAudioGroup().groupId() == groupId)
@@ -125,6 +123,14 @@ void Engine::removeAudioGroup(int groupId)
             continue;
         }
         ++it;
+    }
+
+    /* teardown SFX index for contained objects */
+    for (const auto& pair : grp->getProj().sfxGroups())
+    {
+        const SFXGroupIndex& sfxGroup = pair.second;
+        for (const auto& pair : sfxGroup.m_sfxEntries)
+            m_sfxLookup.erase(pair.first);
     }
 
     m_audioGroups.erase(groupId);
@@ -172,12 +178,15 @@ void Engine::removeSubmix(Submix* smx)
 /** Start soundFX playing from loaded audio groups */
 Voice* Engine::fxStart(int sfxId, float vol, float pan, Submix* smx)
 {
-    const AudioGroupSampleDirectory::Entry* entry;
-    AudioGroup* grp = _findGroupFromSfxId(sfxId, entry);
+    auto search = m_sfxLookup.find(sfxId);
+    if (search == m_sfxLookup.end())
+        return nullptr;
+
+    AudioGroup* grp = search->second.first;
     if (!grp)
         return nullptr;
 
-    Voice* ret = _allocateVoice(*grp, entry->m_sampleRate, true, false, smx);
+    Voice* ret = _allocateVoice(*grp, 32000.0, true, false, smx);
     ret->setVolume(vol);
     ret->setPanning(pan);
     return ret;
@@ -187,12 +196,15 @@ Voice* Engine::fxStart(int sfxId, float vol, float pan, Submix* smx)
 Emitter* Engine::addEmitter(const Vector3f& pos, const Vector3f& dir, float maxDist,
                             float falloff, int sfxId, float minVol, float maxVol, Submix* smx)
 {
-    const AudioGroupSampleDirectory::Entry* entry;
-    AudioGroup* grp = _findGroupFromSfxId(sfxId, entry);
+    auto search = m_sfxLookup.find(sfxId);
+    if (search == m_sfxLookup.end())
+        return nullptr;
+
+    AudioGroup* grp = search->second.first;
     if (!grp)
         return nullptr;
 
-    Voice* vox = _allocateVoice(*grp, entry->m_sampleRate, true, true, smx);
+    Voice* vox = _allocateVoice(*grp, 32000.0, true, true, smx);
     m_activeEmitters.emplace_back(*this, *grp, *vox);
     Emitter& ret = m_activeEmitters.back();
     ret.setPos(pos);
@@ -206,7 +218,7 @@ Emitter* Engine::addEmitter(const Vector3f& pos, const Vector3f& dir, float maxD
 }
 
 /** Start song playing from loaded audio groups */
-Sequencer* Engine::seqPlay(int songId, const unsigned char* arrData)
+Sequencer* Engine::seqPlay(int groupId, int songId, const unsigned char* arrData)
 {
 }
 

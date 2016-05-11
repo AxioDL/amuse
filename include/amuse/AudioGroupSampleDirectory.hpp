@@ -1,7 +1,7 @@
 #ifndef __AMUSE_AUDIOGROUPSAMPLEDIR_HPP__
 #define __AMUSE_AUDIOGROUPSAMPLEDIR_HPP__
 
-#include <vector>
+#include <unordered_map>
 #include <stdint.h>
 
 namespace amuse
@@ -31,11 +31,11 @@ public:
         uint8_t m_lps;
         int16_t m_hist1;
         int16_t m_hist2;
-        int16_t m_coefs[16];
+        int16_t m_coefs[8][2];
         void swapBig();
     };
 private:
-    std::vector<std::pair<Entry, ADPCMParms>> m_entries;
+    std::unordered_map<uint16_t, std::pair<Entry, ADPCMParms>> m_entries;
 public:
     AudioGroupSampleDirectory(const unsigned char* data);
 };

@@ -20,12 +20,17 @@ bool AudioGroup::songInGroup(int songId) const
 {
 }
 
-const AudioGroupSampleDirectory::Entry* AudioGroup::getSfxEntry(int sfxId) const
+const Sample* AudioGroup::getSample(int sfxId) const
 {
     for (const auto& ent : m_sdir.m_entries)
-        if (ent.first.m_sfxId == sfxId)
-            return &ent.first;
+        if (ent.second.first.m_sfxId == sfxId)
+            return &ent.second;
     return nullptr;
+}
+
+const unsigned char* AudioGroup::getSampleData(uint32_t offset) const
+{
+    return m_samp + offset;
 }
 
 }

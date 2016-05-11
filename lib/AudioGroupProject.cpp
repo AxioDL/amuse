@@ -49,14 +49,17 @@ AudioGroupProject::AudioGroupProject(const unsigned char* data)
         GroupHeader header = *group;
         header.swapBig();
 
+        AudioGroupIndex* bIdx = nullptr;
+
         if (header.type == GroupType::Song)
         {
             SongGroupIndex& idx = m_songGroups[header.groupId];
+            bIdx = &idx;
 
             /* Normal pages */
             const SongGroupIndex::PageEntry* normEntries =
                 reinterpret_cast<const SongGroupIndex::PageEntry*>(data + header.pageTableOff);
-            while (normEntries->objId.type != ObjectType::Invalid)
+            while (normEntries->objId != 0xffff)
             {
                 idx.m_normPages[normEntries->programNo] = normEntries;
                 ++normEntries;
@@ -65,7 +68,7 @@ AudioGroupProject::AudioGroupProject(const unsigned char* data)
             /* Drum pages */
             const SongGroupIndex::PageEntry* drumEntries =
                 reinterpret_cast<const SongGroupIndex::PageEntry*>(data + header.drumTableOff);
-            while (drumEntries->objId.type != ObjectType::Invalid)
+            while (drumEntries->objId != 0xffff)
             {
                 idx.m_drumPages[drumEntries->programNo] = drumEntries;
                 ++drumEntries;
@@ -85,15 +88,24 @@ AudioGroupProject::AudioGroupProject(const unsigned char* data)
         else if (header.type == GroupType::SFX)
         {
             SFXGroupIndex& idx = m_sfxGroups[header.groupId];
+            bIdx = &idx;
 
             /* SFX entries */
             const SFXGroupIndex::SFXEntry* entries =
                 reinterpret_cast<const SFXGroupIndex::SFXEntry*>(data + header.pageTableOff);
-            while (entries->objId.type != ObjectType::Invalid)
+            while (entries->objId != 0xffff)
             {
                 idx.m_sfxEntries[SBig(entries->defineId)] = entries;
                 ++entries;
             }
+        }
+
+        if (bIdx)
+        {
+            bIdx->m_soundMacroIndex = reinterpret_cast<const uint16_t*>(data + header.soundMacroIdsOff);
+            bIdx->m_tablesIndex = reinterpret_cast<const uint16_t*>(data + header.tableIdsOff);
+            bIdx->m_keymapsIndex = reinterpret_cast<const uint16_t*>(data + header.keymapIdsOff);
+            bIdx->m_layersIndex = reinterpret_cast<const uint16_t*>(data + header.layerIdsOff);
         }
 
         group = reinterpret_cast<const GroupHeader*>(data + header.groupEndOff);
