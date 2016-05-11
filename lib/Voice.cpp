@@ -85,7 +85,7 @@ void Voice::_doKeyOff()
 void Voice::_setTotalPitch(int32_t cents)
 {
     int32_t interval = cents - m_curSample->first.m_pitch * 100;
-    double ratio = std::pow(2.0, interval / 1200.0);
+    double ratio = std::exp2(interval / 1200.0);
     m_sampleRate = m_curSample->first.m_sampleRate * ratio;
     m_backendVoice->setPitchRatio(ratio);
 }
