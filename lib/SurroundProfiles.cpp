@@ -12,7 +12,9 @@ static float Dot(const Vector3f& a, const Vector3f& b)
 
 static float Length(const Vector3f& a)
 {
-    if (a[0] <= FLT_EPSILON && a[1] <= FLT_EPSILON && a[2] <= FLT_EPSILON)
+    if (std::fabs(a[0]) <= FLT_EPSILON &&
+        std::fabs(a[1]) <= FLT_EPSILON &&
+        std::fabs(a[2]) <= FLT_EPSILON)
         return 0.f;
     return std::sqrt(Dot(a, a));
 }
