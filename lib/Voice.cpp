@@ -1,8 +1,12 @@
 #include "amuse/Voice.hpp"
 #include "amuse/Submix.hpp"
 #include "amuse/IBackendVoice.hpp"
+#include "amuse/IBackendVoiceAllocator.hpp"
 #include "amuse/AudioGroup.hpp"
+#include "amuse/Common.hpp"
+#include "amuse/Engine.hpp"
 #include "amuse/dsp.h"
+#include <cmath>
 #include <string.h>
 
 namespace amuse
@@ -29,6 +33,27 @@ Voice::Voice(Engine& engine, const AudioGroup& group, ObjectId oid, int vid, boo
         m_submix->m_activeVoices.insert(this);
 }
 
+void Voice::_reset()
+{
+    m_curVol = 1.f;
+    m_curReverbVol = 0.f;
+    m_curPan = 0.f;
+    m_curSpan = 0.f;
+    m_pitchSweep1 = 0;
+    m_pitchSweep1Times = 0;
+    m_pitchSweep2 = 0;
+    m_pitchSweep2Times = 0;
+    m_envelopeTime = -1.f;
+    m_panningTime = -1.f;
+    m_vibratoLevel = 0;
+    m_vibratoModLevel = 0;
+    m_vibratoPeriod = 0.f;
+    m_tremoloScale = 0.f;
+    m_tremoloModScale = 0.f;
+    m_lfoPeriods[0] = 0.f;
+    m_lfoPeriods[1] = 0.f;
+}
+
 bool Voice::_checkSamplePos()
 {
     if (m_curSamplePos >= m_lastSamplePos)
@@ -53,11 +78,157 @@ bool Voice::_checkSamplePos()
 
 void Voice::_doKeyOff()
 {
+    m_volAdsr.keyOff();
+    m_pitchAdsr.keyOff();
+}
+
+void Voice::_setTotalPitch(int32_t cents)
+{
+    int32_t interval = cents - m_curSample->first.m_pitch * 100;
+    double ratio = std::pow(2.0, interval / 1200.0);
+    m_sampleRate = m_curSample->first.m_sampleRate * ratio;
+    m_backendVoice->setPitchRatio(ratio);
+}
+
+Voice* Voice::_allocateVoice(double sampleRate, bool dynamicPitch)
+{
+    auto it = m_childVoices.emplace(m_childVoices.end(), m_engine, m_audioGroup,
+                                    m_engine.m_nextVid++, m_emitter, m_submix);
+    m_childVoices.back().m_backendVoice =
+        m_engine.getBackend().allocateVoice(m_childVoices.back(), sampleRate, dynamicPitch);
+    m_childVoices.back().m_engineIt = it;
+    return &m_childVoices.back();
+}
+
+std::list<Voice>::iterator Voice::_destroyVoice(Voice* voice)
+{
+    voice->_destroy();
+    return m_childVoices.erase(voice->m_engineIt);
+}
+
+bool Voice::_advanceSample(int16_t& samp)
+{
+    double dt = 1.0 / m_sampleRate;
+    m_voiceTime += dt;
+    bool refresh = false;
+
+    /* Process active envelope */
+    if (m_envelopeTime >= 0.0)
+    {
+        m_envelopeTime += dt;
+        float start = m_envelopeStart / 127.f;
+        float end = m_envelopeEnd / 127.f;
+        double t = std::max(0.0, std::min(1.0, m_envelopeTime / m_envelopeDur));
+        if (m_envelopeCurve)
+            t = (*m_envelopeCurve)[int(t*127.f)] / 127.f;
+        m_curVol = (start * (1.0f - t)) + (end * t);
+
+        /* Done with envelope */
+        if (m_envelopeTime > m_envelopeDur)
+            m_envelopeTime = -1.f;
+    }
+
+    /* Factor in ADSR envelope state */
+    float totalVol = m_curVol * m_volAdsr.nextSample(m_sampleRate);
+
+    /* Apply tremolo */
+    if (m_state.m_tremoloSel && (m_tremoloScale || m_tremoloModScale))
+    {
+        float t = m_state.m_tremoloSel.evaluate(*this, m_state);
+        if (m_tremoloScale && m_tremoloModScale)
+        {
+            float fac = (1.0f - t) + (m_tremoloScale * t);
+            float modT = getModWheel() / 127.f;
+            float modFac = (1.0f - modT) + (m_tremoloModScale * modT);
+            totalVol *= fac * modFac;
+        }
+        else if (m_tremoloScale)
+        {
+            float fac = (1.0f - t) + (m_tremoloScale * t);
+            totalVol *= fac;
+        }
+        else if (m_tremoloModScale)
+        {
+            float modT = getModWheel() / 127.f;
+            float modFac = (1.0f - modT) + (m_tremoloModScale * modT);
+            totalVol *= modFac;
+        }
+    }
+
+    /* Multiply sample with total volume */
+    samp = ClampFull<int16_t>(samp * totalVol);
+
+    /* Process active pan-sweep */
+    if (m_panningTime >= 0.f)
+    {
+        m_panningTime += dt;
+        float start = (m_panPos - 64) / 64.f;
+        float end = (m_panPos + m_panWidth - 64) / 64.f;
+        float t = std::max(0.f, std::min(1.f, m_panningTime / m_panningDur));
+        setPan((start * (1.0f - t)) + (end * t));
+        refresh = true;
+
+        /* Done with panning */
+        if (m_panningTime > m_panningDur)
+            m_panningTime = -1.f;
+    }
+
+    /* Process active span-sweep */
+    if (m_spanningTime >= 0.f)
+    {
+        m_spanningTime += dt;
+        float start = (m_spanPos - 64) / 64.f;
+        float end = (m_spanPos + m_spanWidth - 64) / 64.f;
+        float t = std::max(0.f, std::min(1.f, m_spanningTime / m_spanningDur));
+        setSurroundPan((start * (1.0f - t)) + (end * t));
+        refresh = true;
+
+        /* Done with spanning */
+        if (m_spanningTime > m_spanningDur)
+            m_spanningTime = -1.f;
+    }
+
+    /* Calculate total pitch */
+    int32_t totalPitch = m_curPitch;
+    bool pitchDirty = m_pitchDirty;
+    m_pitchDirty = false;
+    if (m_pitchEnv)
+    {
+        totalPitch = m_curPitch * m_pitchAdsr.nextSample(m_sampleRate);
+        pitchDirty = true;
+    }
+
+    /* Process pitch sweep 1 */
+    if (m_pitchSweep1Times)
+    {
+        m_pitchSweep1 += m_pitchSweep1Add;
+        --m_pitchSweep1Times;
+        pitchDirty = true;
+    }
+
+    /* Process pitch sweep 2 */
+    if (m_pitchSweep2Times)
+    {
+        m_pitchSweep2 += m_pitchSweep2Add;
+        --m_pitchSweep2Times;
+        pitchDirty = true;
+    }
+
+    /* Apply total pitch */
+    if (pitchDirty)
+    {
+        _setTotalPitch(totalPitch + m_pitchSweep1 + m_pitchSweep2);
+        refresh = true;
+    }
+
+    /* True if backend voice needs reconfiguration before next sample */
+    return refresh;
 }
 
 size_t Voice::supplyAudio(size_t samples, int16_t* data)
 {
     uint32_t samplesRem = samples;
+    size_t samplesProc = 0;
     if (m_curSample)
     {
         uint32_t block = m_curSamplePos / 14;
@@ -70,7 +241,16 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
                                                            &m_prev1, &m_prev2, rem,
                                                            std::min(samplesRem,
                                                                     m_lastSamplePos - block * 14));
-            m_curSamplePos += decSamples;
+
+            /* Per-sample processing */
+            for (int i=0 ; i<decSamples ; ++i)
+            {
+                ++samplesProc;
+                ++m_curSamplePos;
+                if (_advanceSample(data[i]))
+                    return samplesProc;
+            }
+
             samplesRem -= decSamples;
             data += decSamples;
         }
@@ -90,7 +270,16 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
                                                      &m_prev1, &m_prev2,
                                                      std::min(samplesRem,
                                                               m_lastSamplePos - block * 14));
-            m_curSamplePos += decSamples;
+
+            /* Per-sample processing */
+            for (int i=0 ; i<decSamples ; ++i)
+            {
+                ++samplesProc;
+                ++m_curSamplePos;
+                if (_advanceSample(data[i]))
+                    return samplesProc;
+            }
+
             samplesRem -= decSamples;
             data += decSamples;
 
@@ -108,12 +297,42 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
     return samples;
 }
 
-Voice* Voice::startChildMacro(int8_t addNote, ObjectId macroId, int macroStep)
+int Voice::maxVid() const
 {
+    int maxVid = m_vid;
+    for (const Voice& vox : m_childVoices)
+        maxVid = std::max(maxVid, vox.maxVid());
+    return maxVid;
 }
 
-bool Voice::loadSoundMacro(ObjectId macroId, int macroStep, bool pushPc)
+Voice* Voice::startChildMacro(int8_t addNote, ObjectId macroId, int macroStep)
 {
+    Voice* vox = _allocateVoice(32000.0, true);
+    vox->loadSoundMacro(macroId, macroStep, 1000.f, m_state.m_initKey + addNote,
+                        m_state.m_initVel, m_state.m_initMod);
+    return vox;
+}
+
+bool Voice::loadSoundMacro(ObjectId macroId, int macroStep, float ticksPerSec,
+                           uint8_t midiKey, uint8_t midiVel, uint8_t midiMod,
+                           bool pushPc)
+{
+    const unsigned char* macroData = m_audioGroup.getPool().soundMacro(macroId);
+    if (!macroData)
+        return false;
+
+    if (m_state.m_pc.empty())
+        m_state.initialize(macroData, macroStep, ticksPerSec, midiKey, midiVel, midiMod);
+    else
+    {
+        if (!pushPc)
+            m_state.m_pc.clear();
+        m_state.m_pc.push_back({macroData, macroStep});
+        m_state.m_header = *reinterpret_cast<const SoundMacroState::Header*>(macroData);
+        m_state.m_header.swapBig();
+    }
+
+    return true;
 }
 
 void Voice::keyOff()
@@ -133,6 +352,10 @@ void Voice::startSample(int16_t sampId, int32_t offset)
     m_curSample = m_audioGroup.getSample(sampId);
     if (m_curSample)
     {
+        _reset();
+        m_sampleRate = m_curSample->first.m_sampleRate;
+        m_curPitch = m_curSample->first.m_pitch;
+        m_pitchDirty = true;
         m_backendVoice->stop();
         m_backendVoice->resetSampleRate(m_curSample->first.m_sampleRate);
         m_backendVoice->start();
@@ -154,18 +377,57 @@ void Voice::stopSample()
 
 void Voice::setVolume(float vol)
 {
+    m_curVol = vol;
 }
 
-void Voice::setPanning(float pan)
+void Voice::setPan(float pan)
 {
+    m_curPan = pan;
 }
 
-void Voice::setSurroundPanning(float span)
+void Voice::setSurroundPan(float span)
 {
+    m_curSpan = span;
+}
+
+void Voice::startEnvelope(double dur, float vol, const Curve* envCurve)
+{
+    m_envelopeTime = m_voiceTime;
+    m_envelopeDur = dur;
+    m_envelopeStart = m_curVol;
+    m_envelopeEnd = vol;
+    m_envelopeCurve = envCurve;
+}
+
+void Voice::startFadeIn(double dur, float vol, const Curve* envCurve)
+{
+    m_envelopeTime = m_voiceTime;
+    m_envelopeDur = dur;
+    m_envelopeStart = 0.f;
+    m_envelopeEnd = m_curVol;
+    m_envelopeCurve = envCurve;
+}
+
+void Voice::startPanning(double dur, uint8_t panPos, uint8_t panWidth)
+{
+    m_panningTime = m_voiceTime;
+    m_panningDur = dur;
+    m_panPos = panPos;
+    m_panWidth = panWidth;
+}
+
+void Voice::startSpanning(double dur, uint8_t spanPos, uint8_t spanWidth)
+{
+    m_spanningTime = m_voiceTime;
+    m_spanningDur = dur;
+    m_spanPos = spanPos;
+    m_spanWidth = spanWidth;
 }
 
 void Voice::setPitchKey(int32_t cents)
 {
+    m_curPitch = cents;
+    m_pitchDirty = true;
 }
 
 void Voice::setModulation(float mod)
@@ -186,20 +448,62 @@ void Voice::setDoppler(float doppler)
 {
 }
 
+void Voice::setVibrato(int32_t level, int32_t modLevel, float period)
+{
+    m_vibratoLevel = level;
+    m_vibratoModLevel = modLevel;
+    m_vibratoPeriod = period;
+}
+
+void Voice::setMod2VibratoRange(int32_t modLevel)
+{
+    m_vibratoModLevel = modLevel;
+}
+
+void Voice::setTremolo(float tremoloScale, float tremoloModScale)
+{
+    m_tremoloScale = tremoloScale;
+    m_tremoloModScale = tremoloModScale;
+}
+
+void Voice::setPitchSweep1(uint8_t times, int16_t add)
+{
+    m_pitchSweep1 = 0;
+    m_pitchSweep1Times = times;
+    m_pitchSweep1Add = add;
+}
+
+void Voice::setPitchSweep2(uint8_t times, int16_t add)
+{
+    m_pitchSweep2 = 0;
+    m_pitchSweep2Times = times;
+    m_pitchSweep2Add = add;
+}
+
 void Voice::setReverbVol(float rvol)
 {
+    m_curReverbVol = rvol;
 }
 
 void Voice::setAdsr(ObjectId adsrId)
 {
+    const ADSR* adsr = m_audioGroup.getPool().tableAsAdsr(adsrId);
+    m_volAdsr.reset(adsr);
 }
 
 void Voice::setPitchFrequency(uint32_t hz, uint16_t fine)
 {
+    m_sampleRate = hz + fine / 65536.0;
+    m_backendVoice->setPitchRatio(1.0);
+    m_backendVoice->resetSampleRate(m_sampleRate);
 }
 
 void Voice::setPitchAdsr(ObjectId adsrId, int32_t cents)
 {
+    const ADSR* adsr = m_audioGroup.getPool().tableAsAdsr(adsrId);
+    m_pitchAdsr.reset(adsr);
+    m_pitchEnvRange = cents;
+    m_pitchEnv = true;
 }
 
 void Voice::setPitchWheelRange(int8_t up, int8_t down)

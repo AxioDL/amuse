@@ -22,6 +22,8 @@ class AudioGroupData;
 /** Main audio playback system for a single audio output */
 class Engine
 {
+    friend class Voice;
+
     IBackendVoiceAllocator& m_backend;
     std::unordered_map<int, std::unique_ptr<AudioGroup>> m_audioGroups;
     std::list<Voice> m_activeVoices;
@@ -38,6 +40,9 @@ class Engine
     std::list<Submix>::iterator _destroySubmix(Submix* smx);
 public:
     Engine(IBackendVoiceAllocator& backend);
+
+    /** Access voice backend of engine */
+    IBackendVoiceAllocator& getBackend() {return m_backend;}
 
     /** Update all active audio entities and fill OS audio buffers as needed */
     void pumpEngine();

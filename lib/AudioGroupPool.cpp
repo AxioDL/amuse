@@ -81,6 +81,30 @@ AudioGroupPool::AudioGroupPool(const unsigned char* data)
     }
 }
 
+const unsigned char* AudioGroupPool::soundMacro(ObjectId id) const
+{
+    auto search = m_soundMacros.find(id);
+    if (search == m_soundMacros.cend())
+        return nullptr;
+    return search->second;
+}
+
+const Keymap* AudioGroupPool::keymap(ObjectId id) const
+{
+    auto search = m_keymaps.find(id);
+    if (search == m_keymaps.cend())
+        return nullptr;
+    return search->second;
+}
+
+const std::vector<const LayerMapping*>* AudioGroupPool::layer(ObjectId id) const
+{
+    auto search = m_layers.find(id);
+    if (search == m_layers.cend())
+        return nullptr;
+    return &search->second;
+}
+
 const ADSR* AudioGroupPool::tableAsAdsr(ObjectId id) const
 {
     auto search = m_tables.find(id);

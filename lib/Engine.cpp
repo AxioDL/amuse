@@ -56,9 +56,7 @@ void Engine::pumpEngine()
 {
     int maxVid = -1;
     for (Voice& vox : m_activeVoices)
-    {
-        maxVid = std::max(maxVid, vox.vid());
-    }
+        maxVid = std::max(maxVid, vox.maxVid());
     m_nextVid = maxVid + 1;
 }
 
@@ -188,7 +186,7 @@ Voice* Engine::fxStart(int sfxId, float vol, float pan, Submix* smx)
 
     Voice* ret = _allocateVoice(*grp, 32000.0, true, false, smx);
     ret->setVolume(vol);
-    ret->setPanning(pan);
+    ret->setPan(pan);
     return ret;
 }
 

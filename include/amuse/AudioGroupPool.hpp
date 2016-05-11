@@ -55,6 +55,9 @@ class AudioGroupPool
     std::unordered_map<ObjectId, std::vector<const LayerMapping*>> m_layers;
 public:
     AudioGroupPool(const unsigned char* data);
+    const unsigned char* soundMacro(ObjectId id) const;
+    const Keymap* keymap(ObjectId id) const;
+    const std::vector<const LayerMapping*>* layer(ObjectId id) const;
     const ADSR* tableAsAdsr(ObjectId id) const;
     const Curve* tableAsCurves(ObjectId id) const
     {return reinterpret_cast<const Curve*>(tableAsAdsr(id));}

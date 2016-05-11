@@ -7,13 +7,6 @@
 #include "optional.hpp"
 #include <stdio.h>
 #include <string.h>
-#ifndef _WIN32
-#include <sys/select.h>
-#include <termios.h>
-#include <unistd.h>
-#else
-#include <conio.h>
-#endif
 #include <thread>
 #include <map>
 
@@ -179,14 +172,14 @@ struct AppCallback : boo::IApplicationCallback
                   const amuse::SongGroupIndex& index)
     {
         printf("░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░\n"
-               "░░░   ████ ████  ┃   ████ ████ ████  ┃  ████ ████   ░░░\n"
-               "░░░   ████ ████  ┃   ████ ████ ████  ┃  ████ ████   ░░░\n"
-               "░░░   ▌W▐█ ▌E▐█  ┃   ▌T▐█ ▌Y▐█ ▌U▐█  ┃  ▌O▐█ ▌P▐█   ░░░\n"
+               "░░░   ████ ████  ┃  ████ ████ ████   ┃   ████ ████  ░░░\n"
+               "░░░   ████ ████  ┃  ████ ████ ████   ┃   ████ ████  ░░░\n"
+               "░░░   ▌W▐█ ▌E▐█  ┃  ▌T▐█ ▌Y▐█ ▌U▐█   ┃   ▌O▐█ ▌P▐█  ░░░\n"
                "░░░    │    │    ┃    │    │    │    ┃    │    │    ░░░\n"
                "░░░ A  │ S  │ D  ┃ F  │ G  │ H  │ J  ┃ K  │ L  │ ;  ░░░\n"
                "░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░\n"
                "<left/right>: cycle MIDI setup / channel, <up/down>: volume\n"
-               "<tab>: sustain pedal, <1/2>: pitch wheel, <3-8>: mod wheel\n"
+               "<tab>: sustain pedal, <window-Y>: pitch wheel, <window-X>: mod wheel\n"
                "<Z/X>: octave, <C/V>: velocity\n"
                "<Q>: quit\n");
 

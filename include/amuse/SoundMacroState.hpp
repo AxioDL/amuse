@@ -12,6 +12,8 @@ class Voice;
 
 class SoundMacroState
 {
+    friend class Voice;
+
     /** SoundMacro header */
     struct Header
     {
@@ -115,15 +117,6 @@ class SoundMacroState
     /** 'program counter' stack for the active SoundMacro */
     std::vector<std::pair<const unsigned char*, int>> m_pc;
 
-    float m_curVol; /**< final volume sent to voice */
-    bool m_volDirty; /**< set when voice needs updated volume */
-
-    float m_curPan; /**< final pan sent to voice */
-    bool m_panDirty; /**< set when voice needs updated pan */
-
-    float m_curSpan; /**< final span sent to voice */
-    bool m_spanDirty; /**< set when voice needs updated span */
-
     float m_ticksPerSec; /**< ratio for resolving ticks in commands that use them */
     uint8_t m_initVel; /**< Velocity played for this macro invocation */
     uint8_t m_initMod; /**< Modulation played for this macro invocation */
@@ -131,33 +124,10 @@ class SoundMacroState
     uint8_t m_curVel; /**< Current velocity played for this macro invocation */
     uint8_t m_curMod; /**< Current modulation played for this macro invocation */
     uint32_t m_curKey; /**< Current key played for this macro invocation (in cents) */
-    uint32_t m_pitchSweep1; /**< Current value of PITCHSWEEP1 controller (in cents) */
-    uint32_t m_pitchSweep2; /**< Current value of PITCHSWEEP2 controller (in cents) */
-    int16_t m_pitchSweep1Add; /**< Value to add to PITCHSWEEP1 controller each cycle */
-    int16_t m_pitchSweep2Add; /**< Value to add to PITCHSWEEP2 controller each cycle */
-    uint8_t m_pitchSweep1Times; /**< Remaining times to advance PITCHSWEEP1 controller */
-    uint8_t m_pitchSweep2Times; /**< Remaining times to advance PITCHSWEEP2 controller */
-    bool m_pitchDirty; /**< set when voice needs latest pitch computation */
 
-    float m_execTime; /**< time in seconds of SoundMacro execution */
+    float m_execTime; /**< time in seconds of SoundMacro execution (per-update resolution) */
     bool m_keyoff; /**< keyoff message has been received */
     bool m_sampleEnd; /**< sample has finished playback */
-
-    float m_envelopeTime; /**< time since last ENVELOPE command, -1 for no active volume-sweep */
-    float m_envelopeDur; /**< requested duration of last ENVELOPE command */
-    uint8_t m_envelopeStart; /**< initial value for last ENVELOPE command */
-    uint8_t m_envelopeEnd; /**< final value for last ENVELOPE command */
-    const Curve* m_envelopeCurve; /**< curve to use for ENVELOPE command */
-
-    float m_panningTime; /**< time since last PANNING command, -1 for no active pan-sweep */
-    float m_panningDur; /**< requested duration of last PANNING command */
-    uint8_t m_panPos; /**< initial pan value of last PANNING command */
-    uint8_t m_panWidth; /**< delta pan value to target of last PANNING command */
-
-    float m_spanningTime; /**< time since last SPANNING command, -1 for no active span-sweep */
-    float m_spanningDur; /**< requested duration of last SPANNING command */
-    uint8_t m_spanPos; /**< initial pan value of last SPANNING command */
-    uint8_t m_spanWidth; /**< delta pan value to target of last SPANNING command */
 
     bool m_inWait = false; /**< set when timer/keyoff/sampleend wait active */
     bool m_keyoffWait = false; /**< set when active wait is a keyoff wait */
@@ -176,16 +146,6 @@ class SoundMacroState
     uint8_t m_portamentoMode; /**< (0: Off, 1: On, 2: MIDI specified) */
     uint8_t m_portamentoType; /**< (0: New key pressed while old key pressed, 1: Always) */
     float m_portamentoTime; /**< portamento transition time, 0.f will perform legato */
-
-    int32_t m_vibratoLevel; /**< scale of vibrato effect (in cents) */
-    int32_t m_vibratoModLevel; /**< scale of vibrato mod-wheel influence (in cents) */
-    float m_vibratoPeriod; /**< vibrato wave period-time, 0.f will disable vibrato */
-    bool m_vibratoModWheel; /**< vibrato scaled with mod-wheel if set */
-
-    float m_tremoloScale; /**< minimum volume factor produced via LFO */
-    float m_tremoloModScale; /**< minimum volume factor produced via LFO, scaled via mod wheel */
-
-    float m_lfoPeriods[2]; /**< time-periods for LFO1 and LFO2 */
 
     /** Used to build a multi-component formula for overriding controllers */
     struct Evaluator
@@ -259,8 +219,8 @@ class SoundMacroState
 
 public:
     /** initialize state for SoundMacro data at `ptr` */
-    void initialize(const unsigned char* ptr);
-    void initialize(const unsigned char* ptr, float ticksPerSec,
+    void initialize(const unsigned char* ptr, int step);
+    void initialize(const unsigned char* ptr, int step, float ticksPerSec,
                     uint8_t midiKey, uint8_t midiVel, uint8_t midiMod);
 
     /** advances `dt` seconds worth of commands in the SoundMacro
