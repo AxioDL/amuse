@@ -366,6 +366,21 @@ void Voice::startSample(int16_t sampId, int32_t offset)
         m_lastSamplePos = m_curSample->first.m_loopLengthSamples ?
             (m_curSample->first.m_loopStartSample + m_curSample->first.m_loopLengthSamples) :
              m_curSample->first.m_numSamples;
+        _checkSamplePos();
+
+        /* Seek DSPADPCM state if needed */
+        if (m_curSamplePos)
+        {
+            uint32_t block = m_curSamplePos / 14;
+            uint32_t rem = m_curSamplePos % 14;
+            for (uint32_t b = 0 ; b < block ; ++b)
+                DSPDecompressFrameStateOnly(m_curSampleData + 8 * b, m_curSample->second.m_coefs,
+                                            &m_prev1, &m_prev2, 14);
+
+            if (rem)
+                DSPDecompressFrameStateOnly(m_curSampleData + 8 * block, m_curSample->second.m_coefs,
+                                            &m_prev1, &m_prev2, rem);
+        }
     }
 }
 

@@ -13,8 +13,7 @@ set(SOURCES
     lib/Voice.cpp
     lib/Submix.cpp
     lib/EffectBase.cpp
-    lib/EffectReverbHi.cpp
-    lib/EffectReverbStd.cpp
+    lib/EffectReverb.cpp
     lib/EffectChorus.cpp
     lib/EffectDelay.cpp
     lib/SurroundProfiles.cpp
@@ -39,8 +38,7 @@ set(HEADERS
     include/amuse/IBackendVoice.hpp
     include/amuse/IBackendVoiceAllocator.hpp
     include/amuse/EffectBase.hpp
-    include/amuse/EffectReverbHi.hpp
-    include/amuse/EffectReverbStd.hpp
+    include/amuse/EffectReverb.hpp
     include/amuse/EffectChorus.hpp
     include/amuse/EffectDelay.hpp
     include/amuse/SurroundProfiles.hpp
