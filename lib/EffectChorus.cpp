@@ -7,7 +7,7 @@
 namespace amuse
 {
 
-static float rsmpTab12khz[] =
+static const float rsmpTab12khz[] =
 {
     0.097504, 0.802216, 0.101593, -0.000977,
     0.093506, 0.802032, 0.105804, -0.001038,

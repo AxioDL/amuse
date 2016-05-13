@@ -78,7 +78,7 @@ public:
     }
 };
 
-/** Standard-quality 2-tap reverb */
+/** Standard-quality 2-stage reverb */
 template <typename T>
 class EffectReverbStd : public EffectReverb<T, 2, 2>
 {
@@ -87,7 +87,7 @@ public:
                     float damping, float preDelay, double sampleRate);
 };
 
-/** High-quality 3-tap reverb */
+/** High-quality 3-stage reverb with per-channel low-pass and crosstalk */
 template <typename T>
 class EffectReverbHi : public EffectReverb<T, 2, 3>
 {

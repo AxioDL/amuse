@@ -237,10 +237,10 @@ void EffectReverbHi<T>::_update()
 
     for (int c=0 ; c<8 ; ++c)
     {
-        ReverbDelayLine& hpLine = x78_LP[c];
+        ReverbDelayLine& lpLine = x78_LP[c];
         size_t tapDelay = LPTapDelays[c] * EffectReverb<T, 2, 3>::m_sampleRate / 32000.0;
-        hpLine.allocate(tapDelay);
-        hpLine.setdelay(tapDelay);
+        lpLine.allocate(tapDelay);
+        lpLine.setdelay(tapDelay);
     }
 }
 
@@ -258,7 +258,7 @@ void EffectReverbHi<T>::_handleReverb(T* audio, int c, int chanCount, int sample
 
     ReverbDelayLine* linesC = EffectReverb<T, 2, 3>::x78_xb4_C[c];
     ReverbDelayLine* linesAP = EffectReverb<T, 2, 3>::x0_x0_AP[c];
-    ReverbDelayLine& lineHP = x78_LP[c];
+    ReverbDelayLine& lineLP = x78_LP[c];
 
     float allPassCoef = EffectReverb<T, 2, 3>::xf0_x168_allPassCoef;
     float damping = EffectReverb<T, 2, 3>::x11c_x1a0_damping;
@@ -334,18 +334,18 @@ void EffectReverbHi<T>::_handleReverb(T* audio, int c, int chanCount, int sample
             linesAP[1].x4_outPoint = 0;
 
         lpLastOut = damping * lpLastOut + lowPass * 0.3f;
-        lineHP.xc_inputs[lineHP.x0_inPoint] = allPassCoef * lineHP.x10_lastInput + lpLastOut;
-        float allPass = -(allPassCoef * lineHP.xc_inputs[lineHP.x0_inPoint] - lineHP.x10_lastInput);
-        lineHP.x0_inPoint += 4;
+        lineLP.xc_inputs[lineLP.x0_inPoint] = allPassCoef * lineLP.x10_lastInput + lpLastOut;
+        float allPass = -(allPassCoef * lineLP.xc_inputs[lineLP.x0_inPoint] - lineLP.x10_lastInput);
+        lineLP.x0_inPoint += 4;
 
-        lineHP.x10_lastInput = lineHP.xc_inputs[lineHP.x4_outPoint];
-        lineHP.x4_outPoint += 4;
+        lineLP.x10_lastInput = lineLP.xc_inputs[lineLP.x4_outPoint];
+        lineLP.x4_outPoint += 4;
 
-        if (lineHP.x0_inPoint == lineHP.x8_length)
-            lineHP.x0_inPoint = 0;
+        if (lineLP.x0_inPoint == lineLP.x8_length)
+            lineLP.x0_inPoint = 0;
 
-        if (lineHP.x4_outPoint == lineHP.x8_length)
-            lineHP.x4_outPoint = 0;
+        if (lineLP.x4_outPoint == lineLP.x8_length)
+            lineLP.x4_outPoint = 0;
 
         /* Mix out */
         audio[(s-1) * chanCount + c] = ClampFull<T>(dampWet * allPass + dampDry * sample);
