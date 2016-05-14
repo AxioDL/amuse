@@ -17,6 +17,7 @@ class Emitter : public Entity
     friend class Engine;
     void _destroy();
 public:
+    ~Emitter();
     Emitter(Engine& engine, const AudioGroup& group, std::shared_ptr<Voice>&& vox);
 
     void setPos(const Vector3f& pos);

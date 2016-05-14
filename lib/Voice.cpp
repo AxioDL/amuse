@@ -22,6 +22,8 @@ void Voice::_destroy()
         vox->_destroy();
 }
 
+Voice::~Voice() {}
+
 Voice::Voice(Engine& engine, const AudioGroup& group, int vid, bool emitter, Submix* smx)
 : Entity(engine, group), m_vid(vid), m_emitter(emitter), m_submix(smx)
 {
@@ -83,6 +85,7 @@ void Voice::_doKeyOff()
 {
     m_volAdsr.keyOff();
     m_pitchAdsr.keyOff();
+    m_state.keyoffNotify(*this);
 }
 
 void Voice::_setTotalPitch(int32_t cents)
@@ -99,7 +102,7 @@ void Voice::_bringOutYourDead()
     {
         Voice* vox = it->get();
         vox->_bringOutYourDead();
-        if (vox->m_voxState == VoiceState::Finished)
+        if (vox->m_voxState == VoiceState::Dead)
         {
             it = _destroyVoice(vox);
             continue;
@@ -263,95 +266,56 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
     uint32_t samplesRem = samples;
     size_t samplesProc = 0;
     bool dead = false;
+
+    /* Attempt to load stopped sample for immediate decoding */
+    if (!m_curSample)
+        dead = m_state.advance(*this, 0.0);
+
     if (m_curSample)
     {
         dead = m_state.advance(*this, samples / m_sampleRate);
-
-        uint32_t block = m_curSamplePos / 14;
-        uint32_t rem = m_curSamplePos % 14;
-
-        if (rem)
+        if (!dead)
         {
-            uint32_t remCount = std::min(samplesRem, m_lastSamplePos - block * 14);
-            uint32_t decSamples;
+            uint32_t block = m_curSamplePos / 14;
+            uint32_t rem = m_curSamplePos % 14;
 
-            switch (m_curFormat)
+            if (rem)
             {
-            case SampleFormat::DSP:
-            {
-                decSamples = DSPDecompressFrameRanged(data, m_curSampleData + 8 * block,
-                                                      m_curSample->second.m_coefs,
-                                                      &m_prev1, &m_prev2, rem, remCount);
-                break;
-            }
-            case SampleFormat::PCM:
-            {
-                const int16_t* pcm = reinterpret_cast<const int16_t*>(m_curSampleData);
-                for (uint32_t i=0 ; i<remCount ; ++i)
-                    data[i] = SBig(pcm[m_curSamplePos+i]);
-                decSamples = remCount;
-                break;
-            }
-            default: return 0;
-            }
+                uint32_t remCount = std::min(samplesRem, m_lastSamplePos - block * 14);
+                uint32_t decSamples;
 
-            /* Per-sample processing */
-            for (int i=0 ; i<decSamples ; ++i)
-            {
-                ++samplesProc;
-                ++m_curSamplePos;
-                if (_advanceSample(data[i]))
-                    return samplesProc;
+                switch (m_curFormat)
+                {
+                case SampleFormat::DSP:
+                {
+                    decSamples = DSPDecompressFrameRanged(data, m_curSampleData + 8 * block,
+                                                          m_curSample->second.m_coefs,
+                                                          &m_prev1, &m_prev2, rem, remCount);
+                    break;
+                }
+                case SampleFormat::PCM:
+                {
+                    const int16_t* pcm = reinterpret_cast<const int16_t*>(m_curSampleData);
+                    for (uint32_t i=0 ; i<remCount ; ++i)
+                        data[i] = SBig(pcm[m_curSamplePos+i]);
+                    decSamples = remCount;
+                    break;
+                }
+                default: return 0;
+                }
+
+                /* Per-sample processing */
+                for (int i=0 ; i<decSamples ; ++i)
+                {
+                    ++samplesProc;
+                    ++m_curSamplePos;
+                    if (_advanceSample(data[i]))
+                        return samplesProc;
+                }
+
+                samplesRem -= decSamples;
+                data += decSamples;
             }
-
-            samplesRem -= decSamples;
-            data += decSamples;
-        }
-
-        if (_checkSamplePos())
-        {
-            if (samplesRem)
-                memset(data, 0, sizeof(int16_t) * samplesRem);
-            return samples;
-        }
-
-        while (samplesRem)
-        {
-            block = m_curSamplePos / 14;
-            uint32_t remCount = std::min(samplesRem, m_lastSamplePos - block * 14);
-            uint32_t decSamples;
-
-            switch (m_curFormat)
-            {
-            case SampleFormat::DSP:
-            {
-                decSamples = DSPDecompressFrame(data, m_curSampleData + 8 * block,
-                                                      m_curSample->second.m_coefs,
-                                                      &m_prev1, &m_prev2, remCount);
-                break;
-            }
-            case SampleFormat::PCM:
-            {
-                const int16_t* pcm = reinterpret_cast<const int16_t*>(m_curSampleData);
-                for (uint32_t i=0 ; i<remCount ; ++i)
-                    data[i] = SBig(pcm[m_curSamplePos+i]);
-                decSamples = remCount;
-                break;
-            }
-            default: return 0;
-            }
-
-            /* Per-sample processing */
-            for (int i=0 ; i<decSamples ; ++i)
-            {
-                ++samplesProc;
-                ++m_curSamplePos;
-                if (_advanceSample(data[i]))
-                    return samplesProc;
-            }
-
-            samplesRem -= decSamples;
-            data += decSamples;
 
             if (_checkSamplePos())
             {
@@ -359,16 +323,62 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
                     memset(data, 0, sizeof(int16_t) * samplesRem);
                 return samples;
             }
+
+            while (samplesRem)
+            {
+                block = m_curSamplePos / 14;
+                uint32_t remCount = std::min(samplesRem, m_lastSamplePos - block * 14);
+                uint32_t decSamples;
+
+                switch (m_curFormat)
+                {
+                case SampleFormat::DSP:
+                {
+                    decSamples = DSPDecompressFrame(data, m_curSampleData + 8 * block,
+                                                    m_curSample->second.m_coefs,
+                                                    &m_prev1, &m_prev2, remCount);
+                    break;
+                }
+                case SampleFormat::PCM:
+                {
+                    const int16_t* pcm = reinterpret_cast<const int16_t*>(m_curSampleData);
+                    for (uint32_t i=0 ; i<remCount ; ++i)
+                        data[i] = SBig(pcm[m_curSamplePos+i]);
+                    decSamples = remCount;
+                    break;
+                }
+                default: return 0;
+                }
+
+                /* Per-sample processing */
+                for (int i=0 ; i<decSamples ; ++i)
+                {
+                    ++samplesProc;
+                    ++m_curSamplePos;
+                    if (_advanceSample(data[i]))
+                        return samplesProc;
+                }
+
+                samplesRem -= decSamples;
+                data += decSamples;
+
+                if (_checkSamplePos())
+                {
+                    if (samplesRem)
+                        memset(data, 0, sizeof(int16_t) * samplesRem);
+                    return samples;
+                }
+            }
         }
     }
     else
-    {
-        dead = m_state.advance(*this, 0.0);
         memset(data, 0, sizeof(int16_t) * samples);
-    }
 
     if (dead)
-        m_voxState = VoiceState::Finished;
+    {
+        m_voxState = VoiceState::Dead;
+        m_backendVoice->stop();
+    }
     return samples;
 }
 
@@ -412,6 +422,7 @@ bool Voice::loadSoundMacro(ObjectId macroId, int macroStep, double ticksPerSec,
     }
 
     m_voxState = VoiceState::Playing;
+    m_backendVoice->start();
     return true;
 }
 
@@ -441,18 +452,17 @@ void Voice::startSample(int16_t sampId, int32_t offset)
         m_sampleRate = m_curSample->first.m_sampleRate;
         m_curPitch = m_curSample->first.m_pitch;
         m_pitchDirty = true;
-        m_backendVoice->stop();
         m_backendVoice->resetSampleRate(m_curSample->first.m_sampleRate);
         m_curSamplePos = offset;
         m_curSampleData = m_audioGroup.getSampleData(m_curSample->first.m_sampleOff);
         m_prev1 = 0;
         m_prev2 = 0;
         uint32_t numSamples = m_curSample->first.m_numSamples & 0xffffff;
-        SampleFormat fmt = SampleFormat(m_curSample->first.m_numSamples >> 24);
+        m_curFormat = SampleFormat(m_curSample->first.m_numSamples >> 24);
         m_lastSamplePos = m_curSample->first.m_loopLengthSamples ?
             (m_curSample->first.m_loopStartSample + m_curSample->first.m_loopLengthSamples) : numSamples;
 
-        if (fmt != SampleFormat::DSP && fmt != SampleFormat::PCM)
+        if (m_curFormat != SampleFormat::DSP && m_curFormat != SampleFormat::PCM)
         {
             m_curSample = nullptr;
             return;
@@ -461,7 +471,7 @@ void Voice::startSample(int16_t sampId, int32_t offset)
         _checkSamplePos();
 
         /* Seek DSPADPCM state if needed */
-        if (m_curSamplePos && fmt == SampleFormat::DSP)
+        if (m_curSamplePos && m_curFormat == SampleFormat::DSP)
         {
             uint32_t block = m_curSamplePos / 14;
             uint32_t rem = m_curSamplePos % 14;
@@ -473,14 +483,11 @@ void Voice::startSample(int16_t sampId, int32_t offset)
                 DSPDecompressFrameStateOnly(m_curSampleData + 8 * block, m_curSample->second.m_coefs,
                                             &m_prev1, &m_prev2, rem);
         }
-
-        m_backendVoice->start();
     }
 }
 
 void Voice::stopSample()
 {
-    m_backendVoice->stop();
     m_curSample = nullptr;
 }
 
@@ -600,7 +607,8 @@ void Voice::setReverbVol(float rvol)
 void Voice::setAdsr(ObjectId adsrId)
 {
     const ADSR* adsr = m_audioGroup.getPool().tableAsAdsr(adsrId);
-    m_volAdsr.reset(adsr);
+    if (adsr)
+        m_volAdsr.reset(adsr);
 }
 
 void Voice::setPitchFrequency(uint32_t hz, uint16_t fine)
@@ -613,9 +621,12 @@ void Voice::setPitchFrequency(uint32_t hz, uint16_t fine)
 void Voice::setPitchAdsr(ObjectId adsrId, int32_t cents)
 {
     const ADSR* adsr = m_audioGroup.getPool().tableAsAdsr(adsrId);
-    m_pitchAdsr.reset(adsr);
-    m_pitchEnvRange = cents;
-    m_pitchEnv = true;
+    if (adsr)
+    {
+        m_pitchAdsr.reset(adsr);
+        m_pitchEnvRange = cents;
+        m_pitchEnv = true;
+    }
 }
 
 void Voice::setPitchWheelRange(int8_t up, int8_t down)

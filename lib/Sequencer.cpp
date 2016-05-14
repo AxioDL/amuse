@@ -3,4 +3,6 @@
 namespace amuse
 {
 
+Sequencer::~Sequencer() {}
+
 }

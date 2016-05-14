@@ -41,6 +41,7 @@ class Engine
     std::list<Submix>::iterator _destroySubmix(Submix* smx);
     void _bringOutYourDead();
 public:
+    ~Engine();
     Engine(IBackendVoiceAllocator& backend);
 
     /** Access voice backend of engine */

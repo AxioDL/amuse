@@ -6,6 +6,7 @@ namespace amuse
 
 void AudioGroupSampleDirectory::Entry::swapBig()
 {
+    m_sfxId = SBig(m_sfxId);
     m_sampleOff = SBig(m_sampleOff);
     m_unk = SBig(m_unk);
     m_sampleRate = SBig(m_sampleRate);
@@ -35,7 +36,7 @@ AudioGroupSampleDirectory::AudioGroupSampleDirectory(const unsigned char* data)
         const AudioGroupSampleDirectory::Entry* ent =
             reinterpret_cast<const AudioGroupSampleDirectory::Entry*>(cur);
 
-        std::pair<Entry, ADPCMParms>& store = m_entries[ent->m_sfxId];
+        std::pair<Entry, ADPCMParms>& store = m_entries[SBig(ent->m_sfxId)];
         store.first = *ent;
         store.first.swapBig();
 

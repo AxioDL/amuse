@@ -226,7 +226,7 @@ struct AppCallback : boo::IApplicationCallback
     void SFXLoop(const amuse::AudioGroup& group,
                  const amuse::SFXGroupIndex& index)
     {
-        printf("<space>: keyon/keyon, <left/right>: cycle SFX, <up/down>: volume, <Q>: quit\n");
+        printf("<space>: keyon/keyoff, <left/right>: cycle SFX, <up/down>: volume, <Q>: quit\n");
 
         std::map<uint16_t, const amuse::SFXGroupIndex::SFXEntry*> sortEntries
             (index.m_sfxEntries.cbegin(), index.m_sfxEntries.cend());
@@ -237,7 +237,6 @@ struct AppCallback : boo::IApplicationCallback
         while (m_running)
         {
             m_events.dispatchEvents();
-            m_engine->pumpEngine();
 
             if (m_wantsNext)
             {
@@ -266,6 +265,14 @@ struct AppCallback : boo::IApplicationCallback
             if (m_updateDisp)
             {
                 m_updateDisp = false;
+                UpdateSFXDisplay();
+            }
+
+            m_engine->pumpEngine();
+
+            if (m_vox && m_vox->state() == amuse::VoiceState::Dead)
+            {
+                m_vox.reset();
                 UpdateSFXDisplay();
             }
 

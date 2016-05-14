@@ -11,6 +11,8 @@
 namespace amuse
 {
 
+Engine::~Engine() {}
+
 Engine::Engine(IBackendVoiceAllocator& backend)
 : m_backend(backend)
 {}
@@ -56,7 +58,7 @@ void Engine::_bringOutYourDead()
     for (auto it = m_activeEmitters.begin() ; it != m_activeEmitters.end() ;)
     {
         Emitter* emitter = it->get();
-        if (emitter->getVoice()->m_voxState == VoiceState::Finished)
+        if (emitter->getVoice()->m_voxState == VoiceState::Dead)
         {
             emitter->_destroy();
             it = m_activeEmitters.erase(it);
@@ -69,7 +71,7 @@ void Engine::_bringOutYourDead()
     {
         Voice* vox = it->get();
         vox->_bringOutYourDead();
-        if (vox->m_voxState == VoiceState::Finished)
+        if (vox->m_voxState == VoiceState::Dead)
         {
             it = _destroyVoice(vox);
             continue;
@@ -106,7 +108,7 @@ const AudioGroup* Engine::addAudioGroup(int groupId, const AudioGroupData& data)
         const SFXGroupIndex& sfxGroup = pair.second;
         m_sfxLookup.reserve(m_sfxLookup.size() + sfxGroup.m_sfxEntries.size());
         for (const auto& pair : sfxGroup.m_sfxEntries)
-            m_sfxLookup[pair.first] = std::make_pair(ret, pair.second->objId);
+            m_sfxLookup[pair.first] = std::make_pair(ret, SBig(pair.second->objId));
     }
 
     return ret;

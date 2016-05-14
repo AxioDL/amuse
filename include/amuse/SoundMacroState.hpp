@@ -130,6 +130,7 @@ class SoundMacroState
     bool m_sampleEnd; /**< sample has finished playback */
 
     bool m_inWait = false; /**< set when timer/keyoff/sampleend wait active */
+    bool m_indefiniteWait = false; /**< set when timer wait is indefinite (keyoff/sampleend only) */
     bool m_keyoffWait = false; /**< set when active wait is a keyoff wait */
     bool m_sampleEndWait = false; /**< set when active wait is a sampleend wait */
     double m_waitCountdown; /**< countdown timer for active wait */
@@ -210,7 +211,7 @@ class SoundMacroState
     /** Event registration data for TRAP_EVENT */
     struct EventTrap
     {
-        ObjectId macroId;
+        ObjectId macroId = 0xffff;
         uint16_t macroStep;
     };
     EventTrap m_keyoffTrap;

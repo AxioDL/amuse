@@ -33,7 +33,14 @@ float Envelope::nextSample(double sampleRate)
     {
     case State::Attack:
     {
-        double attackFac = m_curMs / (m_curADSR->attackCoarse * 255 + m_curADSR->attackFine);
+        uint16_t attack = m_curADSR->attackCoarse * 255 + m_curADSR->attackFine;
+        if (attack == 0)
+        {
+            m_phase = State::Decay;
+            m_curMs = 0;
+            return 1.f;
+        }
+        double attackFac = m_curMs / double(attack);
         if (attackFac >= 1.0)
         {
             m_phase = State::Decay;
@@ -45,7 +52,15 @@ float Envelope::nextSample(double sampleRate)
     }
     case State::Decay:
     {
-        double decayFac = m_curMs / (m_curADSR->decayCoarse * 255 + m_curADSR->decayFine);
+        uint16_t decay = m_curADSR->decayCoarse * 255 + m_curADSR->decayFine;
+        if (decay == 0)
+        {
+            m_phase = State::Sustain;
+            m_curMs = 0;
+            m_releaseStartFactor = m_sustainFactor;
+            return m_sustainFactor;
+        }
+        double decayFac = m_curMs / double(decay);
         if (decayFac >= 1.0)
         {
             m_phase = State::Sustain;
@@ -62,7 +77,10 @@ float Envelope::nextSample(double sampleRate)
     }
     case State::Release:
     {
-        double releaseFac = m_curMs / (m_curADSR->releaseCoarse * 255 + m_curADSR->releaseFine);
+        uint16_t release = m_curADSR->releaseCoarse * 255 + m_curADSR->releaseFine;
+        if (release == 0)
+            return 0.f;
+        double releaseFac = m_curMs / double(release);
         if (releaseFac >= 1.0)
             return 0.f;
         return (1.0 - releaseFac) * m_releaseStartFactor;

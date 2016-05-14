@@ -41,7 +41,7 @@ protected:
     }
     Engine& m_engine;
     const AudioGroup& m_audioGroup;
-    ObjectId m_objectId; /* if applicable */
+    ObjectId m_objectId = 0xffff; /* if applicable */
 public:
     Entity(Engine& engine, const AudioGroup& group, ObjectId oid=ObjectId())
     : m_engine(engine), m_audioGroup(group), m_objectId(oid) {}

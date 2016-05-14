@@ -9,6 +9,7 @@ namespace amuse
 class Sequencer : public Entity
 {
 public:
+    ~Sequencer();
 };
 
 }

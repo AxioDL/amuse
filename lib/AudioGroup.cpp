@@ -14,10 +14,10 @@ AudioGroup::AudioGroup(int groupId, const AudioGroupData& data)
 
 const Sample* AudioGroup::getSample(int sfxId) const
 {
-    for (const auto& ent : m_sdir.m_entries)
-        if (ent.second.first.m_sfxId == sfxId)
-            return &ent.second;
-    return nullptr;
+    auto search = m_sdir.m_entries.find(sfxId);
+    if (search == m_sdir.m_entries.cend())
+        return nullptr;
+    return &search->second;
 }
 
 const unsigned char* AudioGroup::getSampleData(uint32_t offset) const

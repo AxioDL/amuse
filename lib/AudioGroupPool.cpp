@@ -31,8 +31,8 @@ AudioGroupPool::AudioGroupPool(const unsigned char* data)
         while (*reinterpret_cast<const uint32_t*>(cur) != 0xffffffff)
         {
             uint32_t size = SBig(*reinterpret_cast<const uint32_t*>(cur));
-            ObjectId id = *reinterpret_cast<const ObjectId*>(cur + 4);
-            m_soundMacros[id] = cur + 8;
+            ObjectId id = SBig(*reinterpret_cast<const ObjectId*>(cur + 4));
+            m_soundMacros[id] = cur;
             cur += size;
         }
     }
@@ -43,7 +43,7 @@ AudioGroupPool::AudioGroupPool(const unsigned char* data)
         while (*reinterpret_cast<const uint32_t*>(cur) != 0xffffffff)
         {
             uint32_t size = SBig(*reinterpret_cast<const uint32_t*>(cur));
-            ObjectId id = *reinterpret_cast<const ObjectId*>(cur + 4);
+            ObjectId id = SBig(*reinterpret_cast<const ObjectId*>(cur + 4));
             m_tables[id] = cur + 8;
             cur += size;
         }
@@ -55,7 +55,7 @@ AudioGroupPool::AudioGroupPool(const unsigned char* data)
         while (*reinterpret_cast<const uint32_t*>(cur) != 0xffffffff)
         {
             uint32_t size = SBig(*reinterpret_cast<const uint32_t*>(cur));
-            ObjectId id = *reinterpret_cast<const ObjectId*>(cur + 4);
+            ObjectId id = SBig(*reinterpret_cast<const ObjectId*>(cur + 4));
             m_keymaps[id] = reinterpret_cast<const Keymap*>(cur + 8);
             cur += size;
         }
@@ -67,7 +67,7 @@ AudioGroupPool::AudioGroupPool(const unsigned char* data)
         while (*reinterpret_cast<const uint32_t*>(cur) != 0xffffffff)
         {
             uint32_t size = SBig(*reinterpret_cast<const uint32_t*>(cur));
-            ObjectId id = *reinterpret_cast<const ObjectId*>(cur + 4);
+            ObjectId id = SBig(*reinterpret_cast<const ObjectId*>(cur + 4));
             std::vector<const LayerMapping*>& mappingsOut = m_layers[id];
 
             uint32_t count = SBig(*reinterpret_cast<const uint32_t*>(cur+8));

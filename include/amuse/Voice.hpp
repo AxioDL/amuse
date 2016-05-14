@@ -21,7 +21,7 @@ enum class VoiceState
 {
     Playing, /**< SoundMacro actively executing, not in KeyOff */
     KeyOff, /**< KeyOff event issued, macro beginning fade-out */
-    Finished /**< Default state, causes Engine to remove voice at end of pump cycle */
+    Dead /**< Default state, causes Engine to remove voice at end of pump cycle */
 };
 
 /** Individual source of audio */
@@ -55,7 +55,7 @@ class Voice : public Entity
     double m_sampleRate; /**< Current sample rate computed from relative sample key or SETPITCH */
     double m_voiceTime; /**< Current seconds of voice playback (per-sample resolution) */
 
-    VoiceState m_voxState = VoiceState::Finished; /**< Current high-level state of voice */
+    VoiceState m_voxState = VoiceState::Dead; /**< Current high-level state of voice */
     bool m_sustained = false; /**< Sustain pedal pressed for this voice */
     bool m_sustainKeyOff = false; /**< Keyoff event occured while sustained */
 
@@ -117,6 +117,7 @@ class Voice : public Entity
     std::list<std::shared_ptr<Voice>>::iterator _destroyVoice(Voice* voice);
 
 public:
+    ~Voice();
     Voice(Engine& engine, const AudioGroup& group, int vid, bool emitter, Submix* smx);
     Voice(Engine& engine, const AudioGroup& group, ObjectId oid, int vid, bool emitter, Submix* smx);
 

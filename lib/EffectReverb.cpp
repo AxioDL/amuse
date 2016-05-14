@@ -37,9 +37,9 @@ static const size_t LPTapDelays[] =
 void ReverbDelayLine::allocate(int32_t delay)
 {
     delay += 2;
-    x8_length = delay * sizeof(float);
+    x8_length = delay;
     xc_inputs.reset(new float[delay]);
-    memset(xc_inputs.get(), 0, x8_length);
+    memset(xc_inputs.get(), 0, x8_length * sizeof(float));
     x10_lastInput = 0.f;
     setdelay(delay / 2);
     x0_inPoint = 0;
@@ -48,7 +48,7 @@ void ReverbDelayLine::allocate(int32_t delay)
 
 void ReverbDelayLine::setdelay(int32_t delay)
 {
-    x4_outPoint = x0_inPoint - delay * sizeof(float);
+    x4_outPoint = x0_inPoint - delay;
     while (x4_outPoint < 0)
         x4_outPoint += x8_length;
 }
@@ -162,23 +162,23 @@ void EffectReverbStdImp<T>::applyEffect(T* audio, size_t frameCount, const Chann
                 {
                     sample2 = *preDelayPtr;
                     *preDelayPtr = sample;
-                    preDelayPtr += 4;
+                    preDelayPtr += 1;
                     if (preDelayPtr == lastPreDelaySamp)
                         preDelayPtr = preDelayLine;
                 }
 
                 /* Comb filter stage */
                 linesC[0].xc_inputs[linesC[0].x0_inPoint] = combCoefs[0] * linesC[0].x10_lastInput + sample2;
-                linesC[0].x0_inPoint += 4;
+                linesC[0].x0_inPoint += 1;
 
                 linesC[1].xc_inputs[linesC[1].x0_inPoint] = combCoefs[1] * linesC[1].x10_lastInput + sample2;
-                linesC[1].x0_inPoint += 4;
+                linesC[1].x0_inPoint += 1;
 
                 linesC[0].x10_lastInput = linesC[0].xc_inputs[linesC[0].x4_outPoint];
-                linesC[0].x4_outPoint += 4;
+                linesC[0].x4_outPoint += 1;
 
                 linesC[1].x10_lastInput = linesC[1].xc_inputs[linesC[1].x4_outPoint];
-                linesC[1].x4_outPoint += 4;
+                linesC[1].x4_outPoint += 1;
 
                 if (linesC[0].x0_inPoint == linesC[0].x8_length)
                     linesC[0].x0_inPoint = 0;
@@ -197,10 +197,10 @@ void EffectReverbStdImp<T>::applyEffect(T* audio, size_t frameCount, const Chann
                     xf0_allPassCoef * linesAP[0].x10_lastInput + linesC[0].x10_lastInput + linesC[1].x10_lastInput;
                 float lowPass = -(xf0_allPassCoef * linesAP[0].xc_inputs[linesAP[0].x0_inPoint] -
                                   linesAP[0].x10_lastInput);
-                linesAP[0].x0_inPoint += 4;
+                linesAP[0].x0_inPoint += 1;
 
                 linesAP[0].x10_lastInput = linesAP[0].xc_inputs[linesAP[0].x4_outPoint];
-                linesAP[0].x4_outPoint += 4;
+                linesAP[0].x4_outPoint += 1;
 
                 if (linesAP[0].x0_inPoint == linesAP[0].x8_length)
                     linesAP[0].x0_inPoint = 0;
@@ -212,10 +212,10 @@ void EffectReverbStdImp<T>::applyEffect(T* audio, size_t frameCount, const Chann
                 linesAP[1].xc_inputs[linesAP[1].x0_inPoint] = xf0_allPassCoef * linesAP[1].x10_lastInput + lpLastOut;
                 float allPass = -(xf0_allPassCoef * linesAP[1].xc_inputs[linesAP[1].x0_inPoint] -
                                   linesAP[1].x10_lastInput);
-                linesAP[1].x0_inPoint += 4;
+                linesAP[1].x0_inPoint += 1;
 
                 linesAP[1].x10_lastInput = linesAP[1].xc_inputs[linesAP[1].x4_outPoint];
-                linesAP[1].x4_outPoint += 4;
+                linesAP[1].x4_outPoint += 1;
 
                 if (linesAP[1].x0_inPoint == linesAP[1].x8_length)
                     linesAP[1].x0_inPoint = 0;
@@ -249,7 +249,7 @@ void EffectReverbHiImp<T>::_update()
     float timeSamples = x148_x1d0_time * m_sampleRate;
     for (int c=0 ; c<8 ; ++c)
     {
-        for (int t=0 ; t<2 ; ++t)
+        for (int t=0 ; t<3 ; ++t)
         {
             ReverbDelayLine& combLine = xb4_C[c][t];
             size_t tapDelay = CTapDelays[t] * m_sampleRate / 32000.0;
@@ -333,23 +333,29 @@ void EffectReverbHiImp<T>::_handleReverb(T* audio, int c, int chanCount, int sam
         {
             sample2 = *preDelayPtr;
             *preDelayPtr = sample;
-            preDelayPtr += 4;
+            preDelayPtr += 1;
             if (preDelayPtr == lastPreDelaySamp)
                 preDelayPtr = preDelayLine;
         }
 
         /* Comb filter stage */
         linesC[0].xc_inputs[linesC[0].x0_inPoint] = combCoefs[0] * linesC[0].x10_lastInput + sample2;
-        linesC[0].x0_inPoint += 4;
+        linesC[0].x0_inPoint += 1;
 
         linesC[1].xc_inputs[linesC[1].x0_inPoint] = combCoefs[1] * linesC[1].x10_lastInput + sample2;
-        linesC[1].x0_inPoint += 4;
+        linesC[1].x0_inPoint += 1;
+
+        linesC[2].xc_inputs[linesC[2].x0_inPoint] = combCoefs[2] * linesC[2].x10_lastInput + sample2;
+        linesC[2].x0_inPoint += 1;
 
         linesC[0].x10_lastInput = linesC[0].xc_inputs[linesC[0].x4_outPoint];
-        linesC[0].x4_outPoint += 4;
+        linesC[0].x4_outPoint += 1;
 
         linesC[1].x10_lastInput = linesC[1].xc_inputs[linesC[1].x4_outPoint];
-        linesC[1].x4_outPoint += 4;
+        linesC[1].x4_outPoint += 1;
+
+        linesC[2].x10_lastInput = linesC[2].xc_inputs[linesC[2].x4_outPoint];
+        linesC[2].x4_outPoint += 1;
 
         if (linesC[0].x0_inPoint == linesC[0].x8_length)
             linesC[0].x0_inPoint = 0;
@@ -357,23 +363,29 @@ void EffectReverbHiImp<T>::_handleReverb(T* audio, int c, int chanCount, int sam
         if (linesC[1].x0_inPoint == linesC[1].x8_length)
             linesC[1].x0_inPoint = 0;
 
+        if (linesC[2].x0_inPoint == linesC[2].x8_length)
+            linesC[2].x0_inPoint = 0;
+
         if (linesC[0].x4_outPoint == linesC[0].x8_length)
             linesC[0].x4_outPoint = 0;
 
         if (linesC[1].x4_outPoint == linesC[1].x8_length)
             linesC[1].x4_outPoint = 0;
 
+        if (linesC[2].x4_outPoint == linesC[2].x8_length)
+            linesC[2].x4_outPoint = 0;
+
         /* All-pass filter stage */
         linesAP[0].xc_inputs[linesAP[0].x0_inPoint] =
-            allPassCoef * linesAP[0].x10_lastInput + linesC[0].x10_lastInput + linesC[1].x10_lastInput;
+            allPassCoef * linesAP[0].x10_lastInput + linesC[0].x10_lastInput + linesC[1].x10_lastInput + linesC[2].x10_lastInput;
 
         linesAP[1].xc_inputs[linesAP[1].x0_inPoint] =
             allPassCoef * linesAP[1].x10_lastInput -
             (allPassCoef * linesAP[0].xc_inputs[linesAP[0].x0_inPoint] - linesAP[0].x10_lastInput);
 
         float lowPass = -(allPassCoef * linesAP[1].xc_inputs[linesAP[1].x0_inPoint] - linesAP[1].x10_lastInput);
-        linesAP[0].x0_inPoint += 4;
-        linesAP[1].x0_inPoint += 4;
+        linesAP[0].x0_inPoint += 1;
+        linesAP[1].x0_inPoint += 1;
 
         if (linesAP[0].x0_inPoint == linesAP[0].x8_length)
             linesAP[0].x0_inPoint = 0;
@@ -382,10 +394,10 @@ void EffectReverbHiImp<T>::_handleReverb(T* audio, int c, int chanCount, int sam
             linesAP[1].x0_inPoint = 0;
 
         linesAP[0].x10_lastInput = linesAP[0].xc_inputs[linesAP[0].x4_outPoint];
-        linesAP[0].x4_outPoint += 4;
+        linesAP[0].x4_outPoint += 1;
 
         linesAP[1].x10_lastInput = linesAP[1].xc_inputs[linesAP[1].x4_outPoint];
-        linesAP[1].x4_outPoint += 4;
+        linesAP[1].x4_outPoint += 1;
 
         if (linesAP[0].x4_outPoint == linesAP[0].x8_length)
             linesAP[0].x4_outPoint = 0;
@@ -396,10 +408,10 @@ void EffectReverbHiImp<T>::_handleReverb(T* audio, int c, int chanCount, int sam
         lpLastOut = damping * lpLastOut + lowPass * 0.3f;
         lineLP.xc_inputs[lineLP.x0_inPoint] = allPassCoef * lineLP.x10_lastInput + lpLastOut;
         float allPass = -(allPassCoef * lineLP.xc_inputs[lineLP.x0_inPoint] - lineLP.x10_lastInput);
-        lineLP.x0_inPoint += 4;
+        lineLP.x0_inPoint += 1;
 
         lineLP.x10_lastInput = lineLP.xc_inputs[lineLP.x4_outPoint];
-        lineLP.x4_outPoint += 4;
+        lineLP.x4_outPoint += 1;
 
         if (lineLP.x0_inPoint == lineLP.x8_length)
             lineLP.x0_inPoint = 0;

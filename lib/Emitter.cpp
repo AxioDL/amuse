@@ -5,6 +5,8 @@
 namespace amuse
 {
 
+Emitter::~Emitter() {}
+
 Emitter::Emitter(Engine& engine, const AudioGroup& group, std::shared_ptr<Voice>&& vox)
 : Entity(engine, group, vox->getObjectId()), m_vox(std::move(vox))
 {

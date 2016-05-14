@@ -12,6 +12,7 @@ namespace amuse
 void SoundMacroState::Header::swapBig()
 {
     m_size = SBig(m_size);
+    m_macroId = SBig(m_macroId);
 }
 
 void SoundMacroState::Command::swapBig()
@@ -150,10 +151,14 @@ bool SoundMacroState::advance(Voice& vox, double dt)
         /* Advance wait timer if active, returning if waiting */
         if (m_inWait)
         {
-            m_waitCountdown -= dt;
-            if (m_waitCountdown < 0.f)
-                m_inWait = false;
-            else
+            if (!m_indefiniteWait)
+            {
+                m_waitCountdown -= dt;
+                if (m_waitCountdown < 0.f)
+                    m_inWait = false;
+            }
+
+            if (m_inWait)
             {
                 m_execTime += dt;
                 return false;
@@ -218,20 +223,27 @@ bool SoundMacroState::advance(Voice& vox, double dt)
             int16_t time = *reinterpret_cast<int16_t*>(&cmd.m_data[5]);
 
             /* Set wait state */
-            float q = ms ? 1000.f : m_ticksPerSec;
-            float secTime = time / q;
-            if (absolute)
+            if (time >= 0)
             {
-                if (secTime <= m_execTime)
-                    break;
-                m_waitCountdown = secTime - m_execTime;
+                float q = ms ? 1000.f : m_ticksPerSec;
+                float secTime = time / q;
+                if (absolute)
+                {
+                    if (secTime <= m_execTime)
+                        break;
+                    m_waitCountdown = secTime - m_execTime;
+                }
+                else
+                    m_waitCountdown = secTime;
+
+                /* Randomize at the proper resolution */
+                if (random)
+                    secTime = std::fmod(vox.getEngine().nextRandom() / q, secTime);
+
+                m_indefiniteWait = false;
             }
             else
-                m_waitCountdown = secTime;
-
-            /* Randomize at the proper resolution */
-            if (random)
-                secTime = std::fmod(vox.getEngine().nextRandom() / q, secTime);
+                m_indefiniteWait = true;
 
             m_inWait = true;
             m_keyoffWait = keyRelease;
@@ -293,19 +305,26 @@ bool SoundMacroState::advance(Voice& vox, double dt)
             int16_t time = *reinterpret_cast<int16_t*>(&cmd.m_data[5]);
 
             /* Set wait state */
-            float secTime = time / 1000.f;
-            if (absolute)
+            if (time >= 0)
             {
-                if (secTime <= m_execTime)
-                    break;
-                m_waitCountdown = secTime - m_execTime;
+                float secTime = time / 1000.f;
+                if (absolute)
+                {
+                    if (secTime <= m_execTime)
+                        break;
+                    m_waitCountdown = secTime - m_execTime;
+                }
+                else
+                    m_waitCountdown = secTime;
+
+                /* Randomize at the proper resolution */
+                if (random)
+                    secTime = std::fmod(vox.getEngine().nextRandom() / 1000.f, secTime);
+
+                m_indefiniteWait = false;
             }
             else
-                m_waitCountdown = secTime;
-
-            /* Randomize at the proper resolution */
-            if (random)
-                secTime = std::fmod(vox.getEngine().nextRandom() / 1000.f, secTime);
+                m_indefiniteWait = true;
 
             m_inWait = true;
             m_keyoffWait = keyRelease;
@@ -546,7 +565,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
             noteLo *= 100;
             noteHi *= 100;
 
-            m_curKey = vox.getEngine().nextRandom() % (noteHi - noteLo) + noteLo;
+            m_curKey = vox.getEngine().nextRandom() % ((noteHi - noteLo) + noteLo);
             if (!free)
                 m_curKey = m_curKey / 100 * 100 + detune;
 
