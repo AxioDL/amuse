@@ -7,12 +7,51 @@
 
 namespace amuse
 {
+template <typename T>
+class EffectChorusImp;
 
 #define AMUSE_CHORUS_NUM_BLOCKS 3
 
 /** Mixes the audio back into itself after continuously-varying delay */
+class EffectChorus
+{
+    uint32_t x90_baseDelay; /**< [5, 15] minimum value (in ms) for computed delay */
+    uint32_t x94_variation; /**< [0, 5] time error (in ms) to set delay within */
+    uint32_t x98_period; /**< [500, 10000] time (in ms) of one delay-shift cycle */
+    bool m_dirty = true; /**< needs update of internal parameter data */
+
+    template <typename T>
+    friend class EffectChorusImp;
+    EffectChorus(uint32_t baseDelay, uint32_t variation, uint32_t period);
+public:
+    template <typename T>
+    using ImpType = EffectChorusImp<T>;
+
+    void setBaseDelay(uint32_t baseDelay)
+    {
+        baseDelay = clamp(5u, baseDelay, 15u);
+        x90_baseDelay = baseDelay;
+        m_dirty = true;
+    }
+
+    void setVariation(uint32_t variation)
+    {
+        variation = clamp(0u, variation, 5u);
+        x94_variation = variation;
+        m_dirty = true;
+    }
+
+    void setPeriod(uint32_t period)
+    {
+        period = clamp(500u, period, 10000u);
+        x98_period = period;
+        m_dirty = true;
+    }
+};
+
+/** Type-specific implementation of chorus effect */
 template <typename T>
-class EffectChorus : public EffectBase<T>
+class EffectChorusImp : public EffectBase<T>, public EffectChorus
 {
     T* x0_lastChans[8][AMUSE_CHORUS_NUM_BLOCKS]; /**< Evenly-allocated pointer-table for each channel's delay */
 
@@ -42,41 +81,15 @@ class EffectChorus : public EffectBase<T>
         void doSrc2(size_t blockSamples, size_t chanCount);
     } x6c_src;
 
-    uint32_t x90_baseDelay; /**< [5, 15] minimum value (in ms) for computed delay */
-    uint32_t x94_variation; /**< [0, 5] time error (in ms) to set delay within */
-    uint32_t x98_period; /**< [500, 10000] time (in ms) of one delay-shift cycle */
-
     uint32_t m_sampsPerMs; /**< canonical count of samples per ms for the current backend */
     uint32_t m_blockSamples; /**< count of samples in a 5ms block */
-    bool m_dirty = true; /**< needs update of internal parameter data */
 
     void _update();
 
 public:
-    ~EffectChorus();
-    EffectChorus(uint32_t baseDelay, uint32_t variation, uint32_t period, double sampleRate);
+    ~EffectChorusImp();
+    EffectChorusImp(uint32_t baseDelay, uint32_t variation, uint32_t period, double sampleRate);
     void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap);
-
-    void setBaseDelay(uint32_t baseDelay)
-    {
-        baseDelay = clamp(5u, baseDelay, 15u);
-        x90_baseDelay = baseDelay;
-        m_dirty = true;
-    }
-
-    void setVariation(uint32_t variation)
-    {
-        variation = clamp(0u, variation, 5u);
-        x94_variation = variation;
-        m_dirty = true;
-    }
-
-    void setPeriod(uint32_t period)
-    {
-        period = clamp(500u, period, 10000u);
-        x98_period = period;
-        m_dirty = true;
-    }
 };
 
 }

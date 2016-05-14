@@ -8,8 +8,14 @@ namespace amuse
 {
 class ChannelMap;
 
+class EffectBaseTypeless
+{
+public:
+    virtual ~EffectBaseTypeless() = default;
+};
+
 template <typename T>
-class EffectBase
+class EffectBase : public EffectBaseTypeless
 {
 public:
     virtual void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap)=0;

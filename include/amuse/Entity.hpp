@@ -26,7 +26,8 @@ using ObjectId = uint16_t;
 /** Common 'engine child' class */
 class Entity
 {
-    /* Only the Engine will manage Entity lifetimes */
+    /* Only the Engine will manage Entity lifetimes,
+     * but shared_ptrs are issued to the client so it can safely track state */
     friend class Engine;
     friend class SoundMacroState;
     bool m_destroyed = false;

@@ -54,21 +54,21 @@ bool BooBackendSubmix::SubmixCallback::canApplyEffect() const
 }
 
 void BooBackendSubmix::SubmixCallback::applyEffect(int16_t* audio, size_t frameCount,
-                                                   const boo::ChannelMap& chanMap, double sampleRate) const
+                                                   const boo::ChannelMap& chanMap, double) const
 {
-    return m_parent.m_clientSmx.applyEffect(audio, reinterpret_cast<const ChannelMap&>(chanMap), sampleRate);
+    return m_parent.m_clientSmx.applyEffect(audio, frameCount, reinterpret_cast<const ChannelMap&>(chanMap));
 }
 
 void BooBackendSubmix::SubmixCallback::applyEffect(int32_t* audio, size_t frameCount,
-                                                   const boo::ChannelMap& chanMap, double sampleRate) const
+                                                   const boo::ChannelMap& chanMap, double) const
 {
-    return m_parent.m_clientSmx.applyEffect(audio, reinterpret_cast<const ChannelMap&>(chanMap), sampleRate);
+    return m_parent.m_clientSmx.applyEffect(audio, frameCount, reinterpret_cast<const ChannelMap&>(chanMap));
 }
 
 void BooBackendSubmix::SubmixCallback::applyEffect(float* audio, size_t frameCount,
-                                                   const boo::ChannelMap& chanMap, double sampleRate) const
+                                                   const boo::ChannelMap& chanMap, double) const
 {
-    return m_parent.m_clientSmx.applyEffect(audio, reinterpret_cast<const ChannelMap&>(chanMap), sampleRate);
+    return m_parent.m_clientSmx.applyEffect(audio, frameCount, reinterpret_cast<const ChannelMap&>(chanMap));
 }
 
 BooBackendSubmix::BooBackendSubmix(boo::IAudioVoiceEngine& engine, Submix& clientSmx)
@@ -90,6 +90,16 @@ BooBackendSubmix::allocateVoice(Voice& clientVox, double sampleRate, bool dynami
     return std::make_unique<BooBackendVoice>(*m_booSubmix, clientVox, sampleRate, dynamicPitch);
 }
 
+double BooBackendSubmix::getSampleRate() const
+{
+    return m_booSubmix->getSampleRate();
+}
+
+SubmixFormat BooBackendSubmix::getSampleFormat() const
+{
+    return SubmixFormat(m_booSubmix->getSampleFormat());
+}
+
 BooBackendVoiceAllocator::BooBackendVoiceAllocator(boo::IAudioVoiceEngine& booEngine)
 : m_booEngine(booEngine)
 {}
@@ -108,6 +118,11 @@ std::unique_ptr<IBackendSubmix> BooBackendVoiceAllocator::allocateSubmix(Submix&
 AudioChannelSet BooBackendVoiceAllocator::getAvailableSet()
 {
     return AudioChannelSet(m_booEngine.getAvailableSet());
+}
+
+void BooBackendVoiceAllocator::pumpAndMixVoices()
+{
+    m_booEngine.pumpAndMixVoices();
 }
 
 }

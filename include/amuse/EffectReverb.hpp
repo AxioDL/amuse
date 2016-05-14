@@ -21,46 +21,45 @@ struct ReverbDelayLine
     void setdelay(int32_t delay);
 };
 
+template <typename T>
+class EffectReverbStdImp;
+
+template <typename T>
+class EffectReverbHiImp;
+
 /** Reverb effect with configurable reflection filtering */
-template <typename T, size_t AP, size_t C>
-class EffectReverb : public EffectBase<T>
+class EffectReverb
 {
 protected:
-    ReverbDelayLine x0_x0_AP[8][AP] = {}; /**< All-pass delay lines */
-    ReverbDelayLine x78_xb4_C[8][C] = {}; /**< Comb delay lines */
-    float xf0_x168_allPassCoef = 0.f; /**< All-pass mix coefficient */
-    float xf4_x16c_combCoef[8][C] = {}; /**< Comb mix coefficients */
-    float x10c_x190_lpLastout[8] = {}; /**< Last low-pass results */
-    float x118_x19c_level = 0.f; /**< Internal wet/dry mix factor */
-    float x11c_x1a0_damping = 0.f; /**< Low-pass damping */
-    int32_t x120_x1a4_preDelayTime = 0; /**< Sample count of pre-delay */
-    std::unique_ptr<float[]> x124_x1ac_preDelayLine[8]; /**< Dedicated pre-delay buffers */
-    float* x130_x1b8_preDelayPtr[8] = {}; /**< Current pre-delay pointers */
-
     float x140_x1c8_coloration; /**< [0.0, 1.0] influences filter coefficients to define surface characteristics of a room */
     float x144_x1cc_mix; /**< [0.0, 1.0] dry/wet mix factor of reverb effect */
     float x148_x1d0_time; /**< [0.01, 10.0] time in seconds for reflection decay */
     float x14c_x1d4_damping; /**< [0.0, 1.0] damping factor influencing low-pass filter of reflections */
     float x150_x1d8_preDelay; /**< [0.0, 0.1] time in seconds before initial reflection heard */
-
-    double m_sampleRate; /**< copy of sample rate */
     bool m_dirty = true; /**< needs update of internal parameter data */
-    void _update();
-public:
+
+    template <typename T>
+    friend class EffectReverbStdImp;
+    template <typename T>
+    friend class EffectReverbHiImp;
     EffectReverb(float coloration, float mix, float time,
-                 float damping, float preDelay, double sampleRate);
-    void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap);
+                 float damping, float preDelay);
+public:
+    template <typename T>
+    using ImpType = EffectReverbStdImp<T>;
 
     void setColoration(float coloration)
     {
         x140_x1c8_coloration = clamp(0.f, coloration, 1.f);
         m_dirty = true;
     }
+
     void setMix(float mix)
     {
         x144_x1cc_mix = clamp(0.f, mix, 1.f);
         m_dirty = true;
     }
+
     void setTime(float time)
     {
         x148_x1d0_time = clamp(0.01f, time, 10.f);
@@ -71,6 +70,7 @@ public:
         x14c_x1d4_damping = clamp(0.f, damping, 1.f);
         m_dirty = true;
     }
+
     void setPreDelay(float preDelay)
     {
         x150_x1d8_preDelay = clamp(0.f, preDelay, 0.1f);
@@ -78,35 +78,74 @@ public:
     }
 };
 
-/** Standard-quality 2-stage reverb */
-template <typename T>
-class EffectReverbStd : public EffectReverb<T, 2, 2>
+/** Reverb effect with configurable reflection filtering, adds per-channel low-pass and crosstalk */
+class EffectReverbHi : public EffectReverb
 {
-public:
-    EffectReverbStd(float coloration, float mix, float time,
-                    float damping, float preDelay, double sampleRate);
-};
-
-/** High-quality 3-stage reverb with per-channel low-pass and crosstalk */
-template <typename T>
-class EffectReverbHi : public EffectReverb<T, 2, 3>
-{
-    ReverbDelayLine x78_LP[8] = {}; /**< Per-channel low-pass delay-lines */
-    float x1a8_internalCrosstalk;
     float x1dc_crosstalk; /**< [0.0, 1.0] factor defining how much reflections are allowed to bleed to other channels */
-    void _update();
-    void _handleReverb(T* audio, int chanIdx, int chanCount, int sampleCount);
-    void _doCrosstalk(T* audio, float wet, float dry, int chanCount, int sampleCount);
-public:
+
+    template <typename T>
+    friend class EffectReverbHiImp;
     EffectReverbHi(float coloration, float mix, float time,
-                   float damping, float preDelay, float crosstalk, double sampleRate);
-    void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap);
+                   float damping, float preDelay, float crosstalk);
+public:
+    template <typename T>
+    using ImpType = EffectReverbHiImp<T>;
 
     void setCrosstalk(float crosstalk)
     {
         x1dc_crosstalk = clamp(0.f, crosstalk, 1.f);
-        EffectReverb<T, 2, 3>::m_dirty = true;
+        m_dirty = true;
     }
+};
+
+/** Standard-quality 2-stage reverb */
+template <typename T>
+class EffectReverbStdImp : public EffectBase<T>, public EffectReverb
+{
+    ReverbDelayLine x0_AP[8][2] = {}; /**< All-pass delay lines */
+    ReverbDelayLine x78_C[8][2] = {}; /**< Comb delay lines */
+    float xf0_allPassCoef = 0.f; /**< All-pass mix coefficient */
+    float xf4_combCoef[8][2] = {}; /**< Comb mix coefficients */
+    float x10c_lpLastout[8] = {}; /**< Last low-pass results */
+    float x118_level = 0.f; /**< Internal wet/dry mix factor */
+    float x11c_damping = 0.f; /**< Low-pass damping */
+    int32_t x120_preDelayTime = 0; /**< Sample count of pre-delay */
+    std::unique_ptr<float[]> x124_preDelayLine[8]; /**< Dedicated pre-delay buffers */
+    float* x130_preDelayPtr[8] = {}; /**< Current pre-delay pointers */
+
+    double m_sampleRate; /**< copy of sample rate */
+    void _update();
+public:
+    EffectReverbStdImp(float coloration, float mix, float time,
+                       float damping, float preDelay, double sampleRate);
+    void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap);
+};
+
+/** High-quality 3-stage reverb with per-channel low-pass and crosstalk */
+template <typename T>
+class EffectReverbHiImp : public EffectBase<T>, public EffectReverbHi
+{
+    ReverbDelayLine x0_AP[8][2] = {}; /**< All-pass delay lines */
+    ReverbDelayLine x78_LP[8] = {}; /**< Per-channel low-pass delay-lines */
+    ReverbDelayLine xb4_C[8][3] = {}; /**< Comb delay lines */
+    float x168_allPassCoef = 0.f; /**< All-pass mix coefficient */
+    float x16c_combCoef[8][3] = {}; /**< Comb mix coefficients */
+    float x190_lpLastout[8] = {}; /**< Last low-pass results */
+    float x19c_level = 0.f; /**< Internal wet/dry mix factor */
+    float x1a0_damping = 0.f; /**< Low-pass damping */
+    int32_t x1a4_preDelayTime = 0; /**< Sample count of pre-delay */
+    std::unique_ptr<float[]> x1ac_preDelayLine[8]; /**< Dedicated pre-delay buffers */
+    float* x1b8_preDelayPtr[8] = {}; /**< Current pre-delay pointers */
+    float x1a8_internalCrosstalk;
+
+    double m_sampleRate; /**< copy of sample rate */
+    void _update();
+    void _handleReverb(T* audio, int chanIdx, int chanCount, int sampleCount);
+    void _doCrosstalk(T* audio, float wet, float dry, int chanCount, int sampleCount);
+public:
+    EffectReverbHiImp(float coloration, float mix, float time,
+                      float damping, float preDelay, float crosstalk, double sampleRate);
+    void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap);
 };
 
 }

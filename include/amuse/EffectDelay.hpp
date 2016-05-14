@@ -8,29 +8,20 @@
 
 namespace amuse
 {
+template <typename T>
+class EffectDelayImp;
 
 /** Mixes the audio back into itself after specified delay */
-template <typename T>
-class EffectDelay : public EffectBase<T>
+class EffectDelay
 {
-    uint32_t x0_currentSize[8]; /**< per-channel delay-line buffer sizes */
-    uint32_t xc_currentPos[8]; /**< per-channel block-index */
-    uint32_t x18_currentFeedback[8]; /**< [0, 128] feedback attenuator */
-    uint32_t x24_currentOutput[8]; /**< [0, 128] total attenuator */
-
-    std::unique_ptr<T[]> x30_chanLines[8]; /**< delay-line buffers for each channel */
-
+protected:
     uint32_t x3c_delay[8]; /**< [10, 5000] time in ms of each channel's delay */
     uint32_t x48_feedback[8]; /**< [0, 100] percent to mix delayed signal with input signal */
     uint32_t x54_output[8]; /**< [0, 100] total output percent */
-
-    uint32_t m_sampsPerMs; /**< canonical count of samples per ms for the current backend */
-    uint32_t m_blockSamples; /**< count of samples in a 5ms block */
     bool m_dirty = true; /**< needs update of internal parameter data */
-    void _update();
 public:
-    EffectDelay(uint32_t initDelay, uint32_t initFeedback, uint32_t initOutput, double sampleRate);
-    void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap);
+    template <typename T>
+    using ImpType = EffectDelayImp<T>;
 
     void setDelay(uint32_t delay)
     {
@@ -73,6 +64,25 @@ public:
         x54_output[chanIdx] = output;
         m_dirty = true;
     }
+};
+
+/** Type-specific implementation of chorus effect */
+template <typename T>
+class EffectDelayImp : public EffectBase<T>, public EffectDelay
+{
+    uint32_t x0_currentSize[8]; /**< per-channel delay-line buffer sizes */
+    uint32_t xc_currentPos[8]; /**< per-channel block-index */
+    uint32_t x18_currentFeedback[8]; /**< [0, 128] feedback attenuator */
+    uint32_t x24_currentOutput[8]; /**< [0, 128] total attenuator */
+
+    std::unique_ptr<T[]> x30_chanLines[8]; /**< delay-line buffers for each channel */
+
+    uint32_t m_sampsPerMs; /**< canonical count of samples per ms for the current backend */
+    uint32_t m_blockSamples; /**< count of samples in a 5ms block */
+    void _update();
+public:
+    EffectDelayImp(uint32_t initDelay, uint32_t initFeedback, uint32_t initOutput, double sampleRate);
+    void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap);
 };
 
 }

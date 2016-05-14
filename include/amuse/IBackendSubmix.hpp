@@ -8,6 +8,13 @@ namespace amuse
 class IBackendVoice;
 class Voice;
 
+enum class SubmixFormat
+{
+    Int16,
+    Int32,
+    Float
+};
+
 /**
  * @brief Client-implemented submix instance
  */
@@ -21,6 +28,12 @@ public:
 
     /** Amuse obtains a new voice from the platform outputting to this submix */
     virtual std::unique_ptr<IBackendVoice> allocateVoice(Voice& clientVox, double sampleRate, bool dynamicPitch)=0;
+
+    /** Amuse gets fixed sample rate of submix this way */
+    virtual double getSampleRate() const=0;
+
+    /** Amuse gets fixed sample format of submix this way */
+    virtual SubmixFormat getSampleFormat() const=0;
 };
 
 }

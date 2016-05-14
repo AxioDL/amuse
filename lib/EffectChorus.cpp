@@ -139,12 +139,16 @@ static const float rsmpTab12khz[] =
     -0.000977, 0.101593, 0.802216, 0.097504,
 };
 
-template <typename T>
-EffectChorus<T>::EffectChorus(uint32_t baseDelay, uint32_t variation,
-                              uint32_t period, double sampleRate)
+EffectChorus::EffectChorus(uint32_t baseDelay, uint32_t variation, uint32_t period)
 : x90_baseDelay(clamp(5u, baseDelay, 15u)),
   x94_variation(clamp(0u, variation, 5u)),
-  x98_period(clamp(500u, period, 10000u)),
+  x98_period(clamp(500u, period, 10000u))
+{}
+
+template <typename T>
+EffectChorusImp<T>::EffectChorusImp(uint32_t baseDelay, uint32_t variation,
+                              uint32_t period, double sampleRate)
+: EffectChorus(baseDelay, variation, period),
   m_sampsPerMs(std::ceil(sampleRate / 1000.0)),
   m_blockSamples(m_sampsPerMs * 5)
 {
@@ -160,7 +164,7 @@ EffectChorus<T>::EffectChorus(uint32_t baseDelay, uint32_t variation,
 }
 
 template <typename T>
-void EffectChorus<T>::_update()
+void EffectChorusImp<T>::_update()
 {
     size_t chanPitch = m_blockSamples * AMUSE_CHORUS_NUM_BLOCKS;
     size_t fifteenSamps = 15 * m_sampsPerMs;
@@ -178,13 +182,13 @@ void EffectChorus<T>::_update()
 }
 
 template <typename T>
-EffectChorus<T>::~EffectChorus()
+EffectChorusImp<T>::~EffectChorusImp()
 {
     delete[] x0_lastChans[0][0];
 }
 
 template <typename T>
-void EffectChorus<T>::SrcInfo::doSrc1(size_t blockSamples, size_t chanCount)
+void EffectChorusImp<T>::SrcInfo::doSrc1(size_t blockSamples, size_t chanCount)
 {
     float old1 = x74_old[0];
     float old2 = x74_old[1];
@@ -225,7 +229,7 @@ void EffectChorus<T>::SrcInfo::doSrc1(size_t blockSamples, size_t chanCount)
 }
 
 template <typename T>
-void EffectChorus<T>::SrcInfo::doSrc2(size_t blockSamples, size_t chanCount)
+void EffectChorusImp<T>::SrcInfo::doSrc2(size_t blockSamples, size_t chanCount)
 {
     float old1 = x74_old[0];
     float old2 = x74_old[1];
@@ -284,7 +288,7 @@ void EffectChorus<T>::SrcInfo::doSrc2(size_t blockSamples, size_t chanCount)
 }
 
 template <typename T>
-void EffectChorus<T>::applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap)
+void EffectChorusImp<T>::applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap)
 {
     if (m_dirty)
         _update();
@@ -356,8 +360,8 @@ void EffectChorus<T>::applyEffect(T* audio, size_t frameCount, const ChannelMap&
     }
 }
 
-template class EffectChorus<int16_t>;
-template class EffectChorus<int32_t>;
-template class EffectChorus<float>;
+template class EffectChorusImp<int16_t>;
+template class EffectChorusImp<int32_t>;
+template class EffectChorusImp<float>;
 
 }

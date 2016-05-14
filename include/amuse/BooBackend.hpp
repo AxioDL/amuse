@@ -57,6 +57,8 @@ public:
     BooBackendSubmix(boo::IAudioSubmix& parent, Submix& clientSmx);
     void setChannelGains(const float gains[8]);
     std::unique_ptr<IBackendVoice> allocateVoice(Voice& clientVox, double sampleRate, bool dynamicPitch);
+    double getSampleRate() const;
+    SubmixFormat getSampleFormat() const;
 };
 
 /** Backend voice allocator implementation for boo mixer */
@@ -68,6 +70,7 @@ public:
     std::unique_ptr<IBackendVoice> allocateVoice(Voice& clientVox, double sampleRate, bool dynamicPitch);
     std::unique_ptr<IBackendSubmix> allocateSubmix(Submix& clientSmx);
     AudioChannelSet getAvailableSet();
+    void pumpAndMixVoices();
 };
 
 }

@@ -117,7 +117,7 @@ class SoundMacroState
     /** 'program counter' stack for the active SoundMacro */
     std::vector<std::pair<const unsigned char*, int>> m_pc;
 
-    float m_ticksPerSec; /**< ratio for resolving ticks in commands that use them */
+    double m_ticksPerSec; /**< ratio for resolving ticks in commands that use them */
     uint8_t m_initVel; /**< Velocity played for this macro invocation */
     uint8_t m_initMod; /**< Modulation played for this macro invocation */
     uint8_t m_initKey; /**< Key played for this macro invocation */
@@ -125,14 +125,14 @@ class SoundMacroState
     uint8_t m_curMod; /**< Current modulation played for this macro invocation */
     uint32_t m_curKey; /**< Current key played for this macro invocation (in cents) */
 
-    float m_execTime; /**< time in seconds of SoundMacro execution (per-update resolution) */
+    double m_execTime; /**< time in seconds of SoundMacro execution (per-update resolution) */
     bool m_keyoff; /**< keyoff message has been received */
     bool m_sampleEnd; /**< sample has finished playback */
 
     bool m_inWait = false; /**< set when timer/keyoff/sampleend wait active */
     bool m_keyoffWait = false; /**< set when active wait is a keyoff wait */
     bool m_sampleEndWait = false; /**< set when active wait is a sampleend wait */
-    float m_waitCountdown; /**< countdown timer for active wait */
+    double m_waitCountdown; /**< countdown timer for active wait */
 
     int m_loopCountdown = -1; /**< countdown for current loop */
     int m_lastPlayMacroVid = -1; /**< VoiceId from last PlayMacro command */
@@ -180,7 +180,7 @@ class SoundMacroState
                           Combine combine, VarType varType);
 
         /** Calculate value */
-        float evaluate(Voice& vox, const SoundMacroState& st);
+        float evaluate(const Voice& vox, const SoundMacroState& st) const;
 
         /** Determine if able to use */
         operator bool() const {return m_comps.size() != 0;}
@@ -220,13 +220,13 @@ class SoundMacroState
 public:
     /** initialize state for SoundMacro data at `ptr` */
     void initialize(const unsigned char* ptr, int step);
-    void initialize(const unsigned char* ptr, int step, float ticksPerSec,
+    void initialize(const unsigned char* ptr, int step, double ticksPerSec,
                     uint8_t midiKey, uint8_t midiVel, uint8_t midiMod);
 
     /** advances `dt` seconds worth of commands in the SoundMacro
      *  @return `true` if END reached
      */
-    bool advance(Voice& vox, float dt);
+    bool advance(Voice& vox, double dt);
 
     /** keyoff event */
     void keyoffNotify(Voice& vox);

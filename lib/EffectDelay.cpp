@@ -8,8 +8,8 @@ namespace amuse
 {
 
 template <typename T>
-EffectDelay<T>::EffectDelay(uint32_t initDelay, uint32_t initFeedback,
-                            uint32_t initOutput, double sampleRate)
+EffectDelayImp<T>::EffectDelayImp(uint32_t initDelay, uint32_t initFeedback,
+                                  uint32_t initOutput, double sampleRate)
 : m_sampsPerMs(std::ceil(sampleRate / 1000.0)),
   m_blockSamples(m_sampsPerMs * 5)
 {
@@ -28,7 +28,7 @@ EffectDelay<T>::EffectDelay(uint32_t initDelay, uint32_t initFeedback,
 }
 
 template <typename T>
-void EffectDelay<T>::_update()
+void EffectDelayImp<T>::_update()
 {
     for (int i=0 ; i<8 ; ++i)
     {
@@ -38,14 +38,14 @@ void EffectDelay<T>::_update()
         x24_currentOutput[i] = x54_output[i] * 128 / 100;
 
         x30_chanLines[i].reset(new T[m_blockSamples * x0_currentSize[i]]);
-        memset(x30_chanLines[i], 0, m_blockSamples * x0_currentSize[i] * sizeof(T));
+        memset(x30_chanLines[i].get(), 0, m_blockSamples * x0_currentSize[i] * sizeof(T));
     }
 
     m_dirty = false;
 }
 
 template <typename T>
-void EffectDelay<T>::applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap)
+void EffectDelayImp<T>::applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap)
 {
     if (m_dirty)
         _update();
@@ -62,10 +62,14 @@ void EffectDelay<T>::applyEffect(T* audio, size_t frameCount, const ChannelMap& 
                 samp = ClampFull<T>(samp * x18_currentFeedback[c] / 128 + liveSamp);
                 liveSamp = samp * x24_currentOutput[c] / 128;
             }
-            xc_currentPos = (xc_currentPos[c] + 1) % x0_currentSize[c];
+            xc_currentPos[c] = (xc_currentPos[c] + 1) % x0_currentSize[c];
         }
         audio += chanMap.m_channelCount * m_blockSamples;
     }
 }
+
+template class EffectDelayImp<int16_t>;
+template class EffectDelayImp<int32_t>;
+template class EffectDelayImp<float>;
 
 }

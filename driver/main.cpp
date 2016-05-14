@@ -10,7 +10,7 @@
 #include <thread>
 #include <map>
 
-static logvisor::Module Log("amusetool");
+static logvisor::Module Log("amuseplay");
 
 static amuse::IntrusiveAudioGroupData LoadFromArgs(int argc, const boo::SystemChar** argv,
                                                    std::string& descOut, bool& good)
@@ -161,9 +161,11 @@ struct AppCallback : boo::IApplicationCallback
 
     /* SFX playback selection */
     int m_sfxId = -1;
-    amuse::Voice* m_vox = nullptr;
+    std::shared_ptr<amuse::Voice> m_vox;
 
     /* Control state */
+    float m_volume = 1.f;
+    bool m_updateDisp = false;
     bool m_running = true;
     bool m_wantsNext = false;
     bool m_wantsPrev = false;
@@ -180,8 +182,7 @@ struct AppCallback : boo::IApplicationCallback
                "░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░\n"
                "<left/right>: cycle MIDI setup / channel, <up/down>: volume\n"
                "<tab>: sustain pedal, <window-Y>: pitch wheel, <window-X>: mod wheel\n"
-               "<Z/X>: octave, <C/V>: velocity\n"
-               "<Q>: quit\n");
+               "<Z/X>: octave, <C/V>: velocity, <Q>: quit\n");
 
         std::map<int, const std::array<amuse::SongGroupIndex::MIDISetup, 16>*> sortEntries
             (index.m_midiSetups.cbegin(), index.m_midiSetups.cend());
@@ -207,31 +208,79 @@ struct AppCallback : boo::IApplicationCallback
         }
     }
 
+    void UpdateSFXDisplay()
+    {
+        bool playing = m_vox && m_vox->state() == amuse::VoiceState::Playing;
+        printf("\r                                                                                "
+               "\r  %c SFX %d, VOL: %d%%\r", playing ? '>' : ' ',
+               m_sfxId, int(std::rint(m_volume * 100)));
+        fflush(stdout);
+    }
+
+    void SelectSFX(int sfxId)
+    {
+        m_sfxId = sfxId;
+        UpdateSFXDisplay();
+    }
+
     void SFXLoop(const amuse::AudioGroup& group,
                  const amuse::SFXGroupIndex& index)
     {
-        printf("<space>: keyon/keyon, <left/right>: cycle SFX, <up/down>: volume\n"
-               "<Q>: quit\n");
+        printf("<space>: keyon/keyon, <left/right>: cycle SFX, <up/down>: volume, <Q>: quit\n");
 
         std::map<uint16_t, const amuse::SFXGroupIndex::SFXEntry*> sortEntries
             (index.m_sfxEntries.cbegin(), index.m_sfxEntries.cend());
         auto sfxIt = sortEntries.cbegin();
         if (sfxIt != sortEntries.cend())
-        {
-            m_sfxId = sfxIt->first;
-            m_vox = m_engine->fxStart(m_sfxId, 1.f, 0.f);
-        }
+            SelectSFX(sfxIt->first);
 
         while (m_running)
         {
             m_events.dispatchEvents();
             m_engine->pumpEngine();
+
+            if (m_wantsNext)
+            {
+                m_wantsNext = false;
+                auto nextIt = sfxIt;
+                ++nextIt;
+                if (nextIt != sortEntries.cend())
+                {
+                    ++sfxIt;
+                    SelectSFX(sfxIt->first);
+                    m_updateDisp = false;
+                }
+            }
+
+            if (m_wantsPrev)
+            {
+                m_wantsPrev = false;
+                if (sfxIt != sortEntries.cbegin())
+                {
+                    --sfxIt;
+                    SelectSFX(sfxIt->first);
+                    m_updateDisp = false;
+                }
+            }
+
+            if (m_updateDisp)
+            {
+                m_updateDisp = false;
+                UpdateSFXDisplay();
+            }
+
             m_win->waitForRetrace();
         }
     }
 
     void charKeyDown(unsigned long charCode)
     {
+        if (charCode == 'q' || charCode == 'Q')
+        {
+            m_running = false;
+            return;
+        }
+
         if (m_sfxGroup)
         {
             switch (charCode)
@@ -240,7 +289,8 @@ struct AppCallback : boo::IApplicationCallback
                 if (m_vox && m_vox->state() == amuse::VoiceState::Playing)
                     m_vox->keyOff();
                 else if (m_sfxId != -1)
-                    m_vox = m_engine->fxStart(m_sfxId, 1.f, 0.f);
+                    m_vox = m_engine->fxStart(m_sfxId, m_volume, 0.f);
+                m_updateDisp = true;
             default: break;
             }
         }
@@ -256,10 +306,24 @@ struct AppCallback : boo::IApplicationCallback
     int appMain(boo::IApplication* app)
     {
         /* Event window */
-        m_win = app->newWindow("amusetool", 1);
-        m_win->setWindowFrame(100, 100, 100, 100);
+        m_win = app->newWindow("amuseplay", 1);
         m_win->setCallback(&m_events);
+        m_win->setWindowFrame(100, 100, 100, 100);
+        m_win->setStyle(~boo::EWindowStyle::Resize);
         m_win->showWindow();
+        boo::ITextureR* tex = nullptr;
+        boo::GraphicsDataToken gfxToken =
+        m_win->getMainContextDataFactory()->commitTransaction(
+        [&](boo::IGraphicsDataFactory::Context& ctx) -> bool
+        {
+            tex = ctx.newRenderTexture(100, 100, false, false);
+            return true;
+        });
+        boo::IGraphicsCommandQueue* q = m_win->getCommandQueue();
+        q->setRenderTarget(tex);
+        q->clearTarget();
+        q->resolveDisplay(tex);
+        q->execute();
 
         /* Load data */
         std::string desc;
@@ -267,7 +331,7 @@ struct AppCallback : boo::IApplicationCallback
         amuse::IntrusiveAudioGroupData data = LoadFromArgs(m_argc, m_argv, desc, good);
         if (!good)
             Log.report(logvisor::Fatal, "incomplete data in args");
-        printf("Found '%s' Audio Group data\n", desc.c_str());
+        Log.report(logvisor::Info, "Found '%s' Audio Group data", desc.c_str());
 
         /* Load project to assemble group list */
         amuse::AudioGroupProject proj(data.getProj());
@@ -280,12 +344,12 @@ struct AppCallback : boo::IApplicationCallback
             printf("Multiple Audio Groups discovered:\n");
             for (const auto& pair : proj.songGroups())
             {
-                printf("    %d (SongGroup)  %" PRISize "  normal-pages, %" PRISize " drum-pages\n",
+                printf("    %d (SongGroup)  %" PRISize " normal-pages, %" PRISize " drum-pages\n",
                        pair.first, pair.second.m_normPages.size(), pair.second.m_drumPages.size());
             }
             for (const auto& pair : proj.sfxGroups())
             {
-                printf("    %d (SFXGroup)   %" PRISize "  sfx-entries\n",
+                printf("    %d (SFXGroup)   %" PRISize " sfx-entries\n",
                        pair.first, pair.second.m_sfxEntries.size());
             }
 
@@ -376,6 +440,20 @@ void EventCallback::specialKeyDown(boo::ESpecialKey key, boo::EModifierKey mods,
     case boo::ESpecialKey::Right:
         m_app.m_wantsNext = true;
         break;
+    case boo::ESpecialKey::Up:
+        if (m_app.m_volume < 1.f)
+            m_app.m_volume = amuse::clamp(0.f, m_app.m_volume + 0.05f, 1.f);
+        if (m_app.m_vox)
+            m_app.m_vox->setVolume(m_app.m_volume);
+        m_app.m_updateDisp = true;
+        break;
+    case boo::ESpecialKey::Down:
+        if (m_app.m_volume > 0.f)
+            m_app.m_volume = amuse::clamp(0.f, m_app.m_volume - 0.05f, 1.f);
+        if (m_app.m_vox)
+            m_app.m_vox->setVolume(m_app.m_volume);
+        m_app.m_updateDisp = true;
+        break;
     default: break;
     }
 }
@@ -393,7 +471,7 @@ int main(int argc, const boo::SystemChar** argv)
     logvisor::RegisterConsoleLogger();
     AppCallback app(argc, argv);
     int ret = boo::ApplicationRun(boo::IApplication::EPlatformType::Auto,
-                                  app, _S("amusetool"), _S("Amuse Tool"), argc, argv);
+                                  app, _S("amuseplay"), _S("Amuse Player"), argc, argv);
     printf("IM DYING!!\n");
     return ret;
 }

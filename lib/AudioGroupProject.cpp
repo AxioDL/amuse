@@ -91,9 +91,11 @@ AudioGroupProject::AudioGroupProject(const unsigned char* data)
             bIdx = &idx;
 
             /* SFX entries */
+            uint16_t count = SBig(*reinterpret_cast<const uint16_t*>(data + header.pageTableOff));
+            idx.m_sfxEntries.reserve(count);
             const SFXGroupIndex::SFXEntry* entries =
-                reinterpret_cast<const SFXGroupIndex::SFXEntry*>(data + header.pageTableOff);
-            while (entries->objId != 0xffff)
+                reinterpret_cast<const SFXGroupIndex::SFXEntry*>(data + header.pageTableOff + 4);
+            for (int i=0 ; i<count ; ++i)
             {
                 idx.m_sfxEntries[SBig(entries->defineId)] = entries;
                 ++entries;

@@ -25,8 +25,6 @@ public:
     AudioGroup(int groupId, const AudioGroupData& data);
 
     int groupId() const {return m_groupId;}
-    bool sfxInGroup(int sfxId) const;
-    bool songInGroup(int songId) const;
 
     const Sample* getSample(int sfxId) const;
     const unsigned char* getSampleData(uint32_t offset) const;

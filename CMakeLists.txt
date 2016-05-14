@@ -61,6 +61,6 @@ add_library(amuse
             ${EXTRAS})
 
 if(TARGET boo)
-  add_executable(amusetool WIN32 driver/main.cpp)
-  target_link_libraries(amusetool amuse boo ${BOO_SYS_LIBS} logvisor athena-core)
+  add_executable(amuseplay WIN32 driver/main.cpp)
+  target_link_libraries(amuseplay amuse boo ${BOO_SYS_LIBS} logvisor athena-core)
 endif()

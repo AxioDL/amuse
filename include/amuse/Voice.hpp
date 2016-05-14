@@ -32,15 +32,22 @@ class Voice : public Entity
     int m_vid; /**< VoiceID of this voice instance */
     bool m_emitter; /**< Voice is part of an Emitter */
     Submix* m_submix = nullptr; /**< Submix this voice outputs to (or NULL for the main output mix) */
-    std::list<Voice>::iterator m_engineIt; /**< Iterator to self within Engine's list for quick deletion */
+    std::list<std::shared_ptr<Voice>>::iterator m_engineIt; /**< Iterator to self within Engine's list for quick deletion */
 
     std::unique_ptr<IBackendVoice> m_backendVoice; /**< Handle to client-implemented backend voice */
     SoundMacroState m_state; /**< State container for SoundMacro playback */
-    std::list<Voice> m_childVoices; /**< Child voices for PLAYMACRO usage */
+    std::list<std::shared_ptr<Voice>> m_childVoices; /**< Child voices for PLAYMACRO usage */
     uint8_t m_keygroup = 0; /**< Keygroup voice is a member of */
 
+    enum class SampleFormat : uint8_t
+    {
+        DSP,
+        IMA,
+        PCM
+    };
     const Sample* m_curSample = nullptr; /**< Current sample entry playing */
     const unsigned char* m_curSampleData = nullptr; /**< Current sample data playing */
+    SampleFormat m_curFormat; /**< Current sample format playing */
     uint32_t m_curSamplePos = 0; /**< Current sample position */
     uint32_t m_lastSamplePos = 0; /**< Last sample position (or last loop sample) */
     int16_t m_prev1 = 0; /**< DSPADPCM prev sample */
@@ -97,15 +104,18 @@ class Voice : public Entity
 
     float m_lfoPeriods[2]; /**< time-periods for LFO1 and LFO2 */
 
+    bool m_dead = false; /**< sound macro has reached END, voice should be deallocated at end of update cycle */
+
     void _destroy();
     void _reset();
     bool _checkSamplePos();
     void _doKeyOff();
     bool _advanceSample(int16_t& samp);
     void _setTotalPitch(int32_t cents);
+    void _bringOutYourDead();
 
-    Voice* _allocateVoice(double sampleRate, bool dynamicPitch);
-    std::list<Voice>::iterator _destroyVoice(Voice* voice);
+    std::shared_ptr<Voice> _allocateVoice(double sampleRate, bool dynamicPitch);
+    std::list<std::shared_ptr<Voice>>::iterator _destroyVoice(Voice* voice);
 
 public:
     Voice(Engine& engine, const AudioGroup& group, int vid, bool emitter, Submix* smx);
@@ -128,10 +138,10 @@ public:
     int maxVid() const;
 
     /** Allocate parallel macro and tie to voice for possible emitter influence */
-    Voice* startChildMacro(int8_t addNote, ObjectId macroId, int macroStep);
+    std::shared_ptr<Voice> startChildMacro(int8_t addNote, ObjectId macroId, int macroStep);
 
     /** Load specified SoundMacro ID of within group into voice */
-    bool loadSoundMacro(ObjectId macroId, int macroStep, float ticksPerSec,
+    bool loadSoundMacro(ObjectId macroId, int macroStep, double ticksPerSec,
                         uint8_t midiKey, uint8_t midiVel, uint8_t midiMod,
                         bool pushPc=false);
 
@@ -220,11 +230,11 @@ public:
     void setKeygroup(uint8_t kg) {m_keygroup = kg;}
 
     uint8_t getLastNote() const {return m_state.m_initKey;}
-    int8_t getCtrlValue(uint8_t ctrl) const {}
+    int8_t getCtrlValue(uint8_t ctrl) const {return 0;}
     void setCtrlValue(uint8_t ctrl, int8_t val) {}
-    int8_t getPitchWheel() const {}
-    int8_t getModWheel() const {}
-    int8_t getAftertouch() const {}
+    int8_t getPitchWheel() const {return 0;}
+    int8_t getModWheel() const {return 0;}
+    int8_t getAftertouch() const {return 0;}
 
 };
 

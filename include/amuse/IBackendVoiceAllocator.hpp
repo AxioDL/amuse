@@ -38,6 +38,9 @@ public:
 
     /** Amuse obtains speaker-configuration from the platform this way */
     virtual AudioChannelSet getAvailableSet()=0;
+
+    /** Amuse flushes voice samples to the backend this way */
+    virtual void pumpAndMixVoices()=0;
 };
 
 }

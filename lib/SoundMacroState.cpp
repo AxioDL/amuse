@@ -27,7 +27,7 @@ void SoundMacroState::Evaluator::addComponent(uint8_t midiCtrl, float scale,
     m_comps.push_back({midiCtrl, scale, combine, varType});
 }
 
-float SoundMacroState::Evaluator::evaluate(Voice& vox, const SoundMacroState& st)
+float SoundMacroState::Evaluator::evaluate(const Voice& vox, const SoundMacroState& st) const
 {
     float value = 0.f;
 
@@ -115,7 +115,7 @@ void SoundMacroState::initialize(const unsigned char* ptr, int step)
     initialize(ptr, step, 1000.f, 0, 0, 0);
 }
 
-void SoundMacroState::initialize(const unsigned char* ptr, int step, float ticksPerSec,
+void SoundMacroState::initialize(const unsigned char* ptr, int step, double ticksPerSec,
                                  uint8_t midiKey, uint8_t midiVel, uint8_t midiMod)
 {
     m_ticksPerSec = ticksPerSec;
@@ -138,7 +138,7 @@ void SoundMacroState::initialize(const unsigned char* ptr, int step, float ticks
     m_header.swapBig();
 }
 
-bool SoundMacroState::advance(Voice& vox, float dt)
+bool SoundMacroState::advance(Voice& vox, double dt)
 {
     /* Nothing if uninitialized or finished */
     if (m_pc.empty() || m_pc.back().first == nullptr || m_pc.back().second == -1)
@@ -320,7 +320,7 @@ bool SoundMacroState::advance(Voice& vox, float dt)
             //int8_t priority = cmd.m_data[5];
             //int8_t maxVoices = cmd.m_data[6];
 
-            Voice* sibVox = vox.startChildMacro(addNote, macroId, macroStep);
+            std::shared_ptr<Voice> sibVox = vox.startChildMacro(addNote, macroId, macroStep);
             if (sibVox)
                 m_lastPlayMacroVid = sibVox->vid();
 
@@ -335,14 +335,14 @@ bool SoundMacroState::advance(Voice& vox, float dt)
             {
                 if (m_lastPlayMacroVid != -1)
                 {
-                    Voice* otherVox = vox.getEngine().findVoice(m_lastPlayMacroVid);
+                    std::shared_ptr<Voice> otherVox = vox.getEngine().findVoice(m_lastPlayMacroVid);
                     if (otherVox)
                         otherVox->keyOff();
                 }
             }
             else
             {
-                Voice* otherVox = vox.getEngine().findVoice(m_variables[vid]);
+                std::shared_ptr<Voice> otherVox = vox.getEngine().findVoice(m_variables[vid]);
                 if (otherVox)
                     otherVox->keyOff();
             }
@@ -800,7 +800,7 @@ bool SoundMacroState::advance(Voice& vox, float dt)
 
             if (isVar)
             {
-                Voice* findVox = vox.getEngine().findVoice(m_variables[vid]);
+                std::shared_ptr<Voice> findVox = vox.getEngine().findVoice(m_variables[vid]);
                 if (findVox)
                     findVox->message(val);
             }
