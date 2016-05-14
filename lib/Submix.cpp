@@ -41,14 +41,20 @@ EffectReverbHi& Submix::makeReverbHi(float coloration, float mix, float time,
 
 void Submix::applyEffect(int16_t* audio, size_t frameCount, const ChannelMap& chanMap) const
 {
+    for (const std::unique_ptr<EffectBaseTypeless>& effect : m_effectStack)
+        ((EffectBase<int16_t>&)*effect).applyEffect(audio, frameCount, chanMap);
 }
 
 void Submix::applyEffect(int32_t* audio, size_t frameCount, const ChannelMap& chanMap) const
 {
+    for (const std::unique_ptr<EffectBaseTypeless>& effect : m_effectStack)
+        ((EffectBase<int32_t>&)*effect).applyEffect(audio, frameCount, chanMap);
 }
 
 void Submix::applyEffect(float* audio, size_t frameCount, const ChannelMap& chanMap) const
 {
+    for (const std::unique_ptr<EffectBaseTypeless>& effect : m_effectStack)
+        ((EffectBase<float>&)*effect).applyEffect(audio, frameCount, chanMap);
 }
 
 }
