@@ -2,6 +2,7 @@
 #define __AMUSE_EMITTER_HPP__
 
 #include "Entity.hpp"
+#include <memory>
 
 namespace amuse
 {
@@ -11,9 +12,12 @@ using Vector3f = float[3];
 
 class Emitter : public Entity
 {
-    Voice& m_vox;
+    std::shared_ptr<Voice> m_vox;
+
+    friend class Engine;
+    void _destroy();
 public:
-    Emitter(Engine& engine, const AudioGroup& group, Voice& vox);
+    Emitter(Engine& engine, const AudioGroup& group, std::shared_ptr<Voice>&& vox);
 
     void setPos(const Vector3f& pos);
     void setDir(const Vector3f& dir);
@@ -21,6 +25,8 @@ public:
     void setMaxVol(float maxVol);
     void setMinVol(float minVol);
     void setFalloff(float falloff);
+
+    std::shared_ptr<Voice>& getVoice() {return m_vox;}
 };
 
 }

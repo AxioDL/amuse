@@ -53,11 +53,21 @@ std::list<Submix>::iterator Engine::_destroySubmix(Submix* smx)
 
 void Engine::_bringOutYourDead()
 {
+    for (auto it = m_activeEmitters.begin() ; it != m_activeEmitters.end() ;)
+    {
+        Emitter* emitter = it->get();
+        if (emitter->getVoice()->m_voxState == VoiceState::Finished)
+        {
+            emitter->_destroy();
+            it = m_activeEmitters.erase(it);
+        }
+    }
+
     for (auto it = m_activeVoices.begin() ; it != m_activeVoices.end() ;)
     {
         Voice* vox = it->get();
         vox->_bringOutYourDead();
-        if (vox->m_dead)
+        if (vox->m_voxState == VoiceState::Finished)
         {
             it = _destroyVoice(vox);
             continue;
@@ -209,6 +219,11 @@ std::shared_ptr<Voice> Engine::fxStart(int sfxId, float vol, float pan, Submix* 
         return nullptr;
 
     std::shared_ptr<Voice> ret = _allocateVoice(*grp, 32000.0, true, false, smx);
+    if (!ret->loadSoundMacro(search->second.second, 0, 1000.f, 0x3c, 0, 0))
+    {
+        _destroyVoice(ret.get());
+        return {};
+    }
     ret->setVolume(vol);
     ret->setPan(pan);
     return ret;
@@ -227,8 +242,14 @@ std::shared_ptr<Emitter> Engine::addEmitter(const Vector3f& pos, const Vector3f&
         return nullptr;
 
     std::shared_ptr<Voice> vox = _allocateVoice(*grp, 32000.0, true, true, smx);
-    m_activeEmitters.emplace(m_activeEmitters.end(), new Emitter(*this, *grp, *vox));
+    m_activeEmitters.emplace(m_activeEmitters.end(), new Emitter(*this, *grp, std::move(vox)));
     Emitter& ret = *m_activeEmitters.back();
+    if (!ret.getVoice()->loadSoundMacro(search->second.second, 0, 1000.f, 0x3c, 0, 0))
+    {
+        ret._destroy();
+        m_activeEmitters.pop_back();
+        return {};
+    }
     ret.setPos(pos);
     ret.setDir(dir);
     ret.setMaxDist(maxDist);
@@ -249,8 +270,11 @@ std::shared_ptr<Sequencer> Engine::seqPlay(int groupId, int songId, const unsign
 std::shared_ptr<Voice> Engine::findVoice(int vid)
 {
     for (std::shared_ptr<Voice>& vox : m_activeVoices)
-        if (vox->vid() == vid)
-            return vox;
+    {
+        std::shared_ptr<Voice> ret = vox->_findVoice(vid, vox);
+        if (ret)
+            return ret;
+    }
     return {};
 }
 

@@ -17,6 +17,9 @@ void Voice::_destroy()
     Entity::_destroy();
     if (m_submix)
         m_submix->m_activeVoices.erase(this);
+
+    for (std::shared_ptr<Voice>& vox : m_childVoices)
+        vox->_destroy();
 }
 
 Voice::Voice(Engine& engine, const AudioGroup& group, int vid, bool emitter, Submix* smx)
@@ -96,13 +99,28 @@ void Voice::_bringOutYourDead()
     {
         Voice* vox = it->get();
         vox->_bringOutYourDead();
-        if (vox->m_dead)
+        if (vox->m_voxState == VoiceState::Finished)
         {
             it = _destroyVoice(vox);
             continue;
         }
         ++it;
     }
+}
+
+std::shared_ptr<Voice> Voice::_findVoice(int vid, std::weak_ptr<Voice> thisPtr)
+{
+    if (m_vid == vid)
+        return thisPtr.lock();
+
+    for (std::shared_ptr<Voice>& vox : m_childVoices)
+    {
+        std::shared_ptr<Voice> ret = vox->_findVoice(vid, vox);
+        if (ret)
+            return ret;
+    }
+
+    return {};
 }
 
 std::shared_ptr<Voice> Voice::_allocateVoice(double sampleRate, bool dynamicPitch)
@@ -244,9 +262,10 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
 {
     uint32_t samplesRem = samples;
     size_t samplesProc = 0;
+    bool dead = false;
     if (m_curSample)
     {
-        m_dead = m_state.advance(*this, samples / m_sampleRate);
+        dead = m_state.advance(*this, samples / m_sampleRate);
 
         uint32_t block = m_curSamplePos / 14;
         uint32_t rem = m_curSamplePos % 14;
@@ -344,11 +363,11 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
     }
     else
     {
-        m_dead = m_state.advance(*this, 0.0);
+        dead = m_state.advance(*this, 0.0);
         memset(data, 0, sizeof(int16_t) * samples);
     }
 
-    if (m_dead)
+    if (dead)
         m_voxState = VoiceState::Finished;
     return samples;
 }
@@ -364,8 +383,12 @@ int Voice::maxVid() const
 std::shared_ptr<Voice> Voice::startChildMacro(int8_t addNote, ObjectId macroId, int macroStep)
 {
     std::shared_ptr<Voice> vox = _allocateVoice(32000.0, true);
-    vox->loadSoundMacro(macroId, macroStep, 1000.0, m_state.m_initKey + addNote,
-                        m_state.m_initVel, m_state.m_initMod);
+    if (!vox->loadSoundMacro(macroId, macroStep, 1000.0, m_state.m_initKey + addNote,
+                             m_state.m_initVel, m_state.m_initMod))
+    {
+        _destroyVoice(vox.get());
+        return {};
+    }
     return vox;
 }
 

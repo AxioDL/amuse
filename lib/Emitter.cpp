@@ -1,12 +1,19 @@
 #include "amuse/Emitter.hpp"
 #include "amuse/Voice.hpp"
+#include "amuse/Engine.hpp"
 
 namespace amuse
 {
 
-Emitter::Emitter(Engine& engine, const AudioGroup& group, Voice& vox)
-: Entity(engine, group, vox.getObjectId()), m_vox(vox)
+Emitter::Emitter(Engine& engine, const AudioGroup& group, std::shared_ptr<Voice>&& vox)
+: Entity(engine, group, vox->getObjectId()), m_vox(std::move(vox))
 {
+}
+
+void Emitter::_destroy()
+{
+    Entity::_destroy();
+    m_engine._destroyVoice(m_vox.get());
 }
 
 void Emitter::setPos(const Vector3f& pos)

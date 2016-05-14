@@ -23,6 +23,7 @@ class AudioGroupData;
 class Engine
 {
     friend class Voice;
+    friend class Emitter;
 
     IBackendVoiceAllocator& m_backend;
     std::unordered_map<int, std::unique_ptr<AudioGroup>> m_audioGroups;

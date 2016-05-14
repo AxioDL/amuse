@@ -32,7 +32,13 @@ class Entity
     friend class SoundMacroState;
     bool m_destroyed = false;
 protected:
-    void _destroy() {m_destroyed = true;}
+    void _destroy()
+    {
+#ifndef NDEBUG
+        assert(!m_destroyed);
+#endif
+        m_destroyed = true;
+    }
     Engine& m_engine;
     const AudioGroup& m_audioGroup;
     ObjectId m_objectId; /* if applicable */

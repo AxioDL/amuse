@@ -19,9 +19,9 @@ class Submix;
 /** State of voice over lifetime */
 enum class VoiceState
 {
-    Playing,
-    KeyOff,
-    Finished
+    Playing, /**< SoundMacro actively executing, not in KeyOff */
+    KeyOff, /**< KeyOff event issued, macro beginning fade-out */
+    Finished /**< Default state, causes Engine to remove voice at end of pump cycle */
 };
 
 /** Individual source of audio */
@@ -104,8 +104,6 @@ class Voice : public Entity
 
     float m_lfoPeriods[2]; /**< time-periods for LFO1 and LFO2 */
 
-    bool m_dead = false; /**< sound macro has reached END, voice should be deallocated at end of update cycle */
-
     void _destroy();
     void _reset();
     bool _checkSamplePos();
@@ -113,6 +111,7 @@ class Voice : public Entity
     bool _advanceSample(int16_t& samp);
     void _setTotalPitch(int32_t cents);
     void _bringOutYourDead();
+    std::shared_ptr<Voice> _findVoice(int vid, std::weak_ptr<Voice> thisPtr);
 
     std::shared_ptr<Voice> _allocateVoice(double sampleRate, bool dynamicPitch);
     std::list<std::shared_ptr<Voice>>::iterator _destroyVoice(Voice* voice);
