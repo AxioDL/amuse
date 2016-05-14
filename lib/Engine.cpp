@@ -60,7 +60,9 @@ void Engine::_bringOutYourDead()
         {
             emitter->_destroy();
             it = m_activeEmitters.erase(it);
+            continue;
         }
+        ++it;
     }
 
     for (auto it = m_activeVoices.begin() ; it != m_activeVoices.end() ;)
