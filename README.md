@@ -42,9 +42,8 @@ int main(int argc, char* argv[])
     /* An 'AudioGroup' is an atomically-loadable unit within Amuse. 
      * A client-assigned integer serves as the handle to the group once loaded
      */
-    int groupId = 1;
-    amuse::IntrusiveAudioGroupData data = LoadMyAudioGroup(groupId);
-    snd.addAudioGroup(groupId, data);
+    amuse::IntrusiveAudioGroupData data = LoadMyAudioGroup();
+    snd.addAudioGroup(data);
 
     /* Starting a SoundMacro playing is accomplished like so: */
     int sfxId = 0x1337;

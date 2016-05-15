@@ -4,9 +4,8 @@
 namespace amuse
 {
 
-AudioGroup::AudioGroup(int groupId, const AudioGroupData& data)
-: m_groupId(groupId),
-  m_proj(data.getProj()),
+AudioGroup::AudioGroup(const AudioGroupData& data)
+: m_proj(data.getProj()),
   m_pool(data.getPool()),
   m_sdir(data.getSdir()),
   m_samp(data.getSamp())

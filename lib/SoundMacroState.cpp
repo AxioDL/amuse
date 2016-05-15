@@ -135,6 +135,9 @@ void SoundMacroState::initialize(const unsigned char* ptr, int step, double tick
     m_lastPlayMacroVid = -1;
     m_useAdsrControllers = false;
     m_portamentoMode = 0;
+    m_keyoffTrap.macroId = 0xffff;
+    m_sampleEndTrap.macroId = 0xffff;
+    m_messageTrap.macroId = 0xffff;
     m_header = *reinterpret_cast<const Header*>(ptr);
     m_header.swapBig();
 }
@@ -794,15 +797,15 @@ bool SoundMacroState::advance(Voice& vox, double dt)
             switch (event)
             {
             case 0:
-                m_keyoffTrap.macroId = ObjectId();
+                m_keyoffTrap.macroId = 0xffff;
                 m_keyoffTrap.macroStep = -1;
                 break;
             case 1:
-                m_sampleEndTrap.macroId = ObjectId();
+                m_sampleEndTrap.macroId = 0xffff;
                 m_sampleEndTrap.macroStep = -1;
                 break;
             case 2:
-                m_messageTrap.macroId = ObjectId();
+                m_messageTrap.macroId = 0xffff;
                 m_messageTrap.macroStep = -1;
                 break;
             default: break;

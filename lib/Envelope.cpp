@@ -22,7 +22,7 @@ float Envelope::nextSample(double sampleRate)
 {
     if (!m_curADSR)
     {
-        if (m_phase == State::Release)
+        if (m_phase == State::Release || m_phase == State::Complete)
             return 0.f;
         return 1.f;
     }
@@ -79,12 +79,20 @@ float Envelope::nextSample(double sampleRate)
     {
         uint16_t release = m_curADSR->releaseCoarse * 255 + m_curADSR->releaseFine;
         if (release == 0)
+        {
+            m_phase = State::Complete;
             return 0.f;
+        }
         double releaseFac = m_curMs / double(release);
         if (releaseFac >= 1.0)
+        {
+            m_phase = State::Complete;
             return 0.f;
+        }
         return (1.0 - releaseFac) * m_releaseStartFactor;
     }
+    case State::Complete:
+        return 0.f;
     }
 }
 

@@ -15,7 +15,8 @@ public:
         Attack,
         Decay,
         Sustain,
-        Release
+        Release,
+        Complete
     };
 private:
     State m_phase = State::Attack; /**< Current envelope state */
@@ -27,6 +28,7 @@ public:
     void reset(const ADSR* adsr);
     void keyOff();
     float nextSample(double sampleRate);
+    bool isComplete() const {return m_phase == State::Complete;}
 };
 
 }

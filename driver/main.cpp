@@ -170,7 +170,7 @@ struct AppCallback : boo::IApplicationCallback
 
     /* Song playback selection */
     int m_setupId = -1;
-    int m_chanId = -1;
+    int m_chanId = 0;
     int8_t m_octave = 4;
     int8_t m_velocity = 64;
     std::shared_ptr<amuse::Sequencer> m_seq;
@@ -227,10 +227,7 @@ struct AppCallback : boo::IApplicationCallback
             (index.m_midiSetups.cbegin(), index.m_midiSetups.cend());
         auto setupIt = sortEntries.cbegin();
         if (setupIt != sortEntries.cend())
-        {
-            m_setupId = setupIt->first;
-            m_chanId = 0;
-        }
+            SelectSong(setupIt->first);
 
         while (m_running)
         {
@@ -268,7 +265,12 @@ struct AppCallback : boo::IApplicationCallback
 
             m_engine->pumpEngine();
 
-            size_t voxCount = m_seq->getVoiceCount();
+            size_t voxCount;
+            if (m_seq)
+                voxCount = m_seq->getVoiceCount();
+            else
+                voxCount = 0;
+
             if (m_lastVoxCount != voxCount)
             {
                 m_lastVoxCount = voxCount;
@@ -610,7 +612,7 @@ struct AppCallback : boo::IApplicationCallback
         m_engine.emplace(booBackend);
 
         /* Load group into engine */
-        const amuse::AudioGroup* group = m_engine->addAudioGroup(m_groupId, data);
+        const amuse::AudioGroup* group = m_engine->addAudioGroup(data);
         if (!group)
             Log.report(logvisor::Fatal, "unable to add audio group");
 

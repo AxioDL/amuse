@@ -14,7 +14,6 @@ using Sample = std::pair<AudioGroupSampleDirectory::Entry,
 
 class AudioGroup
 {
-    int m_groupId;
     AudioGroupProject m_proj;
     AudioGroupPool m_pool;
     AudioGroupSampleDirectory m_sdir;
@@ -22,9 +21,7 @@ class AudioGroup
     bool m_valid;
 public:
     operator bool() const {return m_valid;}
-    AudioGroup(int groupId, const AudioGroupData& data);
-
-    int groupId() const {return m_groupId;}
+    AudioGroup(const AudioGroupData& data);
 
     const Sample* getSample(int sfxId) const;
     const unsigned char* getSampleData(uint32_t offset) const;

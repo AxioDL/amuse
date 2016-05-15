@@ -6,6 +6,30 @@
 namespace amuse
 {
 
+void Sequencer::ChannelState::_bringOutYourDead()
+{
+    for (auto it = m_chanVoxs.begin() ; it != m_chanVoxs.end() ;)
+    {
+        Voice* vox = it->second.get();
+        vox->_bringOutYourDead();
+        if (vox->_isRecursivelyDead())
+        {
+            it = m_chanVoxs.erase(it);
+            continue;
+        }
+        ++it;
+    }
+}
+
+void Sequencer::_bringOutYourDead()
+{
+    for (auto& chan : m_chanStates)
+        chan.second->_bringOutYourDead();
+
+    if (!m_arrData && m_dieOnEnd && getVoiceCount() == 0)
+        m_state = SequencerState::Dead;
+}
+
 void Sequencer::_destroy()
 {
     Entity::_destroy();
@@ -13,15 +37,15 @@ void Sequencer::_destroy()
         m_submix->m_activeSequencers.erase(this);
 
     for (const auto& chan : m_chanStates)
-        for (const auto& vox : chan.second.m_chanVoxs)
+        for (const auto& vox : chan.second->m_chanVoxs)
             vox.second->_destroy();
 }
 
 Sequencer::~Sequencer() {}
 
-Sequencer::Sequencer(Engine& engine, const AudioGroup& group,
+Sequencer::Sequencer(Engine& engine, const AudioGroup& group, int groupId,
                      const SongGroupIndex& songGroup, int setupId, Submix* smx)
-: Entity(engine, group), m_songGroup(songGroup), m_submix(smx)
+: Entity(engine, group, groupId), m_songGroup(songGroup), m_submix(smx)
 {
     auto it = m_songGroup.m_midiSetups.find(setupId);
     if (it != m_songGroup.m_midiSetups.cend())
@@ -63,7 +87,7 @@ size_t Sequencer::getVoiceCount() const
 {
     size_t ret = 0;
     for (const auto& chan : m_chanStates)
-        for (const auto& vox : chan.second.m_chanVoxs)
+        for (const auto& vox : chan.second->m_chanVoxs)
             ret += vox.second->getTotalVoices();
     return ret;
 }
@@ -73,9 +97,11 @@ std::shared_ptr<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velo
     if (!m_page)
         return {};
 
-    std::shared_ptr<Voice> ret = m_parent.m_engine._allocateVoice(m_parent.m_audioGroup, 32000.0,
+    std::shared_ptr<Voice> ret = m_parent.m_engine._allocateVoice(m_parent.m_audioGroup,
+                                                                  m_parent.m_groupId, 32000.0,
                                                                   true, false, m_submix);
     m_chanVoxs[note] = ret;
+    ret->installCtrlValues(m_ctrlVals);
     if (!ret->loadSoundObject(SBig(m_page->objId), 0, 1000.f, note, velocity, m_ctrlVals[1]))
     {
         m_parent.m_engine._destroyVoice(ret.get());
@@ -91,11 +117,11 @@ std::shared_ptr<Voice> Sequencer::keyOn(uint8_t chan, uint8_t note, uint8_t velo
     auto chanSearch = m_chanStates.find(chan);
     if (chanSearch == m_chanStates.cend())
     {
-        auto it = m_chanStates.emplace(std::make_pair(chan, ChannelState(*this, chan)));
-        it.first->second.keyOn(note, velocity);
+        auto it = m_chanStates.emplace(std::make_pair(chan, std::make_unique<ChannelState>(*this, chan)));
+        return it.first->second->keyOn(note, velocity);
     }
 
-    return chanSearch->second.keyOn(note, velocity);
+    return chanSearch->second->keyOn(note, velocity);
 }
 
 void Sequencer::ChannelState::keyOff(uint8_t note, uint8_t velocity)
@@ -114,7 +140,7 @@ void Sequencer::keyOff(uint8_t chan, uint8_t note, uint8_t velocity)
     if (chanSearch == m_chanStates.cend())
         return;
 
-    chanSearch->second.keyOff(note, velocity);
+    chanSearch->second->keyOff(note, velocity);
 }
 
 void Sequencer::ChannelState::setCtrlValue(uint8_t ctrl, int8_t val)
@@ -128,7 +154,7 @@ void Sequencer::setCtrlValue(uint8_t chan, uint8_t ctrl, int8_t val)
     if (chanSearch == m_chanStates.cend())
         return;
 
-    chanSearch->second.setCtrlValue(ctrl, val);
+    chanSearch->second->setCtrlValue(ctrl, val);
 }
 
 void Sequencer::ChannelState::setPitchWheel(float pitchWheel)
@@ -143,7 +169,12 @@ void Sequencer::setPitchWheel(uint8_t chan, float pitchWheel)
     if (chanSearch == m_chanStates.cend())
         return;
 
-    chanSearch->second.setPitchWheel(pitchWheel);
+    chanSearch->second->setPitchWheel(pitchWheel);
+}
+
+void Sequencer::setTempo(double ticksPerSec)
+{
+    m_ticksPerSec = ticksPerSec;
 }
 
 void Sequencer::ChannelState::allOff()
@@ -156,10 +187,76 @@ void Sequencer::allOff(bool now)
 {
     if (now)
         for (auto& chan : m_chanStates)
-            chan.second.m_chanVoxs.clear();
+            chan.second->m_chanVoxs.clear();
     else
         for (auto& chan : m_chanStates)
-            chan.second.allOff();
+            chan.second->allOff();
+}
+
+void Sequencer::ChannelState::killKeygroup(uint8_t kg, bool now)
+{
+    for (auto it = m_chanVoxs.begin() ; it != m_chanVoxs.end() ;)
+    {
+        Voice* vox = it->second.get();
+        if (vox->m_keygroup == kg)
+        {
+            if (now)
+            {
+                it = m_chanVoxs.erase(it);
+                continue;
+            }
+            vox->keyOff();
+        }
+        ++it;
+    }
+}
+
+void Sequencer::killKeygroup(uint8_t kg, bool now)
+{
+    for (auto& chan : m_chanStates)
+        chan.second->killKeygroup(kg, now);
+}
+
+std::shared_ptr<Voice> Sequencer::ChannelState::findVoice(int vid)
+{
+    for (const auto& vox : m_chanVoxs)
+        if (vox.second->vid() == vid)
+            return vox.second;
+    return {};
+}
+
+std::shared_ptr<Voice> Sequencer::findVoice(int vid)
+{
+    for (auto& chan : m_chanStates)
+    {
+        std::shared_ptr<Voice> ret = chan.second->findVoice(vid);
+        if (ret)
+            return ret;
+    }
+    return {};
+}
+
+void Sequencer::ChannelState::sendMacroMessage(ObjectId macroId, int32_t val)
+{
+    for (const auto& v : m_chanVoxs)
+    {
+        Voice* vox = v.second.get();
+        if (vox->getObjectId() == macroId)
+            vox->message(val);
+    }
+}
+
+void Sequencer::sendMacroMessage(ObjectId macroId, int32_t val)
+{
+    for (auto& chan : m_chanStates)
+        chan.second->sendMacroMessage(macroId, val);
+}
+
+void Sequencer::playSong(const unsigned char* arrData, bool dieOnEnd)
+{
+    m_arrData = arrData;
+    m_dieOnEnd = dieOnEnd;
+    m_state = SequencerState::Playing;
 }
 
 }

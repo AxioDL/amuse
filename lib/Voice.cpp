@@ -22,18 +22,23 @@ void Voice::_destroy()
         vox->_destroy();
 }
 
-Voice::~Voice() {}
-
-Voice::Voice(Engine& engine, const AudioGroup& group, int vid, bool emitter, Submix* smx)
-: Entity(engine, group), m_vid(vid), m_emitter(emitter), m_submix(smx)
+Voice::~Voice()
 {
+    fprintf(stderr, "DEALLOC %p\n", this);
+}
+
+Voice::Voice(Engine& engine, const AudioGroup& group, int groupId, int vid, bool emitter, Submix* smx)
+: Entity(engine, group, groupId), m_vid(vid), m_emitter(emitter), m_submix(smx)
+{
+    fprintf(stderr, "ALLOC %p\n", this);
     if (m_submix)
         m_submix->m_activeVoices.insert(this);
 }
 
-Voice::Voice(Engine& engine, const AudioGroup& group, ObjectId oid, int vid, bool emitter, Submix* smx)
-: Entity(engine, group, oid), m_vid(vid), m_emitter(emitter), m_submix(smx)
+Voice::Voice(Engine& engine, const AudioGroup& group, int groupId, ObjectId oid, int vid, bool emitter, Submix* smx)
+: Entity(engine, group, groupId, oid), m_vid(vid), m_emitter(emitter), m_submix(smx)
 {
+    fprintf(stderr, "ALLOC %p\n", this);
     if (m_submix)
         m_submix->m_activeVoices.insert(this);
 }
@@ -62,7 +67,7 @@ void Voice::_reset()
     m_tremoloModScale = 0.f;
     m_lfoPeriods[0] = 0.f;
     m_lfoPeriods[1] = 0.f;
-    memset(m_ctrlVals, 0, 128);
+    memset(m_extCtrlVals, 0, 128);
 }
 
 bool Voice::_checkSamplePos()
@@ -84,6 +89,15 @@ bool Voice::_checkSamplePos()
             return true;
         }
     }
+
+    /* Looped samples issue sample end when ADSR envelope complete */
+    if (m_volAdsr.isComplete())
+    {
+        m_state.sampleEndNotify(*this);
+        m_curSample = nullptr;
+        return true;
+    }
+
     return false;
 }
 
@@ -142,10 +156,19 @@ std::shared_ptr<Voice> Voice::_findVoice(int vid, std::weak_ptr<Voice> thisPtr)
     return {};
 }
 
+std::unique_ptr<int8_t[]>& Voice::_ensureCtrlVals()
+{
+    if (m_ctrlValsSelf)
+        return m_ctrlValsSelf;
+    m_ctrlValsSelf.reset(new int8_t[128]);
+    memset(m_ctrlValsSelf.get(), 0, 128);
+    return m_ctrlValsSelf;
+}
+
 std::shared_ptr<Voice> Voice::_allocateVoice(double sampleRate, bool dynamicPitch)
 {
     auto it = m_childVoices.emplace(m_childVoices.end(), new Voice(m_engine, m_audioGroup,
-                                    m_engine.m_nextVid++, m_emitter, m_submix));
+                                    m_groupId, m_engine.m_nextVid++, m_emitter, m_submix));
     m_childVoices.back()->m_backendVoice =
         m_engine.getBackend().allocateVoice(*m_childVoices.back(), sampleRate, dynamicPitch);
     m_childVoices.back()->m_engineIt = it;

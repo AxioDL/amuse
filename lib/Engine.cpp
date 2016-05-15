@@ -17,14 +17,49 @@ Engine::Engine(IBackendVoiceAllocator& backend)
 : m_backend(backend)
 {}
 
-std::shared_ptr<Voice> Engine::_allocateVoice(const AudioGroup& group, double sampleRate,
+std::pair<AudioGroup*, const SongGroupIndex*> Engine::_findSongGroup(int groupId) const
+{
+    for (const auto& pair : m_audioGroups)
+    {
+        const SongGroupIndex* ret = pair.second->getProj().getSongGroupIndex(groupId);
+        if (ret)
+            return {pair.second.get(), ret};
+    }
+    return {};
+}
+
+std::pair<AudioGroup*, const SFXGroupIndex*> Engine::_findSFXGroup(int groupId) const
+{
+    for (const auto& pair : m_audioGroups)
+    {
+        const SFXGroupIndex* ret = pair.second->getProj().getSFXGroupIndex(groupId);
+        if (ret)
+            return {pair.second.get(), ret};
+    }
+    return {};
+}
+
+std::shared_ptr<Voice> Engine::_allocateVoice(const AudioGroup& group, int groupId, double sampleRate,
                                               bool dynamicPitch, bool emitter, Submix* smx)
 {
-    auto it = m_activeVoices.emplace(m_activeVoices.end(), new Voice(*this, group, m_nextVid++, emitter, smx));
+    auto it = m_activeVoices.emplace(m_activeVoices.end(),
+        new Voice(*this, group, groupId, m_nextVid++, emitter, smx));
     m_activeVoices.back()->m_backendVoice =
         m_backend.allocateVoice(*m_activeVoices.back(), sampleRate, dynamicPitch);
     m_activeVoices.back()->m_engineIt = it;
     return m_activeVoices.back();
+}
+
+std::shared_ptr<Sequencer> Engine::_allocateSequencer(const AudioGroup& group, int groupId,
+                                                      int setupId, Submix* smx)
+{
+    const SongGroupIndex* songGroup = group.getProj().getSongGroupIndex(groupId);
+    if (!songGroup)
+        return {};
+    auto it = m_activeSequencers.emplace(m_activeSequencers.end(),
+        new Sequencer(*this, group, groupId, *songGroup, setupId, smx));
+    m_activeSequencers.back()->m_engineIt = it;
+    return m_activeSequencers.back();
 }
 
 Submix* Engine::_allocateSubmix(Submix* smx)
@@ -42,6 +77,15 @@ std::list<std::shared_ptr<Voice>>::iterator Engine::_destroyVoice(Voice* voice)
 #endif
     voice->_destroy();
     return m_activeVoices.erase(voice->m_engineIt);
+}
+
+std::list<std::shared_ptr<Sequencer>>::iterator Engine::_destroySequencer(Sequencer* sequencer)
+{
+#ifndef NDEBUG
+    assert(this == &sequencer->getEngine());
+#endif
+    sequencer->_destroy();
+    return m_activeSequencers.erase(sequencer->m_engineIt);
 }
 
 std::list<Submix>::iterator Engine::_destroySubmix(Submix* smx)
@@ -78,6 +122,18 @@ void Engine::_bringOutYourDead()
         }
         ++it;
     }
+
+    for (auto it = m_activeSequencers.begin() ; it != m_activeSequencers.end() ;)
+    {
+        Sequencer* seq = it->get();
+        seq->_bringOutYourDead();
+        if (seq->m_state == SequencerState::Dead)
+        {
+            it = _destroySequencer(seq);
+            continue;
+        }
+        ++it;
+    }
 }
 
 /** Update all active audio entities and fill OS audio buffers as needed */
@@ -94,31 +150,33 @@ void Engine::pumpEngine()
 }
 
 /** Add audio group data pointers to engine; must remain resident! */
-const AudioGroup* Engine::addAudioGroup(int groupId, const AudioGroupData& data)
+const AudioGroup* Engine::addAudioGroup(const AudioGroupData& data)
 {
-    std::unique_ptr<AudioGroup> grp = std::make_unique<AudioGroup>(groupId, data);
+    removeAudioGroup(data);
+
+    std::unique_ptr<AudioGroup> grp = std::make_unique<AudioGroup>(data);
     if (!grp)
         return nullptr;
     AudioGroup* ret = grp.get();
-    m_audioGroups.emplace(std::make_pair(groupId, std::move(grp)));
+    m_audioGroups.emplace(std::make_pair(&data, std::move(grp)));
 
     /* setup SFX index for contained objects */
-    for (const auto& pair : ret->getProj().sfxGroups())
+    for (const auto& grp : ret->getProj().sfxGroups())
     {
-        const SFXGroupIndex& sfxGroup = pair.second;
+        const SFXGroupIndex& sfxGroup = grp.second;
         m_sfxLookup.reserve(m_sfxLookup.size() + sfxGroup.m_sfxEntries.size());
-        for (const auto& pair : sfxGroup.m_sfxEntries)
-            m_sfxLookup[pair.first] = std::make_pair(ret, SBig(pair.second->objId));
+        for (const auto& ent : sfxGroup.m_sfxEntries)
+            m_sfxLookup[ent.first] = std::make_tuple(ret, grp.first, SBig(ent.second->objId));
     }
 
     return ret;
 }
 
 /** Remove audio group from engine */
-void Engine::removeAudioGroup(int groupId)
+void Engine::removeAudioGroup(const AudioGroupData& data)
 {
-    auto search = m_audioGroups.find(groupId);
-    if (search == m_audioGroups.end())
+    auto search = m_audioGroups.find(&data);
+    if (search == m_audioGroups.cend())
         return;
     AudioGroup* grp = search->second.get();
 
@@ -126,7 +184,7 @@ void Engine::removeAudioGroup(int groupId)
     for (auto it = m_activeVoices.begin() ; it != m_activeVoices.end() ;)
     {
         Voice* vox = it->get();
-        if (vox->getAudioGroup().groupId() == groupId)
+        if (&vox->getAudioGroup() == grp)
         {
             vox->_destroy();
             it = m_activeVoices.erase(it);
@@ -138,7 +196,7 @@ void Engine::removeAudioGroup(int groupId)
     for (auto it = m_activeEmitters.begin() ; it != m_activeEmitters.end() ;)
     {
         Emitter* emitter = it->get();
-        if (emitter->getAudioGroup().groupId() == groupId)
+        if (&emitter->getAudioGroup() == grp)
         {
             emitter->_destroy();
             it = m_activeEmitters.erase(it);
@@ -150,7 +208,7 @@ void Engine::removeAudioGroup(int groupId)
     for (auto it = m_activeSequencers.begin() ; it != m_activeSequencers.end() ;)
     {
         Sequencer* seq = it->get();
-        if (seq->getAudioGroup().groupId() == groupId)
+        if (&seq->getAudioGroup() == grp)
         {
             seq->_destroy();
             it = m_activeSequencers.erase(it);
@@ -167,7 +225,7 @@ void Engine::removeAudioGroup(int groupId)
             m_sfxLookup.erase(pair.first);
     }
 
-    m_audioGroups.erase(groupId);
+    m_audioGroups.erase(search);
 }
 
 /** Create new Submix (a.k.a 'Studio') within root mix engine */
@@ -189,6 +247,21 @@ void Engine::removeSubmix(Submix* smx)
         {
             vox->_destroy();
             it = m_activeVoices.erase(it);
+            continue;
+        }
+        ++it;
+    }
+
+    /* Delete all sequencers bound to submix */
+    for (auto it = m_activeSequencers.begin() ; it != m_activeSequencers.end() ;)
+    {
+        Sequencer* seq = it->get();
+
+        Submix* ssmx = seq->getSubmix();
+        if (ssmx && ssmx == smx)
+        {
+            seq->_destroy();
+            it = m_activeSequencers.erase(it);
             continue;
         }
         ++it;
@@ -218,12 +291,12 @@ std::shared_ptr<Voice> Engine::fxStart(int sfxId, float vol, float pan, Submix* 
     if (search == m_sfxLookup.end())
         return nullptr;
 
-    AudioGroup* grp = search->second.first;
+    AudioGroup* grp = std::get<0>(search->second);
     if (!grp)
         return nullptr;
 
-    std::shared_ptr<Voice> ret = _allocateVoice(*grp, 32000.0, true, false, smx);
-    if (!ret->loadSoundObject(search->second.second, 0, 1000.f, 0x3c, 0, 0))
+    std::shared_ptr<Voice> ret = _allocateVoice(*grp, std::get<1>(search->second), 32000.0, true, false, smx);
+    if (!ret->loadSoundObject(std::get<2>(search->second), 0, 1000.f, 0x3c, 0, 0))
     {
         _destroyVoice(ret.get());
         return {};
@@ -241,14 +314,14 @@ std::shared_ptr<Emitter> Engine::addEmitter(const Vector3f& pos, const Vector3f&
     if (search == m_sfxLookup.end())
         return nullptr;
 
-    AudioGroup* grp = search->second.first;
+    AudioGroup* grp = std::get<0>(search->second);
     if (!grp)
         return nullptr;
 
-    std::shared_ptr<Voice> vox = _allocateVoice(*grp, 32000.0, true, true, smx);
+    std::shared_ptr<Voice> vox = _allocateVoice(*grp, std::get<1>(search->second), 32000.0, true, true, smx);
     m_activeEmitters.emplace(m_activeEmitters.end(), new Emitter(*this, *grp, std::move(vox)));
     Emitter& ret = *m_activeEmitters.back();
-    if (!ret.getVoice()->loadSoundObject(search->second.second, 0, 1000.f, 0x3c, 0, 0))
+    if (!ret.getVoice()->loadSoundObject(std::get<2>(search->second), 0, 1000.f, 0x3c, 0, 0))
     {
         ret._destroy();
         m_activeEmitters.pop_back();
@@ -265,9 +338,20 @@ std::shared_ptr<Emitter> Engine::addEmitter(const Vector3f& pos, const Vector3f&
 }
 
 /** Start song playing from loaded audio groups */
-std::shared_ptr<Sequencer> Engine::seqPlay(int groupId, int songId, const unsigned char* arrData)
+std::shared_ptr<Sequencer> Engine::seqPlay(int groupId, int songId,
+                                           const unsigned char* arrData, Submix* smx)
 {
-    return {};
+    std::pair<AudioGroup*, const SongGroupIndex*> songGrp = _findSongGroup(groupId);
+    if (!songGrp.second)
+        return {};
+
+    std::shared_ptr<Sequencer> ret = _allocateSequencer(*songGrp.first, groupId, songId, smx);
+    if (!ret)
+        return {};
+
+    if (arrData)
+        ret->playSong(arrData);
+    return ret;
 }
 
 /** Find voice from VoiceId */
@@ -279,6 +363,14 @@ std::shared_ptr<Voice> Engine::findVoice(int vid)
         if (ret)
             return ret;
     }
+
+    for (std::shared_ptr<Sequencer>& seq : m_activeSequencers)
+    {
+        std::shared_ptr<Voice> ret = seq->findVoice(vid);
+        if (ret)
+            return ret;
+    }
+
     return {};
 }
 
@@ -299,6 +391,9 @@ void Engine::killKeygroup(uint8_t kg, bool now)
         }
         ++it;
     }
+
+    for (std::shared_ptr<Sequencer>& seq : m_activeSequencers)
+        seq->killKeygroup(kg, now);
 }
 
 /** Send all voices using `macroId` the message `val` */
@@ -310,6 +405,9 @@ void Engine::sendMacroMessage(ObjectId macroId, int32_t val)
         if (vox->getObjectId() == macroId)
             vox->message(val);
     }
+
+    for (std::shared_ptr<Sequencer>& seq : m_activeSequencers)
+        seq->sendMacroMessage(macroId, val);
 }
 
 }

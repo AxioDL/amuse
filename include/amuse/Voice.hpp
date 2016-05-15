@@ -111,7 +111,8 @@ class Voice : public Entity
     float m_tremoloModScale; /**< minimum volume factor produced via LFO, scaled via mod wheel */
 
     float m_lfoPeriods[2]; /**< time-periods for LFO1 and LFO2 */
-    int8_t* m_ctrlVals = nullptr; /**< MIDI Controller values (external storage) */
+    std::unique_ptr<int8_t[]> m_ctrlValsSelf; /**< Self-owned MIDI Controller values */
+    int8_t* m_extCtrlVals = nullptr; /**< MIDI Controller values (external storage) */
 
     void _destroy();
     void _reset();
@@ -122,6 +123,7 @@ class Voice : public Entity
     bool _isRecursivelyDead();
     void _bringOutYourDead();
     std::shared_ptr<Voice> _findVoice(int vid, std::weak_ptr<Voice> thisPtr);
+    std::unique_ptr<int8_t[]>& _ensureCtrlVals();
 
     std::shared_ptr<Voice> _allocateVoice(double sampleRate, bool dynamicPitch);
     std::list<std::shared_ptr<Voice>>::iterator _destroyVoice(Voice* voice);
@@ -136,8 +138,8 @@ class Voice : public Entity
                                             uint8_t midiKey, uint8_t midiVel, uint8_t midiMod, bool pushPc=false);
 public:
     ~Voice();
-    Voice(Engine& engine, const AudioGroup& group, int vid, bool emitter, Submix* smx);
-    Voice(Engine& engine, const AudioGroup& group, ObjectId oid, int vid, bool emitter, Submix* smx);
+    Voice(Engine& engine, const AudioGroup& group, int groupId, int vid, bool emitter, Submix* smx);
+    Voice(Engine& engine, const AudioGroup& group, int groupId, ObjectId oid, int vid, bool emitter, Submix* smx);
 
     /** Request specified count of audio frames (samples) from voice,
      *  internally advancing the voice stream */
@@ -250,28 +252,50 @@ public:
     /** Assign voice to keygroup for coordinated mass-silencing */
     void setKeygroup(uint8_t kg) {m_keygroup = kg;}
 
+    /** Get note played on voice */
     uint8_t getLastNote() const {return m_state.m_initKey;}
+
+    /** Get MIDI Controller value on voice */
     int8_t getCtrlValue(uint8_t ctrl) const
     {
-        if (!m_ctrlVals)
+        if (!m_extCtrlVals)
+        {
+            if (m_ctrlValsSelf)
+                m_ctrlValsSelf[ctrl];
             return 0;
-        return m_ctrlVals[ctrl];
+        }
+        return m_extCtrlVals[ctrl];
     }
+
+    /** Set MIDI Controller value on voice */
     void setCtrlValue(uint8_t ctrl, int8_t val)
     {
-        if (!m_ctrlVals)
-            return;
-        m_ctrlVals[ctrl] = val;
+        if (!m_extCtrlVals)
+        {
+            std::unique_ptr<int8_t[]>& vals = _ensureCtrlVals();
+            vals[ctrl] = val;
+        }
+        else
+            m_extCtrlVals[ctrl] = val;
     }
-    int8_t getModWheel() const
+
+    /** Get ModWheel value on voice */
+    int8_t getModWheel() const {return getCtrlValue(1);}
+
+    /** 'install' external MIDI controller storage */
+    void installCtrlValues(int8_t* cvs)
     {
-        if (!m_ctrlVals)
-            return 0;
-        return m_ctrlVals[1];
+        m_ctrlValsSelf.reset();
+        m_extCtrlVals = cvs;
     }
-    void installCtrlValues(int8_t* cvs) {m_ctrlVals = cvs;}
+
+    /** Get MIDI pitch wheel value on voice */
     int8_t getPitchWheel() const {return m_curPitchWheel * 127;}
+
+    /** Get MIDI aftertouch value on voice */
     int8_t getAftertouch() const {return m_curAftertouch;}
+
+    /** Get count of all voices in hierarchy, including this one */
     size_t getTotalVoices() const;
 
 };

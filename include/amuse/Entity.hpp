@@ -41,10 +41,11 @@ protected:
     }
     Engine& m_engine;
     const AudioGroup& m_audioGroup;
+    int m_groupId;
     ObjectId m_objectId = 0xffff; /* if applicable */
 public:
-    Entity(Engine& engine, const AudioGroup& group, ObjectId oid=ObjectId())
-    : m_engine(engine), m_audioGroup(group), m_objectId(oid) {}
+    Entity(Engine& engine, const AudioGroup& group, int groupId, ObjectId oid=ObjectId())
+    : m_engine(engine), m_audioGroup(group), m_groupId(groupId), m_objectId(oid) {}
     ~Entity()
     {
 #ifndef NDEBUG
@@ -55,6 +56,7 @@ public:
 
     Engine& getEngine() {return m_engine;}
     const AudioGroup& getAudioGroup() const {return m_audioGroup;}
+    int getGroupId() const {return m_groupId;}
     ObjectId getObjectId() const {return m_objectId;}
 };
 

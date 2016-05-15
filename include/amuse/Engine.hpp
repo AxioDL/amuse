@@ -27,18 +27,25 @@ class Engine
     friend class Sequencer::ChannelState;
 
     IBackendVoiceAllocator& m_backend;
-    std::unordered_map<int, std::unique_ptr<AudioGroup>> m_audioGroups;
+    std::unordered_map<const AudioGroupData*, std::unique_ptr<AudioGroup>> m_audioGroups;
     std::list<std::shared_ptr<Voice>> m_activeVoices;
     std::list<std::shared_ptr<Emitter>> m_activeEmitters;
     std::list<std::shared_ptr<Sequencer>> m_activeSequencers;
     std::list<Submix> m_activeSubmixes;
-    std::unordered_map<uint16_t, std::pair<AudioGroup*, ObjectId>> m_sfxLookup;
+    std::unordered_map<uint16_t, std::tuple<AudioGroup*, int, ObjectId>> m_sfxLookup;
     std::linear_congruential_engine<uint32_t, 0x41c64e6d, 0x3039, UINT32_MAX> m_random;
     int m_nextVid = 0;
-    std::shared_ptr<Voice> _allocateVoice(const AudioGroup& group, double sampleRate,
+
+    std::pair<AudioGroup*, const SongGroupIndex*> _findSongGroup(int groupId) const;
+    std::pair<AudioGroup*, const SFXGroupIndex*> _findSFXGroup(int groupId) const;
+
+    std::shared_ptr<Voice> _allocateVoice(const AudioGroup& group, int groupId, double sampleRate,
                                           bool dynamicPitch, bool emitter, Submix* smx);
+    std::shared_ptr<Sequencer> _allocateSequencer(const AudioGroup& group, int groupId,
+                                                  int setupId, Submix* smx);
     Submix* _allocateSubmix(Submix* smx);
     std::list<std::shared_ptr<Voice>>::iterator _destroyVoice(Voice* voice);
+    std::list<std::shared_ptr<Sequencer>>::iterator _destroySequencer(Sequencer* sequencer);
     std::list<Submix>::iterator _destroySubmix(Submix* smx);
     void _bringOutYourDead();
 public:
@@ -52,10 +59,10 @@ public:
     void pumpEngine();
 
     /** Add audio group data pointers to engine; must remain resident! */
-    const AudioGroup* addAudioGroup(int groupId, const AudioGroupData& data);
+    const AudioGroup* addAudioGroup(const AudioGroupData& data);
 
     /** Remove audio group from engine */
-    void removeAudioGroup(int groupId);
+    void removeAudioGroup(const AudioGroupData& data);
 
     /** Create new Submix (a.k.a 'Studio') within root mix engine */
     Submix* addSubmix(Submix* parent=nullptr);
@@ -72,7 +79,8 @@ public:
                                         Submix* smx=nullptr);
 
     /** Start song playing from loaded audio groups */
-    std::shared_ptr<Sequencer> seqPlay(int groupId, int songId, const unsigned char* arrData);
+    std::shared_ptr<Sequencer> seqPlay(int groupId, int songId, const unsigned char* arrData,
+                                       Submix* smx=nullptr);
 
     /** Find voice from VoiceId */
     std::shared_ptr<Voice> findVoice(int vid);
