@@ -14,17 +14,20 @@
 namespace amuse
 {
 class IBackendSubmix;
+class Sequencer;
 
 /** Intermediate mix of voices for applying auxiliary effects */
 class Submix
 {
     friend class Engine;
     friend class Voice;
+    friend class Sequencer;
     Engine& m_root;
     Submix* m_submix = nullptr; /**< Parent submix of this submix (or NULL if mixing to main output) */
     std::list<Submix>::iterator m_engineIt; /**< Iterator to self within Engine's list for quick deletion */
     std::unique_ptr<IBackendSubmix> m_backendSubmix; /**< Handle to client-implemented backend submix */
     std::unordered_set<Voice*> m_activeVoices; /**< Secondary index of Voices within Submix */
+    std::unordered_set<Sequencer*> m_activeSequencers; /**< Secondary index of Sequencers within Submix */
     std::unordered_set<Submix*> m_activeSubmixes; /**< Secondary index of Submixes within Submix */
     std::vector<std::unique_ptr<EffectBaseTypeless>> m_effectStack; /**< Ordered list of effects to apply to submix */
     bool m_destroyed = false;

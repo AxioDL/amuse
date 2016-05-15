@@ -44,6 +44,11 @@ void Voice::_reset()
     m_curReverbVol = 0.f;
     m_curPan = 0.f;
     m_curSpan = 0.f;
+    m_curPitchWheel = 0.f;
+    m_curAftertouch = 0;
+    m_pitchWheelUp = 6;
+    m_pitchWheelDown = 6;
+    m_pitchWheelVal = 0;
     m_pitchSweep1 = 0;
     m_pitchSweep1Times = 0;
     m_pitchSweep2 = 0;
@@ -57,6 +62,7 @@ void Voice::_reset()
     m_tremoloModScale = 0.f;
     m_lfoPeriods[0] = 0.f;
     m_lfoPeriods[1] = 0.f;
+    memset(m_ctrlVals, 0, 128);
 }
 
 bool Voice::_checkSamplePos()
@@ -96,13 +102,23 @@ void Voice::_setTotalPitch(int32_t cents)
     m_backendVoice->setPitchRatio(ratio);
 }
 
+bool Voice::_isRecursivelyDead()
+{
+    if (m_voxState != VoiceState::Dead)
+        return false;
+    for (std::shared_ptr<Voice>& vox : m_childVoices)
+        if (!vox->_isRecursivelyDead())
+            return false;
+    return true;
+}
+
 void Voice::_bringOutYourDead()
 {
     for (auto it = m_childVoices.begin() ; it != m_childVoices.end() ;)
     {
         Voice* vox = it->get();
         vox->_bringOutYourDead();
-        if (vox->m_voxState == VoiceState::Dead)
+        if (vox->_isRecursivelyDead())
         {
             it = _destroyVoice(vox);
             continue;
@@ -253,7 +269,7 @@ bool Voice::_advanceSample(int16_t& samp)
     /* Apply total pitch */
     if (pitchDirty)
     {
-        _setTotalPitch(totalPitch + m_pitchSweep1 + m_pitchSweep2);
+        _setTotalPitch(totalPitch + m_pitchSweep1 + m_pitchSweep2 + m_pitchWheelVal);
         refresh = true;
     }
 
@@ -390,11 +406,12 @@ int Voice::maxVid() const
     return maxVid;
 }
 
-std::shared_ptr<Voice> Voice::startChildMacro(int8_t addNote, ObjectId macroId, int macroStep)
+std::shared_ptr<Voice> Voice::_startChildMacro(ObjectId macroId, int macroStep, double ticksPerSec,
+                                               uint8_t midiKey, uint8_t midiVel, uint8_t midiMod, bool pushPc)
 {
     std::shared_ptr<Voice> vox = _allocateVoice(32000.0, true);
-    if (!vox->loadSoundMacro(macroId, macroStep, 1000.0, m_state.m_initKey + addNote,
-                             m_state.m_initVel, m_state.m_initMod))
+    if (!vox->loadSoundObject(macroId, macroStep, ticksPerSec, midiKey,
+                              midiVel, midiMod, pushPc))
     {
         _destroyVoice(vox.get());
         return {};
@@ -402,14 +419,15 @@ std::shared_ptr<Voice> Voice::startChildMacro(int8_t addNote, ObjectId macroId, 
     return vox;
 }
 
-bool Voice::loadSoundMacro(ObjectId macroId, int macroStep, double ticksPerSec,
-                           uint8_t midiKey, uint8_t midiVel, uint8_t midiMod,
-                           bool pushPc)
+std::shared_ptr<Voice> Voice::startChildMacro(int8_t addNote, ObjectId macroId, int macroStep)
 {
-    const unsigned char* macroData = m_audioGroup.getPool().soundMacro(macroId);
-    if (!macroData)
-        return false;
+    return _startChildMacro(macroId, macroStep, 1000.0, m_state.m_initKey + addNote,
+                            m_state.m_initVel, m_state.m_initMod);
+}
 
+bool Voice::_loadSoundMacro(const unsigned char* macroData, int macroStep, double ticksPerSec,
+                            uint8_t midiKey, uint8_t midiVel, uint8_t midiMod, bool pushPc)
+{
     if (m_state.m_pc.empty())
         m_state.initialize(macroData, macroStep, ticksPerSec, midiKey, midiVel, midiMod);
     else
@@ -424,6 +442,53 @@ bool Voice::loadSoundMacro(ObjectId macroId, int macroStep, double ticksPerSec,
     m_voxState = VoiceState::Playing;
     m_backendVoice->start();
     return true;
+}
+
+bool Voice::_loadKeymap(const Keymap* keymap, int macroStep, double ticksPerSec,
+                        uint8_t midiKey, uint8_t midiVel, uint8_t midiMod, bool pushPc)
+{
+    const Keymap& km = keymap[midiKey];
+    midiKey += km.transpose;
+    return loadSoundObject(SBig(km.objectId), macroStep, ticksPerSec, midiKey, midiVel, midiMod, pushPc);
+}
+
+bool Voice::_loadLayer(const std::vector<const LayerMapping*>& layer, int macroStep, double ticksPerSec,
+                       uint8_t midiKey, uint8_t midiVel, uint8_t midiMod, bool pushPc)
+{
+    bool ret = false;
+    for (const LayerMapping* mapping : layer)
+    {
+        if (midiKey >= mapping->keyLo && midiKey <= mapping->keyHi)
+        {
+            midiKey += mapping->transpose;
+            if (m_voxState != VoiceState::Playing)
+                ret |= loadSoundObject(SBig(mapping->objectId), macroStep, ticksPerSec,
+                                       midiKey, midiVel, midiMod, pushPc);
+            else
+                ret |= _startChildMacro(SBig(mapping->objectId), macroStep, ticksPerSec,
+                                        midiKey, midiVel, midiMod, pushPc).operator bool();
+        }
+    }
+    return ret;
+}
+
+bool Voice::loadSoundObject(ObjectId objectId, int macroStep, double ticksPerSec,
+                            uint8_t midiKey, uint8_t midiVel, uint8_t midiMod,
+                            bool pushPc)
+{
+    const unsigned char* macroData = m_audioGroup.getPool().soundMacro(objectId);
+    if (macroData)
+        return _loadSoundMacro(macroData, macroStep, ticksPerSec, midiKey, midiVel, midiMod, pushPc);
+
+    const Keymap* keymap = m_audioGroup.getPool().keymap(objectId);
+    if (keymap)
+        return _loadKeymap(keymap, macroStep, ticksPerSec, midiKey, midiVel, midiMod, pushPc);
+
+    const std::vector<const LayerMapping*>* layer = m_audioGroup.getPool().layer(objectId);
+    if (layer)
+        return _loadLayer(*layer, macroStep, ticksPerSec, midiKey, midiVel, midiMod, pushPc);
+
+    return false;
 }
 
 void Voice::keyOff()
@@ -546,10 +611,6 @@ void Voice::setPitchKey(int32_t cents)
     m_pitchDirty = true;
 }
 
-void Voice::setModulation(float mod)
-{
-}
-
 void Voice::setPedal(bool pedal)
 {
     if (m_sustained && !pedal && m_sustainKeyOff)
@@ -629,8 +690,36 @@ void Voice::setPitchAdsr(ObjectId adsrId, int32_t cents)
     }
 }
 
+void Voice::setPitchWheel(float pitchWheel)
+{
+    m_curPitchWheel = amuse::clamp(-1.f, pitchWheel, 1.f);
+    if (pitchWheel > 0.f)
+        m_pitchWheelVal = m_pitchWheelUp * m_curPitchWheel;
+    else if (pitchWheel < 0.f)
+        m_pitchWheelVal = m_pitchWheelDown * -m_curPitchWheel;
+    else
+        m_pitchWheelVal = 0;
+    m_pitchDirty = true;
+}
+
 void Voice::setPitchWheelRange(int8_t up, int8_t down)
 {
+    m_pitchWheelUp = up * 100;
+    m_pitchWheelDown = down * 100;
+    setPitchWheel(m_curPitchWheel);
+}
+
+void Voice::setAftertouch(uint8_t aftertouch)
+{
+    m_curAftertouch = aftertouch;
+}
+
+size_t Voice::getTotalVoices() const
+{
+    size_t ret = 1;
+    for (const std::shared_ptr<Voice>& vox : m_childVoices)
+        ret += vox->getTotalVoices();
+    return ret;
 }
 
 }

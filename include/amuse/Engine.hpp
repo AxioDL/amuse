@@ -8,6 +8,7 @@
 #include <unordered_set>
 #include "Emitter.hpp"
 #include "AudioGroupSampleDirectory.hpp"
+#include "Sequencer.hpp"
 
 namespace amuse
 {
@@ -15,7 +16,6 @@ class IBackendVoiceAllocator;
 class Voice;
 class Submix;
 class Emitter;
-class Sequencer;
 class AudioGroup;
 class AudioGroupData;
 
@@ -24,6 +24,7 @@ class Engine
 {
     friend class Voice;
     friend class Emitter;
+    friend class Sequencer::ChannelState;
 
     IBackendVoiceAllocator& m_backend;
     std::unordered_map<int, std::unique_ptr<AudioGroup>> m_audioGroups;

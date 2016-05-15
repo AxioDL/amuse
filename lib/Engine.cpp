@@ -223,7 +223,7 @@ std::shared_ptr<Voice> Engine::fxStart(int sfxId, float vol, float pan, Submix* 
         return nullptr;
 
     std::shared_ptr<Voice> ret = _allocateVoice(*grp, 32000.0, true, false, smx);
-    if (!ret->loadSoundMacro(search->second.second, 0, 1000.f, 0x3c, 0, 0))
+    if (!ret->loadSoundObject(search->second.second, 0, 1000.f, 0x3c, 0, 0))
     {
         _destroyVoice(ret.get());
         return {};
@@ -248,7 +248,7 @@ std::shared_ptr<Emitter> Engine::addEmitter(const Vector3f& pos, const Vector3f&
     std::shared_ptr<Voice> vox = _allocateVoice(*grp, 32000.0, true, true, smx);
     m_activeEmitters.emplace(m_activeEmitters.end(), new Emitter(*this, *grp, std::move(vox)));
     Emitter& ret = *m_activeEmitters.back();
-    if (!ret.getVoice()->loadSoundMacro(search->second.second, 0, 1000.f, 0x3c, 0, 0))
+    if (!ret.getVoice()->loadSoundObject(search->second.second, 0, 1000.f, 0x3c, 0, 0))
     {
         ret._destroy();
         m_activeEmitters.pop_back();

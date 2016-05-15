@@ -44,6 +44,7 @@ public:
             x48_feedback[i] = feedback;
         m_dirty = true;
     }
+
     void setChanFeedback(int chanIdx, uint32_t feedback)
     {
         feedback = clamp(0u, feedback, 100u);
@@ -66,7 +67,7 @@ public:
     }
 };
 
-/** Type-specific implementation of chorus effect */
+/** Type-specific implementation of delay effect */
 template <typename T>
 class EffectDelayImp : public EffectBase<T>, public EffectDelay
 {

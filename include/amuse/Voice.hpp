@@ -15,6 +15,8 @@ namespace amuse
 {
 class IBackendVoice;
 class Submix;
+struct Keymap;
+struct LayerMapping;
 
 /** State of voice over lifetime */
 enum class VoiceState
@@ -28,6 +30,7 @@ enum class VoiceState
 class Voice : public Entity
 {
     friend class Engine;
+    friend class Sequencer;
     friend class SoundMacroState;
     int m_vid; /**< VoiceID of this voice instance */
     bool m_emitter; /**< Voice is part of an Emitter */
@@ -58,11 +61,16 @@ class Voice : public Entity
     VoiceState m_voxState = VoiceState::Dead; /**< Current high-level state of voice */
     bool m_sustained = false; /**< Sustain pedal pressed for this voice */
     bool m_sustainKeyOff = false; /**< Keyoff event occured while sustained */
+    uint8_t m_curAftertouch = 0; /**< Aftertouch value (key pressure when 'bottoming out') */
 
     float m_curVol; /**< Current volume of voice */
     float m_curReverbVol; /**< Current reverb volume of voice */
     float m_curPan; /**< Current pan of voice */
     float m_curSpan; /**< Current surround pan of voice */
+    float m_curPitchWheel; /**< Current normalized wheel value for control */
+    int32_t m_pitchWheelUp; /**< Up range for pitchwheel control in cents */
+    int32_t m_pitchWheelDown; /**< Down range for pitchwheel control in cents */
+    int32_t m_pitchWheelVal; /**< Current resolved pitchwheel delta for control */
     int32_t m_curPitch; /**< Current base pitch in cents */
     bool m_pitchDirty; /**< m_curPitch has been updated and needs sending to voice */
 
@@ -103,6 +111,7 @@ class Voice : public Entity
     float m_tremoloModScale; /**< minimum volume factor produced via LFO, scaled via mod wheel */
 
     float m_lfoPeriods[2]; /**< time-periods for LFO1 and LFO2 */
+    int8_t* m_ctrlVals = nullptr; /**< MIDI Controller values (external storage) */
 
     void _destroy();
     void _reset();
@@ -110,12 +119,21 @@ class Voice : public Entity
     void _doKeyOff();
     bool _advanceSample(int16_t& samp);
     void _setTotalPitch(int32_t cents);
+    bool _isRecursivelyDead();
     void _bringOutYourDead();
     std::shared_ptr<Voice> _findVoice(int vid, std::weak_ptr<Voice> thisPtr);
 
     std::shared_ptr<Voice> _allocateVoice(double sampleRate, bool dynamicPitch);
     std::list<std::shared_ptr<Voice>>::iterator _destroyVoice(Voice* voice);
 
+    bool _loadSoundMacro(const unsigned char* macroData, int macroStep, double ticksPerSec,
+                         uint8_t midiKey, uint8_t midiVel, uint8_t midiMod, bool pushPc=false);
+    bool _loadKeymap(const Keymap* keymap, int macroStep, double ticksPerSec,
+                     uint8_t midiKey, uint8_t midiVel, uint8_t midiMod, bool pushPc=false);
+    bool _loadLayer(const std::vector<const LayerMapping*>& layer, int macroStep, double ticksPerSec,
+                    uint8_t midiKey, uint8_t midiVel, uint8_t midiMod, bool pushPc=false);
+    std::shared_ptr<Voice> _startChildMacro(ObjectId macroId, int macroStep, double ticksPerSec,
+                                            uint8_t midiKey, uint8_t midiVel, uint8_t midiMod, bool pushPc=false);
 public:
     ~Voice();
     Voice(Engine& engine, const AudioGroup& group, int vid, bool emitter, Submix* smx);
@@ -140,10 +158,10 @@ public:
     /** Allocate parallel macro and tie to voice for possible emitter influence */
     std::shared_ptr<Voice> startChildMacro(int8_t addNote, ObjectId macroId, int macroStep);
 
-    /** Load specified SoundMacro ID of within group into voice */
-    bool loadSoundMacro(ObjectId macroId, int macroStep, double ticksPerSec,
-                        uint8_t midiKey, uint8_t midiVel, uint8_t midiMod,
-                        bool pushPc=false);
+    /** Load specified Sound Object from within group into voice */
+    bool loadSoundObject(ObjectId objectId, int macroStep, double ticksPerSec,
+                         uint8_t midiKey, uint8_t midiVel, uint8_t midiMod,
+                         bool pushPc=false);
 
     /** Signals voice to begin fade-out (or defer if sustained), eventually reaching silence */
     void keyOff();
@@ -180,9 +198,6 @@ public:
 
     /** Set voice relative-pitch in cents */
     void setPitchKey(int32_t cents);
-
-    /** Set voice modulation */
-    void setModulation(float mod);
 
     /** Set sustain status within voice; clearing will trigger a deferred keyoff */
     void setPedal(bool pedal);
@@ -223,18 +238,41 @@ public:
     /** Set pitch envelope */
     void setPitchAdsr(ObjectId adsrId, int32_t cents);
 
+    /** Set pitchwheel value for use with controller */
+    void setPitchWheel(float pitchWheel);
+
     /** Set effective pitch range via the pitchwheel controller */
     void setPitchWheelRange(int8_t up, int8_t down);
+
+    /** Set aftertouch */
+    void setAftertouch(uint8_t aftertouch);
 
     /** Assign voice to keygroup for coordinated mass-silencing */
     void setKeygroup(uint8_t kg) {m_keygroup = kg;}
 
     uint8_t getLastNote() const {return m_state.m_initKey;}
-    int8_t getCtrlValue(uint8_t ctrl) const {return 0;}
-    void setCtrlValue(uint8_t ctrl, int8_t val) {}
-    int8_t getPitchWheel() const {return 0;}
-    int8_t getModWheel() const {return 0;}
-    int8_t getAftertouch() const {return 0;}
+    int8_t getCtrlValue(uint8_t ctrl) const
+    {
+        if (!m_ctrlVals)
+            return 0;
+        return m_ctrlVals[ctrl];
+    }
+    void setCtrlValue(uint8_t ctrl, int8_t val)
+    {
+        if (!m_ctrlVals)
+            return;
+        m_ctrlVals[ctrl] = val;
+    }
+    int8_t getModWheel() const
+    {
+        if (!m_ctrlVals)
+            return 0;
+        return m_ctrlVals[1];
+    }
+    void installCtrlValues(int8_t* cvs) {m_ctrlVals = cvs;}
+    int8_t getPitchWheel() const {return m_curPitchWheel * 127;}
+    int8_t getAftertouch() const {return m_curAftertouch;}
+    size_t getTotalVoices() const;
 
 };
 

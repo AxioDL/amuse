@@ -43,7 +43,7 @@ int main(int argc, char* argv[])
      * A client-assigned integer serves as the handle to the group once loaded
      */
     int groupId = 1;
-    amuse::AudioGroupData data = LoadMyAudioGroup(groupId);
+    amuse::IntrusiveAudioGroupData data = LoadMyAudioGroup(groupId);
     snd.addAudioGroup(groupId, data);
 
     /* Starting a SoundMacro playing is accomplished like so: */

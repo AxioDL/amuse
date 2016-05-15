@@ -130,12 +130,25 @@ struct AppCallback;
 struct EventCallback : boo::IWindowCallback
 {
     AppCallback& m_app;
+    bool m_tracking = false;
 public:
     void charKeyDown(unsigned long charCode, boo::EModifierKey mods, bool isRepeat);
     void charKeyUp(unsigned long charCode, boo::EModifierKey mods);
     void specialKeyDown(boo::ESpecialKey key, boo::EModifierKey mods, bool isRepeat);
     void specialKeyUp(boo::ESpecialKey key, boo::EModifierKey mods);
     void resized(const boo::SWindowRect&, const boo::SWindowRect&) {}
+
+    void mouseDown(const boo::SWindowCoord&, boo::EMouseButton, boo::EModifierKey)
+    {
+        m_tracking = true;
+    }
+
+    void mouseUp(const boo::SWindowCoord&, boo::EMouseButton, boo::EModifierKey)
+    {
+        m_tracking = false;
+    }
+
+    void mouseMove(const boo::SWindowCoord& coord);
 
     EventCallback(AppCallback& app) : m_app(app) {}
 };
@@ -158,17 +171,43 @@ struct AppCallback : boo::IApplicationCallback
     /* Song playback selection */
     int m_setupId = -1;
     int m_chanId = -1;
+    int8_t m_octave = 4;
+    int8_t m_velocity = 64;
+    std::shared_ptr<amuse::Sequencer> m_seq;
 
     /* SFX playback selection */
     int m_sfxId = -1;
     std::shared_ptr<amuse::Voice> m_vox;
+    size_t m_lastVoxCount = 0;
 
     /* Control state */
     float m_volume = 1.f;
+    float m_modulation = 0.f;
+    float m_pitchBend = 0.f;
     bool m_updateDisp = false;
     bool m_running = true;
     bool m_wantsNext = false;
     bool m_wantsPrev = false;
+
+    void UpdateSongDisplay()
+    {
+        size_t voxCount = 0;
+        if (m_seq)
+            voxCount = m_seq->getVoiceCount();
+        printf("\r                                                                                "
+               "\r  %" PRISize " Setup %d, Chan %d, VOL: %d%%\r", voxCount,
+               m_setupId, m_chanId, int(std::rint(m_volume * 100)));
+        fflush(stdout);
+    }
+
+    void SelectSong(int setupId)
+    {
+        m_setupId = setupId;
+        if (m_seq)
+            m_seq->allOff();
+        m_seq = m_engine->seqPlay(m_groupId, setupId, nullptr);
+        UpdateSongDisplay();
+    }
 
     void SongLoop(const amuse::AudioGroup& group,
                   const amuse::SongGroupIndex& index)
@@ -200,10 +239,42 @@ struct AppCallback : boo::IApplicationCallback
             if (m_wantsNext)
             {
                 m_wantsNext = false;
+                auto nextIt = setupIt;
+                ++nextIt;
+                if (nextIt != sortEntries.cend())
+                {
+                    ++setupIt;
+                    SelectSong(setupIt->first);
+                    m_updateDisp = false;
+                }
+            }
 
+            if (m_wantsPrev)
+            {
+                m_wantsPrev = false;
+                if (setupIt != sortEntries.cbegin())
+                {
+                    --setupIt;
+                    SelectSong(setupIt->first);
+                    m_updateDisp = false;
+                }
+            }
+
+            if (m_updateDisp)
+            {
+                m_updateDisp = false;
+                UpdateSongDisplay();
             }
 
             m_engine->pumpEngine();
+
+            size_t voxCount = m_seq->getVoiceCount();
+            if (m_lastVoxCount != voxCount)
+            {
+                m_lastVoxCount = voxCount;
+                UpdateSongDisplay();
+            }
+
             m_win->waitForRetrace();
         }
     }
@@ -282,7 +353,8 @@ struct AppCallback : boo::IApplicationCallback
 
     void charKeyDown(unsigned long charCode)
     {
-        if (charCode == 'q' || charCode == 'Q')
+        charCode = tolower(charCode);
+        if (charCode == 'q')
         {
             m_running = false;
             return;
@@ -301,13 +373,148 @@ struct AppCallback : boo::IApplicationCallback
             default: break;
             }
         }
-        else
+        else if (m_seq && m_chanId != -1)
         {
+            switch (charCode)
+            {
+            case 'z':
+                m_octave = amuse::clamp(-1, m_octave - 1, 8);
+                break;
+            case 'x':
+                m_octave = amuse::clamp(-1, m_octave + 1, 8);
+                break;
+            case 'c':
+                m_velocity = amuse::clamp(0, m_velocity - 1, 127);
+                break;
+            case 'v':
+                m_velocity = amuse::clamp(0, m_velocity + 1, 127);
+                break;
+            case '\t':
+                m_seq->setCtrlValue(m_chanId, 64, 127);
+                break;
+            case 'a':
+                m_seq->keyOn(m_chanId, (m_octave + 1) * 12, m_velocity);
+                break;
+            case 'w':
+                m_seq->keyOn(m_chanId, (m_octave + 1) * 12 + 1, m_velocity);
+                break;
+            case 's':
+                m_seq->keyOn(m_chanId, (m_octave + 1) * 12 + 2, m_velocity);
+                break;
+            case 'e':
+                m_seq->keyOn(m_chanId, (m_octave + 1) * 12 + 3, m_velocity);
+                break;
+            case 'd':
+                m_seq->keyOn(m_chanId, (m_octave + 1) * 12 + 4, m_velocity);
+                break;
+            case 'f':
+                m_seq->keyOn(m_chanId, (m_octave + 1) * 12 + 5, m_velocity);
+                break;
+            case 't':
+                m_seq->keyOn(m_chanId, (m_octave + 1) * 12 + 6, m_velocity);
+                break;
+            case 'g':
+                m_seq->keyOn(m_chanId, (m_octave + 1) * 12 + 7, m_velocity);
+                break;
+            case 'y':
+                m_seq->keyOn(m_chanId, (m_octave + 1) * 12 + 8, m_velocity);
+                break;
+            case 'h':
+                m_seq->keyOn(m_chanId, (m_octave + 1) * 12 + 9, m_velocity);
+                break;
+            case 'u':
+                m_seq->keyOn(m_chanId, (m_octave + 1) * 12 + 10, m_velocity);
+                break;
+            case 'j':
+                m_seq->keyOn(m_chanId, (m_octave + 1) * 12 + 11, m_velocity);
+                break;
+            case 'k':
+                m_seq->keyOn(m_chanId, (m_octave + 1) * 12 + 12, m_velocity);
+                break;
+            case 'o':
+                m_seq->keyOn(m_chanId, (m_octave + 1) * 12 + 13, m_velocity);
+                break;
+            case 'l':
+                m_seq->keyOn(m_chanId, (m_octave + 1) * 12 + 14, m_velocity);
+                break;
+            case 'p':
+                m_seq->keyOn(m_chanId, (m_octave + 1) * 12 + 15, m_velocity);
+                break;
+            case ';':
+            case ':':
+                m_seq->keyOn(m_chanId, (m_octave + 1) * 12 + 16, m_velocity);
+                break;
+            default: break;
+            }
         }
     }
 
     void charKeyUp(unsigned long charCode)
     {
+        charCode = tolower(charCode);
+
+        if (!m_sfxGroup && m_chanId != -1)
+        {
+            switch (charCode)
+            {
+            case '\t':
+                m_seq->setCtrlValue(m_chanId, 64, 0);
+                break;
+            case 'a':
+                m_seq->keyOff(m_chanId, (m_octave + 1) * 12, m_velocity);
+                break;
+            case 'w':
+                m_seq->keyOff(m_chanId, (m_octave + 1) * 12 + 1, m_velocity);
+                break;
+            case 's':
+                m_seq->keyOff(m_chanId, (m_octave + 1) * 12 + 2, m_velocity);
+                break;
+            case 'e':
+                m_seq->keyOff(m_chanId, (m_octave + 1) * 12 + 3, m_velocity);
+                break;
+            case 'd':
+                m_seq->keyOff(m_chanId, (m_octave + 1) * 12 + 4, m_velocity);
+                break;
+            case 'f':
+                m_seq->keyOff(m_chanId, (m_octave + 1) * 12 + 5, m_velocity);
+                break;
+            case 't':
+                m_seq->keyOff(m_chanId, (m_octave + 1) * 12 + 6, m_velocity);
+                break;
+            case 'g':
+                m_seq->keyOff(m_chanId, (m_octave + 1) * 12 + 7, m_velocity);
+                break;
+            case 'y':
+                m_seq->keyOff(m_chanId, (m_octave + 1) * 12 + 8, m_velocity);
+                break;
+            case 'h':
+                m_seq->keyOff(m_chanId, (m_octave + 1) * 12 + 9, m_velocity);
+                break;
+            case 'u':
+                m_seq->keyOff(m_chanId, (m_octave + 1) * 12 + 10, m_velocity);
+                break;
+            case 'j':
+                m_seq->keyOff(m_chanId, (m_octave + 1) * 12 + 11, m_velocity);
+                break;
+            case 'k':
+                m_seq->keyOff(m_chanId, (m_octave + 1) * 12 + 12, m_velocity);
+                break;
+            case 'o':
+                m_seq->keyOff(m_chanId, (m_octave + 1) * 12 + 13, m_velocity);
+                break;
+            case 'l':
+                m_seq->keyOff(m_chanId, (m_octave + 1) * 12 + 14, m_velocity);
+                break;
+            case 'p':
+                m_seq->keyOff(m_chanId, (m_octave + 1) * 12 + 15, m_velocity);
+                break;
+            case ';':
+            case ':':
+                m_seq->keyOff(m_chanId, (m_octave + 1) * 12 + 16, m_velocity);
+                break;
+            default: break;
+            }
+        }
     }
 
     int appMain(boo::IApplication* app)
@@ -467,6 +674,24 @@ void EventCallback::specialKeyDown(boo::ESpecialKey key, boo::EModifierKey mods,
 
 void EventCallback::specialKeyUp(boo::ESpecialKey key, boo::EModifierKey mods)
 {
+}
+
+void EventCallback::mouseMove(const boo::SWindowCoord& coord)
+{
+    if (m_tracking)
+    {
+        m_app.m_modulation = amuse::clamp(0.f, coord.norm[0], 1.f);
+        if (m_app.m_vox)
+            m_app.m_vox->setCtrlValue(1, m_app.m_modulation * 127.f);
+        if (m_app.m_seq && m_app.m_chanId != -1)
+            m_app.m_seq->setCtrlValue(m_app.m_chanId, 1, m_app.m_modulation * 127.f);
+
+        m_app.m_pitchBend = amuse::clamp(-1.f, coord.norm[1] * 2.f - 1.f, 1.f);
+        if (m_app.m_vox)
+            m_app.m_vox->setPitchWheel(m_app.m_pitchBend);
+        if (m_app.m_seq && m_app.m_chanId != -1)
+            m_app.m_seq->setPitchWheel(m_app.m_chanId, m_app.m_pitchBend);
+    }
 }
 
 #if _WIN32

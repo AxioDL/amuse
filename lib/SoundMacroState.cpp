@@ -189,7 +189,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
                 if (macroId == m_header.m_macroId)
                     m_pc.back().second = macroStep;
                 else
-                    vox.loadSoundMacro(macroId, macroStep, m_ticksPerSec,
+                    vox.loadSoundObject(macroId, macroStep, m_ticksPerSec,
                                        m_initKey, m_initVel, m_initMod);
             }
 
@@ -207,7 +207,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
                 if (macroId == m_header.m_macroId)
                     m_pc.back().second = macroStep;
                 else
-                    vox.loadSoundMacro(macroId, macroStep, m_ticksPerSec,
+                    vox.loadSoundObject(macroId, macroStep, m_ticksPerSec,
                                        m_initKey, m_initVel, m_initMod);
             }
 
@@ -291,7 +291,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
             if (macroId == m_header.m_macroId)
                 m_pc.back().second = macroStep;
             else
-                vox.loadSoundMacro(macroId, macroStep, m_ticksPerSec,
+                vox.loadSoundObject(macroId, macroStep, m_ticksPerSec,
                                    m_initKey, m_initVel, m_initMod);
 
             break;
@@ -380,7 +380,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
                 if (macroId == m_header.m_macroId)
                     m_pc.back().second = macroStep;
                 else
-                    vox.loadSoundMacro(macroId, macroStep, m_ticksPerSec,
+                    vox.loadSoundObject(macroId, macroStep, m_ticksPerSec,
                                        m_initKey, m_initVel, m_initMod);
             }
 
@@ -501,7 +501,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
                 if (macroId == m_header.m_macroId)
                     m_pc.back().second = macroStep;
                 else
-                    vox.loadSoundMacro(macroId, macroStep, m_ticksPerSec,
+                    vox.loadSoundObject(macroId, macroStep, m_ticksPerSec,
                                        m_initKey, m_initVel, m_initMod);
             }
 
@@ -753,7 +753,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
             if (macroId == m_header.m_macroId)
                 m_pc.push_back({m_pc.back().first, macroStep});
             else
-                vox.loadSoundMacro(macroId, macroStep, m_ticksPerSec,
+                vox.loadSoundObject(macroId, macroStep, m_ticksPerSec,
                                    m_initKey, m_initVel, m_initMod, true);
 
             m_header = *reinterpret_cast<const Header*>(m_pc.back().first);
@@ -1226,7 +1226,7 @@ void SoundMacroState::keyoffNotify(Voice& vox)
         if (m_keyoffTrap.macroId == m_header.m_macroId)
             m_pc.back().second = m_keyoffTrap.macroStep;
         else
-            vox.loadSoundMacro(m_keyoffTrap.macroId, m_keyoffTrap.macroStep,
+            vox.loadSoundObject(m_keyoffTrap.macroId, m_keyoffTrap.macroStep,
                                m_ticksPerSec, m_initKey, m_initVel, m_initMod);
     }
 }
@@ -1242,7 +1242,7 @@ void SoundMacroState::sampleEndNotify(Voice& vox)
         if (m_sampleEndTrap.macroId == m_header.m_macroId)
             m_pc.back().second = m_sampleEndTrap.macroStep;
         else
-            vox.loadSoundMacro(m_sampleEndTrap.macroId, m_sampleEndTrap.macroStep,
+            vox.loadSoundObject(m_sampleEndTrap.macroId, m_sampleEndTrap.macroStep,
                                m_ticksPerSec, m_initKey, m_initVel, m_initMod);
     }
 }
@@ -1256,7 +1256,7 @@ void SoundMacroState::messageNotify(Voice& vox, int32_t val)
         if (m_messageTrap.macroId == m_header.m_macroId)
             m_pc.back().second = m_messageTrap.macroStep;
         else
-            vox.loadSoundMacro(m_messageTrap.macroId, m_messageTrap.macroStep,
+            vox.loadSoundObject(m_messageTrap.macroId, m_messageTrap.macroStep,
                                m_ticksPerSec, m_initKey, m_initVel, m_initMod);
     }
 }

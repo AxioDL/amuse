@@ -65,6 +65,7 @@ public:
         x148_x1d0_time = clamp(0.01f, time, 10.f);
         m_dirty = true;
     }
+
     void setDamping(float damping)
     {
         x14c_x1d4_damping = clamp(0.f, damping, 1.f);
