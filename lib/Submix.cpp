@@ -27,10 +27,10 @@ EffectDelay& Submix::makeDelay(uint32_t initDelay, uint32_t initFeedback, uint32
     return makeEffect<EffectDelay>(initDelay, initFeedback, initOutput);
 }
 
-EffectReverb& Submix::makeReverbStd(float coloration, float mix, float time,
-                                    float damping, float preDelay)
+EffectReverbStd& Submix::makeReverbStd(float coloration, float mix, float time,
+                                       float damping, float preDelay)
 {
-    return makeEffect<EffectReverb>(coloration, mix, time, damping, preDelay);
+    return makeEffect<EffectReverbStd>(coloration, mix, time, damping, preDelay);
 }
 
 EffectReverbHi& Submix::makeReverbHi(float coloration, float mix, float time,

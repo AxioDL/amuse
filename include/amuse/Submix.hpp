@@ -80,8 +80,8 @@ public:
     EffectDelay& makeDelay(uint32_t initDelay, uint32_t initFeedback, uint32_t initOutput);
 
     /** Add new standard-quality reverb effect to effect stack and assume ownership */
-    EffectReverb& makeReverbStd(float coloration, float mix, float time,
-                                float damping, float preDelay);
+    EffectReverbStd& makeReverbStd(float coloration, float mix, float time,
+                                   float damping, float preDelay);
 
     /** Add new high-quality reverb effect to effect stack and assume ownership */
     EffectReverbHi& makeReverbHi(float coloration, float mix, float time,

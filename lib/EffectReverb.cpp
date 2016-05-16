@@ -53,7 +53,7 @@ void ReverbDelayLine::setdelay(int32_t delay)
         x4_outPoint += x8_length;
 }
 
-EffectReverb::EffectReverb(float coloration, float mix, float time,
+EffectReverbStd::EffectReverbStd(float coloration, float mix, float time,
                            float damping, float preDelay)
 : x140_x1c8_coloration(clamp(0.f, coloration, 1.f)),
   x144_x1cc_mix(clamp(0.f, mix, 1.f)),
@@ -64,14 +64,14 @@ EffectReverb::EffectReverb(float coloration, float mix, float time,
 
 EffectReverbHi::EffectReverbHi(float coloration, float mix, float time,
                                float damping, float preDelay, float crosstalk)
-: EffectReverb(coloration, mix, time, damping, preDelay),
+: EffectReverbStd(coloration, mix, time, damping, preDelay),
   x1dc_crosstalk(clamp(0.f, crosstalk, 1.0f))
 {}
 
 template <typename T>
 EffectReverbStdImp<T>::EffectReverbStdImp(float coloration, float mix, float time,
                                           float damping, float preDelay, double sampleRate)
-: EffectReverb(coloration, mix, time, damping, preDelay),
+: EffectReverbStd(coloration, mix, time, damping, preDelay),
   m_sampleRate(sampleRate)
 {}
 
@@ -87,7 +87,7 @@ void EffectReverbStdImp<T>::_update()
             size_t tapDelay = CTapDelays[t] * m_sampleRate / 32000.0;
             combLine.allocate(tapDelay);
             combLine.setdelay(tapDelay);
-            xf4_combCoef[c][t] = std::pow(10.f, tapDelay * -3 / timeSamples);
+            xf4_combCoef[c][t] = std::pow(10.f, tapDelay * -3.f / timeSamples);
         }
 
         for (int t=0 ; t<2 ; ++t)
@@ -153,9 +153,10 @@ void EffectReverbStdImp<T>::applyEffect(T* audio, size_t frameCount, const Chann
             ReverbDelayLine* linesC = x78_C[c];
             ReverbDelayLine* linesAP = x0_AP[c];
 
-            float sample = audio[c];
-            for (int s=1 ; s<160 && f<frameCount ; ++s, ++f)
+            for (int s=0 ; s<160 && f<frameCount ; ++s, ++f)
             {
+                float sample = audio[s * chanMap.m_channelCount + c];
+
                 /* Pre-delay stage */
                 float sample2 = sample;
                 if (x120_preDelayTime != 0)
@@ -224,8 +225,7 @@ void EffectReverbStdImp<T>::applyEffect(T* audio, size_t frameCount, const Chann
                     linesAP[1].x4_outPoint = 0;
 
                 /* Mix out */
-                audio[(s-1) * chanMap.m_channelCount + c] = ClampFull<T>(dampWet * allPass + dampDry * sample);
-                sample = audio[s * chanMap.m_channelCount + c];
+                audio[s * chanMap.m_channelCount + c] = ClampFull<T>(dampWet * allPass + dampDry * sample);
             }
             x130_preDelayPtr[c] = preDelayPtr;
         }

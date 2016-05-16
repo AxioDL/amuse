@@ -28,7 +28,7 @@ template <typename T>
 class EffectReverbHiImp;
 
 /** Reverb effect with configurable reflection filtering */
-class EffectReverb
+class EffectReverbStd
 {
 protected:
     float x140_x1c8_coloration; /**< [0.0, 1.0] influences filter coefficients to define surface characteristics of a room */
@@ -42,8 +42,8 @@ protected:
     friend class EffectReverbStdImp;
     template <typename T>
     friend class EffectReverbHiImp;
-    EffectReverb(float coloration, float mix, float time,
-                 float damping, float preDelay);
+    EffectReverbStd(float coloration, float mix, float time,
+                    float damping, float preDelay);
 public:
     template <typename T>
     using ImpType = EffectReverbStdImp<T>;
@@ -80,7 +80,7 @@ public:
 };
 
 /** Reverb effect with configurable reflection filtering, adds per-channel low-pass and crosstalk */
-class EffectReverbHi : public EffectReverb
+class EffectReverbHi : public EffectReverbStd
 {
     float x1dc_crosstalk; /**< [0.0, 1.0] factor defining how much reflections are allowed to bleed to other channels */
 
@@ -101,7 +101,7 @@ public:
 
 /** Standard-quality 2-stage reverb */
 template <typename T>
-class EffectReverbStdImp : public EffectBase<T>, public EffectReverb
+class EffectReverbStdImp : public EffectBase<T>, public EffectReverbStd
 {
     ReverbDelayLine x0_AP[8][2] = {}; /**< All-pass delay lines */
     ReverbDelayLine x78_C[8][2] = {}; /**< Comb delay lines */
