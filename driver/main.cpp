@@ -195,8 +195,8 @@ struct AppCallback : boo::IApplicationCallback
         if (m_seq)
             voxCount = m_seq->getVoiceCount();
         printf("\r                                                                                "
-               "\r  %" PRISize " Setup %d, Chan %d, VOL: %d%%\r", voxCount,
-               m_setupId, m_chanId, int(std::rint(m_volume * 100)));
+               "\r  %" PRISize " Setup %d, Chan %d, Octave: %d, Vel: %d, VOL: %d%%\r", voxCount,
+               m_setupId, m_chanId, m_octave, m_velocity, int(std::rint(m_volume * 100)));
         fflush(stdout);
     }
 
@@ -353,6 +353,32 @@ struct AppCallback : boo::IApplicationCallback
         }
     }
 
+    void charKeyDownRepeat(unsigned long charCode)
+    {
+        if (m_seq && m_chanId != -1)
+        {
+            switch (charCode)
+            {
+            case 'z':
+                m_octave = amuse::clamp(-1, m_octave - 1, 8);
+                m_updateDisp = true;
+                break;
+            case 'x':
+                m_octave = amuse::clamp(-1, m_octave + 1, 8);
+                m_updateDisp = true;
+                break;
+            case 'c':
+                m_velocity = amuse::clamp(0, m_velocity - 1, 127);
+                m_updateDisp = true;
+                break;
+            case 'v':
+                m_velocity = amuse::clamp(0, m_velocity + 1, 127);
+                m_updateDisp = true;
+                break;
+            }
+        }
+    }
+
     void charKeyDown(unsigned long charCode)
     {
         charCode = tolower(charCode);
@@ -381,15 +407,19 @@ struct AppCallback : boo::IApplicationCallback
             {
             case 'z':
                 m_octave = amuse::clamp(-1, m_octave - 1, 8);
+                m_updateDisp = true;
                 break;
             case 'x':
                 m_octave = amuse::clamp(-1, m_octave + 1, 8);
+                m_updateDisp = true;
                 break;
             case 'c':
                 m_velocity = amuse::clamp(0, m_velocity - 1, 127);
+                m_updateDisp = true;
                 break;
             case 'v':
                 m_velocity = amuse::clamp(0, m_velocity + 1, 127);
+                m_updateDisp = true;
                 break;
             case '\t':
                 m_seq->setCtrlValue(m_chanId, 64, 127);
@@ -637,8 +667,9 @@ struct AppCallback : boo::IApplicationCallback
 void EventCallback::charKeyDown(unsigned long charCode, boo::EModifierKey mods, bool isRepeat)
 {
     if (isRepeat)
-        return;
-    m_app.charKeyDown(charCode);
+        m_app.charKeyDownRepeat(charCode);
+    else
+        m_app.charKeyDown(charCode);
 }
 
 void EventCallback::charKeyUp(unsigned long charCode, boo::EModifierKey mods)
@@ -661,6 +692,8 @@ void EventCallback::specialKeyDown(boo::ESpecialKey key, boo::EModifierKey mods,
             m_app.m_volume = amuse::clamp(0.f, m_app.m_volume + 0.05f, 1.f);
         if (m_app.m_vox)
             m_app.m_vox->setVolume(m_app.m_volume);
+        if (m_app.m_seq)
+            m_app.m_seq->setVolume(m_app.m_volume);
         m_app.m_updateDisp = true;
         break;
     case boo::ESpecialKey::Down:
@@ -668,6 +701,8 @@ void EventCallback::specialKeyDown(boo::ESpecialKey key, boo::EModifierKey mods,
             m_app.m_volume = amuse::clamp(0.f, m_app.m_volume - 0.05f, 1.f);
         if (m_app.m_vox)
             m_app.m_vox->setVolume(m_app.m_volume);
+        if (m_app.m_seq)
+            m_app.m_seq->setVolume(m_app.m_volume);
         m_app.m_updateDisp = true;
         break;
     default: break;

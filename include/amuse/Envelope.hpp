@@ -23,7 +23,7 @@ private:
     const ADSR* m_curADSR = nullptr; /**< Current timing envelope */
     double m_sustainFactor; /**< Evaluated sustain percentage as a double */
     double m_releaseStartFactor; /**< Level at whenever release event occurs */
-    unsigned m_curMs; /**< Current time of envelope stage */
+    double m_curMs; /**< Current time of envelope stage */
 public:
     void reset(const ADSR* adsr);
     void keyOff();

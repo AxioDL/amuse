@@ -4,6 +4,7 @@
 #include "Entity.hpp"
 #include "AudioGroupProject.hpp"
 #include <unordered_map>
+#include <unordered_set>
 #include <memory>
 #include <list>
 
@@ -33,6 +34,8 @@ class Sequencer : public Entity
     SequencerState m_state = SequencerState::Interactive; /**< Current high-level state of sequencer */
     bool m_dieOnEnd = false; /**< Sequencer will be killed when current arrangement completes */
 
+    float m_curVol = 1.f; /**< Current volume of sequencer */
+
     /** State of a single MIDI channel */
     struct ChannelState
     {
@@ -45,13 +48,16 @@ class Sequencer : public Entity
 
         /** Voices corresponding to currently-pressed keys in channel */
         std::unordered_map<uint8_t, std::shared_ptr<Voice>> m_chanVoxs;
+        std::unordered_set<std::shared_ptr<Voice>> m_keyoffVoxs;
         int8_t m_ctrlVals[128]; /**< MIDI controller values */
 
         void _bringOutYourDead();
+        size_t getVoiceCount() const;
         std::shared_ptr<Voice> keyOn(uint8_t note, uint8_t velocity);
         void keyOff(uint8_t note, uint8_t velocity);
         void setCtrlValue(uint8_t ctrl, int8_t val);
         void setPitchWheel(float pitchWheel);
+        void setVolume(float vol);
         void allOff();
         void killKeygroup(uint8_t kg, bool now);
         std::shared_ptr<Voice> findVoice(int vid);
@@ -104,6 +110,9 @@ public:
 
     /** Play MIDI arrangement */
     void playSong(const unsigned char* arrData, bool dieOnEnd=true);
+
+    /** Set total volume of sequencer */
+    void setVolume(float vol);
 
     /** Manually kill sequencer for deferred release from engine */
     void kill() {m_state = SequencerState::Dead;}

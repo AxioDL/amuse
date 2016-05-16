@@ -7,15 +7,18 @@ void Envelope::reset(const ADSR* adsr)
 {
     m_phase = State::Attack;
     m_curADSR = adsr;
-    m_curMs = 0;
-    m_sustainFactor = (adsr->sustainCoarse * 6.25 + adsr->sustainFine * 0.0244) / 100.0;
+    m_curMs = 0.0;
+    if (m_curADSR->decayCoarse == 128)
+        m_sustainFactor = 1.f;
+    else
+        m_sustainFactor = (adsr->sustainCoarse * 6.25 + adsr->sustainFine * 0.0244) / 100.0;
     m_releaseStartFactor = 0.0;
 }
 
 void Envelope::keyOff()
 {
     m_phase = State::Release;
-    m_curMs = 0;
+    m_curMs = 0.0;
 }
 
 float Envelope::nextSample(double sampleRate)
@@ -36,15 +39,23 @@ float Envelope::nextSample(double sampleRate)
         uint16_t attack = m_curADSR->attackCoarse * 255 + m_curADSR->attackFine;
         if (attack == 0)
         {
-            m_phase = State::Decay;
-            m_curMs = 0;
+            if (m_curADSR->decayCoarse == 128)
+                m_phase = State::Sustain;
+            else
+                m_phase = State::Decay;
+            m_curMs = 0.0;
+            m_releaseStartFactor = 1.f;
             return 1.f;
         }
         double attackFac = m_curMs / double(attack);
         if (attackFac >= 1.0)
         {
-            m_phase = State::Decay;
-            m_curMs = 0;
+            if (m_curADSR->decayCoarse == 128)
+                m_phase = State::Sustain;
+            else
+                m_phase = State::Decay;
+            m_curMs = 0.0;
+            m_releaseStartFactor = 1.f;
             return 1.f;
         }
         m_releaseStartFactor = attackFac;
@@ -56,7 +67,7 @@ float Envelope::nextSample(double sampleRate)
         if (decay == 0)
         {
             m_phase = State::Sustain;
-            m_curMs = 0;
+            m_curMs = 0.0;
             m_releaseStartFactor = m_sustainFactor;
             return m_sustainFactor;
         }
@@ -64,7 +75,7 @@ float Envelope::nextSample(double sampleRate)
         if (decayFac >= 1.0)
         {
             m_phase = State::Sustain;
-            m_curMs = 0;
+            m_curMs = 0.0;
             m_releaseStartFactor = m_sustainFactor;
             return m_sustainFactor;
         }

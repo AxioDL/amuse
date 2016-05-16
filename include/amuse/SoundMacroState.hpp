@@ -123,7 +123,7 @@ class SoundMacroState
     uint8_t m_initKey; /**< Key played for this macro invocation */
     uint8_t m_curVel; /**< Current velocity played for this macro invocation */
     uint8_t m_curMod; /**< Current modulation played for this macro invocation */
-    uint32_t m_curKey; /**< Current key played for this macro invocation (in cents) */
+    uint32_t m_curPitch; /**< Current key played for this macro invocation (in cents) */
 
     double m_execTime; /**< time in seconds of SoundMacro execution (per-update resolution) */
     bool m_keyoff; /**< keyoff message has been received */
@@ -205,18 +205,12 @@ class SoundMacroState
 
     int32_t m_variables[256]; /**< 32-bit variables set with relevant commands */
 
-    /** Messages pending processing for this SoundMacro voice */
-    std::list<int32_t> m_messageQueue;
-
     /** Event registration data for TRAP_EVENT */
     struct EventTrap
     {
         ObjectId macroId = 0xffff;
         uint16_t macroStep;
     };
-    EventTrap m_keyoffTrap;
-    EventTrap m_sampleEndTrap;
-    EventTrap m_messageTrap;
 
 public:
     /** initialize state for SoundMacro data at `ptr` */
@@ -234,9 +228,6 @@ public:
 
     /** sample end event */
     void sampleEndNotify(Voice& vox);
-
-    /** SEND_MESSAGE receive event */
-    void messageNotify(Voice& vox, int32_t val);
 };
 
 }

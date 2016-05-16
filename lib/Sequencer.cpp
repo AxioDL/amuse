@@ -19,6 +19,18 @@ void Sequencer::ChannelState::_bringOutYourDead()
         }
         ++it;
     }
+
+    for (auto it = m_keyoffVoxs.begin() ; it != m_keyoffVoxs.end() ;)
+    {
+        Voice* vox = it->get();
+        vox->_bringOutYourDead();
+        if (vox->_isRecursivelyDead())
+        {
+            it = m_keyoffVoxs.erase(it);
+            continue;
+        }
+        ++it;
+    }
 }
 
 void Sequencer::_bringOutYourDead()
@@ -35,10 +47,6 @@ void Sequencer::_destroy()
     Entity::_destroy();
     if (m_submix)
         m_submix->m_activeSequencers.erase(this);
-
-    for (const auto& chan : m_chanStates)
-        for (const auto& vox : chan.second->m_chanVoxs)
-            vox.second->_destroy();
 }
 
 Sequencer::~Sequencer() {}
@@ -83,12 +91,21 @@ Sequencer::ChannelState::ChannelState(Sequencer& parent, uint8_t chanId)
         m_submix->makeChorus(15, m_setup.chorus * 5 / 127, 5000);
 }
 
+size_t Sequencer::ChannelState::getVoiceCount() const
+{
+    size_t ret = 0;
+    for (const auto& vox : m_chanVoxs)
+        ret += vox.second->getTotalVoices();
+    for (const auto& vox : m_keyoffVoxs)
+        ret += vox->getTotalVoices();
+    return ret;
+}
+
 size_t Sequencer::getVoiceCount() const
 {
     size_t ret = 0;
     for (const auto& chan : m_chanStates)
-        for (const auto& vox : chan.second->m_chanVoxs)
-            ret += vox.second->getTotalVoices();
+        ret += chan.second->getVoiceCount();
     return ret;
 }
 
@@ -107,7 +124,7 @@ std::shared_ptr<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velo
         m_parent.m_engine._destroyVoice(ret.get());
         return {};
     }
-    ret->setVolume(m_setup.volume / 127.f);
+    ret->setVolume(m_parent.m_curVol * m_setup.volume / 127.f);
     ret->setPan(m_setup.panning / 64.f - 127.f);
     return ret;
 }
@@ -131,6 +148,7 @@ void Sequencer::ChannelState::keyOff(uint8_t note, uint8_t velocity)
         return;
 
     keySearch->second->keyOff();
+    m_keyoffVoxs.emplace(std::move(keySearch->second));
     m_chanVoxs.erase(keySearch);
 }
 
@@ -161,6 +179,8 @@ void Sequencer::ChannelState::setPitchWheel(float pitchWheel)
 {
     for (const auto& vox : m_chanVoxs)
         vox.second->setPitchWheel(pitchWheel);
+    for (const auto& vox : m_keyoffVoxs)
+        vox->setPitchWheel(pitchWheel);
 }
 
 void Sequencer::setPitchWheel(uint8_t chan, float pitchWheel)
@@ -209,6 +229,20 @@ void Sequencer::ChannelState::killKeygroup(uint8_t kg, bool now)
         }
         ++it;
     }
+
+    if (now)
+    {
+        for (auto it = m_keyoffVoxs.begin() ; it != m_keyoffVoxs.end() ;)
+        {
+            Voice* vox = it->get();
+            if (vox->m_keygroup == kg)
+            {
+                it = m_keyoffVoxs.erase(it);
+                continue;
+            }
+            ++it;
+        }
+    }
 }
 
 void Sequencer::killKeygroup(uint8_t kg, bool now)
@@ -222,6 +256,9 @@ std::shared_ptr<Voice> Sequencer::ChannelState::findVoice(int vid)
     for (const auto& vox : m_chanVoxs)
         if (vox.second->vid() == vid)
             return vox.second;
+    for (const auto& vox : m_keyoffVoxs)
+        if (vox->vid() == vid)
+            return vox;
     return {};
 }
 
@@ -244,6 +281,12 @@ void Sequencer::ChannelState::sendMacroMessage(ObjectId macroId, int32_t val)
         if (vox->getObjectId() == macroId)
             vox->message(val);
     }
+    for (const auto& v : m_keyoffVoxs)
+    {
+        Voice* vox = v.get();
+        if (vox->getObjectId() == macroId)
+            vox->message(val);
+    }
 }
 
 void Sequencer::sendMacroMessage(ObjectId macroId, int32_t val)
@@ -257,6 +300,28 @@ void Sequencer::playSong(const unsigned char* arrData, bool dieOnEnd)
     m_arrData = arrData;
     m_dieOnEnd = dieOnEnd;
     m_state = SequencerState::Playing;
+}
+
+void Sequencer::ChannelState::setVolume(float vol)
+{
+    vol = vol * m_setup.volume / 127.f;
+    for (const auto& v : m_chanVoxs)
+    {
+        Voice* vox = v.second.get();
+        vox->setVolume(vol);
+    }
+    for (const auto& v : m_keyoffVoxs)
+    {
+        Voice* vox = v.get();
+        vox->setVolume(vol);
+    }
+}
+
+void Sequencer::setVolume(float vol)
+{
+    m_curVol = vol;
+    for (auto& chan : m_chanStates)
+        chan.second->setVolume(vol);
 }
 
 }

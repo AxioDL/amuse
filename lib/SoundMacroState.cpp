@@ -123,11 +123,12 @@ void SoundMacroState::initialize(const unsigned char* ptr, int step, double tick
     m_initKey = midiKey;
     m_initVel = midiVel;
     m_initMod = midiMod;
-    m_curVel = 0;
-    m_curMod = 0;
-    m_curKey = 0;
+    m_curVel = midiVel;
+    m_curMod = midiMod;
+    m_curPitch = midiKey * 100;
     m_pc.clear();
     m_pc.push_back({ptr, step});
+    m_inWait = false;
     m_execTime = 0.f;
     m_keyoff = false;
     m_sampleEnd = false;
@@ -135,9 +136,6 @@ void SoundMacroState::initialize(const unsigned char* ptr, int step, double tick
     m_lastPlayMacroVid = -1;
     m_useAdsrControllers = false;
     m_portamentoMode = 0;
-    m_keyoffTrap.macroId = 0xffff;
-    m_sampleEndTrap.macroId = 0xffff;
-    m_messageTrap.macroId = 0xffff;
     m_header = *reinterpret_cast<const Header*>(ptr);
     m_header.swapBig();
 }
@@ -154,7 +152,11 @@ bool SoundMacroState::advance(Voice& vox, double dt)
         /* Advance wait timer if active, returning if waiting */
         if (m_inWait)
         {
-            if (!m_indefiniteWait)
+            if (m_keyoffWait && m_keyoff)
+                m_inWait = false;
+            else if (m_sampleEndWait && m_sampleEnd)
+                m_inWait = false;
+            else if (!m_indefiniteWait)
             {
                 m_waitCountdown -= dt;
                 if (m_waitCountdown < 0.f)
@@ -178,7 +180,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
         {
         case Op::End:
         case Op::Stop:
-            m_pc.clear();
+            m_pc.back().second = -1;
             return true;
         case Op::SplitKey:
         {
@@ -193,7 +195,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
                     m_pc.back().second = macroStep;
                 else
                     vox.loadSoundObject(macroId, macroStep, m_ticksPerSec,
-                                       m_initKey, m_initVel, m_initMod);
+                                        m_initKey, m_initVel, m_initMod);
             }
 
             break;
@@ -480,6 +482,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
             }
 
             vox.startSample(smpId, offset);
+            vox.setPitchKey(m_curPitch);
             break;
         }
         case Op::StopSample:
@@ -489,7 +492,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
         }
         case Op::KeyOff:
         {
-            vox.keyOff();
+            vox._macroKeyOff();
             break;
         }
         case Op::SplitRnd:
@@ -568,11 +571,11 @@ bool SoundMacroState::advance(Voice& vox, double dt)
             noteLo *= 100;
             noteHi *= 100;
 
-            m_curKey = vox.getEngine().nextRandom() % ((noteHi - noteLo) + noteLo);
+            m_curPitch = vox.getEngine().nextRandom() % ((noteHi - noteLo) + noteLo);
             if (!free)
-                m_curKey = m_curKey / 100 * 100 + detune;
+                m_curPitch = m_curPitch / 100 * 100 + detune;
 
-            vox.setPitchKey(m_curKey);
+            vox.setPitchKey(m_curPitch);
             break;
         }
         case Op::AddNote:
@@ -583,7 +586,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
             int8_t ms = cmd.m_data[4];
             int16_t timeMs = *reinterpret_cast<int16_t*>(&cmd.m_data[5]);
 
-            m_curKey = (orgKey ? m_initKey : m_curKey) + add * 100 + detune;
+            m_curPitch = (orgKey ? (m_initKey * 100) : m_curPitch) + add * 100 + detune;
 
             /* Set wait state */
             if (timeMs)
@@ -594,7 +597,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
                 m_inWait = true;
             }
 
-            vox.setPitchKey(m_curKey);
+            vox.setPitchKey(m_curPitch);
             break;
         }
         case Op::SetNote:
@@ -604,7 +607,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
             int8_t ms = cmd.m_data[4];
             int16_t timeMs = *reinterpret_cast<int16_t*>(&cmd.m_data[5]);
 
-            m_curKey = key * 100 + detune;
+            m_curPitch = key * 100 + detune;
 
             /* Set wait state */
             if (timeMs)
@@ -615,7 +618,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
                 m_inWait = true;
             }
 
-            vox.setPitchKey(m_curKey);
+            vox.setPitchKey(m_curPitch);
             break;
         }
         case Op::LastNote:
@@ -625,7 +628,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
             int8_t ms = cmd.m_data[4];
             int16_t timeMs = *reinterpret_cast<int16_t*>(&cmd.m_data[5]);
 
-            m_curKey = (add + vox.getLastNote()) * 100 + detune;
+            m_curPitch = (add + vox.getLastNote()) * 100 + detune;
 
             /* Set wait state */
             if (timeMs)
@@ -636,7 +639,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
                 m_inWait = true;
             }
 
-            vox.setPitchKey(m_curKey);
+            vox.setPitchKey(m_curPitch);
             break;
         }
         case Op::Portamento:
@@ -774,16 +777,16 @@ bool SoundMacroState::advance(Voice& vox, double dt)
             switch (event)
             {
             case 0:
-                m_keyoffTrap.macroId = macroId;
-                m_keyoffTrap.macroStep = macroStep;
+                vox.m_keyoffTrap.macroId = macroId;
+                vox.m_keyoffTrap.macroStep = macroStep;
                 break;
             case 1:
-                m_sampleEndTrap.macroId = macroId;
-                m_sampleEndTrap.macroStep = macroStep;
+                vox.m_sampleEndTrap.macroId = macroId;
+                vox.m_sampleEndTrap.macroStep = macroStep;
                 break;
             case 2:
-                m_messageTrap.macroId = macroId;
-                m_messageTrap.macroStep = macroStep;
+                vox.m_messageTrap.macroId = macroId;
+                vox.m_messageTrap.macroStep = macroStep;
                 break;
             default: break;
             }
@@ -797,16 +800,16 @@ bool SoundMacroState::advance(Voice& vox, double dt)
             switch (event)
             {
             case 0:
-                m_keyoffTrap.macroId = 0xffff;
-                m_keyoffTrap.macroStep = -1;
+                vox.m_keyoffTrap.macroId = 0xffff;
+                vox.m_keyoffTrap.macroStep = -1;
                 break;
             case 1:
-                m_sampleEndTrap.macroId = 0xffff;
-                m_sampleEndTrap.macroStep = -1;
+                vox.m_sampleEndTrap.macroId = 0xffff;
+                vox.m_sampleEndTrap.macroStep = -1;
                 break;
             case 2:
-                m_messageTrap.macroId = 0xffff;
-                m_messageTrap.macroStep = -1;
+                vox.m_messageTrap.macroId = 0xffff;
+                vox.m_messageTrap.macroStep = -1;
                 break;
             default: break;
             }
@@ -834,10 +837,10 @@ bool SoundMacroState::advance(Voice& vox, double dt)
         case Op::GetMessage:
         {
             uint8_t vid = cmd.m_data[0];
-            if (m_messageQueue.size())
+            if (vox.m_messageQueue.size())
             {
-                m_variables[vid] = m_messageQueue.front();
-                m_messageQueue.pop_front();
+                m_variables[vid] = vox.m_messageQueue.front();
+                vox.m_messageQueue.pop_front();
             }
             else
                 m_variables[vid] = 0;
@@ -1221,47 +1224,11 @@ bool SoundMacroState::advance(Voice& vox, double dt)
 void SoundMacroState::keyoffNotify(Voice& vox)
 {
     m_keyoff = true;
-    if (m_inWait && m_keyoffWait)
-        m_inWait = false;
-
-    if (m_keyoffTrap.macroId != 0xffff)
-    {
-        if (m_keyoffTrap.macroId == m_header.m_macroId)
-            m_pc.back().second = m_keyoffTrap.macroStep;
-        else
-            vox.loadSoundObject(m_keyoffTrap.macroId, m_keyoffTrap.macroStep,
-                               m_ticksPerSec, m_initKey, m_initVel, m_initMod);
-    }
 }
 
 void SoundMacroState::sampleEndNotify(Voice& vox)
 {
     m_sampleEnd = true;
-    if (m_inWait && m_sampleEndWait)
-        m_inWait = false;
-
-    if (m_sampleEndTrap.macroId != 0xffff)
-    {
-        if (m_sampleEndTrap.macroId == m_header.m_macroId)
-            m_pc.back().second = m_sampleEndTrap.macroStep;
-        else
-            vox.loadSoundObject(m_sampleEndTrap.macroId, m_sampleEndTrap.macroStep,
-                               m_ticksPerSec, m_initKey, m_initVel, m_initMod);
-    }
-}
-
-void SoundMacroState::messageNotify(Voice& vox, int32_t val)
-{
-    m_messageQueue.push_back(val);
-
-    if (m_messageTrap.macroId != 0xffff)
-    {
-        if (m_messageTrap.macroId == m_header.m_macroId)
-            m_pc.back().second = m_messageTrap.macroStep;
-        else
-            vox.loadSoundObject(m_messageTrap.macroId, m_messageTrap.macroStep,
-                               m_ticksPerSec, m_initKey, m_initVel, m_initMod);
-    }
 }
 
 }

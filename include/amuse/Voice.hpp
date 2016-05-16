@@ -39,6 +39,10 @@ class Voice : public Entity
 
     std::unique_ptr<IBackendVoice> m_backendVoice; /**< Handle to client-implemented backend voice */
     SoundMacroState m_state; /**< State container for SoundMacro playback */
+    SoundMacroState::EventTrap m_keyoffTrap; /**< Trap for keyoff (SoundMacro overrides default envelope behavior) */
+    SoundMacroState::EventTrap m_sampleEndTrap; /**< Trap for sampleend (SoundMacro overrides voice removal) */
+    SoundMacroState::EventTrap m_messageTrap; /**< Trap for messages sent from other SoundMacros */
+    std::list<int32_t> m_messageQueue; /**< Messages pending processing for SoundMacros in this voice */
     std::list<std::shared_ptr<Voice>> m_childVoices; /**< Child voices for PLAYMACRO usage */
     uint8_t m_keygroup = 0; /**< Keygroup voice is a member of */
 
@@ -118,6 +122,8 @@ class Voice : public Entity
     void _reset();
     bool _checkSamplePos();
     void _doKeyOff();
+    void _macroKeyOff();
+    void _macroSampleEnd();
     bool _advanceSample(int16_t& samp);
     void _setTotalPitch(int32_t cents);
     bool _isRecursivelyDead();
