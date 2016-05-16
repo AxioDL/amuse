@@ -69,9 +69,9 @@ Sequencer::ChannelState::~ChannelState()
 }
 
 Sequencer::ChannelState::ChannelState(Sequencer& parent, uint8_t chanId)
-: m_parent(parent), m_setup(m_parent.m_midiSetup[chanId])
+: m_parent(parent), m_chanId(chanId), m_setup(m_parent.m_midiSetup[chanId])
 {
-    if (chanId == 10)
+    if (chanId == 9)
     {
         auto it = m_parent.m_songGroup.m_drumPages.find(m_setup.programNo);
         if (it != m_parent.m_songGroup.m_drumPages.cend())
@@ -126,6 +126,11 @@ std::shared_ptr<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velo
     }
     ret->setVolume(m_parent.m_curVol * m_setup.volume / 127.f);
     ret->setPan(m_setup.panning / 64.f - 127.f);
+    ret->setPitchWheel(m_curPitchWheel);
+
+    if (m_ctrlVals[64] > 64)
+        ret->setPedal(true);
+
     return ret;
 }
 
@@ -164,6 +169,51 @@ void Sequencer::keyOff(uint8_t chan, uint8_t note, uint8_t velocity)
 void Sequencer::ChannelState::setCtrlValue(uint8_t ctrl, int8_t val)
 {
     m_ctrlVals[ctrl] = val;
+    for (const auto& vox : m_chanVoxs)
+        vox.second->notifyCtrlChange(ctrl, val);
+    for (const auto& vox : m_keyoffVoxs)
+        vox->notifyCtrlChange(ctrl, val);
+}
+
+bool Sequencer::ChannelState::programChange(int8_t prog)
+{
+    if (m_chanId == 9)
+    {
+        auto it = m_parent.m_songGroup.m_drumPages.find(prog);
+        if (it != m_parent.m_songGroup.m_drumPages.cend())
+        {
+            m_page = it->second;
+            m_curProgram = prog;
+            return true;
+        }
+    }
+    else
+    {
+        auto it = m_parent.m_songGroup.m_normPages.find(prog);
+        if (it != m_parent.m_songGroup.m_normPages.cend())
+        {
+            m_page = it->second;
+            m_curProgram = prog;
+            return true;
+        }
+    }
+    return false;
+}
+
+void Sequencer::ChannelState::nextProgram()
+{
+    int newProg = m_curProgram;
+    while ((newProg += 1) <= 127)
+        if (programChange(newProg))
+            break;
+}
+
+void Sequencer::ChannelState::prevProgram()
+{
+    int newProg = m_curProgram;
+    while ((newProg -= 1) >= 0)
+        if (programChange(newProg))
+            break;
 }
 
 void Sequencer::setCtrlValue(uint8_t chan, uint8_t ctrl, int8_t val)
@@ -177,6 +227,7 @@ void Sequencer::setCtrlValue(uint8_t chan, uint8_t ctrl, int8_t val)
 
 void Sequencer::ChannelState::setPitchWheel(float pitchWheel)
 {
+    m_curPitchWheel = pitchWheel;
     for (const auto& vox : m_chanVoxs)
         vox.second->setPitchWheel(pitchWheel);
     for (const auto& vox : m_keyoffVoxs)
@@ -207,7 +258,14 @@ void Sequencer::allOff(bool now)
 {
     if (now)
         for (auto& chan : m_chanStates)
+        {
+            for (const auto& vox : chan.second->m_chanVoxs)
+                m_engine._destroyVoice(vox.second.get());
+            for (const auto& vox : chan.second->m_keyoffVoxs)
+                m_engine._destroyVoice(vox.get());
             chan.second->m_chanVoxs.clear();
+            chan.second->m_keyoffVoxs.clear();
+        }
     else
         for (auto& chan : m_chanStates)
             chan.second->allOff();
@@ -322,6 +380,42 @@ void Sequencer::setVolume(float vol)
     m_curVol = vol;
     for (auto& chan : m_chanStates)
         chan.second->setVolume(vol);
+}
+
+int8_t Sequencer::getChanProgram(int8_t chanId) const
+{
+    auto chanSearch = m_chanStates.find(chanId);
+    if (chanSearch == m_chanStates.cend())
+        return 0;
+
+    return chanSearch->second->m_curProgram;
+}
+
+bool Sequencer::setChanProgram(int8_t chanId, int8_t prog)
+{
+    auto chanSearch = m_chanStates.find(chanId);
+    if (chanSearch == m_chanStates.cend())
+        return false;
+
+    return chanSearch->second->programChange(prog);
+}
+
+void Sequencer::nextChanProgram(int8_t chanId)
+{
+    auto chanSearch = m_chanStates.find(chanId);
+    if (chanSearch == m_chanStates.cend())
+        return;
+
+    return chanSearch->second->nextProgram();
+}
+
+void Sequencer::prevChanProgram(int8_t chanId)
+{
+    auto chanSearch = m_chanStates.find(chanId);
+    if (chanSearch == m_chanStates.cend())
+        return;
+
+    return chanSearch->second->prevProgram();
 }
 
 }

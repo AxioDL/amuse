@@ -67,6 +67,7 @@ class Voice : public Entity
     bool m_sustainKeyOff = false; /**< Keyoff event occured while sustained */
     uint8_t m_curAftertouch = 0; /**< Aftertouch value (key pressure when 'bottoming out') */
 
+    float m_userVol = 1.f; /**< User volume of voice */
     float m_curVol; /**< Current volume of voice */
     float m_curReverbVol; /**< Current reverb volume of voice */
     float m_curPan; /**< Current pan of voice */
@@ -124,7 +125,7 @@ class Voice : public Entity
     void _doKeyOff();
     void _macroKeyOff();
     void _macroSampleEnd();
-    bool _advanceSample(int16_t& samp);
+    bool _advanceSample(int16_t& samp, int32_t& curPitch);
     void _setTotalPitch(int32_t cents);
     bool _isRecursivelyDead();
     void _bringOutYourDead();
@@ -238,7 +239,7 @@ public:
     void setReverbVol(float rvol);
 
     /** Set envelope for voice */
-    void setAdsr(ObjectId adsrId);
+    void setAdsr(ObjectId adsrId, bool dls);
 
     /** Set pitch in absolute hertz */
     void setPitchFrequency(uint32_t hz, uint16_t fine);
@@ -260,6 +261,8 @@ public:
 
     /** Get note played on voice */
     uint8_t getLastNote() const {return m_state.m_initKey;}
+
+    void notifyCtrlChange(uint8_t ctrl, int8_t val);
 
     /** Get MIDI Controller value on voice */
     int8_t getCtrlValue(uint8_t ctrl) const
@@ -283,6 +286,7 @@ public:
         }
         else
             m_extCtrlVals[ctrl] = val;
+        notifyCtrlChange(ctrl, val);
     }
 
     /** Get ModWheel value on voice */

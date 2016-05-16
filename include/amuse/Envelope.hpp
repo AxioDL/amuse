@@ -20,12 +20,15 @@ public:
     };
 private:
     State m_phase = State::Attack; /**< Current envelope state */
-    const ADSR* m_curADSR = nullptr; /**< Current timing envelope */
-    double m_sustainFactor; /**< Evaluated sustain percentage as a double */
+    double m_attackTime = 0.0; /**< Time of attack in seconds */
+    double m_decayTime = 0.0; /**< Time of decay in seconds */
+    double m_sustainFactor = 1.0; /**< Evaluated sustain percentage */
+    double m_releaseTime = 0.0; /**< Time of release in seconds */
     double m_releaseStartFactor; /**< Level at whenever release event occurs */
-    double m_curMs; /**< Current time of envelope stage */
+    double m_curTime; /**< Current time of envelope stage in seconds */
 public:
     void reset(const ADSR* adsr);
+    void reset(const ADSRDLS* adsr, int8_t note, int8_t vel);
     void keyOff();
     float nextSample(double sampleRate);
     bool isComplete() const {return m_phase == State::Complete;}

@@ -24,13 +24,13 @@ void Voice::_destroy()
 
 Voice::~Voice()
 {
-    fprintf(stderr, "DEALLOC %p\n", this);
+    //fprintf(stderr, "DEALLOC %d\n", m_vid);
 }
 
 Voice::Voice(Engine& engine, const AudioGroup& group, int groupId, int vid, bool emitter, Submix* smx)
 : Entity(engine, group, groupId), m_vid(vid), m_emitter(emitter), m_submix(smx)
 {
-    fprintf(stderr, "ALLOC %p\n", this);
+    //fprintf(stderr, "ALLOC %d\n", m_vid);
     if (m_submix)
         m_submix->m_activeVoices.insert(this);
 }
@@ -38,7 +38,7 @@ Voice::Voice(Engine& engine, const AudioGroup& group, int groupId, int vid, bool
 Voice::Voice(Engine& engine, const AudioGroup& group, int groupId, ObjectId oid, int vid, bool emitter, Submix* smx)
 : Entity(engine, group, groupId, oid), m_vid(vid), m_emitter(emitter), m_submix(smx)
 {
-    fprintf(stderr, "ALLOC %p\n", this);
+    //fprintf(stderr, "ALLOC %d\n", m_vid);
     if (m_submix)
         m_submix->m_activeVoices.insert(this);
 }
@@ -49,7 +49,6 @@ void Voice::_reset()
     m_curReverbVol = 0.f;
     m_curPan = 0.f;
     m_curSpan = 0.f;
-    m_curPitchWheel = 0.f;
     m_curAftertouch = 0;
     m_pitchWheelUp = 6;
     m_pitchWheelDown = 6;
@@ -67,7 +66,6 @@ void Voice::_reset()
     m_tremoloModScale = 0.f;
     m_lfoPeriods[0] = 0.f;
     m_lfoPeriods[1] = 0.f;
-    memset(m_extCtrlVals, 0, 128);
 }
 
 void Voice::_macroSampleEnd()
@@ -90,6 +88,9 @@ void Voice::_macroSampleEnd()
 
 bool Voice::_checkSamplePos()
 {
+    if (!m_curSample)
+        return true;
+
     if (m_curSamplePos >= m_lastSamplePos)
     {
         if (m_curSample->first.m_loopLengthSamples)
@@ -128,7 +129,7 @@ void Voice::_doKeyOff()
 
 void Voice::_setTotalPitch(int32_t cents)
 {
-    fprintf(stderr, "PITCH %d\n", cents);
+    //fprintf(stderr, "PITCH %d\n", cents);
     int32_t interval = cents - m_curSample->first.m_pitch * 100;
     double ratio = std::exp2(interval / 1200.0);
     m_sampleRate = m_curSample->first.m_sampleRate * ratio;
@@ -200,7 +201,7 @@ std::list<std::shared_ptr<Voice>>::iterator Voice::_destroyVoice(Voice* voice)
     return m_childVoices.erase(voice->m_engineIt);
 }
 
-bool Voice::_advanceSample(int16_t& samp)
+bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
 {
     double dt = 1.0 / m_sampleRate;
     m_voiceTime += dt;
@@ -223,7 +224,7 @@ bool Voice::_advanceSample(int16_t& samp)
     }
 
     /* Factor in ADSR envelope state */
-    float totalVol = m_curVol * m_volAdsr.nextSample(m_sampleRate);
+    float totalVol = m_userVol * m_curVol * m_volAdsr.nextSample(m_sampleRate) /* (m_state.m_curVel / 127.f)*/;
 
     /* Apply tremolo */
     if (m_state.m_tremoloSel && (m_tremoloScale || m_tremoloModScale))
@@ -283,13 +284,13 @@ bool Voice::_advanceSample(int16_t& samp)
     }
 
     /* Calculate total pitch */
-    int32_t totalPitch = m_curPitch;
-    bool pitchDirty = m_pitchDirty;
+    newPitch = m_curPitch;
+    refresh |= m_pitchDirty;
     m_pitchDirty = false;
     if (m_pitchEnv)
     {
-        totalPitch = m_curPitch * m_pitchAdsr.nextSample(m_sampleRate);
-        pitchDirty = true;
+        newPitch = m_curPitch * m_pitchAdsr.nextSample(m_sampleRate);
+        refresh = true;
     }
 
     /* Process pitch sweep 1 */
@@ -297,7 +298,7 @@ bool Voice::_advanceSample(int16_t& samp)
     {
         m_pitchSweep1 += m_pitchSweep1Add;
         --m_pitchSweep1Times;
-        pitchDirty = true;
+        refresh = true;
     }
 
     /* Process pitch sweep 2 */
@@ -305,13 +306,6 @@ bool Voice::_advanceSample(int16_t& samp)
     {
         m_pitchSweep2 += m_pitchSweep2Add;
         --m_pitchSweep2Times;
-        pitchDirty = true;
-    }
-
-    /* Apply total pitch */
-    if (pitchDirty)
-    {
-        _setTotalPitch(totalPitch + m_pitchSweep1 + m_pitchSweep2 + m_pitchWheelVal);
         refresh = true;
     }
 
@@ -327,13 +321,23 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
 
     /* Attempt to load stopped sample for immediate decoding */
     if (!m_curSample)
+    {
         dead = m_state.advance(*this, 0.0);
+        if (!dead)
+        {
+            memset(data, 0, sizeof(int16_t) * samples);
+            return samples;
+        }
+    }
 
     if (m_curSample)
     {
         dead = m_state.advance(*this, samples / m_sampleRate);
         uint32_t block = m_curSamplePos / 14;
         uint32_t rem = m_curSamplePos % 14;
+
+        bool refresh = false;
+        int32_t curPitch = m_curPitch;
 
         if (rem)
         {
@@ -352,12 +356,15 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
             case SampleFormat::PCM:
             {
                 const int16_t* pcm = reinterpret_cast<const int16_t*>(m_curSampleData);
+                remCount = std::min(samplesRem, m_lastSamplePos - m_curSamplePos);
                 for (uint32_t i=0 ; i<remCount ; ++i)
                     data[i] = SBig(pcm[m_curSamplePos+i]);
                 decSamples = remCount;
                 break;
             }
-            default: return 0;
+            default:
+                memset(data, 0, sizeof(int16_t) * samples);
+                return samples;
             }
 
             /* Per-sample processing */
@@ -365,8 +372,7 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
             {
                 ++samplesProc;
                 ++m_curSamplePos;
-                if (_advanceSample(data[i]))
-                    return samplesProc;
+                refresh |= _advanceSample(data[i], curPitch);
             }
 
             samplesRem -= decSamples;
@@ -398,12 +404,15 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
             case SampleFormat::PCM:
             {
                 const int16_t* pcm = reinterpret_cast<const int16_t*>(m_curSampleData);
+                remCount = std::min(samplesRem, m_lastSamplePos - m_curSamplePos);
                 for (uint32_t i=0 ; i<remCount ; ++i)
                     data[i] = SBig(pcm[m_curSamplePos+i]);
                 decSamples = remCount;
                 break;
             }
-            default: return 0;
+            default:
+                memset(data, 0, sizeof(int16_t) * samples);
+                return samples;
             }
 
             /* Per-sample processing */
@@ -411,8 +420,7 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
             {
                 ++samplesProc;
                 ++m_curSamplePos;
-                if (_advanceSample(data[i]))
-                    return samplesProc;
+                refresh |= _advanceSample(data[i], curPitch);
             }
 
             samplesRem -= decSamples;
@@ -425,6 +433,9 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
                 return samples;
             }
         }
+
+        if (refresh)
+            _setTotalPitch(curPitch + m_pitchSweep1 + m_pitchSweep2 + m_pitchWheelVal);
     }
     else
         memset(data, 0, sizeof(int16_t) * samples);
@@ -535,15 +546,17 @@ bool Voice::loadSoundObject(ObjectId objectId, int macroStep, double ticksPerSec
 
 void Voice::_macroKeyOff()
 {
-    if (m_sustained)
-        m_sustainKeyOff = true;
-    else
-        _doKeyOff();
+    if (m_voxState == VoiceState::Playing)
+    {
+        if (m_sustained)
+            m_sustainKeyOff = true;
+        else
+            _doKeyOff();
+        m_voxState = VoiceState::KeyOff;
+    }
 
     for (const std::shared_ptr<Voice>& vox : m_childVoices)
         vox->keyOff();
-
-    m_voxState = VoiceState::KeyOff;
 }
 
 void Voice::keyOff()
@@ -588,7 +601,7 @@ void Voice::startSample(int16_t sampId, int32_t offset)
         _reset();
         m_sampleRate = m_curSample->first.m_sampleRate;
         m_curPitch = m_curSample->first.m_pitch;
-        m_pitchDirty = true;
+        setPitchWheel(m_curPitchWheel);
         m_backendVoice->resetSampleRate(m_curSample->first.m_sampleRate);
         m_curSamplePos = offset;
         m_curSampleData = m_audioGroup.getSampleData(m_curSample->first.m_sampleOff);
@@ -630,25 +643,25 @@ void Voice::stopSample()
 
 void Voice::setVolume(float vol)
 {
-    m_curVol = vol;
+    m_userVol = clamp(0.f, vol, 1.f);
 }
 
 void Voice::setPan(float pan)
 {
-    m_curPan = pan;
+    m_curPan = clamp(-1.f, pan, 1.f);
 }
 
 void Voice::setSurroundPan(float span)
 {
-    m_curSpan = span;
+    m_curSpan = clamp(-1.f, span, 1.f);
 }
 
 void Voice::startEnvelope(double dur, float vol, const Curve* envCurve)
 {
     m_envelopeTime = m_voiceTime;
     m_envelopeDur = dur;
-    m_envelopeStart = m_curVol;
-    m_envelopeEnd = vol;
+    m_envelopeStart = clamp(0.f, m_curVol, 1.f);
+    m_envelopeEnd = clamp(0.f, vol, 1.f);
     m_envelopeCurve = envCurve;
 }
 
@@ -657,7 +670,7 @@ void Voice::startFadeIn(double dur, float vol, const Curve* envCurve)
     m_envelopeTime = m_voiceTime;
     m_envelopeDur = dur;
     m_envelopeStart = 0.f;
-    m_envelopeEnd = m_curVol;
+    m_envelopeEnd = clamp(0.f, m_curVol, 1.f);
     m_envelopeCurve = envCurve;
 }
 
@@ -737,11 +750,20 @@ void Voice::setReverbVol(float rvol)
     m_curReverbVol = rvol;
 }
 
-void Voice::setAdsr(ObjectId adsrId)
+void Voice::setAdsr(ObjectId adsrId, bool dls)
 {
-    const ADSR* adsr = m_audioGroup.getPool().tableAsAdsr(adsrId);
-    if (adsr)
-        m_volAdsr.reset(adsr);
+    if (dls)
+    {
+        const ADSRDLS* adsr = m_audioGroup.getPool().tableAsAdsrDLS(adsrId);
+        if (adsr)
+            m_volAdsr.reset(adsr, m_state.m_initKey, m_state.m_initVel);
+    }
+    else
+    {
+        const ADSR* adsr = m_audioGroup.getPool().tableAsAdsr(adsrId);
+        if (adsr)
+            m_volAdsr.reset(adsr);
+    }
 }
 
 void Voice::setPitchFrequency(uint32_t hz, uint16_t fine)
@@ -753,10 +775,10 @@ void Voice::setPitchFrequency(uint32_t hz, uint16_t fine)
 
 void Voice::setPitchAdsr(ObjectId adsrId, int32_t cents)
 {
-    const ADSR* adsr = m_audioGroup.getPool().tableAsAdsr(adsrId);
+    const ADSRDLS* adsr = m_audioGroup.getPool().tableAsAdsrDLS(adsrId);
     if (adsr)
     {
-        m_pitchAdsr.reset(adsr);
+        m_pitchAdsr.reset(adsr, m_state.m_initKey, m_state.m_initVel);
         m_pitchEnvRange = cents;
         m_pitchEnv = true;
     }
@@ -766,9 +788,9 @@ void Voice::setPitchWheel(float pitchWheel)
 {
     m_curPitchWheel = amuse::clamp(-1.f, pitchWheel, 1.f);
     if (pitchWheel > 0.f)
-        m_pitchWheelVal = m_pitchWheelUp * m_curPitchWheel;
+        m_pitchWheelVal = m_pitchWheelUp * m_curPitchWheel * 100;
     else if (pitchWheel < 0.f)
-        m_pitchWheelVal = m_pitchWheelDown * -m_curPitchWheel;
+        m_pitchWheelVal = m_pitchWheelDown * m_curPitchWheel * 100;
     else
         m_pitchWheelVal = 0;
     m_pitchDirty = true;
@@ -784,6 +806,17 @@ void Voice::setPitchWheelRange(int8_t up, int8_t down)
 void Voice::setAftertouch(uint8_t aftertouch)
 {
     m_curAftertouch = aftertouch;
+}
+
+void Voice::notifyCtrlChange(uint8_t ctrl, int8_t val)
+{
+    if (ctrl == 64)
+    {
+        if (val >= 64)
+            setPedal(true);
+        else
+            setPedal(false);
+    }
 }
 
 size_t Voice::getTotalVoices() const

@@ -6,55 +6,51 @@ namespace amuse
 void Envelope::reset(const ADSR* adsr)
 {
     m_phase = State::Attack;
-    m_curADSR = adsr;
-    m_curMs = 0.0;
-    if (m_curADSR->decayCoarse == 128)
-        m_sustainFactor = 1.f;
-    else
-        m_sustainFactor = (adsr->sustainCoarse * 6.25 + adsr->sustainFine * 0.0244) / 100.0;
+    m_curTime = 0.0;
+    m_attackTime = adsr->getAttack();
+    m_decayTime = adsr->getDecay();
+    m_sustainFactor = adsr->getSustain();
+    m_releaseTime = adsr->getRelease();
+    m_releaseStartFactor = 0.0;
+}
+
+void Envelope::reset(const ADSRDLS* adsr, int8_t note, int8_t vel)
+{
+    m_phase = State::Attack;
+    m_curTime = 0.0;
+    m_attackTime = adsr->getVelToAttack(vel);
+    m_decayTime = adsr->getKeyToDecay(note);
+    m_sustainFactor = adsr->getSustain();
+    m_releaseTime = adsr->getRelease();
     m_releaseStartFactor = 0.0;
 }
 
 void Envelope::keyOff()
 {
-    m_phase = State::Release;
-    m_curMs = 0.0;
+    m_phase = (m_releaseTime != 0.0) ? State::Release : State::Complete;
+    m_curTime = 0.0;
 }
 
 float Envelope::nextSample(double sampleRate)
 {
-    if (!m_curADSR)
-    {
-        if (m_phase == State::Release || m_phase == State::Complete)
-            return 0.f;
-        return 1.f;
-    }
-
-    m_curMs += 1.0 / (sampleRate / 1000.0);
+    m_curTime += 1.0 / sampleRate;
 
     switch (m_phase)
     {
     case State::Attack:
     {
-        uint16_t attack = m_curADSR->attackCoarse * 255 + m_curADSR->attackFine;
-        if (attack == 0)
+        if (m_attackTime == 0.0)
         {
-            if (m_curADSR->decayCoarse == 128)
-                m_phase = State::Sustain;
-            else
-                m_phase = State::Decay;
-            m_curMs = 0.0;
+            m_phase = State::Decay;
+            m_curTime = 0.0;
             m_releaseStartFactor = 1.f;
             return 1.f;
         }
-        double attackFac = m_curMs / double(attack);
+        double attackFac = m_curTime / m_attackTime;
         if (attackFac >= 1.0)
         {
-            if (m_curADSR->decayCoarse == 128)
-                m_phase = State::Sustain;
-            else
-                m_phase = State::Decay;
-            m_curMs = 0.0;
+            m_phase = State::Decay;
+            m_curTime = 0.0;
             m_releaseStartFactor = 1.f;
             return 1.f;
         }
@@ -63,19 +59,18 @@ float Envelope::nextSample(double sampleRate)
     }
     case State::Decay:
     {
-        uint16_t decay = m_curADSR->decayCoarse * 255 + m_curADSR->decayFine;
-        if (decay == 0)
+        if (m_decayTime == 0.0)
         {
             m_phase = State::Sustain;
-            m_curMs = 0.0;
+            m_curTime = 0.0;
             m_releaseStartFactor = m_sustainFactor;
             return m_sustainFactor;
         }
-        double decayFac = m_curMs / double(decay);
+        double decayFac = m_curTime / m_decayTime;
         if (decayFac >= 1.0)
         {
             m_phase = State::Sustain;
-            m_curMs = 0.0;
+            m_curTime = 0.0;
             m_releaseStartFactor = m_sustainFactor;
             return m_sustainFactor;
         }
@@ -88,19 +83,18 @@ float Envelope::nextSample(double sampleRate)
     }
     case State::Release:
     {
-        uint16_t release = m_curADSR->releaseCoarse * 255 + m_curADSR->releaseFine;
-        if (release == 0)
+        if (m_releaseTime == 0.0)
         {
             m_phase = State::Complete;
             return 0.f;
         }
-        double releaseFac = m_curMs / double(release);
+        double releaseFac = m_curTime / m_releaseTime;
         if (releaseFac >= 1.0)
         {
             m_phase = State::Complete;
             return 0.f;
         }
-        return (1.0 - releaseFac) * m_releaseStartFactor;
+        return std::min(m_releaseStartFactor, 1.0 - releaseFac);
     }
     case State::Complete:
         return 0.f;

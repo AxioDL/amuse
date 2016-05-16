@@ -24,6 +24,7 @@ class Engine
 {
     friend class Voice;
     friend class Emitter;
+    friend class Sequencer;
     friend class Sequencer::ChannelState;
 
     IBackendVoiceAllocator& m_backend;
@@ -32,7 +33,7 @@ class Engine
     std::list<std::shared_ptr<Emitter>> m_activeEmitters;
     std::list<std::shared_ptr<Sequencer>> m_activeSequencers;
     std::list<Submix> m_activeSubmixes;
-    std::unordered_map<uint16_t, std::tuple<AudioGroup*, int, ObjectId>> m_sfxLookup;
+    std::unordered_map<uint16_t, std::tuple<AudioGroup*, int, const SFXGroupIndex::SFXEntry*>> m_sfxLookup;
     std::linear_congruential_engine<uint32_t, 0x41c64e6d, 0x3039, UINT32_MAX> m_random;
     int m_nextVid = 0;
 

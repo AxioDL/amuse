@@ -143,10 +143,7 @@ public:
         m_tracking = true;
     }
 
-    void mouseUp(const boo::SWindowCoord&, boo::EMouseButton, boo::EModifierKey)
-    {
-        m_tracking = false;
-    }
+    void mouseUp(const boo::SWindowCoord&, boo::EMouseButton, boo::EModifierKey);
 
     void mouseMove(const boo::SWindowCoord& coord);
 
@@ -188,15 +185,20 @@ struct AppCallback : boo::IApplicationCallback
     bool m_running = true;
     bool m_wantsNext = false;
     bool m_wantsPrev = false;
+    int m_panicCount = 0;
 
     void UpdateSongDisplay()
     {
         size_t voxCount = 0;
+        int program = 0;
         if (m_seq)
+        {
             voxCount = m_seq->getVoiceCount();
+            program = m_seq->getChanProgram(m_chanId);
+        }
         printf("\r                                                                                "
-               "\r  %" PRISize " Setup %d, Chan %d, Octave: %d, Vel: %d, VOL: %d%%\r", voxCount,
-               m_setupId, m_chanId, m_octave, m_velocity, int(std::rint(m_volume * 100)));
+               "\r  %" PRISize " Setup %d, Chan %d, Prog %d, Octave: %d, Vel: %d, VOL: %d%%\r", voxCount,
+               m_setupId, m_chanId, program, m_octave, m_velocity, int(std::rint(m_volume * 100)));
         fflush(stdout);
     }
 
@@ -219,9 +221,9 @@ struct AppCallback : boo::IApplicationCallback
                "░░░    │    │    ┃    │    │    │    ┃    │    │    ░░░\n"
                "░░░ A  │ S  │ D  ┃ F  │ G  │ H  │ J  ┃ K  │ L  │ ;  ░░░\n"
                "░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░\n"
-               "<left/right>: cycle MIDI setup / channel, <up/down>: volume\n"
+               "<left/right>: cycle MIDI setup / channel, <up/down>: volume, <space>: PANIC\n"
                "<tab>: sustain pedal, <window-Y>: pitch wheel, <window-X>: mod wheel\n"
-               "<Z/X>: octave, <C/V>: velocity, <Q>: quit\n");
+               "<Z/X>: octave, <C/V>: velocity, <B/N>: channel, <,/.>: program, <Q>: quit\n");
 
         std::map<int, const std::array<amuse::SongGroupIndex::MIDISetup, 16>*> sortEntries
             (index.m_midiSetups.cbegin(), index.m_midiSetups.cend());
@@ -255,6 +257,18 @@ struct AppCallback : boo::IApplicationCallback
                     SelectSong(setupIt->first);
                     m_updateDisp = false;
                 }
+            }
+
+            if (m_seq && m_panicCount)
+            {
+                if (m_panicCount > 1)
+                {
+                    m_seq->allOff(true);
+                    m_panicCount = 0;
+                }
+                else
+                    m_seq->allOff(false);
+                m_updateDisp = true;
             }
 
             if (m_updateDisp)
@@ -355,6 +369,8 @@ struct AppCallback : boo::IApplicationCallback
 
     void charKeyDownRepeat(unsigned long charCode)
     {
+        charCode = tolower(charCode);
+
         if (m_seq && m_chanId != -1)
         {
             switch (charCode)
@@ -373,6 +389,22 @@ struct AppCallback : boo::IApplicationCallback
                 break;
             case 'v':
                 m_velocity = amuse::clamp(0, m_velocity + 1, 127);
+                m_updateDisp = true;
+                break;
+            case 'b':
+                m_chanId = amuse::clamp(0, m_chanId - 1, 15);
+                m_updateDisp = true;
+                break;
+            case 'n':
+                m_chanId = amuse::clamp(0, m_chanId + 1, 15);
+                m_updateDisp = true;
+                break;
+            case ',':
+                m_seq->prevChanProgram(m_chanId);
+                m_updateDisp = true;
+                break;
+            case '.':
+                m_seq->nextChanProgram(m_chanId);
                 m_updateDisp = true;
                 break;
             }
@@ -403,8 +435,14 @@ struct AppCallback : boo::IApplicationCallback
         }
         else if (m_seq && m_chanId != -1)
         {
+            bool setPanic = false;
+
             switch (charCode)
             {
+            case ' ':
+                ++m_panicCount;
+                setPanic = true;
+                break;
             case 'z':
                 m_octave = amuse::clamp(-1, m_octave - 1, 8);
                 m_updateDisp = true;
@@ -419,6 +457,22 @@ struct AppCallback : boo::IApplicationCallback
                 break;
             case 'v':
                 m_velocity = amuse::clamp(0, m_velocity + 1, 127);
+                m_updateDisp = true;
+                break;
+            case 'b':
+                m_chanId = amuse::clamp(0, m_chanId - 1, 15);
+                m_updateDisp = true;
+                break;
+            case 'n':
+                m_chanId = amuse::clamp(0, m_chanId + 1, 15);
+                m_updateDisp = true;
+                break;
+            case ',':
+                m_seq->prevChanProgram(m_chanId);
+                m_updateDisp = true;
+                break;
+            case '.':
+                m_seq->nextChanProgram(m_chanId);
                 m_updateDisp = true;
                 break;
             case '\t':
@@ -478,6 +532,9 @@ struct AppCallback : boo::IApplicationCallback
                 break;
             default: break;
             }
+
+            if (!setPanic)
+                m_panicCount = 0;
         }
     }
 
@@ -711,6 +768,14 @@ void EventCallback::specialKeyDown(boo::ESpecialKey key, boo::EModifierKey mods,
 
 void EventCallback::specialKeyUp(boo::ESpecialKey key, boo::EModifierKey mods)
 {
+}
+
+void EventCallback::mouseUp(const boo::SWindowCoord&, boo::EMouseButton, boo::EModifierKey)
+{
+    m_tracking = false;
+    m_app.m_pitchBend = 0.f;
+    if (m_app.m_seq && m_app.m_chanId != -1)
+        m_app.m_seq->setPitchWheel(m_app.m_chanId, m_app.m_pitchBend);
 }
 
 void EventCallback::mouseMove(const boo::SWindowCoord& coord)

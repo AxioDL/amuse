@@ -102,7 +102,7 @@ void Engine::_bringOutYourDead()
     for (auto it = m_activeEmitters.begin() ; it != m_activeEmitters.end() ;)
     {
         Emitter* emitter = it->get();
-        if (emitter->getVoice()->m_voxState == VoiceState::Dead)
+        if (emitter->getVoice()->_isRecursivelyDead())
         {
             emitter->_destroy();
             it = m_activeEmitters.erase(it);
@@ -115,7 +115,7 @@ void Engine::_bringOutYourDead()
     {
         Voice* vox = it->get();
         vox->_bringOutYourDead();
-        if (vox->m_voxState == VoiceState::Dead)
+        if (vox->_isRecursivelyDead())
         {
             it = _destroyVoice(vox);
             continue;
@@ -166,7 +166,7 @@ const AudioGroup* Engine::addAudioGroup(const AudioGroupData& data)
         const SFXGroupIndex& sfxGroup = grp.second;
         m_sfxLookup.reserve(m_sfxLookup.size() + sfxGroup.m_sfxEntries.size());
         for (const auto& ent : sfxGroup.m_sfxEntries)
-            m_sfxLookup[ent.first] = std::make_tuple(ret, grp.first, SBig(ent.second->objId));
+            m_sfxLookup[ent.first] = std::make_tuple(ret, grp.first, ent.second);
     }
 
     return ret;
@@ -292,11 +292,12 @@ std::shared_ptr<Voice> Engine::fxStart(int sfxId, float vol, float pan, Submix* 
         return nullptr;
 
     AudioGroup* grp = std::get<0>(search->second);
+    const SFXGroupIndex::SFXEntry* entry = std::get<2>(search->second);
     if (!grp)
         return nullptr;
 
     std::shared_ptr<Voice> ret = _allocateVoice(*grp, std::get<1>(search->second), 32000.0, true, false, smx);
-    if (!ret->loadSoundObject(std::get<2>(search->second), 0, 1000.f, 0x3c, 0, 0))
+    if (!ret->loadSoundObject(SBig(entry->objId), 0, 1000.f, entry->defKey, entry->defVel, 0))
     {
         _destroyVoice(ret.get());
         return {};
@@ -315,18 +316,20 @@ std::shared_ptr<Emitter> Engine::addEmitter(const Vector3f& pos, const Vector3f&
         return nullptr;
 
     AudioGroup* grp = std::get<0>(search->second);
+    const SFXGroupIndex::SFXEntry* entry = std::get<2>(search->second);
     if (!grp)
         return nullptr;
 
     std::shared_ptr<Voice> vox = _allocateVoice(*grp, std::get<1>(search->second), 32000.0, true, true, smx);
     m_activeEmitters.emplace(m_activeEmitters.end(), new Emitter(*this, *grp, std::move(vox)));
     Emitter& ret = *m_activeEmitters.back();
-    if (!ret.getVoice()->loadSoundObject(std::get<2>(search->second), 0, 1000.f, 0x3c, 0, 0))
+    if (!ret.getVoice()->loadSoundObject(entry->objId, 0, 1000.f, entry->defKey, entry->defVel, 0))
     {
         ret._destroy();
         m_activeEmitters.pop_back();
         return {};
     }
+    vox->setPan(entry->panning);
     ret.setPos(pos);
     ret.setDir(dir);
     ret.setMaxDist(maxDist);

@@ -79,7 +79,7 @@ AudioGroupProject::AudioGroupProject(const unsigned char* data)
             const uint8_t* setupEnd = data + header.groupEndOff;
             while (setupData < setupEnd)
             {
-                uint32_t songId = SBig(*reinterpret_cast<const uint32_t*>(setupData));
+                uint16_t songId = SBig(*reinterpret_cast<const uint16_t*>(setupData));
                 idx.m_midiSetups[songId] =
                     reinterpret_cast<const std::array<SongGroupIndex::MIDISetup, 16>*>(setupData + 4);
                 setupData += 5 * 16 + 4;

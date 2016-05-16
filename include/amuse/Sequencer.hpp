@@ -40,6 +40,7 @@ class Sequencer : public Entity
     struct ChannelState
     {
         Sequencer& m_parent;
+        uint8_t m_chanId;
         const SongGroupIndex::MIDISetup& m_setup;
         const SongGroupIndex::PageEntry* m_page = nullptr;
         Submix* m_submix = nullptr;
@@ -50,12 +51,17 @@ class Sequencer : public Entity
         std::unordered_map<uint8_t, std::shared_ptr<Voice>> m_chanVoxs;
         std::unordered_set<std::shared_ptr<Voice>> m_keyoffVoxs;
         int8_t m_ctrlVals[128]; /**< MIDI controller values */
+        float m_curPitchWheel = 0.f; /**< MIDI pitch-wheel */
+        int8_t m_curProgram = 0; /**< MIDI program number */
 
         void _bringOutYourDead();
         size_t getVoiceCount() const;
         std::shared_ptr<Voice> keyOn(uint8_t note, uint8_t velocity);
         void keyOff(uint8_t note, uint8_t velocity);
         void setCtrlValue(uint8_t ctrl, int8_t val);
+        bool programChange(int8_t prog);
+        void nextProgram();
+        void prevProgram();
         void setPitchWheel(float pitchWheel);
         void setVolume(float vol);
         void allOff();
@@ -113,6 +119,18 @@ public:
 
     /** Set total volume of sequencer */
     void setVolume(float vol);
+
+    /** Get current program number of channel */
+    int8_t getChanProgram(int8_t chanId) const;
+
+    /** Set current program number of channel */
+    bool setChanProgram(int8_t chanId, int8_t prog);
+
+    /** Advance to next program in channel */
+    void nextChanProgram(int8_t chanId);
+
+    /** Advance to prev program in channel */
+    void prevChanProgram(int8_t chanId);
 
     /** Manually kill sequencer for deferred release from engine */
     void kill() {m_state = SequencerState::Dead;}

@@ -405,7 +405,8 @@ bool SoundMacroState::advance(Voice& vox, double dt)
         case Op::SetAdsr:
         {
             ObjectId tableId = *reinterpret_cast<ObjectId*>(&cmd.m_data[0]);
-            vox.setAdsr(tableId);
+            bool dlsMode = cmd.m_data[2];
+            vox.setAdsr(tableId, dlsMode);
             break;
         }
         case Op::ScaleVolume:
@@ -423,12 +424,12 @@ bool SoundMacroState::advance(Voice& vox, double dt)
                 const Curve* curveData = vox.getAudioGroup().getPool().tableAsCurves(curve);
                 if (curveData)
                 {
-                    vox.setVolume((*curveData)[eval] / 127.f);
+                    vox.m_curVol = (*curveData)[eval] / 127.f;
                     break;
                 }
             }
 
-            vox.setVolume(eval / 127.f);
+            vox.m_curVol = eval / 127.f;
             break;
         }
         case Op::Panning:
@@ -723,7 +724,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
         {
             int16_t scale = *reinterpret_cast<int16_t*>(&cmd.m_data[0]);
             bool orgVel = cmd.m_data[2];
-            vox.setVolume(int32_t(orgVel ? m_initVel : m_curVel) * scale / 4096.f / 127.f);
+            vox.m_curVol = int32_t(orgVel ? m_initVel : m_curVel) * scale / 4096.f / 127.f;
             break;
         }
         case Op::Mod2Vibrange:
