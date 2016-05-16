@@ -138,13 +138,8 @@ public:
     void specialKeyUp(boo::ESpecialKey key, boo::EModifierKey mods);
     void resized(const boo::SWindowRect&, const boo::SWindowRect&) {}
 
-    void mouseDown(const boo::SWindowCoord&, boo::EMouseButton, boo::EModifierKey)
-    {
-        m_tracking = true;
-    }
-
+    void mouseDown(const boo::SWindowCoord&, boo::EMouseButton, boo::EModifierKey);
     void mouseUp(const boo::SWindowCoord&, boo::EMouseButton, boo::EModifierKey);
-
     void mouseMove(const boo::SWindowCoord& coord);
 
     EventCallback(AppCallback& app) : m_app(app) {}
@@ -178,7 +173,7 @@ struct AppCallback : boo::IApplicationCallback
     size_t m_lastVoxCount = 0;
 
     /* Control state */
-    float m_volume = 1.f;
+    float m_volume = 0.5f;
     float m_modulation = 0.f;
     float m_pitchBend = 0.f;
     bool m_updateDisp = false;
@@ -208,6 +203,7 @@ struct AppCallback : boo::IApplicationCallback
         if (m_seq)
             m_seq->allOff();
         m_seq = m_engine->seqPlay(m_groupId, setupId, nullptr);
+        m_seq->setVolume(m_volume);
         UpdateSongDisplay();
     }
 
@@ -770,10 +766,22 @@ void EventCallback::specialKeyUp(boo::ESpecialKey key, boo::EModifierKey mods)
 {
 }
 
+void EventCallback::mouseDown(const boo::SWindowCoord& coord, boo::EMouseButton, boo::EModifierKey)
+{
+    m_tracking = true;
+    m_app.m_pitchBend = amuse::clamp(-1.f, coord.norm[1] * 2.f - 1.f, 1.f);
+    if (m_app.m_vox)
+        m_app.m_vox->setPitchWheel(m_app.m_pitchBend);
+    if (m_app.m_seq && m_app.m_chanId != -1)
+        m_app.m_seq->setPitchWheel(m_app.m_chanId, m_app.m_pitchBend);
+}
+
 void EventCallback::mouseUp(const boo::SWindowCoord&, boo::EMouseButton, boo::EModifierKey)
 {
     m_tracking = false;
     m_app.m_pitchBend = 0.f;
+    if (m_app.m_vox)
+        m_app.m_vox->setPitchWheel(m_app.m_pitchBend);
     if (m_app.m_seq && m_app.m_chanId != -1)
         m_app.m_seq->setPitchWheel(m_app.m_chanId, m_app.m_pitchBend);
 }
