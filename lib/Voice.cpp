@@ -15,8 +15,6 @@ namespace amuse
 void Voice::_destroy()
 {
     Entity::_destroy();
-    if (m_submix)
-        m_submix->m_activeVoices.erase(this);
 
     for (std::shared_ptr<Voice>& vox : m_childVoices)
         vox->_destroy();
@@ -31,16 +29,12 @@ Voice::Voice(Engine& engine, const AudioGroup& group, int groupId, int vid, bool
 : Entity(engine, group, groupId), m_vid(vid), m_emitter(emitter), m_submix(smx)
 {
     //fprintf(stderr, "ALLOC %d\n", m_vid);
-    if (m_submix)
-        m_submix->m_activeVoices.insert(this);
 }
 
 Voice::Voice(Engine& engine, const AudioGroup& group, int groupId, ObjectId oid, int vid, bool emitter, Submix* smx)
 : Entity(engine, group, groupId, oid), m_vid(vid), m_emitter(emitter), m_submix(smx)
 {
     //fprintf(stderr, "ALLOC %d\n", m_vid);
-    if (m_submix)
-        m_submix->m_activeVoices.insert(this);
 }
 
 void Voice::_reset()
@@ -197,6 +191,9 @@ std::shared_ptr<Voice> Voice::_allocateVoice(double sampleRate, bool dynamicPitc
 
 std::list<std::shared_ptr<Voice>>::iterator Voice::_destroyVoice(Voice* voice)
 {
+    if (voice->m_destroyed)
+        return m_childVoices.begin();
+
     voice->_destroy();
     return m_childVoices.erase(voice->m_engineIt);
 }
@@ -644,16 +641,22 @@ void Voice::stopSample()
 void Voice::setVolume(float vol)
 {
     m_userVol = clamp(0.f, vol, 1.f);
+    for (std::shared_ptr<Voice>& vox : m_childVoices)
+        vox->setVolume(vol);
 }
 
 void Voice::setPan(float pan)
 {
     m_curPan = clamp(-1.f, pan, 1.f);
+    for (std::shared_ptr<Voice>& vox : m_childVoices)
+        vox->setPan(pan);
 }
 
 void Voice::setSurroundPan(float span)
 {
     m_curSpan = clamp(-1.f, span, 1.f);
+    for (std::shared_ptr<Voice>& vox : m_childVoices)
+        vox->setSurroundPan(span);
 }
 
 void Voice::startEnvelope(double dur, float vol, const Curve* envCurve)
@@ -794,6 +797,9 @@ void Voice::setPitchWheel(float pitchWheel)
     else
         m_pitchWheelVal = 0;
     m_pitchDirty = true;
+
+    for (std::shared_ptr<Voice>& vox : m_childVoices)
+        vox->setPitchWheel(pitchWheel);
 }
 
 void Voice::setPitchWheelRange(int8_t up, int8_t down)
@@ -806,6 +812,8 @@ void Voice::setPitchWheelRange(int8_t up, int8_t down)
 void Voice::setAftertouch(uint8_t aftertouch)
 {
     m_curAftertouch = aftertouch;
+    for (std::shared_ptr<Voice>& vox : m_childVoices)
+        vox->setAftertouch(aftertouch);
 }
 
 void Voice::notifyCtrlChange(uint8_t ctrl, int8_t val)
@@ -817,6 +825,9 @@ void Voice::notifyCtrlChange(uint8_t ctrl, int8_t val)
         else
             setPedal(false);
     }
+
+    for (std::shared_ptr<Voice>& vox : m_childVoices)
+        vox->notifyCtrlChange(ctrl, val);
 }
 
 size_t Voice::getTotalVoices() const

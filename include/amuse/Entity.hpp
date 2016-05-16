@@ -30,8 +30,8 @@ class Entity
      * but shared_ptrs are issued to the client so it can safely track state */
     friend class Engine;
     friend class SoundMacroState;
-    bool m_destroyed = false;
 protected:
+    bool m_destroyed = false;
     void _destroy()
     {
 #ifndef NDEBUG

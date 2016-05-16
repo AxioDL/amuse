@@ -46,7 +46,20 @@ void Sequencer::_destroy()
 {
     Entity::_destroy();
     if (m_submix)
-        m_submix->m_activeSequencers.erase(this);
+    {
+        m_engine.removeSubmix(m_submix);
+        m_submix = nullptr;
+    }
+
+    for (auto& chan : m_chanStates)
+    {
+        ChannelState& st = *chan.second;
+        if (st.m_submix)
+        {
+            m_engine.removeSubmix(st.m_submix);
+            st.m_submix = nullptr;
+        }
+    }
 }
 
 Sequencer::~Sequencer() {}
@@ -58,8 +71,6 @@ Sequencer::Sequencer(Engine& engine, const AudioGroup& group, int groupId,
     auto it = m_songGroup.m_midiSetups.find(setupId);
     if (it != m_songGroup.m_midiSetups.cend())
         m_midiSetup = it->second->data();
-    if (m_submix)
-        m_submix->m_activeSequencers.insert(this);
 }
 
 Sequencer::ChannelState::~ChannelState()

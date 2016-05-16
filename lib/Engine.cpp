@@ -11,7 +11,17 @@
 namespace amuse
 {
 
-Engine::~Engine() {}
+Engine::~Engine()
+{
+    while (m_activeSubmixes.size())
+        removeSubmix(&m_activeSubmixes.front());
+    for (std::shared_ptr<Emitter>& emitter : m_activeEmitters)
+        emitter->_destroy();
+    for (std::shared_ptr<Voice>& vox : m_activeVoices)
+        vox->_destroy();
+    for (std::shared_ptr<Sequencer>& seq : m_activeSequencers)
+        seq->_destroy();
+}
 
 Engine::Engine(IBackendVoiceAllocator& backend)
 : m_backend(backend)
@@ -75,6 +85,8 @@ std::list<std::shared_ptr<Voice>>::iterator Engine::_destroyVoice(Voice* voice)
 #ifndef NDEBUG
     assert(this == &voice->getEngine());
 #endif
+    if (voice->m_destroyed)
+        return m_activeVoices.begin();
     voice->_destroy();
     return m_activeVoices.erase(voice->m_engineIt);
 }
@@ -84,6 +96,8 @@ std::list<std::shared_ptr<Sequencer>>::iterator Engine::_destroySequencer(Sequen
 #ifndef NDEBUG
     assert(this == &sequencer->getEngine());
 #endif
+    if (sequencer->m_destroyed)
+        return m_activeSequencers.begin();
     sequencer->_destroy();
     return m_activeSequencers.erase(sequencer->m_engineIt);
 }
@@ -93,6 +107,8 @@ std::list<Submix>::iterator Engine::_destroySubmix(Submix* smx)
 #ifndef NDEBUG
     assert(this == &smx->getEngine());
 #endif
+    if (smx->m_destroyed)
+        return m_activeSubmixes.begin();
     smx->_destroy();
     return m_activeSubmixes.erase(smx->m_engineIt);
 }
@@ -234,8 +250,7 @@ Submix* Engine::addSubmix(Submix* smx)
     return _allocateSubmix(smx);
 }
 
-/** Remove Submix and deallocate */
-void Engine::removeSubmix(Submix* smx)
+std::list<Submix>::iterator Engine::_removeSubmix(Submix* smx)
 {
     /* Delete all voices bound to submix */
     for (auto it = m_activeVoices.begin() ; it != m_activeVoices.end() ;)
@@ -243,7 +258,7 @@ void Engine::removeSubmix(Submix* smx)
         Voice* vox = it->get();
 
         Submix* vsmx = vox->getSubmix();
-        if (vsmx && vsmx == smx)
+        if (vsmx == smx)
         {
             vox->_destroy();
             it = m_activeVoices.erase(it);
@@ -258,7 +273,7 @@ void Engine::removeSubmix(Submix* smx)
         Sequencer* seq = it->get();
 
         Submix* ssmx = seq->getSubmix();
-        if (ssmx && ssmx == smx)
+        if (ssmx == smx)
         {
             seq->_destroy();
             it = m_activeSequencers.erase(it);
@@ -271,17 +286,24 @@ void Engine::removeSubmix(Submix* smx)
     for (auto it = m_activeSubmixes.begin() ; it != m_activeSubmixes.end() ;)
     {
         Submix* ssmx = it->getParentSubmix();
-        if (ssmx && ssmx == smx)
+        if (ssmx == smx)
         {
-            it->_destroy();
-            it = m_activeSubmixes.erase(it);
+            it = _removeSubmix(&*it);
             continue;
         }
         ++it;
     }
 
     /* Delete submix */
-    _destroySubmix(smx);
+    return _destroySubmix(smx);
+}
+
+/** Remove Submix and deallocate */
+void Engine::removeSubmix(Submix* smx)
+{
+    if (!smx)
+        return;
+    _removeSubmix(smx);
 }
 
 /** Start soundFX playing from loaded audio groups */

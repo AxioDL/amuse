@@ -48,6 +48,7 @@ class Engine
     std::list<std::shared_ptr<Voice>>::iterator _destroyVoice(Voice* voice);
     std::list<std::shared_ptr<Sequencer>>::iterator _destroySequencer(Sequencer* sequencer);
     std::list<Submix>::iterator _destroySubmix(Submix* smx);
+    std::list<Submix>::iterator _removeSubmix(Submix* smx);
     void _bringOutYourDead();
 public:
     ~Engine();
