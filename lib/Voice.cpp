@@ -44,13 +44,16 @@ void Voice::_reset()
     m_curPan = 0.f;
     m_curSpan = 0.f;
     m_curAftertouch = 0;
-    m_pitchWheelUp = 6;
-    m_pitchWheelDown = 6;
+    m_pitchWheelUp = 600;
+    m_pitchWheelDown = 600;
     m_pitchWheelVal = 0;
+    m_pitchDirty = true;
     m_pitchSweep1 = 0;
     m_pitchSweep1Times = 0;
+    m_pitchSweep1It = 0;
     m_pitchSweep2 = 0;
     m_pitchSweep2Times = 0;
+    m_pitchSweep2It = 0;
     m_envelopeTime = -1.f;
     m_panningTime = -1.f;
     m_vibratoLevel = 0;
@@ -257,7 +260,7 @@ bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
         float start = (m_panPos - 64) / 64.f;
         float end = (m_panPos + m_panWidth - 64) / 64.f;
         float t = std::max(0.f, std::min(1.f, m_panningTime / m_panningDur));
-        setPan((start * (1.0f - t)) + (end * t));
+        m_curPan = (start * (1.0f - t)) + (end * t);
         refresh = true;
 
         /* Done with panning */
@@ -272,7 +275,7 @@ bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
         float start = (m_spanPos - 64) / 64.f;
         float end = (m_spanPos + m_spanWidth - 64) / 64.f;
         float t = std::max(0.f, std::min(1.f, m_spanningTime / m_spanningDur));
-        setSurroundPan((start * (1.0f - t)) + (end * t));
+        m_curSpan = (start * (1.0f - t)) + (end * t);
         refresh = true;
 
         /* Done with spanning */
@@ -291,18 +294,18 @@ bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
     }
 
     /* Process pitch sweep 1 */
-    if (m_pitchSweep1Times)
+    if (m_pitchSweep1It < m_pitchSweep1Times)
     {
-        m_pitchSweep1 += m_pitchSweep1Add;
-        --m_pitchSweep1Times;
+        ++m_pitchSweep1It;
+        m_pitchSweep1 = m_pitchSweep1Add * m_pitchSweep1It / m_pitchSweep1Times;
         refresh = true;
     }
 
     /* Process pitch sweep 2 */
-    if (m_pitchSweep2Times)
+    if (m_pitchSweep2It < m_pitchSweep2Times)
     {
-        m_pitchSweep2 += m_pitchSweep2Add;
-        --m_pitchSweep2Times;
+        ++m_pitchSweep2It;
+        m_pitchSweep2 = m_pitchSweep2Add * m_pitchSweep2It / m_pitchSweep2Times;
         refresh = true;
     }
 
@@ -319,7 +322,7 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
     /* Attempt to load stopped sample for immediate decoding */
     if (!m_curSample)
     {
-        dead = m_state.advance(*this, 0.0);
+        dead = m_state.advance(*this, samples / m_sampleRate);
         if (!dead)
         {
             memset(data, 0, sizeof(int16_t) * samples);
@@ -444,7 +447,6 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
         m_volAdsr.isComplete())
     {
         m_voxState = VoiceState::Dead;
-        m_backendVoice->stop();
     }
     return samples;
 }
@@ -467,6 +469,7 @@ std::shared_ptr<Voice> Voice::_startChildMacro(ObjectId macroId, int macroStep, 
         _destroyVoice(vox.get());
         return {};
     }
+    vox->setVolume(m_userVol);
     return vox;
 }
 
@@ -607,9 +610,7 @@ void Voice::startSample(int16_t sampId, int32_t offset)
         {
             if (m_curSample->first.m_loopLengthSamples)
             {
-                if (offset <= m_curSample->first.m_loopStartSample)
-                    offset = clamp(0, offset, numSamples);
-                else
+                if (offset > m_curSample->first.m_loopStartSample)
                     offset = ((offset - m_curSample->first.m_loopStartSample) %
                               m_curSample->first.m_loopLengthSamples) +
                               m_curSample->first.m_loopStartSample;
@@ -753,14 +754,16 @@ void Voice::setTremolo(float tremoloScale, float tremoloModScale)
 void Voice::setPitchSweep1(uint8_t times, int16_t add)
 {
     m_pitchSweep1 = 0;
-    m_pitchSweep1Times = times;
+    m_pitchSweep1It = 0;
+    m_pitchSweep1Times = times * 160;
     m_pitchSweep1Add = add;
 }
 
 void Voice::setPitchSweep2(uint8_t times, int16_t add)
 {
     m_pitchSweep2 = 0;
-    m_pitchSweep2Times = times;
+    m_pitchSweep2It = 0;
+    m_pitchSweep2Times = times * 160;
     m_pitchSweep2Add = add;
 }
 
@@ -807,9 +810,9 @@ void Voice::setPitchWheel(float pitchWheel)
 {
     m_curPitchWheel = amuse::clamp(-1.f, pitchWheel, 1.f);
     if (pitchWheel > 0.f)
-        m_pitchWheelVal = m_pitchWheelUp * m_curPitchWheel * 100;
+        m_pitchWheelVal = m_pitchWheelUp * m_curPitchWheel;
     else if (pitchWheel < 0.f)
-        m_pitchWheelVal = m_pitchWheelDown * m_curPitchWheel * 100;
+        m_pitchWheelVal = m_pitchWheelDown * m_curPitchWheel;
     else
         m_pitchWheelVal = 0;
     m_pitchDirty = true;

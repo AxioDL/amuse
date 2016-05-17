@@ -59,7 +59,7 @@ class Voice : public Entity
     uint32_t m_lastSamplePos = 0; /**< Last sample position (or last loop sample) */
     int16_t m_prev1 = 0; /**< DSPADPCM prev sample */
     int16_t m_prev2 = 0; /**< DSPADPCM prev-prev sample */
-    double m_sampleRate; /**< Current sample rate computed from relative sample key or SETPITCH */
+    double m_sampleRate = 32000.0; /**< Current sample rate computed from relative sample key or SETPITCH */
     double m_voiceTime; /**< Current seconds of voice playback (per-sample resolution) */
 
     VoiceState m_voxState = VoiceState::Dead; /**< Current high-level state of voice */
@@ -72,7 +72,7 @@ class Voice : public Entity
     float m_curReverbVol; /**< Current reverb volume of voice */
     float m_curPan; /**< Current pan of voice */
     float m_curSpan; /**< Current surround pan of voice */
-    float m_curPitchWheel; /**< Current normalized wheel value for control */
+    float m_curPitchWheel = 0.f; /**< Current normalized wheel value for control */
     int32_t m_pitchWheelUp; /**< Up range for pitchwheel control in cents */
     int32_t m_pitchWheelDown; /**< Down range for pitchwheel control in cents */
     int32_t m_pitchWheelVal; /**< Current resolved pitchwheel delta for control */
@@ -96,6 +96,8 @@ class Voice : public Entity
     int16_t m_pitchSweep2Add; /**< Value to add to PITCHSWEEP2 controller each cycle */
     uint8_t m_pitchSweep1Times; /**< Remaining times to advance PITCHSWEEP1 controller */
     uint8_t m_pitchSweep2Times; /**< Remaining times to advance PITCHSWEEP2 controller */
+    uint8_t m_pitchSweep1It; /**< Current iteration of PITCHSWEEP1 controller */
+    uint8_t m_pitchSweep2It; /**< Current iteration of PITCHSWEEP2 controller */
 
     float m_panningTime; /**< time since last PANNING command, -1 for no active pan-sweep */
     float m_panningDur; /**< requested duration of last PANNING command */
