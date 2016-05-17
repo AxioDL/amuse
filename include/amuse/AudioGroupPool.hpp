@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <vector>
+#include <cmath>
 #include <unordered_map>
 #include "Entity.hpp"
 #include "Common.hpp"
