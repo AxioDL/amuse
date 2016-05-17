@@ -601,11 +601,26 @@ void Voice::startSample(int16_t sampId, int32_t offset)
         m_curPitch = m_curSample->first.m_pitch;
         setPitchWheel(m_curPitchWheel);
         m_backendVoice->resetSampleRate(m_curSample->first.m_sampleRate);
+
+        int32_t numSamples = m_curSample->first.m_numSamples & 0xffffff;
+        if (offset)
+        {
+            if (m_curSample->first.m_loopLengthSamples)
+            {
+                if (offset <= m_curSample->first.m_loopStartSample)
+                    offset = clamp(0, offset, numSamples);
+                else
+                    offset = ((offset - m_curSample->first.m_loopStartSample) %
+                              m_curSample->first.m_loopLengthSamples) +
+                              m_curSample->first.m_loopStartSample;
+            }
+            else
+                offset = clamp(0, offset, numSamples);
+        }
         m_curSamplePos = offset;
         m_curSampleData = m_audioGroup.getSampleData(m_curSample->first.m_sampleOff);
         m_prev1 = 0;
         m_prev2 = 0;
-        uint32_t numSamples = m_curSample->first.m_numSamples & 0xffffff;
         m_curFormat = SampleFormat(m_curSample->first.m_numSamples >> 24);
         m_lastSamplePos = m_curSample->first.m_loopLengthSamples ?
             (m_curSample->first.m_loopStartSample + m_curSample->first.m_loopLengthSamples) : numSamples;
@@ -619,7 +634,7 @@ void Voice::startSample(int16_t sampId, int32_t offset)
         _checkSamplePos();
 
         /* Seek DSPADPCM state if needed */
-        if (m_curSamplePos && m_curFormat == SampleFormat::DSP)
+        if (m_curSample && m_curSamplePos && m_curFormat == SampleFormat::DSP)
         {
             uint32_t block = m_curSamplePos / 14;
             uint32_t rem = m_curSamplePos % 14;
