@@ -572,7 +572,11 @@ bool SoundMacroState::advance(Voice& vox, double dt)
             noteLo *= 100;
             noteHi *= 100;
 
-            m_curPitch = vox.getEngine().nextRandom() % ((noteHi - noteLo) + noteLo);
+            if (noteHi == noteLo)
+                m_curPitch = noteHi;
+            else
+                m_curPitch = (vox.getEngine().nextRandom() % (noteHi - noteLo)) + noteLo;
+
             if (!free)
                 m_curPitch = m_curPitch / 100 * 100 + detune;
 

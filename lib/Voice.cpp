@@ -221,7 +221,7 @@ bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
     }
 
     /* Factor in ADSR envelope state */
-    float totalVol = m_userVol * m_curVol * m_volAdsr.nextSample(m_sampleRate) /* (m_state.m_curVel / 127.f)*/;
+    float totalVol = m_userVol * m_curVol * m_volAdsr.nextSample(m_sampleRate) * (m_state.m_curVel / 127.f);
 
     /* Apply tremolo */
     if (m_state.m_tremoloSel && (m_tremoloScale || m_tremoloModScale))
@@ -326,10 +326,11 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
             return samples;
         }
     }
+    else
+        dead = m_state.advance(*this, samples / m_sampleRate);
 
     if (m_curSample)
     {
-        dead = m_state.advance(*this, samples / m_sampleRate);
         uint32_t block = m_curSamplePos / 14;
         uint32_t rem = m_curSamplePos % 14;
 
