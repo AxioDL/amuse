@@ -29,7 +29,7 @@ public:
                     double sampleRate, bool dynamicPitch);
     void resetSampleRate(double sampleRate);
     void setMatrixCoefficients(const float coefs[8]);
-    void setPitchRatio(double ratio);
+    void setPitchRatio(double ratio, bool slew);
     void start();
     void stop();
 };

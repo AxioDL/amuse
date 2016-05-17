@@ -33,9 +33,9 @@ void BooBackendVoice::setMatrixCoefficients(const float coefs[8])
     m_booVoice->setMonoMatrixCoefficients(coefs);
 }
 
-void BooBackendVoice::setPitchRatio(double ratio)
+void BooBackendVoice::setPitchRatio(double ratio, bool slew)
 {
-    m_booVoice->setPitchRatio(ratio);
+    m_booVoice->setPitchRatio(ratio, slew);
 }
 
 void BooBackendVoice::start()

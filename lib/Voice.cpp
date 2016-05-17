@@ -124,13 +124,13 @@ void Voice::_doKeyOff()
     m_state.keyoffNotify(*this);
 }
 
-void Voice::_setTotalPitch(int32_t cents)
+void Voice::_setTotalPitch(int32_t cents, bool slew)
 {
     //fprintf(stderr, "PITCH %d\n", cents);
     int32_t interval = cents - m_curSample->first.m_pitch * 100;
     double ratio = std::exp2(interval / 1200.0);
     m_sampleRate = m_curSample->first.m_sampleRate * ratio;
-    m_backendVoice->setPitchRatio(ratio);
+    m_backendVoice->setPitchRatio(ratio, slew);
 }
 
 bool Voice::_isRecursivelyDead()
@@ -436,7 +436,7 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
         }
 
         if (refresh)
-            _setTotalPitch(curPitch + m_pitchSweep1 + m_pitchSweep2 + m_pitchWheelVal);
+            _setTotalPitch(curPitch + m_pitchSweep1 + m_pitchSweep2 + m_pitchWheelVal, true);
     }
     else
         memset(data, 0, sizeof(int16_t) * samples);
@@ -791,7 +791,7 @@ void Voice::setAdsr(ObjectId adsrId, bool dls)
 void Voice::setPitchFrequency(uint32_t hz, uint16_t fine)
 {
     m_sampleRate = hz + fine / 65536.0;
-    m_backendVoice->setPitchRatio(1.0);
+    m_backendVoice->setPitchRatio(1.0, false);
     m_backendVoice->resetSampleRate(m_sampleRate);
 }
 

@@ -128,7 +128,7 @@ class Voice : public Entity
     void _macroKeyOff();
     void _macroSampleEnd();
     bool _advanceSample(int16_t& samp, int32_t& curPitch);
-    void _setTotalPitch(int32_t cents);
+    void _setTotalPitch(int32_t cents, bool slew);
     bool _isRecursivelyDead();
     void _bringOutYourDead();
     std::shared_ptr<Voice> _findVoice(int vid, std::weak_ptr<Voice> thisPtr);

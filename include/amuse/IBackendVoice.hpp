@@ -40,7 +40,7 @@ public:
     virtual void setMatrixCoefficients(const float coefs[8])=0;
 
     /** Called by client to dynamically adjust the pitch of voices with dynamic pitch enabled */
-    virtual void setPitchRatio(double ratio)=0;
+    virtual void setPitchRatio(double ratio, bool slew)=0;
 
     /** Instructs platform to begin consuming sample data; invoking callback as needed */
     virtual void start()=0;
