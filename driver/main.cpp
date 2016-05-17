@@ -303,6 +303,14 @@ struct AppCallback : boo::IApplicationCallback
     void SelectSFX(int sfxId)
     {
         m_sfxId = sfxId;
+
+        bool playing = m_vox && m_vox->state() == amuse::VoiceState::Playing;
+        if (playing)
+        {
+            m_vox->keyOff();
+            m_vox = m_engine->fxStart(m_sfxId, m_volume, 0.f);
+        }
+
         UpdateSFXDisplay();
     }
 
