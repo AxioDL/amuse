@@ -30,9 +30,16 @@ public:
  */
 class IntrusiveAudioGroupData : public AudioGroupData
 {
+    bool m_owns = true;
 public:
     using AudioGroupData::AudioGroupData;
     ~IntrusiveAudioGroupData();
+
+    IntrusiveAudioGroupData(const IntrusiveAudioGroupData&)=delete;
+    IntrusiveAudioGroupData& operator=(const IntrusiveAudioGroupData&)=delete;
+
+    IntrusiveAudioGroupData(IntrusiveAudioGroupData&& other);
+    IntrusiveAudioGroupData& operator=(IntrusiveAudioGroupData&& other);
 };
 
 }
