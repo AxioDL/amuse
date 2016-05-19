@@ -1,0 +1,5 @@
+<map id="amuse::EffectReverbStdImp&lt; T &gt;" name="amuse::EffectReverbStdImp&lt; T &gt;">
+<area shape="rect" id="node2" href="$classamuse_1_1_effect_base.html" title="{amuse::EffectBase\&lt; T \&gt;\n||+ applyEffect()\l}" alt="" coords="17,204,188,281"/>
+<area shape="rect" id="node3" href="$classamuse_1_1_effect_base_typeless.html" title="{amuse::EffectBaseTypeless\n||+ ~EffectBaseTypeless()\l}" alt="" coords="5,5,200,83"/>
+<area shape="rect" id="node4" href="$classamuse_1_1_effect_reverb_std.html" title="{amuse::EffectReverbStd\n|# x140_x1c8_coloration\l# x144_x1cc_mix\l# x148_x1d0_time\l# x14c_x1d4_damping\l# x150_x1d8_preDelay\l# m_dirty\l|+ setColoration()\l+ setMix()\l+ setTime()\l+ setDamping()\l+ setPreDelay()\l# EffectReverbStd()\l}" alt="" coords="212,131,385,355"/>
+</map>

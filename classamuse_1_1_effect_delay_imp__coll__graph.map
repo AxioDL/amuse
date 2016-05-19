@@ -1,0 +1,5 @@
+<map id="amuse::EffectDelayImp&lt; T &gt;" name="amuse::EffectDelayImp&lt; T &gt;">
+<area shape="rect" id="node2" href="$classamuse_1_1_effect_base.html" title="{amuse::EffectBase\&lt; T \&gt;\n||+ applyEffect()\l}" alt="" coords="17,189,188,267"/>
+<area shape="rect" id="node3" href="$classamuse_1_1_effect_base_typeless.html" title="{amuse::EffectBaseTypeless\n||+ ~EffectBaseTypeless()\l}" alt="" coords="5,5,200,83"/>
+<area shape="rect" id="node4" href="$classamuse_1_1_effect_delay.html" title="{amuse::EffectDelay\n|# x3c_delay\l# x48_feedback\l# x54_output\l# m_dirty\l|+ setDelay()\l+ setChanDelay()\l+ setFeedback()\l+ setChanFeedback()\l+ setOutput()\l+ setChanOutput()\l}" alt="" coords="213,131,371,325"/>
+</map>

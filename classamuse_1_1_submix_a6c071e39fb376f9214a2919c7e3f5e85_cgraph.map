@@ -1,0 +1,6 @@
+<map id="amuse::Submix::makeEffect" name="amuse::Submix::makeEffect">
+<area shape="rect" id="node2" href="$classamuse_1_1_submix.html#a7f6e78fed831b84edf4d727511bb369c" title="amuse::Submix::makeChorus" alt="" coords="253,5,451,32"/>
+<area shape="rect" id="node3" href="$classamuse_1_1_submix.html#acee959153b41411ab9649e9964def20d" title="amuse::Submix::makeDelay" alt="" coords="257,56,447,83"/>
+<area shape="rect" id="node4" href="$classamuse_1_1_submix.html#a0b98c05a1bbe7517f8912946359648af" title="amuse::Submix::makeReverbStd" alt="" coords="243,107,461,133"/>
+<area shape="rect" id="node5" href="$classamuse_1_1_submix.html#aa15cfdb6cf1969c4bf4d20a47db1e25a" title="amuse::Submix::makeReverbHi" alt="" coords="247,157,457,184"/>
+</map>

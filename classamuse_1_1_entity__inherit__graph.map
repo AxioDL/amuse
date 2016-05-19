@@ -1,0 +1,6 @@
+<map id="amuse::Entity" name="amuse::Entity">
+<area shape="rect" id="node2" href="$classamuse_1_1_emitter.html" title="{amuse::Emitter\n||+ ~Emitter()\l+ Emitter()\l+ setPos()\l+ setDir()\l+ setMaxDist()\l+ setMaxVol()\l+ setMinVol()\l+ setFalloff()\l+ getVoice()\l}" alt="" coords="5,292,120,487"/>
+<area shape="rect" id="node3" href="$classamuse_1_1_listener.html" title="{amuse::Listener\n||}" alt="" coords="144,351,264,428"/>
+<area shape="rect" id="node4" href="$classamuse_1_1_sequencer.html" title="{amuse::Sequencer\n||+ ~Sequencer()\l+ Sequencer()\l+ advance()\l+ getSubmix()\l+ state()\l+ getVoiceCount()\l+ keyOn()\l+ keyOff()\l+ setCtrlValue()\l+ setPitchWheel()\land 12 more...\l}" alt="" coords="289,277,426,501"/>
+<area shape="rect" id="node5" href="$classamuse_1_1_voice.html" title="{amuse::Voice\n||+ ~Voice()\l+ Voice()\l+ Voice()\l+ supplyAudio()\l+ getSubmix()\l+ state()\l+ vid()\l+ maxVid()\l+ startChildMacro()\l+ loadSoundObject()\land 38 more...\l}" alt="" coords="451,277,603,501"/>
+</map>

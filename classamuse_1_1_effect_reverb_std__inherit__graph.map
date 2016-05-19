@@ -1,0 +1,5 @@
+<map id="amuse::EffectReverbStd" name="amuse::EffectReverbStd">
+<area shape="rect" id="node2" href="$classamuse_1_1_effect_reverb_hi.html" title="{amuse::EffectReverbHi\n||+ setCrosstalk()\l}" alt="" coords="33,285,196,362"/>
+<area shape="rect" id="node4" href="$classamuse_1_1_effect_reverb_std_imp.html" title="{amuse::EffectReverbStdImp\&lt; T \&gt;\n||+ EffectReverbStdImp()\l+ applyEffect()\l}" alt="" coords="220,277,447,369"/>
+<area shape="rect" id="node3" href="$classamuse_1_1_effect_reverb_hi_imp.html" title="{amuse::EffectReverbHiImp\&lt; T \&gt;\n||+ EffectReverbHiImp()\l+ applyEffect()\l}" alt="" coords="5,417,224,509"/>
+</map>

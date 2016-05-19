@@ -1,0 +1,12 @@
+<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
+<area shape="rect" id="node1" href="$classamuse_1_1_effect_base_typeless.html" title="amuse::EffectBaseTypeless" alt="" coords="5,107,200,133"/>
+<area shape="rect" id="node2" href="$classamuse_1_1_effect_base.html" title="amuse::EffectBase\&lt; T \&gt;" alt="" coords="248,107,419,133"/>
+<area shape="rect" id="node3" href="$classamuse_1_1_effect_chorus_imp.html" title="amuse::EffectChorusImp\&lt; T \&gt;" alt="" coords="477,9,683,36"/>
+<area shape="rect" id="node4" href="$classamuse_1_1_effect_delay_imp.html" title="amuse::EffectDelayImp\&lt; T \&gt;" alt="" coords="481,85,679,112"/>
+<area shape="rect" id="node5" href="$classamuse_1_1_effect_reverb_hi_imp.html" title="amuse::EffectReverbHiImp\&lt; T \&gt;" alt="" coords="471,205,689,232"/>
+<area shape="rect" id="node6" href="$classamuse_1_1_effect_reverb_std_imp.html" title="amuse::EffectReverbStdImp\&lt; T \&gt;" alt="" coords="467,148,693,175"/>
+<area shape="rect" id="node7" href="$classamuse_1_1_effect_chorus.html" title="amuse::EffectChorus" alt="" coords="258,5,409,32"/>
+<area shape="rect" id="node8" href="$classamuse_1_1_effect_delay.html" title="amuse::EffectDelay" alt="" coords="263,56,404,83"/>
+<area shape="rect" id="node9" href="$classamuse_1_1_effect_reverb_std.html" title="amuse::EffectReverbStd" alt="" coords="17,183,188,209"/>
+<area shape="rect" id="node10" href="$classamuse_1_1_effect_reverb_hi.html" title="amuse::EffectReverbHi" alt="" coords="252,208,415,235"/>
+</map>

@@ -1,0 +1,7 @@
+<map id="amuse::EffectBase&lt; T &gt;" name="amuse::EffectBase&lt; T &gt;">
+<area shape="rect" id="node3" href="$classamuse_1_1_effect_chorus_imp.html" title="{amuse::EffectChorusImp\&lt; T \&gt;\n||+ ~EffectChorusImp()\l+ EffectChorusImp()\l+ applyEffect()\l}" alt="" coords="5,256,212,363"/>
+<area shape="rect" id="node4" href="$classamuse_1_1_effect_delay_imp.html" title="{amuse::EffectDelayImp\&lt; T \&gt;\n||+ EffectDelayImp()\l+ applyEffect()\l}" alt="" coords="237,263,434,355"/>
+<area shape="rect" id="node5" href="$classamuse_1_1_effect_reverb_hi_imp.html" title="{amuse::EffectReverbHiImp\&lt; T \&gt;\n||+ EffectReverbHiImp()\l+ applyEffect()\l}" alt="" coords="458,263,677,355"/>
+<area shape="rect" id="node6" href="$classamuse_1_1_effect_reverb_std_imp.html" title="{amuse::EffectReverbStdImp\&lt; T \&gt;\n||+ EffectReverbStdImp()\l+ applyEffect()\l}" alt="" coords="701,263,927,355"/>
+<area shape="rect" id="node2" href="$classamuse_1_1_effect_base_typeless.html" title="{amuse::EffectBaseTypeless\n||+ ~EffectBaseTypeless()\l}" alt="" coords="354,5,549,83"/>
+</map>

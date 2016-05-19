@@ -1,0 +1,3 @@
+<map id="amuse::BooBackendVoice" name="amuse::BooBackendVoice">
+<area shape="rect" id="node2" href="$classamuse_1_1_i_backend_voice.html" title="{amuse::IBackendVoice\n||+ ~IBackendVoice()\l+ resetSampleRate()\l+ setMatrixCoefficients()\l+ setPitchRatio()\l+ start()\l+ stop()\l}" alt="" coords="9,5,186,156"/>
+</map>

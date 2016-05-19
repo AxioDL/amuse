@@ -1,0 +1,4 @@
+<map id="amuse::AudioGroupIndex" name="amuse::AudioGroupIndex">
+<area shape="rect" id="node2" href="$structamuse_1_1_s_f_x_group_index.html" title="{amuse::SFXGroupIndex\n|+ m_sfxEntries\l|}" alt="" coords="5,189,175,267"/>
+<area shape="rect" id="node3" href="$structamuse_1_1_song_group_index.html" title="{amuse::SongGroupIndex\n|+ m_normPages\l+ m_drumPages\l+ m_midiSetups\l|}" alt="" coords="199,175,375,281"/>
+</map>
