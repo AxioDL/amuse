@@ -10,6 +10,7 @@ namespace amuse
 {
 class Voice;
 
+/** Real-time state of SoundMacro execution */
 class SoundMacroState
 {
     friend class Voice;

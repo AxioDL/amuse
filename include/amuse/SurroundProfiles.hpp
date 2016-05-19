@@ -9,6 +9,7 @@ namespace amuse
 {
 struct ReferenceVector;
 
+/** Support class for attenuating channel audio based on speaker 'positions' */
 class SurroundProfiles
 {
     static void SetupRefs(float matOut[8], const ChannelMap& map,

@@ -17,7 +17,7 @@ enum class SongPlayState
     Playing
 };
 
-/** Indexes and temporally plays back commands stored in Song data blobs */
+/** Real-time state of Song execution */
 class SongState
 {
     friend class Voice;

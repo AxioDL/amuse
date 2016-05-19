@@ -20,9 +20,7 @@ enum class AudioChannelSet
     Unknown = 0xff
 };
 
-/**
- * @brief Client-implemented voice allocator
- */
+/** Client-implemented voice allocator */
 class IBackendVoiceAllocator
 {
 public:

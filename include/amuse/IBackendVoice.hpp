@@ -25,9 +25,7 @@ struct ChannelMap
     AudioChannel m_channels[8] = {};
 };
 
-/**
- * @brief Client-implemented voice instance
- */
+/** Client-implemented voice instance */
 class IBackendVoice
 {
 public:

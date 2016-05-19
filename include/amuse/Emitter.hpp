@@ -10,6 +10,7 @@ class Voice;
 
 using Vector3f = float[3];
 
+/** Voice wrapper with positional-3D level control */
 class Emitter : public Entity
 {
     std::shared_ptr<Voice> m_vox;

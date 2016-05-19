@@ -12,6 +12,7 @@ class AudioGroupData;
 using Sample = std::pair<AudioGroupSampleDirectory::Entry,
                          AudioGroupSampleDirectory::ADPCMParms>;
 
+/** Runtime audio group index container */
 class AudioGroup
 {
     AudioGroupProject m_proj;

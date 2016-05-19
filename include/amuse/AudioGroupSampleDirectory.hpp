@@ -7,6 +7,7 @@
 namespace amuse
 {
 
+/** Indexes individual samples in SAMP chunk */
 class AudioGroupSampleDirectory
 {
     friend class AudioGroup;

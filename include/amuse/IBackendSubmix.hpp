@@ -15,9 +15,7 @@ enum class SubmixFormat
     Float
 };
 
-/**
- * @brief Client-implemented submix instance
- */
+/** Client-implemented submix instance */
 class IBackendSubmix
 {
 public:

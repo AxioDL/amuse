@@ -23,6 +23,7 @@ enum class SequencerState
     Dead /**< Set when arrangement complete and `dieOnEnd` was set, or manually with die() */
 };
 
+/** Multi-voice lifetime manager and polyphonic parameter tracking */
 class Sequencer : public Entity
 {
     friend class Engine;

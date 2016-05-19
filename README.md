@@ -1,4 +1,4 @@
-### Amuse
+### Amuse {#mainpage}
 
 **Amuse** is a real-time MIDI and SFX sequencer, with basic effects, 
 3D positional audio and surround-output capabilities.

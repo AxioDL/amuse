@@ -4,9 +4,7 @@
 namespace amuse
 {
 
-/**
- * @brief Simple pointer-container of the four Audio Group chunks
- */
+/** Simple pointer-container of the four Audio Group chunks */
 class AudioGroupData
 {
 protected:
@@ -25,9 +23,7 @@ public:
     const unsigned char* getSamp() const {return m_samp;}
 };
 
-/**
- * @brief A buffer-owning version of AudioGroupData
- */
+/** A buffer-owning version of AudioGroupData */
 class IntrusiveAudioGroupData : public AudioGroupData
 {
     bool m_owns = true;

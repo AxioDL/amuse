@@ -10,15 +10,6 @@ namespace amuse
 class Engine;
 class AudioGroup;
 
-enum class ObjectType : uint8_t
-{
-    Invalid = 0xff,
-    SoundMacro = 0,
-    Table = 1,
-    Kaymap = 4,
-    Layer = 8
-};
-
 /** Common ID structure statically tagging
  *  SoundMacros, Tables, Keymaps, Layers */
 using ObjectId = uint16_t;
