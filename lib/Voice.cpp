@@ -445,7 +445,7 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
     if (dead && m_voxState == VoiceState::KeyOff &&
         m_sampleEndTrap.macroId == 0xffff &&
         m_messageTrap.macroId == 0xffff &&
-        m_volAdsr.isComplete())
+        (!m_curSample || (m_curSample && m_volAdsr.isComplete())))
     {
         m_voxState = VoiceState::Dead;
     }

@@ -60,7 +60,7 @@ class Voice : public Entity
     int16_t m_prev1 = 0; /**< DSPADPCM prev sample */
     int16_t m_prev2 = 0; /**< DSPADPCM prev-prev sample */
     double m_sampleRate = 32000.0; /**< Current sample rate computed from relative sample key or SETPITCH */
-    double m_voiceTime; /**< Current seconds of voice playback (per-sample resolution) */
+    double m_voiceTime = 0.0; /**< Current seconds of voice playback (per-sample resolution) */
 
     VoiceState m_voxState = VoiceState::Dead; /**< Current high-level state of voice */
     bool m_sustained = false; /**< Sustain pedal pressed for this voice */

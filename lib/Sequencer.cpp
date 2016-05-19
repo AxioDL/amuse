@@ -144,7 +144,14 @@ std::shared_ptr<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velo
         return {};
 
     /* Ensure keyoff sent first */
-    keyOff(note, 0);
+    auto keySearch = m_chanVoxs.find(note);
+    if (keySearch != m_chanVoxs.cend())
+    {
+        keySearch->second->keyOff();
+        keySearch->second->setPedal(false);
+        m_keyoffVoxs.emplace(std::move(keySearch->second));
+        m_chanVoxs.erase(keySearch);
+    }
 
     std::shared_ptr<Voice> ret = m_parent.m_engine._allocateVoice(m_parent.m_audioGroup,
                                                                   m_parent.m_groupId, 32000.0,
