@@ -157,7 +157,7 @@ struct AppCallback : boo::IApplicationCallback
 
     /* Amuse engine */
     std::experimental::optional<amuse::Engine> m_engine;
-    int m_groupId;
+    int m_groupId = -1;
     bool m_sfxGroup;
 
     /* Song playback selection */
@@ -166,6 +166,7 @@ struct AppCallback : boo::IApplicationCallback
     int8_t m_octave = 4;
     int8_t m_velocity = 64;
     std::shared_ptr<amuse::Sequencer> m_seq;
+    std::unique_ptr<uint8_t[]> m_arrData;
 
     /* SFX playback selection */
     int m_sfxId = -1;
@@ -204,6 +205,10 @@ struct AppCallback : boo::IApplicationCallback
             m_seq->allOff();
         m_seq = m_engine->seqPlay(m_groupId, setupId, nullptr);
         m_seq->setVolume(m_volume);
+
+        if (m_arrData)
+            m_seq->playSong(m_arrData.get(), false);
+
         UpdateSongDisplay();
     }
 
@@ -225,7 +230,18 @@ struct AppCallback : boo::IApplicationCallback
             (index.m_midiSetups.cbegin(), index.m_midiSetups.cend());
         auto setupIt = sortEntries.cbegin();
         if (setupIt != sortEntries.cend())
-            SelectSong(setupIt->first);
+        {
+            if (m_setupId == -1)
+                SelectSong(setupIt->first);
+            else
+            {
+                while (setupIt != sortEntries.cend() && setupIt->first != m_setupId)
+                    ++setupIt;
+                if (setupIt == sortEntries.cend())
+                    setupIt = sortEntries.cbegin();
+                SelectSong(setupIt->first);
+            }
+        }
 
         while (m_running)
         {
@@ -273,7 +289,7 @@ struct AppCallback : boo::IApplicationCallback
                 UpdateSongDisplay();
             }
 
-            m_engine->pumpEngine();
+            m_engine->pumpEngine(1.0 / 60.0);
 
             size_t voxCount;
             if (m_seq)
@@ -359,7 +375,7 @@ struct AppCallback : boo::IApplicationCallback
                 UpdateSFXDisplay();
             }
 
-            m_engine->pumpEngine();
+            m_engine->pumpEngine(1.0 / 60.0);
 
             if (m_vox && m_vox->state() == amuse::VoiceState::Dead)
             {
@@ -411,6 +427,7 @@ struct AppCallback : boo::IApplicationCallback
                 m_seq->nextChanProgram(m_chanId);
                 m_updateDisp = true;
                 break;
+            default: break;
             }
         }
     }
@@ -640,12 +657,47 @@ struct AppCallback : boo::IApplicationCallback
             Log.report(logvisor::Fatal, "incomplete data in args");
         Log.report(logvisor::Info, "Found '%s' Audio Group data", desc.c_str());
 
+        /* Attempt loading song */
+        if (m_argc > 2)
+        {
+            std::experimental::optional<athena::io::FileReader> r;
+            r.emplace(m_argv[m_argc-1], 32 * 1024, false);
+            if (!r->hasError())
+            {
+                uint32_t version = r->readUint32Big();
+                if (version == 0x18)
+                {
+                    /* Raw SON data */
+                    r->seek(0, athena::SeekOrigin::Begin);
+                    m_arrData = r->readUBytes(r->length());
+                }
+                else if (version == 0x2)
+                {
+                    /* Retro CSNG data */
+                    m_setupId = r->readUint32Big();
+                    m_groupId = r->readUint32Big();
+                    r->readUint32Big();
+                    uint32_t sonLength = r->readUint32Big();
+                    m_arrData = r->readUBytes(sonLength);
+                }
+            }
+        }
+
         /* Load project to assemble group list */
         amuse::AudioGroupProject proj(data.getProj());
 
         /* Get group selection from user */
         size_t totalGroups = proj.sfxGroups().size() + proj.songGroups().size();
-        if (totalGroups > 1)
+        if (m_groupId != -1)
+        {
+            if (proj.getSongGroupIndex(m_groupId))
+                m_sfxGroup = false;
+            else if (proj.getSFXGroupIndex(m_groupId))
+                m_sfxGroup = true;
+            else
+                Log.report(logvisor::Fatal, "unable to find Group %d", m_groupId);
+        }
+        else if (totalGroups > 1)
         {
             /* Ask user to specify which group in project */
             printf("Multiple Audio Groups discovered:\n");

@@ -3,6 +3,8 @@
 
 #include "Entity.hpp"
 #include "AudioGroupProject.hpp"
+#include "SongState.hpp"
+#include "optional.hpp"
 #include <unordered_map>
 #include <unordered_set>
 #include <memory>
@@ -30,6 +32,7 @@ class Sequencer : public Entity
     std::list<std::shared_ptr<Sequencer>>::iterator m_engineIt; /**< Iterator to self within Engine's list for quick deletion */
 
     const unsigned char* m_arrData = nullptr; /**< Current playing arrangement data */
+    SongState m_songState; /**< State of current arrangement playback */
     double m_ticksPerSec = 1000.0; /**< Current ticks per second (tempo) for arrangement data */
     SequencerState m_state = SequencerState::Interactive; /**< Current high-level state of sequencer */
     bool m_dieOnEnd = false; /**< Sequencer will be killed when current arrangement completes */
@@ -53,6 +56,8 @@ class Sequencer : public Entity
         int8_t m_ctrlVals[128]; /**< MIDI controller values */
         float m_curPitchWheel = 0.f; /**< MIDI pitch-wheel */
         int8_t m_curProgram = 0; /**< MIDI program number */
+        float m_curVol = 1.f; /**< Current volume of channel */
+        float m_curPan = 0.f; /**< Current panning of channel */
 
         void _bringOutYourDead();
         size_t getVoiceCount() const;
@@ -64,12 +69,13 @@ class Sequencer : public Entity
         void prevProgram();
         void setPitchWheel(float pitchWheel);
         void setVolume(float vol);
+        void setPan(float pan);
         void allOff();
         void killKeygroup(uint8_t kg, bool now);
         std::shared_ptr<Voice> findVoice(int vid);
         void sendMacroMessage(ObjectId macroId, int32_t val);
     };
-    std::unordered_map<uint8_t, std::unique_ptr<ChannelState>> m_chanStates; /**< Lazily-allocated channel states */
+    std::array<std::experimental::optional<ChannelState>, 16> m_chanStates; /**< Lazily-allocated channel states */
 
     void _bringOutYourDead();
     void _destroy();
@@ -77,6 +83,9 @@ public:
     ~Sequencer();
     Sequencer(Engine& engine, const AudioGroup& group, int groupId,
               const SongGroupIndex& songGroup, int setupId, Submix* smx);
+
+    /** Advance current song data (if any) */
+    void advance(double dt);
 
     /** Obtain pointer to Sequencer's Submix */
     Submix* getSubmix() {return m_submix;}

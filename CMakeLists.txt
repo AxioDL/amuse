@@ -10,6 +10,7 @@ set(SOURCES
     lib/Listener.cpp
     lib/Sequencer.cpp
     lib/SoundMacroState.cpp
+    lib/SongState.cpp
     lib/Voice.cpp
     lib/Submix.cpp
     lib/EffectBase.cpp
@@ -32,6 +33,7 @@ set(HEADERS
     include/amuse/Listener.hpp
     include/amuse/Sequencer.hpp
     include/amuse/SoundMacroState.hpp
+    include/amuse/SongState.hpp
     include/amuse/Voice.hpp
     include/amuse/Submix.hpp
     include/amuse/IBackendSubmix.hpp

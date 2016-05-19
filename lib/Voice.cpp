@@ -18,6 +18,8 @@ void Voice::_destroy()
 
     for (std::shared_ptr<Voice>& vox : m_childVoices)
         vox->_destroy();
+
+    m_backendVoice.reset();
 }
 
 Voice::~Voice()

@@ -153,8 +153,11 @@ void Engine::_bringOutYourDead()
 }
 
 /** Update all active audio entities and fill OS audio buffers as needed */
-void Engine::pumpEngine()
+void Engine::pumpEngine(double dt)
 {
+    for (std::shared_ptr<Sequencer>& seq : m_activeSequencers)
+        seq->advance(dt);
+
     m_backend.pumpAndMixVoices();
     _bringOutYourDead();
 

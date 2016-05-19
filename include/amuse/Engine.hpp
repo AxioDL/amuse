@@ -58,7 +58,7 @@ public:
     IBackendVoiceAllocator& getBackend() {return m_backend;}
 
     /** Update all active audio entities and fill OS audio buffers as needed */
-    void pumpEngine();
+    void pumpEngine(double dt);
 
     /** Add audio group data pointers to engine; must remain resident! */
     const AudioGroup* addAudioGroup(const AudioGroupData& data);
