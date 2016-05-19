@@ -98,6 +98,7 @@ class SongState
 
     uint32_t m_curTick = 0; /**< Current playback position for all channels */
     SongPlayState m_songState = SongPlayState::Playing; /**< High-level state of Song playback */
+    double m_curDt = 0.f; /**< Cumulative dt value for time-remainder tracking */
 
 public:
     /** initialize state for Song data at `ptr` */

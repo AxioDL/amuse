@@ -6,7 +6,6 @@ namespace amuse
 void Submix::_destroy()
 {
     m_destroyed = true;
-    m_backendSubmix.reset();
 }
 
 Submix::Submix(Engine& engine, Submix* smx)

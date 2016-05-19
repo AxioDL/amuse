@@ -18,8 +18,6 @@ void Voice::_destroy()
 
     for (std::shared_ptr<Voice>& vox : m_childVoices)
         vox->_destroy();
-
-    m_backendVoice.reset();
 }
 
 Voice::~Voice()
@@ -557,9 +555,6 @@ void Voice::_macroKeyOff()
             _doKeyOff();
         m_voxState = VoiceState::KeyOff;
     }
-
-    for (const std::shared_ptr<Voice>& vox : m_childVoices)
-        vox->keyOff();
 }
 
 void Voice::keyOff()
@@ -575,10 +570,12 @@ void Voice::keyOff()
             loadSoundObject(m_keyoffTrap.macroId, m_keyoffTrap.macroStep,
                             m_state.m_ticksPerSec, m_state.m_initKey,
                             m_state.m_initVel, m_state.m_initMod);
-        return;
     }
     else
         _macroKeyOff();
+
+    for (const std::shared_ptr<Voice>& vox : m_childVoices)
+        vox->keyOff();
 }
 
 void Voice::message(int32_t val)
@@ -780,13 +777,21 @@ void Voice::setAdsr(ObjectId adsrId, bool dls)
     {
         const ADSRDLS* adsr = m_audioGroup.getPool().tableAsAdsrDLS(adsrId);
         if (adsr)
+        {
             m_volAdsr.reset(adsr, m_state.m_initKey, m_state.m_initVel);
+            if (m_voxState == VoiceState::KeyOff)
+                m_volAdsr.keyOff();
+        }
     }
     else
     {
         const ADSR* adsr = m_audioGroup.getPool().tableAsAdsr(adsrId);
         if (adsr)
+        {
             m_volAdsr.reset(adsr);
+            if (m_voxState == VoiceState::KeyOff)
+                m_volAdsr.keyOff();
+        }
     }
 }
 

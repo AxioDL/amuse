@@ -10,6 +10,8 @@
 #include <thread>
 #include <map>
 
+#define VOL_FACTOR 0.25
+
 static logvisor::Module Log("amuseplay");
 
 static amuse::IntrusiveAudioGroupData LoadFromArgs(int argc, const boo::SystemChar** argv,
@@ -204,7 +206,7 @@ struct AppCallback : boo::IApplicationCallback
         if (m_seq)
             m_seq->allOff();
         m_seq = m_engine->seqPlay(m_groupId, setupId, nullptr);
-        m_seq->setVolume(m_volume);
+        m_seq->setVolume(m_volume * VOL_FACTOR);
 
         if (m_arrData)
             m_seq->playSong(m_arrData.get(), false);
@@ -804,18 +806,18 @@ void EventCallback::specialKeyDown(boo::ESpecialKey key, boo::EModifierKey mods,
         if (m_app.m_volume < 1.f)
             m_app.m_volume = amuse::clamp(0.f, m_app.m_volume + 0.05f, 1.f);
         if (m_app.m_vox)
-            m_app.m_vox->setVolume(m_app.m_volume);
+            m_app.m_vox->setVolume(m_app.m_volume * VOL_FACTOR);
         if (m_app.m_seq)
-            m_app.m_seq->setVolume(m_app.m_volume);
+            m_app.m_seq->setVolume(m_app.m_volume * VOL_FACTOR);
         m_app.m_updateDisp = true;
         break;
     case boo::ESpecialKey::Down:
         if (m_app.m_volume > 0.f)
             m_app.m_volume = amuse::clamp(0.f, m_app.m_volume - 0.05f, 1.f);
         if (m_app.m_vox)
-            m_app.m_vox->setVolume(m_app.m_volume);
+            m_app.m_vox->setVolume(m_app.m_volume * VOL_FACTOR);
         if (m_app.m_seq)
-            m_app.m_seq->setVolume(m_app.m_volume);
+            m_app.m_seq->setVolume(m_app.m_volume * VOL_FACTOR);
         m_app.m_updateDisp = true;
         break;
     default: break;

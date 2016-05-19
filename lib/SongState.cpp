@@ -124,6 +124,9 @@ SongState::Channel::Channel(SongState& parent, uint8_t midiChan, uint32_t startT
         m_modWheelData = song + header.m_modOff;
 
     m_waitCountdown = startTick;
+    m_lastPitchTick = startTick;
+    m_lastModTick = startTick;
+    m_waitCountdown += int32_t(DecodeTimeRLE(m_data));
 }
 
 void SongState::initialize(const unsigned char* ptr)
@@ -246,10 +249,6 @@ bool SongState::Channel::advance(Sequencer& seq, int32_t ticks)
         }
     }
 
-    /* Bootstrap first delta-time */
-    if (m_data == m_dataBase)
-        m_waitCountdown = DecodeTimeRLE(m_data);
-
     /* Loop through as many commands as we can for this time period */
     while (true)
     {
@@ -257,9 +256,8 @@ bool SongState::Channel::advance(Sequencer& seq, int32_t ticks)
         if (m_waitCountdown)
         {
             m_waitCountdown -= ticks;
-            if (m_waitCountdown <= 0)
-                m_waitCountdown = 0;
-            else
+            ticks = 0;
+            if (m_waitCountdown > 0)
                 return false;
         }
 
@@ -290,7 +288,7 @@ bool SongState::Channel::advance(Sequencer& seq, int32_t ticks)
         }
 
         /* Set next delta-time */
-        m_waitCountdown = DecodeTimeRLE(m_data);
+        m_waitCountdown += int32_t(DecodeTimeRLE(m_data));
     }
 
     return false;
@@ -302,12 +300,17 @@ bool SongState::advance(Sequencer& seq, double dt)
     if (m_songState == SongPlayState::Stopped)
         return true;
 
-    bool done = true;
-    while (dt > 0.0)
+    bool done = false;
+    m_curDt += dt;
+    while (m_curDt > 0.0)
     {
+        done = true;
+
         /* Compute ticks to compute based on current tempo */
-        int32_t remTicks = dt * m_tempo * 384 / 60;
-        if (!remTicks) remTicks = 1;
+        double ticksPerSecond = m_tempo * 384 / 60;
+        int32_t remTicks = std::ceil(m_curDt * ticksPerSecond);
+        if (!remTicks)
+            break;
 
         /* See if there's an upcoming tempo change in this interval */
         if (m_tempoPtr && m_tempoPtr->m_tick != 0xffffffff)
@@ -335,9 +338,9 @@ bool SongState::advance(Sequencer& seq, double dt)
         m_curTick += remTicks;
 
         if (m_tempo == 0)
-            dt = 0.0;
+            m_curDt = 0.0;
         else
-            dt -= remTicks / double(m_tempo * 384 / 60);
+            m_curDt -= remTicks / ticksPerSecond;
     }
 
     if (done)

@@ -13,14 +13,14 @@ namespace amuse
 
 Engine::~Engine()
 {
+    for (std::shared_ptr<Sequencer>& seq : m_activeSequencers)
+        seq->_destroy();
     while (m_activeSubmixes.size())
         removeSubmix(&m_activeSubmixes.front());
     for (std::shared_ptr<Emitter>& emitter : m_activeEmitters)
         emitter->_destroy();
     for (std::shared_ptr<Voice>& vox : m_activeVoices)
         vox->_destroy();
-    for (std::shared_ptr<Sequencer>& seq : m_activeSequencers)
-        seq->_destroy();
 }
 
 Engine::Engine(IBackendVoiceAllocator& backend)
