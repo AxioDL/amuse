@@ -69,6 +69,7 @@ public:
     BooBackendVoiceAllocator(boo::IAudioVoiceEngine& booEngine);
     std::unique_ptr<IBackendVoice> allocateVoice(Voice& clientVox, double sampleRate, bool dynamicPitch);
     std::unique_ptr<IBackendSubmix> allocateSubmix(Submix& clientSmx);
+    void register5MsCallback(std::function<void(double)>&& callback);
     AudioChannelSet getAvailableSet();
     void pumpAndMixVoices();
 };

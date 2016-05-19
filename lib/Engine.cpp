@@ -25,7 +25,9 @@ Engine::~Engine()
 
 Engine::Engine(IBackendVoiceAllocator& backend)
 : m_backend(backend)
-{}
+{
+    backend.register5MsCallback(std::bind(&Engine::_5MsCallback, this, std::placeholders::_1));
+}
 
 std::pair<AudioGroup*, const SongGroupIndex*> Engine::_findSongGroup(int groupId) const
 {
@@ -152,12 +154,15 @@ void Engine::_bringOutYourDead()
     }
 }
 
-/** Update all active audio entities and fill OS audio buffers as needed */
-void Engine::pumpEngine(double dt)
+void Engine::_5MsCallback(double dt)
 {
     for (std::shared_ptr<Sequencer>& seq : m_activeSequencers)
         seq->advance(dt);
+}
 
+/** Update all active audio entities and fill OS audio buffers as needed */
+void Engine::pumpEngine()
+{
     m_backend.pumpAndMixVoices();
     _bringOutYourDead();
 
@@ -321,7 +326,8 @@ std::shared_ptr<Voice> Engine::fxStart(int sfxId, float vol, float pan, Submix* 
     if (!grp)
         return nullptr;
 
-    std::shared_ptr<Voice> ret = _allocateVoice(*grp, std::get<1>(search->second), 32000.0, true, false, smx);
+    std::shared_ptr<Voice> ret = _allocateVoice(*grp, std::get<1>(search->second),
+                                                32000.0, true, false, smx);
     if (!ret->loadSoundObject(SBig(entry->objId), 0, 1000.f, entry->defKey, entry->defVel, 0))
     {
         _destroyVoice(ret.get());
@@ -345,7 +351,8 @@ std::shared_ptr<Emitter> Engine::addEmitter(const Vector3f& pos, const Vector3f&
     if (!grp)
         return nullptr;
 
-    std::shared_ptr<Voice> vox = _allocateVoice(*grp, std::get<1>(search->second), 32000.0, true, true, smx);
+    std::shared_ptr<Voice> vox = _allocateVoice(*grp, std::get<1>(search->second),
+                                                32000.0, true, true, smx);
     m_activeEmitters.emplace(m_activeEmitters.end(), new Emitter(*this, *grp, std::move(vox)));
     Emitter& ret = *m_activeEmitters.back();
     if (!ret.getVoice()->loadSoundObject(entry->objId, 0, 1000.f, entry->defKey, entry->defVel, 0))

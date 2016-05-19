@@ -115,6 +115,11 @@ std::unique_ptr<IBackendSubmix> BooBackendVoiceAllocator::allocateSubmix(Submix&
     return std::make_unique<BooBackendSubmix>(m_booEngine, clientSmx);
 }
 
+void BooBackendVoiceAllocator::register5MsCallback(std::function<void(double)>&& callback)
+{
+    m_booEngine.register5MsCallback(std::move(callback));
+}
+
 AudioChannelSet BooBackendVoiceAllocator::getAvailableSet()
 {
     return AudioChannelSet(m_booEngine.getAvailableSet());

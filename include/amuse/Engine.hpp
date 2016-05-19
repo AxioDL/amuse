@@ -50,6 +50,7 @@ class Engine
     std::list<Submix>::iterator _destroySubmix(Submix* smx);
     std::list<Submix>::iterator _removeSubmix(Submix* smx);
     void _bringOutYourDead();
+    void _5MsCallback(double dt);
 public:
     ~Engine();
     Engine(IBackendVoiceAllocator& backend);
@@ -58,7 +59,7 @@ public:
     IBackendVoiceAllocator& getBackend() {return m_backend;}
 
     /** Update all active audio entities and fill OS audio buffers as needed */
-    void pumpEngine(double dt);
+    void pumpEngine();
 
     /** Add audio group data pointers to engine; must remain resident! */
     const AudioGroup* addAudioGroup(const AudioGroupData& data);

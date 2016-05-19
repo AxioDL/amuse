@@ -2,6 +2,7 @@
 #define __AMUSE_IBACKENDVOICEALLOCATOR_HPP__
 
 #include <memory>
+#include <functional>
 
 namespace amuse
 {
@@ -39,6 +40,9 @@ public:
 
     /** Amuse flushes voice samples to the backend this way */
     virtual void pumpAndMixVoices()=0;
+
+    /** Amuse may request callbacks 200-updates-per-second virtually */
+    virtual void register5MsCallback(std::function<void(double dt)>&& callback)=0;
 };
 
 }

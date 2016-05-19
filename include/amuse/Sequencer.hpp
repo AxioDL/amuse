@@ -127,6 +127,9 @@ public:
     /** Play MIDI arrangement */
     void playSong(const unsigned char* arrData, bool dieOnEnd=true);
 
+    /** Stop current MIDI arrangement */
+    void stopSong(bool now=false);
+
     /** Set total volume of sequencer */
     void setVolume(float vol);
 

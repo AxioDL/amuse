@@ -190,7 +190,7 @@ bool SongState::Channel::advance(Sequencer& seq, int32_t ticks)
                     m_lastPitchTick = nextTick;
                     remPitchTicks -= (nextTick - pitchTick);
                     pitchTick = nextTick;
-                    seq.setPitchWheel(m_midiChan, clamp(-1.f, m_lastPitchVal / 8192.f, 1.f));
+                    seq.setPitchWheel(m_midiChan, clamp(-1.f, m_lastPitchVal / 32768.f, 1.f));
                     continue;
                 }
                 remPitchTicks -= (nextTick - pitchTick);

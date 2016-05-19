@@ -224,7 +224,8 @@ bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
     }
 
     /* Factor in ADSR envelope state */
-    float totalVol = m_userVol * m_curVol * m_volAdsr.nextSample(m_sampleRate) * (m_state.m_curVel / 127.f);
+    float adsr = m_volAdsr.nextSample(m_sampleRate);
+    float totalVol = m_userVol * m_curVol * adsr * (m_state.m_curVel / 127.f);
 
     /* Apply tremolo */
     if (m_state.m_tremoloSel && (m_tremoloScale || m_tremoloModScale))

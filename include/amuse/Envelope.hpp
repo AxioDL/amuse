@@ -24,8 +24,8 @@ private:
     double m_decayTime = 0.0; /**< Time of decay in seconds */
     double m_sustainFactor = 1.0; /**< Evaluated sustain percentage */
     double m_releaseTime = 0.0; /**< Time of release in seconds */
-    double m_releaseStartFactor; /**< Level at whenever release event occurs */
-    double m_curTime; /**< Current time of envelope stage in seconds */
+    double m_releaseStartFactor = 0.0; /**< Level at whenever release event occurs */
+    double m_curTime = 0.0; /**< Current time of envelope stage in seconds */
 public:
     void reset(const ADSR* adsr);
     void reset(const ADSRDLS* adsr, int8_t note, int8_t vel);

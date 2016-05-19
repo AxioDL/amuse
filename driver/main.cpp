@@ -204,7 +204,10 @@ struct AppCallback : boo::IApplicationCallback
     {
         m_setupId = setupId;
         if (m_seq)
-            m_seq->allOff();
+        {
+            m_seq->stopSong();
+            m_seq->kill();
+        }
         m_seq = m_engine->seqPlay(m_groupId, setupId, nullptr);
         m_seq->setVolume(m_volume * VOL_FACTOR);
 
@@ -291,7 +294,7 @@ struct AppCallback : boo::IApplicationCallback
                 UpdateSongDisplay();
             }
 
-            m_engine->pumpEngine(1.0 / 60.0);
+            m_engine->pumpEngine();
 
             size_t voxCount;
             if (m_seq)
@@ -377,7 +380,7 @@ struct AppCallback : boo::IApplicationCallback
                 UpdateSFXDisplay();
             }
 
-            m_engine->pumpEngine(1.0 / 60.0);
+            m_engine->pumpEngine();
 
             if (m_vox && m_vox->state() == amuse::VoiceState::Dead)
             {

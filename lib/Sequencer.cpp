@@ -409,6 +409,13 @@ void Sequencer::playSong(const unsigned char* arrData, bool dieOnEnd)
     m_state = SequencerState::Playing;
 }
 
+void Sequencer::stopSong(bool now)
+{
+    allOff(now);
+    m_arrData = nullptr;
+    m_state = SequencerState::Interactive;
+}
+
 void Sequencer::ChannelState::setVolume(float vol)
 {
     m_curVol = vol;
