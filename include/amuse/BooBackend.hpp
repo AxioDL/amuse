@@ -8,6 +8,9 @@
 #include "IBackendVoice.hpp"
 #include "IBackendSubmix.hpp"
 #include "IBackendVoiceAllocator.hpp"
+#include <mutex>
+#include <list>
+#include <chrono>
 
 namespace amuse
 {
@@ -66,15 +69,21 @@ public:
 /** Backend MIDI event reader for controlling sequencer with external hardware / software */
 class BooBackendMIDIReader : public IMIDIReader, public boo::IMIDIReader
 {
+    friend class BooBackendVoiceAllocator;
     Engine& m_engine;
     std::unique_ptr<boo::IMIDIIn> m_midiIn;
     boo::MIDIDecoder m_decoder;
+
+    std::list<std::pair<std::chrono::steady_clock::time_point, std::vector<uint8_t>>> m_queue;
+    std::mutex m_midiMutex;
+    void _MIDIReceive(std::vector<uint8_t>&& bytes);
+
 public:
-    BooBackendMIDIReader(Engine& engine, std::unique_ptr<boo::IMIDIIn>&& in)
-    : m_engine(engine), m_midiIn(std::move(in)), m_decoder(*m_midiIn, *this) {}
+    ~BooBackendMIDIReader();
+    BooBackendMIDIReader(Engine& engine, const char* name);
 
     std::string description();
-    void pumpReader();
+    void pumpReader(double dt);
 
     void noteOff(uint8_t chan, uint8_t key, uint8_t velocity);
     void noteOn(uint8_t chan, uint8_t key, uint8_t velocity);
@@ -107,6 +116,7 @@ public:
 /** Backend voice allocator implementation for boo mixer */
 class BooBackendVoiceAllocator : public IBackendVoiceAllocator
 {
+    friend class BooBackendMIDIReader;
     boo::IAudioVoiceEngine& m_booEngine;
 public:
     BooBackendVoiceAllocator(boo::IAudioVoiceEngine& booEngine);

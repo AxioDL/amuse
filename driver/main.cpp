@@ -174,6 +174,7 @@ struct AppCallback : boo::IApplicationCallback
     int m_sfxId = -1;
     std::shared_ptr<amuse::Voice> m_vox;
     size_t m_lastVoxCount = 0;
+    int8_t m_lastChanProg = -1;
 
     /* Control state */
     float m_volume = 0.5f;
@@ -297,14 +298,22 @@ struct AppCallback : boo::IApplicationCallback
             m_engine->pumpEngine();
 
             size_t voxCount;
+            int8_t progId;
             if (m_seq)
+            {
                 voxCount = m_seq->getVoiceCount();
+                progId = m_seq->getChanProgram(m_chanId);
+            }
             else
+            {
                 voxCount = 0;
+                progId = -1;
+            }
 
-            if (m_lastVoxCount != voxCount)
+            if (m_lastVoxCount != voxCount || m_lastChanProg != progId)
             {
                 m_lastVoxCount = voxCount;
+                m_lastChanProg = progId;
                 UpdateSongDisplay();
             }
 

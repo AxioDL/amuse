@@ -29,7 +29,7 @@ class IMIDIReader
 public:
     virtual ~IMIDIReader()=default;
     virtual std::string description()=0;
-    virtual void pumpReader()=0;
+    virtual void pumpReader(double dt)=0;
 };
 
 /** Client-implemented voice allocator */

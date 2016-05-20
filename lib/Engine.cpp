@@ -158,7 +158,7 @@ void Engine::_bringOutYourDead()
 void Engine::_5MsCallback(double dt)
 {
     if (m_midiReader)
-        m_midiReader->pumpReader();
+        m_midiReader->pumpReader(dt);
     for (std::shared_ptr<Sequencer>& seq : m_activeSequencers)
         seq->advance(dt);
 }

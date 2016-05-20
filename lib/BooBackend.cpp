@@ -107,9 +107,55 @@ std::string BooBackendMIDIReader::description()
     return m_midiIn->description();
 }
 
-void BooBackendMIDIReader::pumpReader()
+BooBackendMIDIReader::~BooBackendMIDIReader() {}
+
+BooBackendMIDIReader::BooBackendMIDIReader(Engine& engine, const char* name)
+: m_engine(engine), m_decoder(*this)
 {
-    while (m_decoder.receiveBytes()) {}
+    BooBackendVoiceAllocator& voxAlloc = static_cast<BooBackendVoiceAllocator&>(engine.getBackend());
+    if (!name)
+        m_midiIn = voxAlloc.m_booEngine.newVirtualMIDIIn(std::bind(&BooBackendMIDIReader::_MIDIReceive, this,
+                                                                  std::placeholders::_1));
+    else
+        m_midiIn = voxAlloc.m_booEngine.newRealMIDIIn(name,
+                                                     std::bind(&BooBackendMIDIReader::_MIDIReceive, this,
+                                                               std::placeholders::_1));
+}
+
+void BooBackendMIDIReader::_MIDIReceive(std::vector<uint8_t>&& bytes)
+{
+    std::unique_lock<std::mutex> lk(m_midiMutex);
+    m_queue.emplace_back(std::chrono::steady_clock::now(), std::move(bytes));
+}
+
+void BooBackendMIDIReader::pumpReader(double dt)
+{
+    dt += 0.001; /* Add 1ms to ensure consumer keeps up with producer */
+
+    std::unique_lock<std::mutex> lk(m_midiMutex);
+    if (m_queue.empty())
+        return;
+
+    /* Determine range of buffer updates within this period */
+    auto periodEnd = m_queue.cbegin();
+    std::chrono::steady_clock::time_point startPt = m_queue.front().first;
+    for (; periodEnd != m_queue.cend() ; ++periodEnd)
+    {
+        double delta = std::chrono::duration_cast<std::chrono::microseconds>
+                       (periodEnd->first - startPt).count() / 1000000.0;
+        if (delta > dt)
+            break;
+    }
+
+    if (m_queue.cbegin() == periodEnd)
+        return;
+
+    /* Dispatch buffers */
+    for (auto it = m_queue.begin() ; it != periodEnd ;)
+    {
+        m_decoder.receiveBytes(it->second.cbegin(), it->second.cend());
+        it = m_queue.erase(it);
+    }
 }
 
 void BooBackendMIDIReader::noteOff(uint8_t chan, uint8_t key, uint8_t velocity)
@@ -241,16 +287,10 @@ std::vector<std::pair<std::string, std::string>> BooBackendVoiceAllocator::enume
 
 std::unique_ptr<IMIDIReader> BooBackendVoiceAllocator::allocateMIDIReader(Engine& engine, const char* name)
 {
-    std::unique_ptr<boo::IMIDIIn> inPort;
-    if (!name)
-        inPort = m_booEngine.newVirtualMIDIIn();
-    else
-        inPort = m_booEngine.newRealMIDIIn(name);
-
-    if (!inPort)
+    std::unique_ptr<IMIDIReader> ret = std::make_unique<BooBackendMIDIReader>(engine, name);
+    if (!static_cast<BooBackendMIDIReader&>(*ret).m_midiIn)
         return {};
-
-    return std::make_unique<BooBackendMIDIReader>(engine, std::move(inPort));
+    return ret;
 }
 
 void BooBackendVoiceAllocator::register5MsCallback(std::function<void(double)>&& callback)

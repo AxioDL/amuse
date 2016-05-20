@@ -26,7 +26,7 @@ class Engine
     friend class Voice;
     friend class Emitter;
     friend class Sequencer;
-    friend class Sequencer::ChannelState;
+    friend struct Sequencer::ChannelState;
 
     IBackendVoiceAllocator& m_backend;
     std::unique_ptr<IMIDIReader> m_midiReader;
