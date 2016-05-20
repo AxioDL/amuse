@@ -18,6 +18,7 @@ class Submix;
 class Emitter;
 class AudioGroup;
 class AudioGroupData;
+class IMIDIReader;
 
 /** Main audio playback system for a single audio output */
 class Engine
@@ -28,6 +29,7 @@ class Engine
     friend class Sequencer::ChannelState;
 
     IBackendVoiceAllocator& m_backend;
+    std::unique_ptr<IMIDIReader> m_midiReader;
     std::unordered_map<const AudioGroupData*, std::unique_ptr<AudioGroup>> m_audioGroups;
     std::list<std::shared_ptr<Voice>> m_activeVoices;
     std::list<std::shared_ptr<Emitter>> m_activeEmitters;
@@ -96,6 +98,9 @@ public:
 
     /** Obtain next random number from engine's PRNG */
     uint32_t nextRandom() {return m_random();}
+
+    /** Obtain list of active sequencers */
+    std::list<std::shared_ptr<Sequencer>>& getActiveSequencers() {return m_activeSequencers;}
 };
 
 }

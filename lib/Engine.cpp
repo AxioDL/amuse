@@ -27,6 +27,7 @@ Engine::Engine(IBackendVoiceAllocator& backend)
 : m_backend(backend)
 {
     backend.register5MsCallback(std::bind(&Engine::_5MsCallback, this, std::placeholders::_1));
+    m_midiReader = backend.allocateMIDIReader(*this);
 }
 
 std::pair<AudioGroup*, const SongGroupIndex*> Engine::_findSongGroup(int groupId) const
@@ -156,6 +157,8 @@ void Engine::_bringOutYourDead()
 
 void Engine::_5MsCallback(double dt)
 {
+    if (m_midiReader)
+        m_midiReader->pumpReader();
     for (std::shared_ptr<Sequencer>& seq : m_activeSequencers)
         seq->advance(dt);
 }

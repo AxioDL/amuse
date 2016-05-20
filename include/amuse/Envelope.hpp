@@ -20,10 +20,10 @@ public:
     };
 private:
     State m_phase = State::Attack; /**< Current envelope state */
-    double m_attackTime = 0.0; /**< Time of attack in seconds */
+    double m_attackTime = 0.01; /**< Time of attack in seconds */
     double m_decayTime = 0.0; /**< Time of decay in seconds */
     double m_sustainFactor = 1.0; /**< Evaluated sustain percentage */
-    double m_releaseTime = 0.0; /**< Time of release in seconds */
+    double m_releaseTime = 0.01; /**< Time of release in seconds */
     double m_releaseStartFactor = 0.0; /**< Level at whenever release event occurs */
     double m_curTime = 0.0; /**< Current time of envelope stage in seconds */
 public:

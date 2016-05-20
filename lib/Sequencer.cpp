@@ -213,7 +213,7 @@ void Sequencer::ChannelState::setCtrlValue(uint8_t ctrl, int8_t val)
 
     if (ctrl == 7)
         setVolume(val / 127.f);
-    else if (ctrl == 8)
+    else if (ctrl == 8 || ctrl == 10)
         setPan(val / 64.f - 1.f);
 }
 
@@ -319,6 +319,24 @@ void Sequencer::allOff(bool now)
         for (auto& chan : m_chanStates)
             if (chan)
                 chan->allOff();
+}
+
+void Sequencer::allOff(uint8_t chan, bool now)
+{
+    if (chan > 15 || !m_chanStates[chan])
+        return;
+
+    if (now)
+    {
+        for (const auto& vox : m_chanStates[chan]->m_chanVoxs)
+            m_engine._destroyVoice(vox.second.get());
+        for (const auto& vox : m_chanStates[chan]->m_keyoffVoxs)
+            m_engine._destroyVoice(vox.get());
+        m_chanStates[chan]->m_chanVoxs.clear();
+        m_chanStates[chan]->m_keyoffVoxs.clear();
+    }
+    else
+        m_chanStates[chan]->allOff();
 }
 
 void Sequencer::ChannelState::killKeygroup(uint8_t kg, bool now)

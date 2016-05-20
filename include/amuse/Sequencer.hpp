@@ -112,6 +112,9 @@ public:
     /** Send keyoffs to all active notes, silence immediately if `now` set */
     void allOff(bool now=false);
 
+    /** Send keyoffs to all active notes on specified channel, silence immediately if `now` set */
+    void allOff(uint8_t chan, bool now=false);
+
     /** Stop all voices in `kg`, stops immediately (no KeyOff) when `now` set */
     void killKeygroup(uint8_t kg, bool now);
 

@@ -1,6 +1,7 @@
 #include "amuse/BooBackend.hpp"
 #include "amuse/Voice.hpp"
 #include "amuse/Submix.hpp"
+#include "amuse/Engine.hpp"
 
 namespace amuse
 {
@@ -100,6 +101,124 @@ SubmixFormat BooBackendSubmix::getSampleFormat() const
     return SubmixFormat(m_booSubmix->getSampleFormat());
 }
 
+
+std::string BooBackendMIDIReader::description()
+{
+    return m_midiIn->description();
+}
+
+void BooBackendMIDIReader::pumpReader()
+{
+    while (m_decoder.receiveBytes()) {}
+}
+
+void BooBackendMIDIReader::noteOff(uint8_t chan, uint8_t key, uint8_t velocity)
+{
+    for (std::shared_ptr<Sequencer>& seq : m_engine.getActiveSequencers())
+        seq->keyOff(chan, key, velocity);
+}
+
+void BooBackendMIDIReader::noteOn(uint8_t chan, uint8_t key, uint8_t velocity)
+{
+    for (std::shared_ptr<Sequencer>& seq : m_engine.getActiveSequencers())
+        seq->keyOn(chan, key, velocity);
+}
+
+void BooBackendMIDIReader::notePressure(uint8_t chan, uint8_t key, uint8_t pressure)
+{
+}
+
+void BooBackendMIDIReader::controlChange(uint8_t chan, uint8_t control, uint8_t value)
+{
+    for (std::shared_ptr<Sequencer>& seq : m_engine.getActiveSequencers())
+        seq->setCtrlValue(chan, control, value);
+}
+
+void BooBackendMIDIReader::programChange(uint8_t chan, uint8_t program)
+{
+    for (std::shared_ptr<Sequencer>& seq : m_engine.getActiveSequencers())
+        seq->setChanProgram(chan, program);
+}
+
+void BooBackendMIDIReader::channelPressure(uint8_t chan, uint8_t pressure)
+{
+}
+
+void BooBackendMIDIReader::pitchBend(uint8_t chan, int16_t pitch)
+{
+    for (std::shared_ptr<Sequencer>& seq : m_engine.getActiveSequencers())
+        seq->setPitchWheel(chan, (pitch - 0x2000) / float(0x2000));
+}
+
+
+void BooBackendMIDIReader::allSoundOff(uint8_t chan)
+{
+    for (std::shared_ptr<Sequencer>& seq : m_engine.getActiveSequencers())
+        seq->allOff(chan, true);
+}
+
+void BooBackendMIDIReader::resetAllControllers(uint8_t chan)
+{
+}
+
+void BooBackendMIDIReader::localControl(uint8_t chan, bool on)
+{
+}
+
+void BooBackendMIDIReader::allNotesOff(uint8_t chan)
+{
+    for (std::shared_ptr<Sequencer>& seq : m_engine.getActiveSequencers())
+        seq->allOff(chan, false);
+}
+
+void BooBackendMIDIReader::omniMode(uint8_t chan, bool on)
+{
+}
+
+void BooBackendMIDIReader::polyMode(uint8_t chan, bool on)
+{
+}
+
+
+void BooBackendMIDIReader::sysex(const void* data, size_t len)
+{
+}
+
+void BooBackendMIDIReader::timeCodeQuarterFrame(uint8_t message, uint8_t value)
+{
+}
+
+void BooBackendMIDIReader::songPositionPointer(uint16_t pointer)
+{
+}
+
+void BooBackendMIDIReader::songSelect(uint8_t song)
+{
+}
+
+void BooBackendMIDIReader::tuneRequest()
+{
+}
+
+
+void BooBackendMIDIReader::startSeq()
+{
+}
+
+void BooBackendMIDIReader::continueSeq()
+{
+}
+
+void BooBackendMIDIReader::stopSeq()
+{
+}
+
+
+void BooBackendMIDIReader::reset()
+{
+}
+
+
 BooBackendVoiceAllocator::BooBackendVoiceAllocator(boo::IAudioVoiceEngine& booEngine)
 : m_booEngine(booEngine)
 {}
@@ -113,6 +232,25 @@ BooBackendVoiceAllocator::allocateVoice(Voice& clientVox, double sampleRate, boo
 std::unique_ptr<IBackendSubmix> BooBackendVoiceAllocator::allocateSubmix(Submix& clientSmx)
 {
     return std::make_unique<BooBackendSubmix>(m_booEngine, clientSmx);
+}
+
+std::vector<std::pair<std::string, std::string>> BooBackendVoiceAllocator::enumerateMIDIDevices()
+{
+    return m_booEngine.enumerateMIDIDevices();
+}
+
+std::unique_ptr<IMIDIReader> BooBackendVoiceAllocator::allocateMIDIReader(Engine& engine, const char* name)
+{
+    std::unique_ptr<boo::IMIDIIn> inPort;
+    if (!name)
+        inPort = m_booEngine.newVirtualMIDIIn();
+    else
+        inPort = m_booEngine.newRealMIDIIn(name);
+
+    if (!inPort)
+        return {};
+
+    return std::make_unique<BooBackendMIDIReader>(engine, std::move(inPort));
 }
 
 void BooBackendVoiceAllocator::register5MsCallback(std::function<void(double)>&& callback)

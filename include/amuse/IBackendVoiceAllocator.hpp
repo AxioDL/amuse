@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <functional>
+#include <vector>
 
 namespace amuse
 {
@@ -10,6 +11,7 @@ class IBackendVoice;
 class IBackendSubmix;
 class Voice;
 class Submix;
+class Engine;
 
 /** Same enum as boo for describing speaker-configuration */
 enum class AudioChannelSet
@@ -19,6 +21,15 @@ enum class AudioChannelSet
     Surround51,
     Surround71,
     Unknown = 0xff
+};
+
+/** Handle to MIDI-reader, implementation opaque */
+class IMIDIReader
+{
+public:
+    virtual ~IMIDIReader()=default;
+    virtual std::string description()=0;
+    virtual void pumpReader()=0;
 };
 
 /** Client-implemented voice allocator */
@@ -34,6 +45,12 @@ public:
 
     /** Amuse obtains a new submix from the platform this way */
     virtual std::unique_ptr<IBackendSubmix> allocateSubmix(Submix& clientSmx)=0;
+
+    /** Amuse obtains a list of all MIDI devices this way */
+    virtual std::vector<std::pair<std::string, std::string>> enumerateMIDIDevices()=0;
+
+    /** Amuse obtains an interactive MIDI-in connection from the OS this way */
+    virtual std::unique_ptr<IMIDIReader> allocateMIDIReader(Engine& engine, const char* name=nullptr)=0;
 
     /** Amuse obtains speaker-configuration from the platform this way */
     virtual AudioChannelSet getAvailableSet()=0;
