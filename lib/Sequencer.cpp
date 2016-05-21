@@ -207,9 +207,9 @@ void Sequencer::ChannelState::setCtrlValue(uint8_t ctrl, int8_t val)
 {
     m_ctrlVals[ctrl] = val;
     for (const auto& vox : m_chanVoxs)
-        vox.second->notifyCtrlChange(ctrl, val);
+        vox.second->_notifyCtrlChange(ctrl, val);
     for (const auto& vox : m_keyoffVoxs)
-        vox->notifyCtrlChange(ctrl, val);
+        vox->_notifyCtrlChange(ctrl, val);
 
     if (ctrl == 7)
         setVolume(val / 127.f);

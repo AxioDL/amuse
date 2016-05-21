@@ -14,7 +14,7 @@ namespace amuse
 /** Converts time-cents representation to seconds */
 static inline double TimeCentsToSeconds(int32_t tc)
 {
-    if (tc == 0x80000000)
+    if (uint32_t(tc) == 0x80000000)
         return 0.0;
     return std::exp2(tc / (1200.0 * 65536.0));
 }
@@ -84,9 +84,9 @@ struct LayerMapping
     int8_t keyHi;
     int8_t transpose;
     int8_t volume;
-    int8_t pan; /* -128 for surround-channel only */
     int8_t prioOffset;
-    int8_t unk; /* usually 0x40 */
+    int8_t span;
+    int8_t pan;
 };
 
 /** Database of functional objects within Audio Group */

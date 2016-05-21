@@ -35,7 +35,7 @@ public:
     virtual void resetSampleRate(double sampleRate)=0;
 
     /** Set channel-gains for audio source (AudioChannel enum for array index) */
-    virtual void setMatrixCoefficients(const float coefs[8])=0;
+    virtual void setMatrixCoefficients(const float coefs[8], bool slew)=0;
 
     /** Called by client to dynamically adjust the pitch of voices with dynamic pitch enabled */
     virtual void setPitchRatio(double ratio, bool slew)=0;

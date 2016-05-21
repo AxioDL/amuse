@@ -68,10 +68,12 @@ class Voice : public Entity
     uint8_t m_curAftertouch = 0; /**< Aftertouch value (key pressure when 'bottoming out') */
 
     float m_userVol = 1.f; /**< User volume of voice */
-    float m_curVol; /**< Current volume of voice */
-    float m_curReverbVol; /**< Current reverb volume of voice */
-    float m_curPan; /**< Current pan of voice */
-    float m_curSpan; /**< Current surround pan of voice */
+    float m_curVol = 1.f; /**< Current volume of voice */
+    float m_curReverbVol = 0.f; /**< Current reverb volume of voice */
+    float m_userPan = 0.f; /**< User pan of voice */
+    float m_curPan = 0.f; /**< Current pan of voice */
+    float m_userSpan = 0.f; /**< User span of voice */
+    float m_curSpan = 0.f; /**< Current surround pan of voice */
     float m_curPitchWheel = 0.f; /**< Current normalized wheel value for control */
     int32_t m_pitchWheelUp; /**< Up range for pitchwheel control in cents */
     int32_t m_pitchWheelDown; /**< Down range for pitchwheel control in cents */
@@ -102,12 +104,12 @@ class Voice : public Entity
     float m_panningTime; /**< time since last PANNING command, -1 for no active pan-sweep */
     float m_panningDur; /**< requested duration of last PANNING command */
     uint8_t m_panPos; /**< initial pan value of last PANNING command */
-    uint8_t m_panWidth; /**< delta pan value to target of last PANNING command */
+    int8_t m_panWidth; /**< delta pan value to target of last PANNING command */
 
     float m_spanningTime; /**< time since last SPANNING command, -1 for no active span-sweep */
     float m_spanningDur; /**< requested duration of last SPANNING command */
     uint8_t m_spanPos; /**< initial pan value of last SPANNING command */
-    uint8_t m_spanWidth; /**< delta pan value to target of last SPANNING command */
+    int8_t m_spanWidth; /**< delta pan value to target of last SPANNING command */
 
     int32_t m_vibratoLevel; /**< scale of vibrato effect (in cents) */
     int32_t m_vibratoModLevel; /**< scale of vibrato mod-wheel influence (in cents) */
@@ -145,6 +147,10 @@ class Voice : public Entity
                     uint8_t midiKey, uint8_t midiVel, uint8_t midiMod, bool pushPc=false);
     std::shared_ptr<Voice> _startChildMacro(ObjectId macroId, int macroStep, double ticksPerSec,
                                             uint8_t midiKey, uint8_t midiVel, uint8_t midiMod, bool pushPc=false);
+
+    void _setPan(float pan);
+    void _setSurroundPan(float span);
+    void _notifyCtrlChange(uint8_t ctrl, int8_t val);
 public:
     ~Voice();
     Voice(Engine& engine, const AudioGroup& group, int groupId, int vid, bool emitter, Submix* smx);
@@ -202,10 +208,10 @@ public:
     void startFadeIn(double dur, float vol, const Curve* envCurve);
 
     /** Start pan envelope to specified position */
-    void startPanning(double dur, uint8_t panPos, uint8_t panWidth);
+    void startPanning(double dur, uint8_t panPos, int8_t panWidth);
 
     /** Start span envelope to specified position */
-    void startSpanning(double dur, uint8_t spanPos, uint8_t spanWidth);
+    void startSpanning(double dur, uint8_t spanPos, int8_t spanWidth);
 
     /** Set voice relative-pitch in cents */
     void setPitchKey(int32_t cents);
@@ -264,8 +270,6 @@ public:
     /** Get note played on voice */
     uint8_t getLastNote() const {return m_state.m_initKey;}
 
-    void notifyCtrlChange(uint8_t ctrl, int8_t val);
-
     /** Get MIDI Controller value on voice */
     int8_t getCtrlValue(uint8_t ctrl) const
     {
@@ -288,7 +292,7 @@ public:
         }
         else
             m_extCtrlVals[ctrl] = val;
-        notifyCtrlChange(ctrl, val);
+        _notifyCtrlChange(ctrl, val);
     }
 
     /** Get ModWheel value on voice */

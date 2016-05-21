@@ -29,9 +29,9 @@ void BooBackendVoice::resetSampleRate(double sampleRate)
     m_booVoice->resetSampleRate(sampleRate);
 }
 
-void BooBackendVoice::setMatrixCoefficients(const float coefs[8])
+void BooBackendVoice::setMatrixCoefficients(const float coefs[8], bool slew)
 {
-    m_booVoice->setMonoMatrixCoefficients(coefs);
+    m_booVoice->setMonoMatrixCoefficients(coefs, slew);
 }
 
 void BooBackendVoice::setPitchRatio(double ratio, bool slew)

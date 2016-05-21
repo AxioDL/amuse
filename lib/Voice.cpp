@@ -39,10 +39,6 @@ Voice::Voice(Engine& engine, const AudioGroup& group, int groupId, ObjectId oid,
 
 void Voice::_reset()
 {
-    m_curVol = 1.f;
-    m_curReverbVol = 0.f;
-    m_curPan = 0.f;
-    m_curSpan = 0.f;
     m_curAftertouch = 0;
     m_pitchWheelUp = 600;
     m_pitchWheelDown = 600;
@@ -56,6 +52,7 @@ void Voice::_reset()
     m_pitchSweep2It = 0;
     m_envelopeTime = -1.f;
     m_panningTime = -1.f;
+    m_spanningTime = -1.f;
     m_vibratoLevel = 0;
     m_vibratoModLevel = 0;
     m_vibratoPeriod = 0.f;
@@ -268,7 +265,7 @@ bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
         float start = (m_panPos - 64) / 64.f;
         float end = (m_panPos + m_panWidth - 64) / 64.f;
         float t = std::max(0.f, std::min(1.f, m_panningTime / m_panningDur));
-        m_curPan = (start * (1.0f - t)) + (end * t);
+        _setPan((start * (1.0f - t)) + (end * t));
         refresh = true;
 
         /* Done with panning */
@@ -283,7 +280,7 @@ bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
         float start = (m_spanPos - 64) / 64.f;
         float end = (m_spanPos + m_spanWidth - 64) / 64.f;
         float t = std::max(0.f, std::min(1.f, m_spanningTime / m_spanningDur));
-        m_curSpan = (start * (1.0f - t)) + (end * t);
+        _setSurroundPan((start * (1.0f - t)) + (end * t));
         refresh = true;
 
         /* Done with spanning */
@@ -377,7 +374,7 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
             }
 
             /* Per-sample processing */
-            for (int i=0 ; i<decSamples ; ++i)
+            for (uint32_t i=0 ; i<decSamples ; ++i)
             {
                 ++samplesProc;
                 ++m_curSamplePos;
@@ -425,7 +422,7 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
             }
 
             /* Per-sample processing */
-            for (int i=0 ; i<decSamples ; ++i)
+            for (uint32_t i=0 ; i<decSamples ; ++i)
             {
                 ++samplesProc;
                 ++m_curSamplePos;
@@ -478,6 +475,8 @@ std::shared_ptr<Voice> Voice::_startChildMacro(ObjectId macroId, int macroStep, 
         return {};
     }
     vox->setVolume(m_userVol);
+    vox->setPan(m_userPan);
+    vox->setSurroundPan(m_userSpan);
     return vox;
 }
 
@@ -511,7 +510,11 @@ bool Voice::_loadKeymap(const Keymap* keymap, int macroStep, double ticksPerSec,
 {
     const Keymap& km = keymap[midiKey];
     midiKey += km.transpose;
-    return loadSoundObject(SBig(km.objectId), macroStep, ticksPerSec, midiKey, midiVel, midiMod, pushPc);
+    bool ret = loadSoundObject(SBig(km.objectId), macroStep, ticksPerSec, midiKey, midiVel, midiMod, pushPc);
+    m_curVol = 1.f;
+    _setPan((km.pan - 64) / 64.f);
+    _setSurroundPan(-1.f);
+    return ret;
 }
 
 bool Voice::_loadLayer(const std::vector<const LayerMapping*>& layer, int macroStep, double ticksPerSec,
@@ -524,11 +527,26 @@ bool Voice::_loadLayer(const std::vector<const LayerMapping*>& layer, int macroS
         {
             uint8_t mappingKey = midiKey + mapping->transpose;
             if (m_voxState != VoiceState::Playing)
+            {
                 ret |= loadSoundObject(SBig(mapping->objectId), macroStep, ticksPerSec,
                                        mappingKey, midiVel, midiMod, pushPc);
+                m_curVol = mapping->volume / 127.f;
+                _setPan((mapping->pan - 64) / 64.f);
+                _setSurroundPan((mapping->span - 64) / 64.f);
+            }
             else
-                ret |= _startChildMacro(SBig(mapping->objectId), macroStep, ticksPerSec,
-                                        mappingKey, midiVel, midiMod, pushPc).operator bool();
+            {
+                std::shared_ptr<Voice> vox =
+                    _startChildMacro(SBig(mapping->objectId), macroStep, ticksPerSec,
+                                     mappingKey, midiVel, midiMod, pushPc);
+                if (vox)
+                {
+                    vox->m_curVol = mapping->volume / 127.f;
+                    vox->_setPan((mapping->pan - 64) / 64.f);
+                    vox->_setSurroundPan((mapping->span - 64) / 64.f);
+                    ret = true;
+                }
+            }
         }
     }
     return ret;
@@ -617,7 +635,7 @@ void Voice::startSample(int16_t sampId, int32_t offset)
         {
             if (m_curSample->first.m_loopLengthSamples)
             {
-                if (offset > m_curSample->first.m_loopStartSample)
+                if (offset > int32_t(m_curSample->first.m_loopStartSample))
                     offset = ((offset - m_curSample->first.m_loopStartSample) %
                               m_curSample->first.m_loopLengthSamples) +
                               m_curSample->first.m_loopStartSample;
@@ -669,16 +687,64 @@ void Voice::setVolume(float vol)
         vox->setVolume(vol);
 }
 
-void Voice::setPan(float pan)
+void Voice::_setPan(float pan)
 {
     m_curPan = clamp(-1.f, pan, 1.f);
+    float totalPan = clamp(-1.f, m_curPan + m_userPan, 1.f);
+    float totalSpan = clamp(-1.f, m_curSpan + m_userSpan, 1.f);
+    float coefs[8];
+
+    /* Left */
+    coefs[0] = (totalPan <= 0.f) ? 1.f : (1.f - totalPan);
+    coefs[0] *= (totalSpan <= 0.f) ? 1.f : (1.f - totalSpan);
+
+    /* Right */
+    coefs[1] = (totalPan >= 0.f) ? 1.f : (1.f + totalPan);
+    coefs[1] *= (totalSpan <= 0.f) ? 1.f : (1.f - totalSpan);
+
+    /* Back Left */
+    coefs[2] = (totalPan <= 0.f) ? 1.f : (1.f - totalPan);
+    coefs[2] *= (totalSpan >= 0.f) ? 1.f : (1.f + totalSpan);
+
+    /* Back Right */
+    coefs[3] = (totalPan >= 0.f) ? 1.f : (1.f + totalPan);
+    coefs[3] *= (totalSpan >= 0.f) ? 1.f : (1.f + totalSpan);
+
+    /* Center */
+    coefs[4] = 1.f - std::fabs(totalPan);
+
+    /* LFE */
+    coefs[5] = 1.f;
+
+    /* Side Left */
+    coefs[6] = (totalPan <= 0.f) ? 1.f : (1.f - totalPan);
+    coefs[6] *= 1.f - std::fabs(totalSpan);
+
+    /* Side Right */
+    coefs[7] = (totalPan >= 0.f) ? 1.f : (1.f + totalPan);
+    coefs[7] *= 1.f - std::fabs(totalSpan);
+
+    m_backendVoice->setMatrixCoefficients(coefs, true);
+}
+
+void Voice::setPan(float pan)
+{
+    m_userPan = pan;
+    _setPan(m_curPan);
     for (std::shared_ptr<Voice>& vox : m_childVoices)
         vox->setPan(pan);
 }
 
-void Voice::setSurroundPan(float span)
+void Voice::_setSurroundPan(float span)
 {
     m_curSpan = clamp(-1.f, span, 1.f);
+    _setPan(m_curPan);
+}
+
+void Voice::setSurroundPan(float span)
+{
+    m_userSpan = span;
+    _setSurroundPan(m_curSpan);
     for (std::shared_ptr<Voice>& vox : m_childVoices)
         vox->setSurroundPan(span);
 }
@@ -697,11 +763,11 @@ void Voice::startFadeIn(double dur, float vol, const Curve* envCurve)
     m_envelopeTime = m_voiceTime;
     m_envelopeDur = dur;
     m_envelopeStart = 0.f;
-    m_envelopeEnd = clamp(0.f, m_curVol, 1.f);
+    m_envelopeEnd = clamp(0.f, vol, 1.f);
     m_envelopeCurve = envCurve;
 }
 
-void Voice::startPanning(double dur, uint8_t panPos, uint8_t panWidth)
+void Voice::startPanning(double dur, uint8_t panPos, int8_t panWidth)
 {
     m_panningTime = m_voiceTime;
     m_panningDur = dur;
@@ -709,7 +775,7 @@ void Voice::startPanning(double dur, uint8_t panPos, uint8_t panWidth)
     m_panWidth = panWidth;
 }
 
-void Voice::startSpanning(double dur, uint8_t spanPos, uint8_t spanWidth)
+void Voice::startSpanning(double dur, uint8_t spanPos, int8_t spanWidth)
 {
     m_spanningTime = m_voiceTime;
     m_spanningDur = dur;
@@ -736,7 +802,7 @@ void Voice::setPedal(bool pedal)
         vox->setPedal(pedal);
 }
 
-void Voice::setDoppler(float doppler)
+void Voice::setDoppler(float)
 {
 }
 
@@ -850,7 +916,7 @@ void Voice::setAftertouch(uint8_t aftertouch)
         vox->setAftertouch(aftertouch);
 }
 
-void Voice::notifyCtrlChange(uint8_t ctrl, int8_t val)
+void Voice::_notifyCtrlChange(uint8_t ctrl, int8_t val)
 {
     if (ctrl == 64)
     {
@@ -861,7 +927,7 @@ void Voice::notifyCtrlChange(uint8_t ctrl, int8_t val)
     }
 
     for (std::shared_ptr<Voice>& vox : m_childVoices)
-        vox->notifyCtrlChange(ctrl, val);
+        vox->_notifyCtrlChange(ctrl, val);
 }
 
 size_t Voice::getTotalVoices() const

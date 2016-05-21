@@ -49,7 +49,7 @@ int main(int argc, char* argv[])
     int sfxId = 0x1337;
     float vol = 1.0f;
     float pan = 0.0f;
-    std::shared_ptr<Voice> voice = snd.fxStart(sfxId, vol, pan);
+    std::shared_ptr<amuse::Voice> voice = snd.fxStart(sfxId, vol, pan);
 
     /* Play for ~5 sec */
     int passedFrames = 0;

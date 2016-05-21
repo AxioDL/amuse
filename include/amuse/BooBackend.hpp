@@ -33,7 +33,7 @@ public:
     BooBackendVoice(boo::IAudioSubmix& submix, Voice& clientVox,
                     double sampleRate, bool dynamicPitch);
     void resetSampleRate(double sampleRate);
-    void setMatrixCoefficients(const float coefs[8]);
+    void setMatrixCoefficients(const float coefs[8], bool slew);
     void setPitchRatio(double ratio, bool slew);
     void start();
     void stop();
