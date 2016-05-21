@@ -201,6 +201,13 @@ std::list<std::shared_ptr<Voice>>::iterator Voice::_destroyVoice(Voice* voice)
     return m_childVoices.erase(voice->m_engineIt);
 }
 
+static void ApplyVolume(float vol, int16_t& samp)
+{
+    /* -10dB to 0dB mapped to full volume range */
+    float factor = (std::pow(10.f, vol - 1.f) - 0.1f) * (1.f / 0.9f);
+    samp *= factor;
+}
+
 bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
 {
     double dt = 1.0 / m_sampleRate;
@@ -251,8 +258,8 @@ bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
         }
     }
 
-    /* Multiply sample with total volume */
-    samp = ClampFull<int16_t>(samp * totalVol);
+    /* Apple total volume to sample using decibel scale */
+    ApplyVolume(ClampFull<float>(totalVol), samp);
 
     /* Process active pan-sweep */
     if (m_panningTime >= 0.f)

@@ -114,12 +114,23 @@ BooBackendMIDIReader::BooBackendMIDIReader(Engine& engine, const char* name)
 {
     BooBackendVoiceAllocator& voxAlloc = static_cast<BooBackendVoiceAllocator&>(engine.getBackend());
     if (!name)
+    {
+        auto devices = voxAlloc.m_booEngine.enumerateMIDIDevices();
+        for (const auto& dev : devices)
+        {
+            m_midiIn = voxAlloc.m_booEngine.newRealMIDIIn(dev.first.c_str(),
+                                                          std::bind(&BooBackendMIDIReader::_MIDIReceive, this,
+                                                                    std::placeholders::_1));
+            if (m_midiIn)
+                return;
+        }
         m_midiIn = voxAlloc.m_booEngine.newVirtualMIDIIn(std::bind(&BooBackendMIDIReader::_MIDIReceive, this,
-                                                                  std::placeholders::_1));
+                                                                   std::placeholders::_1));
+    }
     else
         m_midiIn = voxAlloc.m_booEngine.newRealMIDIIn(name,
-                                                     std::bind(&BooBackendMIDIReader::_MIDIReceive, this,
-                                                               std::placeholders::_1));
+                                                      std::bind(&BooBackendMIDIReader::_MIDIReceive, this,
+                                                                std::placeholders::_1));
 }
 
 void BooBackendMIDIReader::_MIDIReceive(std::vector<uint8_t>&& bytes)
@@ -170,7 +181,7 @@ void BooBackendMIDIReader::noteOn(uint8_t chan, uint8_t key, uint8_t velocity)
         seq->keyOn(chan, key, velocity);
 }
 
-void BooBackendMIDIReader::notePressure(uint8_t chan, uint8_t key, uint8_t pressure)
+void BooBackendMIDIReader::notePressure(uint8_t /*chan*/, uint8_t /*key*/, uint8_t /*pressure*/)
 {
 }
 
@@ -186,7 +197,7 @@ void BooBackendMIDIReader::programChange(uint8_t chan, uint8_t program)
         seq->setChanProgram(chan, program);
 }
 
-void BooBackendMIDIReader::channelPressure(uint8_t chan, uint8_t pressure)
+void BooBackendMIDIReader::channelPressure(uint8_t /*chan*/, uint8_t /*pressure*/)
 {
 }
 
@@ -203,11 +214,11 @@ void BooBackendMIDIReader::allSoundOff(uint8_t chan)
         seq->allOff(chan, true);
 }
 
-void BooBackendMIDIReader::resetAllControllers(uint8_t chan)
+void BooBackendMIDIReader::resetAllControllers(uint8_t /*chan*/)
 {
 }
 
-void BooBackendMIDIReader::localControl(uint8_t chan, bool on)
+void BooBackendMIDIReader::localControl(uint8_t /*chan*/, bool /*on*/)
 {
 }
 
@@ -217,28 +228,28 @@ void BooBackendMIDIReader::allNotesOff(uint8_t chan)
         seq->allOff(chan, false);
 }
 
-void BooBackendMIDIReader::omniMode(uint8_t chan, bool on)
+void BooBackendMIDIReader::omniMode(uint8_t /*chan*/, bool /*on*/)
 {
 }
 
-void BooBackendMIDIReader::polyMode(uint8_t chan, bool on)
+void BooBackendMIDIReader::polyMode(uint8_t /*chan*/, bool /*on*/)
 {
 }
 
 
-void BooBackendMIDIReader::sysex(const void* data, size_t len)
+void BooBackendMIDIReader::sysex(const void* /*data*/, size_t /*len*/)
 {
 }
 
-void BooBackendMIDIReader::timeCodeQuarterFrame(uint8_t message, uint8_t value)
+void BooBackendMIDIReader::timeCodeQuarterFrame(uint8_t /*message*/, uint8_t /*value*/)
 {
 }
 
-void BooBackendMIDIReader::songPositionPointer(uint16_t pointer)
+void BooBackendMIDIReader::songPositionPointer(uint16_t /*pointer*/)
 {
 }
 
-void BooBackendMIDIReader::songSelect(uint8_t song)
+void BooBackendMIDIReader::songSelect(uint8_t /*song*/)
 {
 }
 
