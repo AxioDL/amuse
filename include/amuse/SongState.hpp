@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <vector>
+#include <array>
 #include <list>
 #include "optional.hpp"
 #include "Entity.hpp"
