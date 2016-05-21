@@ -9,7 +9,7 @@
 #include <string.h>
 #include <thread>
 #include <map>
-#include <varargs.h>
+#include <stdarg.h>
 
 static logvisor::Module Log("amuseplay");
 
