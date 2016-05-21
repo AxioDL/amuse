@@ -201,7 +201,8 @@ std::list<std::shared_ptr<Voice>>::iterator Voice::_destroyVoice(Voice* voice)
 static void ApplyVolume(float vol, int16_t& samp)
 {
     /* -10dB to 0dB mapped to full volume range */
-    float factor = (std::pow(10.f, vol - 1.f) - 0.1f) * (1.f / 0.9f);
+    float factor = std::sqrt(std::pow(10.f, (vol - 1.f))) - 0.317f;
+    if (factor < 0.f) factor = 0.f;
     samp *= factor;
 }
 

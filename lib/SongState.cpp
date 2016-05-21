@@ -179,9 +179,9 @@ bool SongState::Channel::advance(Sequencer& seq, int32_t ticks)
             /* See if there's an upcoming pitch change in this interval */
             const unsigned char* ptr = m_pitchWheelData;
             uint32_t deltaTicks = DecodeRLE(ptr);
-            if (deltaTicks != -1)
+            if (deltaTicks != 0xffffffff)
             {
-                uint32_t nextTick = m_lastPitchTick + deltaTicks;
+                int32_t nextTick = m_lastPitchTick + deltaTicks;
                 if (pitchTick + remPitchTicks > nextTick)
                 {
                     /* Update pitch */
@@ -212,9 +212,9 @@ bool SongState::Channel::advance(Sequencer& seq, int32_t ticks)
             /* See if there's an upcoming modulation change in this interval */
             const unsigned char* ptr = m_modWheelData;
             uint32_t deltaTicks = DecodeRLE(ptr);
-            if (deltaTicks != -1)
+            if (deltaTicks != 0xffffffff)
             {
-                uint32_t nextTick = m_lastModTick + deltaTicks;
+                int32_t nextTick = m_lastModTick + deltaTicks;
                 if (modTick + remModTicks > nextTick)
                 {
                     /* Update modulation */
