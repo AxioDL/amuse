@@ -9,10 +9,26 @@
 #include <string.h>
 #include <thread>
 #include <map>
+#include <varargs.h>
 
 #define VOL_FACTOR 0.25
 
 static logvisor::Module Log("amuseplay");
+
+#if __GNUC__
+__attribute__((__format__ (__printf__, 3, 4)))
+#endif
+static inline void SNPrintf(boo::SystemChar* str, size_t maxlen, const boo::SystemChar* format, ...)
+{
+    va_list va;
+    va_start(va, format);
+#if _WIN32
+    _vsnwprintf(str, maxlen, format, va);
+#else
+    vsnprintf(str, maxlen, format, va);
+#endif
+    va_end(va);
+}
 
 static amuse::IntrusiveAudioGroupData LoadFromArgs(int argc, const boo::SystemChar** argv,
                                                    std::string& descOut, bool& good)
@@ -68,14 +84,14 @@ static amuse::IntrusiveAudioGroupData LoadFromArgs(int argc, const boo::SystemCh
         else
         {
             /* Now attempt multi-file case */
-            char path[1024];
+            boo::SystemChar path[1024];
 
             /* Project */
-            snprintf(path, 1024, "%s.pro", argv[1]);
+            SNPrintf(path, 1024, _S("%s.pro"), argv[1]);
             r.emplace(path, 32 * 1024, false);
             if (r->hasError())
             {
-                snprintf(path, 1024, "%s.proj", argv[1]);
+                SNPrintf(path, 1024, _S("%s.proj"), argv[1]);
                 r.emplace(path, 32 * 1024, false);
                 if (r->hasError())
                     return {nullptr, nullptr, nullptr, nullptr};
@@ -83,11 +99,11 @@ static amuse::IntrusiveAudioGroupData LoadFromArgs(int argc, const boo::SystemCh
             std::unique_ptr<uint8_t[]> proj = r->readUBytes(r->length());
 
             /* Pool */
-            snprintf(path, 1024, "%s.poo", argv[1]);
+            SNPrintf(path, 1024, _S("%s.poo"), argv[1]);
             r.emplace(path, 32 * 1024, false);
             if (r->hasError())
             {
-                snprintf(path, 1024, "%s.pool", argv[1]);
+                SNPrintf(path, 1024, _S("%s.pool"), argv[1]);
                 r.emplace(path, 32 * 1024, false);
                 if (r->hasError())
                     return {nullptr, nullptr, nullptr, nullptr};
@@ -95,11 +111,11 @@ static amuse::IntrusiveAudioGroupData LoadFromArgs(int argc, const boo::SystemCh
             std::unique_ptr<uint8_t[]> pool = r->readUBytes(r->length());
 
             /* Sdir */
-            snprintf(path, 1024, "%s.sdi", argv[1]);
+            SNPrintf(path, 1024, _S("%s.sdi"), argv[1]);
             r.emplace(path, 32 * 1024, false);
             if (r->hasError())
             {
-                snprintf(path, 1024, "%s.sdir", argv[1]);
+                SNPrintf(path, 1024, _S("%s.sdir"), argv[1]);
                 r.emplace(path, 32 * 1024, false);
                 if (r->hasError())
                     return {nullptr, nullptr, nullptr, nullptr};
@@ -107,11 +123,11 @@ static amuse::IntrusiveAudioGroupData LoadFromArgs(int argc, const boo::SystemCh
             std::unique_ptr<uint8_t[]> sdir = r->readUBytes(r->length());
 
             /* Samp */
-            snprintf(path, 1024, "%s.sam", argv[1]);
+            SNPrintf(path, 1024, _S("%s.sam"), argv[1]);
             r.emplace(path, 32 * 1024, false);
             if (r->hasError())
             {
-                snprintf(path, 1024, "%s.samp", argv[1]);
+                SNPrintf(path, 1024, _S("%s.samp"), argv[1]);
                 r.emplace(path, 32 * 1024, false);
                 if (r->hasError())
                     return {nullptr, nullptr, nullptr, nullptr};
@@ -635,7 +651,7 @@ struct AppCallback : boo::IApplicationCallback
     int appMain(boo::IApplication* app)
     {
         /* Event window */
-        m_win = app->newWindow("amuseplay", 1);
+        m_win = app->newWindow(_S("amuseplay"), 1);
         m_win->setCallback(&m_events);
         m_win->setWindowFrame(100, 100, 100, 100);
         m_win->setStyle(~boo::EWindowStyle::Resize);

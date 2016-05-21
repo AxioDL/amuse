@@ -1,5 +1,6 @@
 #include "amuse/SurroundProfiles.hpp"
 #include <cmath>
+#include <algorithm>
 #include <cfloat>
 
 namespace amuse
