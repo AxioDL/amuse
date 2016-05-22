@@ -156,19 +156,22 @@ std::shared_ptr<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velo
     std::shared_ptr<Voice> ret = m_parent.m_engine._allocateVoice(m_parent.m_audioGroup,
                                                                   m_parent.m_groupId, 32000.0,
                                                                   true, false, m_submix);
-    m_chanVoxs[note] = ret;
-    ret->installCtrlValues(m_ctrlVals);
-    if (!ret->loadSoundObject(SBig(m_page->objId), 0, 1000.f, note, velocity, m_ctrlVals[1]))
+    if (ret)
     {
-        m_parent.m_engine._destroyVoice(ret.get());
-        return {};
-    }
-    ret->setVolume(m_parent.m_curVol * m_curVol);
-    ret->setPan(m_curPan);
-    ret->setPitchWheel(m_curPitchWheel);
+        m_chanVoxs[note] = ret;
+        ret->installCtrlValues(m_ctrlVals);
+        if (!ret->loadSoundObject(SBig(m_page->objId), 0, 1000.f, note, velocity, m_ctrlVals[1]))
+        {
+            m_parent.m_engine._destroyVoice(ret.get());
+            return {};
+        }
+        ret->setVolume(m_parent.m_curVol * m_curVol);
+        ret->setPan(m_curPan);
+        ret->setPitchWheel(m_curPitchWheel);
 
-    if (m_ctrlVals[64] > 64)
-        ret->setPedal(true);
+        if (m_ctrlVals[64] > 64)
+            ret->setPedal(true);
+    }
 
     return ret;
 }
@@ -302,8 +305,12 @@ void Sequencer::setTempo(double ticksPerSec)
 
 void Sequencer::ChannelState::allOff()
 {
-    for (const auto& vox : m_chanVoxs)
-        vox.second->keyOff();
+    for (auto it = m_chanVoxs.begin() ; it != m_chanVoxs.end() ;)
+    {
+        it->second->keyOff();
+        m_keyoffVoxs.emplace(std::move(it->second));
+        it = m_chanVoxs.erase(it);
+    }
 }
 
 void Sequencer::allOff(bool now)
@@ -358,6 +365,9 @@ void Sequencer::ChannelState::killKeygroup(uint8_t kg, bool now)
                 continue;
             }
             vox->keyOff();
+            m_keyoffVoxs.emplace(std::move(it->second));
+            it = m_chanVoxs.erase(it);
+            continue;
         }
         ++it;
     }
