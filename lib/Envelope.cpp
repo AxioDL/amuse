@@ -31,9 +31,9 @@ void Envelope::keyOff()
     m_curTime = 0.0;
 }
 
-float Envelope::nextSample(double sampleRate)
+float Envelope::advance(double dt)
 {
-    m_curTime += 1.0 / sampleRate;
+    m_curTime += dt;
 
     switch (m_phase)
     {

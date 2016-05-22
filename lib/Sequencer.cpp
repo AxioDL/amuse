@@ -211,10 +211,16 @@ void Sequencer::ChannelState::setCtrlValue(uint8_t ctrl, int8_t val)
     for (const auto& vox : m_keyoffVoxs)
         vox->_notifyCtrlChange(ctrl, val);
 
-    if (ctrl == 7)
+    switch (ctrl)
+    {
+    case 7:
         setVolume(val / 127.f);
-    else if (ctrl == 8 || ctrl == 10)
+        break;
+    case 10:
         setPan(val / 64.f - 1.f);
+        break;
+    default: break;
+    }
 }
 
 bool Sequencer::ChannelState::programChange(int8_t prog)

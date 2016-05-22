@@ -778,7 +778,7 @@ struct AppCallback : boo::IApplicationCallback
         /* Build voice engine */
         std::unique_ptr<boo::IAudioVoiceEngine> voxEngine = boo::NewAudioVoiceEngine();
         amuse::BooBackendVoiceAllocator booBackend(*voxEngine);
-        m_engine.emplace(booBackend);
+        m_engine.emplace(booBackend, amuse::AmplitudeMode::BlockLinearized);
 
         /* Load group into engine */
         const amuse::AudioGroup* group = m_engine->addAudioGroup(data);

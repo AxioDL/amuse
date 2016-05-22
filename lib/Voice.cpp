@@ -11,6 +11,7 @@
 
 namespace amuse
 {
+extern "C" const float VolumeLUT[];
 
 void Voice::_destroy()
 {
@@ -201,14 +202,41 @@ std::list<std::shared_ptr<Voice>>::iterator Voice::_destroyVoice(Voice* voice)
 static void ApplyVolume(float vol, int16_t& samp)
 {
     /* -10dB to 0dB mapped to full volume range */
-    float factor = std::sqrt(std::pow(10.f, (vol - 1.f))) - 0.317f;
-    if (factor < 0.f) factor = 0.f;
-    samp *= factor;
+    samp *= VolumeLUT[int(vol * 65536)];
 }
 
 bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
 {
-    double dt = 1.0 / m_sampleRate;
+    double dt;
+
+    /* Block linearized will use a larger `dt` for amplitude sampling;
+     * significantly reducing the processing expense */
+    switch (m_engine.m_ampMode)
+    {
+    case AmplitudeMode::PerSample:
+        m_voiceSamples += 1;
+        dt = 1.0 / m_sampleRate;
+        break;
+    case AmplitudeMode::BlockLinearized:
+    {
+        uint32_t rem = m_voiceSamples % 160;
+        m_voiceSamples += 1;
+        if (rem != 0)
+        {
+            /* Lerp within 160-sample block */
+            float t = rem / 160.f;
+            float l = m_lastLevel * (1.f - t) + m_nextLevel * t;
+
+            /* Apply total volume to sample using decibel scale */
+            ApplyVolume(l, samp);
+            return false;
+        }
+
+        dt = 160.0 / m_sampleRate;
+        break;
+    }
+    }
+
     m_voiceTime += dt;
     bool refresh = false;
 
@@ -229,8 +257,9 @@ bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
     }
 
     /* Factor in ADSR envelope state */
-    float adsr = m_volAdsr.nextSample(m_sampleRate);
-    float totalVol = m_userVol * m_curVol * adsr * (m_state.m_curVel / 127.f);
+    float adsr = m_volAdsr.advance(dt);
+    m_lastLevel = m_nextLevel;
+    m_nextLevel = m_userVol * m_curVol * adsr * (m_state.m_curVel / 127.f);
 
     /* Apply tremolo */
     if (m_state.m_tremoloSel && (m_tremoloScale || m_tremoloModScale))
@@ -241,23 +270,25 @@ bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
             float fac = (1.0f - t) + (m_tremoloScale * t);
             float modT = getModWheel() / 127.f;
             float modFac = (1.0f - modT) + (m_tremoloModScale * modT);
-            totalVol *= fac * modFac;
+            m_nextLevel *= fac * modFac;
         }
         else if (m_tremoloScale)
         {
             float fac = (1.0f - t) + (m_tremoloScale * t);
-            totalVol *= fac;
+            m_nextLevel *= fac;
         }
         else if (m_tremoloModScale)
         {
             float modT = getModWheel() / 127.f;
             float modFac = (1.0f - modT) + (m_tremoloModScale * modT);
-            totalVol *= modFac;
+            m_nextLevel *= modFac;
         }
     }
 
-    /* Apple total volume to sample using decibel scale */
-    ApplyVolume(ClampFull<float>(totalVol), samp);
+    m_nextLevel = ClampFull<float>(m_nextLevel);
+
+    /* Apply total volume to sample using decibel scale */
+    ApplyVolume(m_nextLevel, samp);
 
     /* Process active pan-sweep */
     if (m_panningTime >= 0.f)
@@ -295,7 +326,7 @@ bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
     m_pitchDirty = false;
     if (m_pitchEnv)
     {
-        newPitch = m_curPitch * m_pitchAdsr.nextSample(m_sampleRate);
+        newPitch = m_curPitch * m_pitchAdsr.advance(dt);
         refresh = true;
     }
 
@@ -452,7 +483,9 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
         m_messageTrap.macroId == 0xffff &&
         (!m_curSample || (m_curSample && m_volAdsr.isComplete())))
     {
+        m_curSample = nullptr;
         m_voxState = VoiceState::Dead;
+        m_backendVoice->stop();
     }
     return samples;
 }

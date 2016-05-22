@@ -12,6 +12,7 @@ set(SOURCES
     lib/SoundMacroState.cpp
     lib/SongState.cpp
     lib/Voice.cpp
+    lib/VolumeLUT.cpp
     lib/Submix.cpp
     lib/EffectBase.cpp
     lib/EffectReverb.cpp

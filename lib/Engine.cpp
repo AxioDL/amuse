@@ -23,8 +23,8 @@ Engine::~Engine()
         vox->_destroy();
 }
 
-Engine::Engine(IBackendVoiceAllocator& backend)
-: m_backend(backend)
+Engine::Engine(IBackendVoiceAllocator& backend, AmplitudeMode ampMode)
+: m_backend(backend), m_ampMode(ampMode)
 {
     backend.register5MsCallback(std::bind(&Engine::_5MsCallback, this, std::placeholders::_1));
     m_midiReader = backend.allocateMIDIReader(*this);

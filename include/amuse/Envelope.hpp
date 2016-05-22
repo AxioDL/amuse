@@ -30,7 +30,7 @@ public:
     void reset(const ADSR* adsr);
     void reset(const ADSRDLS* adsr, int8_t note, int8_t vel);
     void keyOff();
-    float nextSample(double sampleRate);
+    float advance(double dt);
     bool isComplete() const {return m_phase == State::Complete;}
 };
 

@@ -61,6 +61,9 @@ class Voice : public Entity
     int16_t m_prev2 = 0; /**< DSPADPCM prev-prev sample */
     double m_sampleRate = 32000.0; /**< Current sample rate computed from relative sample key or SETPITCH */
     double m_voiceTime = 0.0; /**< Current seconds of voice playback (per-sample resolution) */
+    uint32_t m_voiceSamples = 0; /**< Count of samples processed over voice's lifetime */
+    float m_lastLevel = 0.f; /**< Last computed level ([0,1] mapped to [-10,0] clamped decibels) */
+    float m_nextLevel = 0.f; /**< Next computed level used for lerp-mode amplitude */
 
     VoiceState m_voxState = VoiceState::Dead; /**< Current high-level state of voice */
     bool m_sustained = false; /**< Sustain pedal pressed for this voice */

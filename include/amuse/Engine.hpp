@@ -20,6 +20,12 @@ class AudioGroup;
 class AudioGroupData;
 class IMIDIReader;
 
+enum class AmplitudeMode
+{
+    PerSample, /**< Per-sample amplitude evaluation (dt = 1.0 / sampleRate, rather CPU demanding) */
+    BlockLinearized /**< Per-block lerp amplitude evaluation (dt = 160.0 / sampleRate) */
+};
+
 /** Main audio playback system for a single audio output */
 class Engine
 {
@@ -29,6 +35,7 @@ class Engine
     friend struct Sequencer::ChannelState;
 
     IBackendVoiceAllocator& m_backend;
+    AmplitudeMode m_ampMode;
     std::unique_ptr<IMIDIReader> m_midiReader;
     std::unordered_map<const AudioGroupData*, std::unique_ptr<AudioGroup>> m_audioGroups;
     std::list<std::shared_ptr<Voice>> m_activeVoices;
@@ -55,7 +62,7 @@ class Engine
     void _5MsCallback(double dt);
 public:
     ~Engine();
-    Engine(IBackendVoiceAllocator& backend);
+    Engine(IBackendVoiceAllocator& backend, AmplitudeMode ampMode=AmplitudeMode::PerSample);
 
     /** Access voice backend of engine */
     IBackendVoiceAllocator& getBackend() {return m_backend;}
