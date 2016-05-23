@@ -917,6 +917,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR lpCmdLine, int)
         booArgv[i+1] = argv[i];
 
     logvisor::CreateWin32Console();
+    SetConsoleOutputCP(65001);
     return wmain(argc+1, booArgv);
 }
 #endif
