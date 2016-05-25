@@ -93,22 +93,6 @@ if(TARGET boo)
       endforeach()
 
       if(EXISTS "${PROV_PROFILE}")
-        # Containing App
-        add_executable(amuse-au-container MACOSX_BUNDLE AudioUnit/AmuseContainingApp.mm
-                       AudioUnit/AudioUnitBackend.hpp AudioUnit/AudioUnitBackend.mm
-                       AudioUnit/AudioUnitViewController.hpp AudioUnit/AudioUnitViewController.mm)
-        set_source_files_properties(AudioUnit/AudioUnitBackend.mm AudioUnit/AudioUnitViewController.mm
-                                    AudioUnit/AmuseContainingApp.mm
-                                    PROPERTIES COMPILE_FLAGS -fobjc-arc)
-        target_link_libraries(amuse-au-container amuse boo soxr ${AUDIOUNIT_LIBRARY} ${COREAUDIOKIT_LIBRARY}
-                              ${AVFOUNDATION_LIBRARY} ${BOO_SYS_LIBS} logvisor)
-        set_target_properties(amuse-au-container PROPERTIES
-                              MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/AudioUnit/ContainerInfo.plist"
-                              XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${CMAKE_CURRENT_SOURCE_DIR}/AudioUnit/Amuse.entitlements")
-
-        set(APPLE_BUNDLE_ID "io.github.axiodl.Amuse")
-        configure_file(${CMAKE_CURRENT_SOURCE_DIR}/AudioUnit/Amuse.entitlements.in
-                       ${CMAKE_CURRENT_BINARY_DIR}/AmuseContainer.entitlements)
 
         # Extension App
         add_executable(amuse-au MACOSX_BUNDLE AudioUnit/AudioUnitBackend.hpp AudioUnit/AudioUnitBackend.mm
@@ -123,20 +107,48 @@ if(TARGET boo)
         set_target_properties(amuse-au PROPERTIES
                               MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/AudioUnit/ExtensionInfo.plist"
                               BUNDLE_EXTENSION "appex" BUNDLE TRUE
-                              XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${CMAKE_CURRENT_SOURCE_DIR}/AudioUnit/Amuse.entitlements"
+                              XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${CMAKE_CURRENT_BINARY_DIR}/AmuseExtension.entitlements"
+                              XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "${APPLE_DEV_ID}"
                               LINK_FLAGS "-e _NSExtensionMain -fobjc-arc -fobjc-link-runtime -fapplication-extension")
 
-        file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/amuse-au.app/Contents/embedded.provisionprofile" INPUT "${PROV_PROFILE}")
-        install(CODE "file(REMOVE_RECURSE \"${CMAKE_CURRENT_BINARY_DIR}/amuse-au-container.app/Contents/PlugIns/amuse-au.appex\")")
-        install(CODE "file(COPY \"${CMAKE_CURRENT_BINARY_DIR}/amuse-au.app/\" DESTINATION
-            \"${CMAKE_CURRENT_BINARY_DIR}/amuse-au-container.app/Contents/PlugIns/amuse-au.appex\" PATTERN
-            \"${CMAKE_CURRENT_BINARY_DIR}/amuse-au.app/*\")")
-        install(CODE "message(STATUS \"Codesigning: amuse-au\")\nexecute_process(COMMAND codesign --force --sign
-            \"${APPLE_DEV_ID}\" --entitlements \"${CMAKE_CURRENT_BINARY_DIR}/AmuseExtension.entitlements\"
-            \"${CMAKE_CURRENT_BINARY_DIR}/amuse-au-container.app/Contents/PlugIns/amuse-au.appex\")")
-        install(CODE "message(STATUS \"Codesigning: amuse-au-container\")\nexecute_process(COMMAND codesign --force --sign
-            \"${APPLE_DEV_ID}\" --entitlements \"${CMAKE_CURRENT_BINARY_DIR}/AmuseContainer.entitlements\"
-            \"${CMAKE_CURRENT_BINARY_DIR}/amuse-au-container.app\")")
+
+        # Containing App
+        add_executable(amuse-au-container MACOSX_BUNDLE AudioUnit/AmuseContainingApp.mm
+                       AudioUnit/AudioUnitBackend.hpp AudioUnit/AudioUnitBackend.mm
+                       AudioUnit/AudioUnitViewController.hpp AudioUnit/AudioUnitViewController.mm)
+        set_source_files_properties(AudioUnit/AudioUnitBackend.mm AudioUnit/AudioUnitViewController.mm
+                                    AudioUnit/AmuseContainingApp.mm
+                                    PROPERTIES COMPILE_FLAGS -fobjc-arc)
+        target_link_libraries(amuse-au-container amuse boo soxr ${AUDIOUNIT_LIBRARY} ${COREAUDIOKIT_LIBRARY}
+                              ${AVFOUNDATION_LIBRARY} ${BOO_SYS_LIBS} logvisor)
+
+        set(APPLE_BUNDLE_ID "io.github.axiodl.Amuse")
+        configure_file(${CMAKE_CURRENT_SOURCE_DIR}/AudioUnit/Amuse.entitlements.in
+                       ${CMAKE_CURRENT_BINARY_DIR}/AmuseContainer.entitlements)
+
+        set_target_properties(amuse-au-container PROPERTIES
+                              MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/AudioUnit/ContainerInfo.plist"
+                              XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${CMAKE_CURRENT_BINARY_DIR}/AmuseContainer.entitlements"
+                              XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "${APPLE_DEV_ID}")
+
+        add_custom_command(TARGET amuse-au POST_BUILD
+          COMMAND ${CMAKE_COMMAND} -E copy "${PROV_PROFILE}" "$<TARGET_FILE_DIR:amuse-au>/../embedded.provisionprofile"
+          COMMAND ${CMAKE_COMMAND} -E remove_directory "$<TARGET_FILE_DIR:amuse-au-container>/../PlugIns/amuse-au.appex"
+          COMMAND ${CMAKE_COMMAND} -E copy_directory "$<TARGET_FILE_DIR:amuse-au>/../.."
+                      "$<TARGET_FILE_DIR:amuse-au-container>/../PlugIns/amuse-au.appex"
+          COMMAND codesign --force --sign
+                      ${APPLE_DEV_ID} --entitlements "${CMAKE_CURRENT_BINARY_DIR}/AmuseExtension.entitlements"
+                      "$<TARGET_FILE_DIR:amuse-au-container>/../PlugIns/amuse-au.appex"
+          COMMAND codesign --force --sign ${APPLE_DEV_ID}
+                      "$<TARGET_FILE_DIR:amuse-au-container>/../.."
+          VERBATIM
+        )
+
+        add_custom_command(TARGET amuse-au-container POST_BUILD
+          COMMAND codesign --force --sign
+                      ${APPLE_DEV_ID} "$<TARGET_FILE_DIR:amuse-au-container>/../.."
+          VERBATIM
+        )
 
       else()
         message(WARNING "Unable to find developer provision profile; skipping Amuse-AU")
