@@ -6,7 +6,7 @@
 
 namespace amuse
 {
-class ChannelMap;
+struct ChannelMap;
 
 class EffectBaseTypeless
 {
