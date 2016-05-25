@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleDisplayName</key>
+    <string>Amuse</string>
+    <key>CFBundleExecutable</key>
+    <string>amuse-au</string>
+    <key>CFBundleIdentifier</key>
+    <string>io.github.axiodl.Amuse.AudioUnit</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>Amuse</string>
+    <key>CFBundlePackageType</key>
+    <string>XPC!</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundleSignature</key>
+    <string>????</string>
+    <key>CFBundleSupportedPlatforms</key>
+    <array>
+        <string>MacOSX</string>
+    </array>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>10.11</string>
+    <key>NSExtension</key>
+    <dict>
+        <key>NSExtensionAttributes</key>
+        <dict>
+            <key>AudioComponents</key>
+            <array>
+                <dict>
+                    <key>description</key>
+                    <string>Amuse</string>
+                    <key>factoryFunction</key>
+                    <string>AudioUnitViewController</string>
+                    <key>manufacturer</key>
+                    <string>AXDL</string>
+                    <key>name</key>
+                    <string>AXDL: Amuse</string>
+                    <key>sandboxSafe</key>
+                    <true/>
+                    <key>subtype</key>
+                    <string>amus</string>
+                    <key>tags</key>
+                    <array>
+                        <string>Synthesizer</string>
+                    </array>
+                    <key>type</key>
+                    <string>aumu</string>
+                    <key>version</key>
+                    <integer>67072</integer>
+                </dict>
+            </array>
+            <key>NSExtensionServiceRoleType</key>
+            <string>NSExtensionServiceRoleTypeEditor</string>
+        </dict>
+        <key>NSExtensionPointIdentifier</key>
+        <string>com.apple.AudioUnit-UI</string>
+        <key>NSExtensionPrincipalClass</key>
+        <string>AudioUnitViewController</string>
+    </dict>
+</dict>
+</plist>
