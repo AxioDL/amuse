@@ -19,25 +19,7 @@ struct AudioUnitVoiceEngine : boo::BaseAudioVoiceEngine
 {
     std::vector<std::unique_ptr<float[]>> m_renderBufs;
     size_t m_frameBytes;
-
-    void render(AudioBufferList* outputData)
-    {
-        if (m_renderBufs.size() < outputData->mNumberBuffers)
-            m_renderBufs.resize(outputData->mNumberBuffers);
-
-        for (int i=0 ; i<outputData->mNumberBuffers ; ++i)
-        {
-            std::unique_ptr<float[]>& buf = m_renderBufs[i];
-            AudioBuffer& auBuf = outputData->mBuffers[i];
-            if (!auBuf.mData)
-            {
-                buf.reset(new float[auBuf.mDataByteSize]);
-                auBuf.mData = buf.get();
-            }
-
-            _pumpAndMixVoices(auBuf.mDataByteSize / 2 / 4, reinterpret_cast<float*>(auBuf.mData));
-        }
-    }
+    AudioBufferList* m_outputData = nullptr;
 
     boo::AudioChannelSet _getAvailableSet()
     {
@@ -107,6 +89,21 @@ struct AudioUnitVoiceEngine : boo::BaseAudioVoiceEngine
 
     void pumpAndMixVoices()
     {
+        if (m_renderBufs.size() < m_outputData->mNumberBuffers)
+            m_renderBufs.resize(m_outputData->mNumberBuffers);
+
+        for (int i=0 ; i<m_outputData->mNumberBuffers ; ++i)
+        {
+            std::unique_ptr<float[]>& buf = m_renderBufs[i];
+            AudioBuffer& auBuf = m_outputData->mBuffers[i];
+            if (!auBuf.mData)
+            {
+                buf.reset(new float[auBuf.mDataByteSize]);
+                auBuf.mData = buf.get();
+            }
+
+            _pumpAndMixVoices(auBuf.mDataByteSize / 2 / 4, reinterpret_cast<float*>(auBuf.mData));
+        }
     }
 };
 
@@ -185,7 +182,8 @@ struct AudioUnitVoiceEngine : boo::BaseAudioVoiceEngine
 
 - (AUInternalRenderBlock)internalRenderBlock
 {
-    AudioUnitVoiceEngine& voxEngine = static_cast<AudioUnitVoiceEngine&>(*m_booBackend);
+    __block AudioUnitVoiceEngine& voxEngine = static_cast<AudioUnitVoiceEngine&>(*m_booBackend);
+    __block amuse::Engine& amuseEngine = *m_engine;
 
     return ^AUAudioUnitStatus(AudioUnitRenderActionFlags* actionFlags, const AudioTimeStamp* timestamp,
              AUAudioFrameCount frameCount, NSInteger outputBusNumber, AudioBufferList* outputData,
@@ -206,7 +204,8 @@ struct AudioUnitVoiceEngine : boo::BaseAudioVoiceEngine
         }
 
         /* Output buffers */
-        voxEngine.render(outputData);
+        voxEngine.m_outputData = outputData;
+        amuseEngine.pumpEngine();
         return noErr;
     };
 }

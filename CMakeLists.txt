@@ -81,7 +81,7 @@ if(TARGET boo)
     if (NOT (AUDIOUNIT_LIBRARY STREQUAL AUDIOUNIT_LIBRARY-NOTFOUND))
       set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}")
 
-      # Search for provision profile to make AudioUnit on OS X
+      # Search for provision profile to make AudioUnit extension on OS X
       unset(PROV_PROFILE)
       file(GLOB PROV_FILES "$ENV{HOME}/Library/MobileDevice/Provisioning Profiles/*.provisionprofile")
       foreach(FILE ${PROV_FILES})
@@ -96,14 +96,15 @@ if(TARGET boo)
 
         # Extension App
         add_executable(amuse-au MACOSX_BUNDLE AudioUnit/AudioUnitBackend.hpp AudioUnit/AudioUnitBackend.mm
-                       AudioUnit/AudioUnitViewController.hpp AudioUnit/AudioUnitViewController.mm)
+                       AudioUnit/AudioUnitViewController.hpp AudioUnit/AudioUnitViewController.mm
+                       AudioUnit/AudioGroupFilePresenter.hpp AudioUnit/AudioGroupFilePresenter.mm)
 
         set(APPLE_BUNDLE_ID "io.github.axiodl.Amuse.AudioUnit")
-        configure_file(${CMAKE_CURRENT_SOURCE_DIR}/AudioUnit/Amuse.entitlements.in
+        configure_file(${CMAKE_CURRENT_SOURCE_DIR}/AudioUnit/AmuseExtension.entitlements.in
                        ${CMAKE_CURRENT_BINARY_DIR}/AmuseExtension.entitlements)
 
         target_link_libraries(amuse-au amuse boo soxr ${AUDIOUNIT_LIBRARY} ${COREAUDIOKIT_LIBRARY}
-                              ${AVFOUNDATION_LIBRARY} ${BOO_SYS_LIBS} logvisor)
+                              ${AVFOUNDATION_LIBRARY} ${BOO_SYS_LIBS} logvisor athena-core)
         set_target_properties(amuse-au PROPERTIES
                               MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/AudioUnit/ExtensionInfo.plist"
                               BUNDLE_EXTENSION "appex" BUNDLE TRUE
@@ -113,17 +114,27 @@ if(TARGET boo)
 
 
         # Containing App
+        add_custom_command(
+          OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/AmuseContainerMainMenu.nib
+          COMMAND ibtool --errors --warnings --notices --module amuse_au_container --auto-activate-custom-fonts
+          --target-device mac --minimum-deployment-target 10.11 --output-format human-readable-text --compile
+          ${CMAKE_CURRENT_BINARY_DIR}/AmuseContainerMainMenu.nib
+          ${CMAKE_CURRENT_SOURCE_DIR}/AudioUnit/AmuseContainerMainMenu.xib
+          DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/AudioUnit/AmuseContainerMainMenu.xib
+        )
         add_executable(amuse-au-container MACOSX_BUNDLE AudioUnit/AmuseContainingApp.mm
                        AudioUnit/AudioUnitBackend.hpp AudioUnit/AudioUnitBackend.mm
-                       AudioUnit/AudioUnitViewController.hpp AudioUnit/AudioUnitViewController.mm)
+                       AudioUnit/AudioUnitViewController.hpp AudioUnit/AudioUnitViewController.mm
+                       AudioUnit/AudioGroupFilePresenter.hpp AudioUnit/AudioGroupFilePresenter.mm
+                       AmuseContainerMainMenu.nib)
         set_source_files_properties(AudioUnit/AudioUnitBackend.mm AudioUnit/AudioUnitViewController.mm
-                                    AudioUnit/AmuseContainingApp.mm
+                                    AudioUnit/AmuseContainingApp.mm AudioUnit/AudioGroupFilePresenter.mm
                                     PROPERTIES COMPILE_FLAGS -fobjc-arc)
         target_link_libraries(amuse-au-container amuse boo soxr ${AUDIOUNIT_LIBRARY} ${COREAUDIOKIT_LIBRARY}
-                              ${AVFOUNDATION_LIBRARY} ${BOO_SYS_LIBS} logvisor)
+                              ${AVFOUNDATION_LIBRARY} ${BOO_SYS_LIBS} logvisor athena-core)
 
         set(APPLE_BUNDLE_ID "io.github.axiodl.Amuse")
-        configure_file(${CMAKE_CURRENT_SOURCE_DIR}/AudioUnit/Amuse.entitlements.in
+        configure_file(${CMAKE_CURRENT_SOURCE_DIR}/AudioUnit/AmuseContainer.entitlements.in
                        ${CMAKE_CURRENT_BINARY_DIR}/AmuseContainer.entitlements)
 
         set_target_properties(amuse-au-container PROPERTIES
@@ -145,6 +156,9 @@ if(TARGET boo)
         )
 
         add_custom_command(TARGET amuse-au-container POST_BUILD
+          COMMAND ${CMAKE_COMMAND} -E copy
+          "${CMAKE_CURRENT_BINARY_DIR}/AmuseContainerMainMenu.nib"
+          "$<TARGET_FILE_DIR:amuse-au-container>/../Resources/AmuseContainerMainMenu.nib"
           COMMAND codesign --force --sign
                       ${APPLE_DEV_ID} "$<TARGET_FILE_DIR:amuse-au-container>/../.."
           VERBATIM

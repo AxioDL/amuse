@@ -8,5 +8,9 @@
   <string>@APPLE_TEAM_ID@</string>
   <key>com.apple.security.app-sandbox</key>
   <true/>
+  <key>com.apple.security.application-groups</key>
+  <array>
+    <string>group.io.github.axiodl.Amuse.AudioGroups</string>
+  </array>
 </dict>
 </plist>

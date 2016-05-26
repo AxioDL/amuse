@@ -26,5 +26,7 @@
     <string>10.11</string>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
+    <key>NSMainNibFile</key>
+    <string>AmuseContainerMainMenu</string>
 </dict>
 </plist>
