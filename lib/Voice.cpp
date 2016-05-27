@@ -92,8 +92,8 @@ bool Voice::_checkSamplePos()
         {
             /* Turn over looped sample */
             m_curSamplePos = m_curSample->first.m_loopStartSample;
-            m_prev1 = m_curSample->second.m_hist1;
-            m_prev2 = m_curSample->second.m_hist2;
+            m_prev1 = m_curSample->second.m_hist2;
+            m_prev2 = m_curSample->second.m_hist1;
         }
         else
         {

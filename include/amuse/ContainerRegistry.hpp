@@ -22,6 +22,7 @@ public:
         RogueSquadron2,
         RogueSquadron3
     };
+    static const char* TypeToName(Type tp);
     static Type DetectContainerType(const char* path);
     static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadContainer(const char* path);
 };

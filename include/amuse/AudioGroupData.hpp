@@ -21,6 +21,11 @@ public:
     const unsigned char* getPool() const {return m_pool;}
     const unsigned char* getSdir() const {return m_sdir;}
     const unsigned char* getSamp() const {return m_samp;}
+
+    operator bool() const
+    {
+        return m_proj != nullptr && m_pool != nullptr && m_sdir != nullptr && m_samp != nullptr;
+    }
 };
 
 /** A buffer-owning version of AudioGroupData */

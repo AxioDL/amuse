@@ -6,6 +6,7 @@
 #include "AudioGroupPool.hpp"
 #include "AudioGroupProject.hpp"
 #include "AudioGroupSampleDirectory.hpp"
+#include "ContainerRegistry.hpp"
 #include "EffectChorus.hpp"
 #include "EffectDelay.hpp"
 #include "EffectReverb.hpp"

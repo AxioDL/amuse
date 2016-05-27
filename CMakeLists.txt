@@ -173,5 +173,5 @@ if(TARGET boo)
   endif()
 
   add_executable(amuseplay WIN32 driver/main.cpp)
-  target_link_libraries(amuseplay amuse boo ${BOO_SYS_LIBS} logvisor athena-core)
+  target_link_libraries(amuseplay amuse boo ${BOO_SYS_LIBS} logvisor athena-core ${ZLIB_LIBRARIES})
 endif()
