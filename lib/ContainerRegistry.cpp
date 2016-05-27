@@ -481,36 +481,24 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadRS1PC(FI
                     proj.reset(new uint8_t[entry.decompSz]);
                     FSeek(fp, entry.offset, SEEK_SET);
                     fread(proj.get(), 1, entry.decompSz, fp);
-                    FILE* wfp = fopen("/Users/jacko/Desktop/RS.proj", "wb");
-                    fwrite(proj.get(), 1, entry.decompSz, wfp);
-                    fclose(wfp);
                 }
                 else if (!strncmp("pool_SND", entry.name, 16))
                 {
                     pool.reset(new uint8_t[entry.decompSz]);
                     FSeek(fp, entry.offset, SEEK_SET);
                     fread(pool.get(), 1, entry.decompSz, fp);
-                    FILE* wfp = fopen("/Users/jacko/Desktop/RS.pool", "wb");
-                    fwrite(pool.get(), 1, entry.decompSz, wfp);
-                    fclose(wfp);
                 }
                 else if (!strncmp("sdir_SND", entry.name, 16))
                 {
                     sdir.reset(new uint8_t[entry.decompSz]);
                     FSeek(fp, entry.offset, SEEK_SET);
                     fread(sdir.get(), 1, entry.decompSz, fp);
-                    FILE* wfp = fopen("/Users/jacko/Desktop/RS.sdir", "wb");
-                    fwrite(sdir.get(), 1, entry.decompSz, wfp);
-                    fclose(wfp);
                 }
                 else if (!strncmp("samp_SND", entry.name, 16))
                 {
                     samp.reset(new uint8_t[entry.decompSz]);
                     FSeek(fp, entry.offset, SEEK_SET);
                     fread(samp.get(), 1, entry.decompSz, fp);
-                    FILE* wfp = fopen("/Users/jacko/Desktop/RS.samp", "wb");
-                    fwrite(samp.get(), 1, entry.decompSz, wfp);
-                    fclose(wfp);
                 }
             }
             
@@ -724,6 +712,8 @@ static bool ValidateRS2(FILE* fp)
         RS2FSTEntry entry;
         fread(&entry, 1, 64, fp);
         entry.swapBig();
+        if (!entry.offset)
+            return false; /* This is to reject RS3 data */
         if (!strncmp("data", entry.name, 32))
             return true;
     }
