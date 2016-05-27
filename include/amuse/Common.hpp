@@ -15,6 +15,15 @@ namespace amuse
 #endif
 #endif
 
+static inline int CompareCaseInsensitive(const char* a, const char* b)
+{
+#if _WIN32
+    return _stricmp(a, b);
+#else
+    return strcasecmp(a, b);
+#endif
+}
+
 template <typename T>
 static inline T clamp(T a, T val, T b) {return std::max<T>(a, std::min<T>(b, val));}
 
@@ -54,6 +63,28 @@ inline float ClampFull<float>(float in)
 #ifndef M_PIF
 #define M_PIF 3.14159265358979323846f /* pi */
 #endif
+
+static inline int FSeek(FILE* fp, int64_t offset, int whence)
+{
+#if _WIN32
+    return _fseeki64(fp, offset, whence);
+#elif __APPLE__ || __FreeBSD__
+    return fseeko(fp, offset, whence);
+#else
+    return fseeko64(fp, offset, whence);
+#endif
+}
+
+static inline int64_t FTell(FILE* fp)
+{
+#if _WIN32
+    return _ftelli64(fp);
+#elif __APPLE__ || __FreeBSD__
+    return ftello(fp);
+#else
+    return ftello64(fp);
+#endif
+}
 
 #undef bswap16
 #undef bswap32

@@ -25,6 +25,7 @@ set(SOURCES
     lib/EffectChorus.cpp
     lib/EffectDelay.cpp
     lib/SurroundProfiles.cpp
+    lib/ContainerRegistry.cpp
     lib/dsp.c)
 
 set(HEADERS
@@ -51,6 +52,7 @@ set(HEADERS
     include/amuse/EffectChorus.hpp
     include/amuse/EffectDelay.hpp
     include/amuse/SurroundProfiles.hpp
+    include/amuse/ContainerRegistry.hpp
     include/amuse/Common.hpp
     include/amuse/amuse.hpp
     include/amuse/dsp.h)

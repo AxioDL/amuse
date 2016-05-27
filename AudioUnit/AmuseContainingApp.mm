@@ -11,7 +11,6 @@
 
 @implementation MainView
 
-
 - (id)initWithFrame:(NSRect)frameRect
 {
     self = [super initWithFrame:frameRect];
@@ -29,68 +28,41 @@
 
 @end
 
-@interface ViewController : NSViewController
+@interface MainTabView : NSTabView
+{}
+- (IBAction)selectDataTab:(id)sender;
+- (IBAction)selectSFXTab:(id)sender;
+- (IBAction)selectSamplesTab:(id)sender;
+- (IBAction)selectCreditsTab:(id)sender;
+@end
+
+@implementation MainTabView
+- (IBAction)selectDataTab:(id)sender
 {
-    NSWindow* _window;
-    NSButton* playButton;
+    [self selectTabViewItemAtIndex:0];
+}
+- (IBAction)selectSFXTab:(id)sender
+{
+    [self selectTabViewItemAtIndex:1];
+}
+- (IBAction)selectSamplesTab:(id)sender
+{
+    [self selectTabViewItemAtIndex:2];
+}
+- (IBAction)selectCreditsTab:(id)sender
+{
+    [self selectTabViewItemAtIndex:3];
 }
 @end
 
 @interface AppDelegate : NSObject <NSApplicationDelegate>
 {
-    NSWindow* mainWindow;
-    ViewController* containerVC;
+    IBOutlet NSWindow* mainWindow;
+    IBOutlet NSOutlineView* dataOutline;
+    IBOutlet NSTableView* sfxTable;
+    IBOutlet NSTableView* samplesTable;
+    IBOutlet NSTextView* creditsView;
 }
-@end
-
-@implementation ViewController
-
-- (void)viewDidLoad {
-    [super viewDidLoad];
-#if 0
-    AudioComponentDescription desc;
-    /*  Supply the correct AudioComponentDescription based on your AudioUnit type, manufacturer and creator.
-
-     You need to supply matching settings in the AUAppExtension info.plist under:
-
-     NSExtension
-     NSExtensionAttributes
-     AudioComponents
-     Item 0
-     type
-     subtype
-     manufacturer
-
-     If you do not do this step, your AudioUnit will not work!!!
-     */
-    desc.componentType = kAudioUnitType_MusicDevice;
-    desc.componentSubType = 'sin3';
-    desc.componentManufacturer = 'Demo';
-    desc.componentFlags = 0;
-    desc.componentFlagsMask = 0;
-
-    [AUAudioUnit registerSubclass: AUv3InstrumentDemo.class asComponentDescription:desc name:@"Local InstrumentDemo" version: UINT32_MAX];
-
-    playEngine = [[SimplePlayEngine alloc] initWithComponentType: desc.componentType componentsFoundCallback: nil];
-    [playEngine selectAudioUnitWithComponentDescription2:desc completionHandler:^{
-        [self connectParametersToControls];
-    }];
-#endif
-}
-
--(void)loadView {
-    self.view = [[MainView alloc] initWithFrame:[_window contentRectForFrameRect:_window.frame]];
-}
-
-- (id)initWithWindow:(NSWindow*)window
-{
-    self = [super initWithNibName:@"AmuseContainerMainMenu" bundle:nil];
-    if (!self)
-        return nil;
-    _window = window;
-    return self;
-}
-
 @end
 
 @implementation AppDelegate
@@ -98,33 +70,7 @@
 - (void)applicationDidFinishLaunching:(NSNotification*)notification
 {
     [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"NSConstraintBasedLayoutVisualizeMutuallyExclusiveConstraints"];
-    
-    /* App menu */
-#if 0
-    [NSMenu alloc] ini
-    NSMenu* rootMenu = [[NSMenu alloc] initWithTitle:@"main"];
-    NSMenu* appMenu = [[NSMenu alloc] initWithTitle:@"Amuse"];
-    NSMenuItem* quitItem = [appMenu addItemWithTitle:@"Quit Amuse"
-                                              action:@selector(quitApp:)
-                                       keyEquivalent:@"q"];
-    [quitItem setKeyEquivalentModifierMask:NSCommandKeyMask];
-    [[rootMenu addItemWithTitle:@"Amuse"
-                         action:nil keyEquivalent:@""] setSubmenu:appMenu];
-    [[NSApplication sharedApplication] setMainMenu:rootMenu];
-    
-    NSRect mainScreenRect = [[NSScreen mainScreen] frame];
-    mainWindow = [[NSWindow alloc] initWithContentRect:NSMakeRect(mainScreenRect.size.width / 2 - 100,
-                                                                  mainScreenRect.size.height / 2 - 150, 200, 300)
-                                             styleMask:NSClosableWindowMask|NSTitledWindowMask
-                                               backing:NSBackingStoreBuffered
-                                                 defer:YES];
-    [mainWindow setTitle:@"Amuse"];
-    [[mainWindow windowController] setShouldCascadeWindows:NO];
-    [mainWindow setFrameAutosaveName:@"AmuseDataWindow"];
-    containerVC = [[ViewController alloc] initWithWindow:mainWindow];
-    [mainWindow setContentViewController:containerVC];
-    [mainWindow makeKeyAndOrderFront:nil];
-#endif
+    [mainWindow.toolbar setSelectedItemIdentifier:@"DataTab"];
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender
@@ -141,5 +87,5 @@
 
 int main(int argc, const char * argv[])
 {
-    NSApplicationMain(argc, argv);
+    return NSApplicationMain(argc, argv);
 }
