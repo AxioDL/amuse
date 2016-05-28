@@ -3,6 +3,9 @@
 
 #include <algorithm>
 #include <limits.h>
+#include <stdio.h>
+#include <strings.h>
+#include <stdint.h>
 
 namespace amuse
 {

@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <string>
+#include <memory>
 #include <zlib.h>
 
 #if _WIN32
@@ -959,6 +960,8 @@ ContainerRegistry::Type ContainerRegistry::DetectContainerType(const char* path)
                 return Type::Invalid;
         }
         fclose(fp);
+
+        return Type::Raw4;
     }
 
     /* Now attempt single-file case */
