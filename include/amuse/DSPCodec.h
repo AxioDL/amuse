@@ -1,5 +1,5 @@
-#ifndef _DSP_h
-#define _DSP_h
+#ifndef _DSPCODEC_h
+#define _DSPCODEC_h
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,4 +36,4 @@ unsigned DSPDecompressFrameStateOnly(const uint8_t* in,
 }
 #endif
 
-#endif // _DSP_h
+#endif // _DSPCODEC_h

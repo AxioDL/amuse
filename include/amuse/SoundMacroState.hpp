@@ -215,9 +215,9 @@ class SoundMacroState
 
 public:
     /** initialize state for SoundMacro data at `ptr` */
-    void initialize(const unsigned char* ptr, int step);
+    void initialize(const unsigned char* ptr, int step, bool swapData);
     void initialize(const unsigned char* ptr, int step, double ticksPerSec,
-                    uint8_t midiKey, uint8_t midiVel, uint8_t midiMod);
+                    uint8_t midiKey, uint8_t midiVel, uint8_t midiMod, bool swapData);
 
     /** advances `dt` seconds worth of commands in the SoundMacro
      *  @return `true` if END reached

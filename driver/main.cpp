@@ -586,7 +586,7 @@ struct AppCallback : boo::IApplicationCallback
         for (auto& grp : data)
         {
             /* Load project to assemble group list */
-            m_projs.emplace_back(grp.second.getProj());
+            m_projs.push_back(amuse::AudioGroupProject::CreateAudioGroupProject(grp.second));
             amuse::AudioGroupProject& proj = m_projs.back();
             totalGroups += proj.sfxGroups().size() + proj.songGroups().size();
 

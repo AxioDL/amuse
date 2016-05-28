@@ -2,12 +2,14 @@
 #define __AMUSE_AUDIOGROUPPROJECT_HPP__
 
 #include "Entity.hpp"
+#include "Common.hpp"
 #include <vector>
 #include <array>
 #include <unordered_map>
 
 namespace amuse
 {
+class AudioGroupData;
 
 /** Common index members of SongGroups and SFXGroups */
 struct AudioGroupIndex
@@ -68,8 +70,19 @@ class AudioGroupProject
 {
     std::unordered_map<int, SongGroupIndex> m_songGroups;
     std::unordered_map<int, SFXGroupIndex> m_sfxGroups;
+
+    /* MusyX 1.0 structures converted to MusyX 2.0 structures for pointer-compatible access */
+    std::unique_ptr<SongGroupIndex::PageEntry[]> m_convNormalPages;
+    std::unique_ptr<SongGroupIndex::PageEntry[]> m_convDrumPages;
+    std::unique_ptr<std::array<SongGroupIndex::MIDISetup, 16>[]> m_convMidiSetups;
+    void _allocateConvBuffers(const unsigned char* data, N64DataTag);
+    void _allocateConvBuffers(const unsigned char* data, PCDataTag);
+
 public:
-    AudioGroupProject(const unsigned char* data);
+    AudioGroupProject(const unsigned char* data, GCNDataTag);
+    AudioGroupProject(const unsigned char* data, N64DataTag);
+    AudioGroupProject(const unsigned char* data, PCDataTag);
+    static AudioGroupProject CreateAudioGroupProject(const AudioGroupData& data);
 
     const SongGroupIndex* getSongGroupIndex(int groupId) const;
     const SFXGroupIndex* getSFXGroupIndex(int groupId) const;

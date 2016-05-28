@@ -111,13 +111,13 @@ float SoundMacroState::Evaluator::evaluate(const Voice& vox, const SoundMacroSta
     return value;
 }
 
-void SoundMacroState::initialize(const unsigned char* ptr, int step)
+void SoundMacroState::initialize(const unsigned char* ptr, int step, bool swapData)
 {
-    initialize(ptr, step, 1000.f, 0, 0, 0);
+    initialize(ptr, step, 1000.f, 0, 0, 0, swapData);
 }
 
 void SoundMacroState::initialize(const unsigned char* ptr, int step, double ticksPerSec,
-                                 uint8_t midiKey, uint8_t midiVel, uint8_t midiMod)
+                                 uint8_t midiKey, uint8_t midiVel, uint8_t midiMod, bool swapData)
 {
     m_ticksPerSec = ticksPerSec;
     m_initKey = midiKey;
@@ -137,7 +137,8 @@ void SoundMacroState::initialize(const unsigned char* ptr, int step, double tick
     m_useAdsrControllers = false;
     m_portamentoMode = 0;
     m_header = *reinterpret_cast<const Header*>(ptr);
-    m_header.swapBig();
+    if (swapData)
+        m_header.swapBig();
 }
 
 bool SoundMacroState::advance(Voice& vox, double dt)
@@ -173,7 +174,8 @@ bool SoundMacroState::advance(Voice& vox, double dt)
         /* Load next command based on counter */
         const Command* commands = reinterpret_cast<const Command*>(m_pc.back().first + sizeof(Header));
         Command cmd = commands[m_pc.back().second++];
-        cmd.swapBig();
+        if (vox.getAudioGroup().getDataFormat() != DataFormat::PC)
+            cmd.swapBig();
 
         /* Perform function of command */
         switch (cmd.m_op)
@@ -751,7 +753,8 @@ bool SoundMacroState::advance(Voice& vox, double dt)
             {
                 m_pc.pop_back();
                 m_header = *reinterpret_cast<const Header*>(m_pc.back().first);
-                m_header.swapBig();
+                if (vox.getAudioGroup().getDataFormat() != DataFormat::PC)
+                    m_header.swapBig();
                 vox.m_objectId = m_header.m_macroId;
             }
             break;
@@ -768,7 +771,8 @@ bool SoundMacroState::advance(Voice& vox, double dt)
                                    m_initKey, m_initVel, m_initMod, true);
 
             m_header = *reinterpret_cast<const Header*>(m_pc.back().first);
-            m_header.swapBig();
+            if (vox.getAudioGroup().getDataFormat() != DataFormat::PC)
+                m_header.swapBig();
             vox.m_objectId = m_header.m_macroId;
 
             break;

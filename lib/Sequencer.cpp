@@ -160,7 +160,9 @@ std::shared_ptr<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velo
     {
         m_chanVoxs[note] = ret;
         ret->installCtrlValues(m_ctrlVals);
-        if (!ret->loadSoundObject(SBig(m_page->objId), 0, 1000.f, note, velocity, m_ctrlVals[1]))
+
+        ObjectId oid = (m_parent.m_audioGroup.getDataFormat() == DataFormat::PC) ? m_page->objId : SBig(m_page->objId);
+        if (!ret->loadSoundObject(oid, 0, 1000.f, note, velocity, m_ctrlVals[1]))
         {
             m_parent.m_engine._destroyVoice(ret.get());
             return {};

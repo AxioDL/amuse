@@ -50,7 +50,8 @@ class Voice : public Entity
     {
         DSP,
         IMA,
-        PCM
+        PCM,
+        N64
     };
     const Sample* m_curSample = nullptr; /**< Current sample entry playing */
     const unsigned char* m_curSampleData = nullptr; /**< Current sample data playing */
@@ -128,7 +129,7 @@ class Voice : public Entity
 
     void _destroy();
     void _reset();
-    bool _checkSamplePos();
+    bool _checkSamplePos(bool& looped);
     void _doKeyOff();
     void _macroKeyOff();
     void _macroSampleEnd();
@@ -136,6 +137,7 @@ class Voice : public Entity
     void _setTotalPitch(int32_t cents, bool slew);
     bool _isRecursivelyDead();
     void _bringOutYourDead();
+    static uint32_t _GetBlockSampleCount(SampleFormat fmt);
     std::shared_ptr<Voice> _findVoice(int vid, std::weak_ptr<Voice> thisPtr);
     std::unique_ptr<int8_t[]>& _ensureCtrlVals();
 

@@ -81,6 +81,66 @@ AudioGroupPool::AudioGroupPool(const unsigned char* data)
     }
 }
 
+AudioGroupPool::AudioGroupPool(const unsigned char* data, PCDataTag)
+{
+    const Header* head = reinterpret_cast<const Header*>(data);
+
+    if (head->soundMacrosOffset)
+    {
+        const unsigned char* cur = data + head->soundMacrosOffset;
+        while (*reinterpret_cast<const uint32_t*>(cur) != 0xffffffff)
+        {
+            uint32_t size = *reinterpret_cast<const uint32_t*>(cur);
+            ObjectId id = *reinterpret_cast<const ObjectId*>(cur + 4);
+            m_soundMacros[id] = cur;
+            cur += size;
+        }
+    }
+
+    if (head->tablesOffset)
+    {
+        const unsigned char* cur = data + head->tablesOffset;
+        while (*reinterpret_cast<const uint32_t*>(cur) != 0xffffffff)
+        {
+            uint32_t size = *reinterpret_cast<const uint32_t*>(cur);
+            ObjectId id = *reinterpret_cast<const ObjectId*>(cur + 4);
+            m_tables[id] = cur + 8;
+            cur += size;
+        }
+    }
+
+    if (head->keymapsOffset)
+    {
+        const unsigned char* cur = data + head->keymapsOffset;
+        while (*reinterpret_cast<const uint32_t*>(cur) != 0xffffffff)
+        {
+            uint32_t size = *reinterpret_cast<const uint32_t*>(cur);
+            ObjectId id = *reinterpret_cast<const ObjectId*>(cur + 4);
+            m_keymaps[id] = reinterpret_cast<const Keymap*>(cur + 8);
+            cur += size;
+        }
+    }
+
+    if (head->layersOffset)
+    {
+        const unsigned char* cur = data + head->layersOffset;
+        while (*reinterpret_cast<const uint32_t*>(cur) != 0xffffffff)
+        {
+            uint32_t size = *reinterpret_cast<const uint32_t*>(cur);
+            ObjectId id = *reinterpret_cast<const ObjectId*>(cur + 4);
+            std::vector<const LayerMapping*>& mappingsOut = m_layers[id];
+
+            uint32_t count = *reinterpret_cast<const uint32_t*>(cur+8);
+            mappingsOut.reserve(count);
+            const unsigned char* subcur = cur + 12;
+            for (int i=0 ; i<count ; ++i)
+                mappingsOut.push_back(reinterpret_cast<const LayerMapping*>(subcur + i * 12));
+
+            cur += size;
+        }
+    }
+}
+
 const unsigned char* AudioGroupPool::soundMacro(ObjectId id) const
 {
     auto search = m_soundMacros.find(id);

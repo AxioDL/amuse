@@ -15,7 +15,7 @@ IntrusiveAudioGroupData::~IntrusiveAudioGroupData()
 }
 
 IntrusiveAudioGroupData::IntrusiveAudioGroupData(IntrusiveAudioGroupData&& other)
-: AudioGroupData(other.m_proj, other.m_pool, other.m_sdir, other.m_samp)
+: AudioGroupData(other.m_proj, other.m_pool, other.m_sdir, other.m_samp, other.m_fmt)
 {
     m_owns = other.m_owns;
     other.m_owns = false;

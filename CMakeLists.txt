@@ -26,7 +26,8 @@ set(SOURCES
     lib/EffectDelay.cpp
     lib/SurroundProfiles.cpp
     lib/ContainerRegistry.cpp
-    lib/dsp.c)
+    lib/DSPCodec.c
+    lib/N64MusyXCodec.c)
 
 set(HEADERS
     include/amuse/AudioGroup.hpp
@@ -55,7 +56,8 @@ set(HEADERS
     include/amuse/ContainerRegistry.hpp
     include/amuse/Common.hpp
     include/amuse/amuse.hpp
-    include/amuse/dsp.h)
+    include/amuse/DSPCodec.h
+    include/amuse/N64MusyXCodec.h)
 
 unset(EXTRAS)
 if(TARGET boo)

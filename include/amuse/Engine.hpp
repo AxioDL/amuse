@@ -46,6 +46,7 @@ class Engine
     std::linear_congruential_engine<uint32_t, 0x41c64e6d, 0x3039, UINT32_MAX> m_random;
     int m_nextVid = 0;
 
+    AudioGroup* _addAudioGroup(const AudioGroupData& data, std::unique_ptr<AudioGroup>&& grp);
     std::pair<AudioGroup*, const SongGroupIndex*> _findSongGroup(int groupId) const;
     std::pair<AudioGroup*, const SFXGroupIndex*> _findSFXGroup(int groupId) const;
 

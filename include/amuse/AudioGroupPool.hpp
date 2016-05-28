@@ -98,6 +98,7 @@ class AudioGroupPool
     std::unordered_map<ObjectId, std::vector<const LayerMapping*>> m_layers;
 public:
     AudioGroupPool(const unsigned char* data);
+    AudioGroupPool(const unsigned char* data, PCDataTag);
     const unsigned char* soundMacro(ObjectId id) const;
     const Keymap* keymap(ObjectId id) const;
     const std::vector<const LayerMapping*>* layer(ObjectId id) const;

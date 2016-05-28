@@ -204,6 +204,23 @@ static inline double SBig(double val) {return val;}
 #endif
 #endif
 
+/** Versioned data format to interpret */
+enum class DataFormat
+{
+    GCN,
+    N64,
+    PC
+};
+
+/** Meta-type for selecting GameCube (MusyX 2.0) data formats */
+struct GCNDataTag {};
+
+/** Meta-type for selecting N64 (MusyX 1.0) data formats */
+struct N64DataTag {};
+
+/** Meta-type for selecting PC (MusyX 1.0) data formats */
+struct PCDataTag {};
+
 }
 
 #endif // __AMUSE_COMMON_HPP__

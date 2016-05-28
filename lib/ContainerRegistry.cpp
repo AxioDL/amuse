@@ -228,7 +228,7 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadMP1(FILE
                         fread(sdir.get(), 1, len, fp);
 
                         ret.emplace_back(std::move(name), IntrusiveAudioGroupData{proj.release(), pool.release(),
-                                                                                  sdir.release(), samp.release()});
+                                                                                  sdir.release(), samp.release(), GCNDataTag{}});
                     }
                 }
                 FSeek(fp, origPos, SEEK_SET);
@@ -379,7 +379,8 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadMP2(FILE
                         fread(pool.get(), 1, sampSz, fp);
 
                         ret.emplace_back(std::move(name), IntrusiveAudioGroupData{proj.release(), pool.release(),
-                                                                                  sdir.release(), samp.release()});                    }
+                                                                                  sdir.release(), samp.release(), GCNDataTag{}});
+                    }
                 }
                 FSeek(fp, origPos, SEEK_SET);
             }
@@ -503,7 +504,7 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadRS1PC(FI
             }
             
             ret.emplace_back("Group", IntrusiveAudioGroupData{proj.release(), pool.release(),
-                                                              sdir.release(), samp.release()});
+                                                              sdir.release(), samp.release(), PCDataTag{}});
         }
     }
 
@@ -513,6 +514,15 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadRS1PC(FI
 static bool ValidateRS1N64(FILE* fp)
 {
     size_t endPos = FileLength(fp);
+    if (endPos > 32 * 1024 * 1024)
+        return false; /* N64 ROM definitely won't exceed 32MB */
+
+    FSeek(fp, 59, SEEK_SET);
+    uint32_t gameId;
+    fread(&gameId, 1, 4, fp);
+    if (gameId != 0x4e525345 && gameId != 0x4553524e)
+        return false; /* GameId not 'NRSE' */
+    FSeek(fp, 0, SEEK_SET);
 
     std::unique_ptr<uint8_t[]> data(new uint8_t[endPos]);
     fread(data.get(), 1, endPos, fp);
@@ -646,6 +656,9 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadRS1N64(F
                 }
             }
         }
+
+        ret.emplace_back("Group", IntrusiveAudioGroupData{proj.release(), pool.release(),
+                                                          sdir.release(), samp.release(), N64DataTag{}});
     }
 
     return ret;
@@ -773,7 +786,7 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadRS2(FILE
                 char name[128];
                 snprintf(name, 128, "GroupFile%u", j);
                 ret.emplace_back(name, IntrusiveAudioGroupData{proj.release(), pool.release(),
-                                                               sdir.release(), samp.release()});
+                                                               sdir.release(), samp.release(), GCNDataTag{}});
             }
 
             break;
@@ -879,7 +892,7 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadRS3(FILE
                 char name[128];
                 snprintf(name, 128, "GroupFile%u", j);
                 ret.emplace_back(name, IntrusiveAudioGroupData{proj.release(), pool.release(),
-                                                               sdir.release(), samp.release()});
+                                                               sdir.release(), samp.release(), GCNDataTag{}});
             }
 
             break;
@@ -1086,8 +1099,18 @@ ContainerRegistry::LoadContainer(const char* path)
         fread(samp.get(), 1, fLen, fp);
 
         fclose(fp);
-        ret.emplace_back("Group", IntrusiveAudioGroupData{proj.release(), pool.release(),
-                                                          sdir.release(), samp.release()});
+
+        /* SDIR-based format detection */
+        if (*reinterpret_cast<uint32_t*>(sdir.get() + 8) == 0x0)
+            ret.emplace_back("Group", IntrusiveAudioGroupData{proj.release(), pool.release(),
+                                                              sdir.release(), samp.release(), GCNDataTag{}});
+        else if (sdir[9] == 0x0)
+            ret.emplace_back("Group", IntrusiveAudioGroupData{proj.release(), pool.release(),
+                                                              sdir.release(), samp.release(), N64DataTag{}});
+        else
+            ret.emplace_back("Group", IntrusiveAudioGroupData{proj.release(), pool.release(),
+                                                              sdir.release(), samp.release(), PCDataTag{}});
+
         return ret;
     }
 

@@ -5,7 +5,8 @@
 #include "amuse/AudioGroup.hpp"
 #include "amuse/Common.hpp"
 #include "amuse/Engine.hpp"
-#include "amuse/dsp.h"
+#include "amuse/DSPCodec.h"
+#include "amuse/N64MusyXCodec.h"
 #include <cmath>
 #include <string.h>
 
@@ -81,8 +82,9 @@ void Voice::_macroSampleEnd()
         m_state.sampleEndNotify(*this);
 }
 
-bool Voice::_checkSamplePos()
+bool Voice::_checkSamplePos(bool& looped)
 {
+    looped = false;
     if (!m_curSample)
         return true;
 
@@ -92,8 +94,9 @@ bool Voice::_checkSamplePos()
         {
             /* Turn over looped sample */
             m_curSamplePos = m_curSample->first.m_loopStartSample;
-            m_prev1 = m_curSample->second.m_hist2;
-            m_prev2 = m_curSample->second.m_hist1;
+            m_prev1 = m_curSample->second.m_hist1;
+            m_prev2 = m_curSample->second.m_hist2;
+            looped = true;
         }
         else
         {
@@ -350,6 +353,19 @@ bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
     return refresh;
 }
 
+uint32_t Voice::_GetBlockSampleCount(SampleFormat fmt)
+{
+    switch (fmt)
+    {
+    default:
+        return 1;
+    case Voice::SampleFormat::DSP:
+        return 14;
+    case Voice::SampleFormat::N64:
+        return 64;
+    }
+}
+
 size_t Voice::supplyAudio(size_t samples, int16_t* data)
 {
     uint32_t samplesRem = samples;
@@ -371,104 +387,128 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
 
     if (m_curSample)
     {
-        uint32_t block = m_curSamplePos / 14;
-        uint32_t rem = m_curSamplePos % 14;
-
-        bool refresh = false;
+        uint32_t blockSampleCount = _GetBlockSampleCount(m_curFormat);
+        uint32_t block;
         int32_t curPitch = m_curPitch;
+        bool refresh = false;
 
-        if (rem)
+        bool looped = true;
+        while (looped && samplesRem)
         {
-            uint32_t remCount = std::min(samplesRem, m_lastSamplePos - block * 14);
-            uint32_t decSamples;
+            block = m_curSamplePos / blockSampleCount;
+            uint32_t rem = m_curSamplePos % blockSampleCount;
 
-            switch (m_curFormat)
+            if (rem)
             {
-            case SampleFormat::DSP:
-            {
-                decSamples = DSPDecompressFrameRanged(data, m_curSampleData + 8 * block,
-                                                      m_curSample->second.m_coefs,
-                                                      &m_prev1, &m_prev2, rem, remCount);
-                break;
-            }
-            case SampleFormat::PCM:
-            {
-                const int16_t* pcm = reinterpret_cast<const int16_t*>(m_curSampleData);
-                remCount = std::min(samplesRem, m_lastSamplePos - m_curSamplePos);
-                for (uint32_t i=0 ; i<remCount ; ++i)
-                    data[i] = SBig(pcm[m_curSamplePos+i]);
-                decSamples = remCount;
-                break;
-            }
-            default:
-                memset(data, 0, sizeof(int16_t) * samples);
-                return samples;
-            }
+                uint32_t remCount = std::min(samplesRem, m_lastSamplePos - block * blockSampleCount);
+                uint32_t decSamples;
 
-            /* Per-sample processing */
-            for (uint32_t i=0 ; i<decSamples ; ++i)
-            {
-                ++samplesProc;
-                ++m_curSamplePos;
-                refresh |= _advanceSample(data[i], curPitch);
-            }
+                switch (m_curFormat)
+                {
+                case SampleFormat::DSP:
+                {
+                    decSamples = DSPDecompressFrameRanged(data, m_curSampleData + 8 * block,
+                                                          m_curSample->second.m_coefs,
+                                                          &m_prev1, &m_prev2, rem, remCount);
+                    break;
+                }
+                case SampleFormat::PCM:
+                {
+                    const int16_t* pcm = reinterpret_cast<const int16_t*>(m_curSampleData);
+                    remCount = std::min(samplesRem, m_lastSamplePos - m_curSamplePos);
+                    for (uint32_t i=0 ; i<remCount ; ++i)
+                        data[i] = SBig(pcm[m_curSamplePos+i]);
+                    decSamples = remCount;
+                    break;
+                }
+                case SampleFormat::N64:
+                {
+                    decSamples = N64MusyXDecompressFrameRanged(data, m_curSampleData + 256 + 40 * block,
+                                                               reinterpret_cast<const int16_t(*)[2][8]>(m_curSampleData),
+                                                               rem, remCount);
+                    break;
+                }
+                default:
+                    memset(data, 0, sizeof(int16_t) * samples);
+                    return samples;
+                }
 
-            samplesRem -= decSamples;
-            data += decSamples;
-        }
+                /* Per-sample processing */
+                for (uint32_t i=0 ; i<decSamples ; ++i)
+                {
+                    ++samplesProc;
+                    ++m_curSamplePos;
+                    refresh |= _advanceSample(data[i], curPitch);
+                }
 
-        if (_checkSamplePos())
-        {
-            if (samplesRem)
-                memset(data, 0, sizeof(int16_t) * samplesRem);
-            return samples;
-        }
-
-        while (samplesRem)
-        {
-            block = m_curSamplePos / 14;
-            uint32_t remCount = std::min(samplesRem, m_lastSamplePos - block * 14);
-            uint32_t decSamples;
-
-            switch (m_curFormat)
-            {
-            case SampleFormat::DSP:
-            {
-                decSamples = DSPDecompressFrame(data, m_curSampleData + 8 * block,
-                                                m_curSample->second.m_coefs,
-                                                &m_prev1, &m_prev2, remCount);
-                break;
-            }
-            case SampleFormat::PCM:
-            {
-                const int16_t* pcm = reinterpret_cast<const int16_t*>(m_curSampleData);
-                remCount = std::min(samplesRem, m_lastSamplePos - m_curSamplePos);
-                for (uint32_t i=0 ; i<remCount ; ++i)
-                    data[i] = SBig(pcm[m_curSamplePos+i]);
-                decSamples = remCount;
-                break;
-            }
-            default:
-                memset(data, 0, sizeof(int16_t) * samples);
-                return samples;
+                samplesRem -= decSamples;
+                data += decSamples;
             }
 
-            /* Per-sample processing */
-            for (uint32_t i=0 ; i<decSamples ; ++i)
-            {
-                ++samplesProc;
-                ++m_curSamplePos;
-                refresh |= _advanceSample(data[i], curPitch);
-            }
-
-            samplesRem -= decSamples;
-            data += decSamples;
-
-            if (_checkSamplePos())
+            if (_checkSamplePos(looped))
             {
                 if (samplesRem)
                     memset(data, 0, sizeof(int16_t) * samplesRem);
                 return samples;
+            }
+            if (looped)
+                continue;
+
+            while (samplesRem)
+            {
+                block = m_curSamplePos / blockSampleCount;
+                uint32_t remCount = std::min(samplesRem, m_lastSamplePos - block * blockSampleCount);
+                uint32_t decSamples;
+
+                switch (m_curFormat)
+                {
+                    case SampleFormat::DSP:
+                    {
+                        decSamples = DSPDecompressFrame(data, m_curSampleData + 8 * block,
+                                                        m_curSample->second.m_coefs,
+                                                        &m_prev1, &m_prev2, remCount);
+                        break;
+                    }
+                    case SampleFormat::PCM:
+                    {
+                        const int16_t* pcm = reinterpret_cast<const int16_t*>(m_curSampleData);
+                        remCount = std::min(samplesRem, m_lastSamplePos - m_curSamplePos);
+                        for (uint32_t i=0 ; i<remCount ; ++i)
+                            data[i] = SBig(pcm[m_curSamplePos+i]);
+                        decSamples = remCount;
+                        break;
+                    }
+                    case SampleFormat::N64:
+                    {
+                        decSamples = N64MusyXDecompressFrame(data, m_curSampleData + 256 + 40 * block,
+                                                             reinterpret_cast<const int16_t(*)[2][8]>(m_curSampleData),
+                                                             remCount);
+                        break;
+                    }
+                    default:
+                        memset(data, 0, sizeof(int16_t) * samples);
+                        return samples;
+                }
+
+                /* Per-sample processing */
+                for (uint32_t i=0 ; i<decSamples ; ++i)
+                {
+                    ++samplesProc;
+                    ++m_curSamplePos;
+                    refresh |= _advanceSample(data[i], curPitch);
+                }
+
+                samplesRem -= decSamples;
+                data += decSamples;
+
+                if (_checkSamplePos(looped))
+                {
+                    if (samplesRem)
+                        memset(data, 0, sizeof(int16_t) * samplesRem);
+                    return samples;
+                }
+                if (looped)
+                    break;
             }
         }
 
@@ -524,14 +564,16 @@ bool Voice::_loadSoundMacro(const unsigned char* macroData, int macroStep, doubl
                             uint8_t midiKey, uint8_t midiVel, uint8_t midiMod, bool pushPc)
 {
     if (m_state.m_pc.empty())
-        m_state.initialize(macroData, macroStep, ticksPerSec, midiKey, midiVel, midiMod);
+        m_state.initialize(macroData, macroStep, ticksPerSec, midiKey, midiVel, midiMod,
+                           m_audioGroup.getDataFormat() != DataFormat::PC);
     else
     {
         if (!pushPc)
             m_state.m_pc.clear();
         m_state.m_pc.push_back({macroData, macroStep});
         m_state.m_header = *reinterpret_cast<const SoundMacroState::Header*>(macroData);
-        m_state.m_header.swapBig();
+        if (m_audioGroup.getDataFormat() != DataFormat::PC)
+            m_state.m_header.swapBig();
     }
 
     m_voxState = VoiceState::Playing;
@@ -543,8 +585,9 @@ bool Voice::_loadKeymap(const Keymap* keymap, int macroStep, double ticksPerSec,
                         uint8_t midiKey, uint8_t midiVel, uint8_t midiMod, bool pushPc)
 {
     const Keymap& km = keymap[midiKey];
+    ObjectId oid = (m_audioGroup.getDataFormat() == DataFormat::PC) ? km.objectId : SBig(km.objectId);
     midiKey += km.transpose;
-    bool ret = loadSoundObject(SBig(km.objectId), macroStep, ticksPerSec, midiKey, midiVel, midiMod, pushPc);
+    bool ret = loadSoundObject(oid, macroStep, ticksPerSec, midiKey, midiVel, midiMod, pushPc);
     m_curVol = 1.f;
     _setPan((km.pan - 64) / 64.f);
     _setSurroundPan(-1.f);
@@ -559,10 +602,11 @@ bool Voice::_loadLayer(const std::vector<const LayerMapping*>& layer, int macroS
     {
         if (midiKey >= mapping->keyLo && midiKey <= mapping->keyHi)
         {
+            ObjectId oid = (m_audioGroup.getDataFormat() == DataFormat::PC) ? mapping->objectId : SBig(mapping->objectId);
             uint8_t mappingKey = midiKey + mapping->transpose;
             if (m_voxState != VoiceState::Playing)
             {
-                ret |= loadSoundObject(SBig(mapping->objectId), macroStep, ticksPerSec,
+                ret |= loadSoundObject(oid, macroStep, ticksPerSec,
                                        mappingKey, midiVel, midiMod, pushPc);
                 m_curVol = mapping->volume / 127.f;
                 _setPan((mapping->pan - 64) / 64.f);
@@ -571,7 +615,7 @@ bool Voice::_loadLayer(const std::vector<const LayerMapping*>& layer, int macroS
             else
             {
                 std::shared_ptr<Voice> vox =
-                    _startChildMacro(SBig(mapping->objectId), macroStep, ticksPerSec,
+                    _startChildMacro(oid, macroStep, ticksPerSec,
                                      mappingKey, midiVel, midiMod, pushPc);
                 if (vox)
                 {
@@ -685,13 +729,16 @@ void Voice::startSample(int16_t sampId, int32_t offset)
         m_lastSamplePos = m_curSample->first.m_loopLengthSamples ?
             (m_curSample->first.m_loopStartSample + m_curSample->first.m_loopLengthSamples) : numSamples;
 
-        if (m_curFormat != SampleFormat::DSP && m_curFormat != SampleFormat::PCM)
+        if (m_curFormat != SampleFormat::DSP &&
+            m_curFormat != SampleFormat::PCM &&
+            m_curFormat != SampleFormat::N64)
         {
             m_curSample = nullptr;
             return;
         }
 
-        _checkSamplePos();
+        bool looped;
+        _checkSamplePos(looped);
 
         /* Seek DSPADPCM state if needed */
         if (m_curSample && m_curSamplePos && m_curFormat == SampleFormat::DSP)

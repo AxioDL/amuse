@@ -176,14 +176,8 @@ void Engine::pumpEngine()
     m_nextVid = maxVid + 1;
 }
 
-/** Add audio group data pointers to engine; must remain resident! */
-const AudioGroup* Engine::addAudioGroup(const AudioGroupData& data)
+AudioGroup* Engine::_addAudioGroup(const AudioGroupData& data, std::unique_ptr<AudioGroup>&& grp)
 {
-    removeAudioGroup(data);
-
-    std::unique_ptr<AudioGroup> grp = std::make_unique<AudioGroup>(data);
-    if (!grp)
-        return nullptr;
     AudioGroup* ret = grp.get();
     m_audioGroups.emplace(std::make_pair(&data, std::move(grp)));
 
@@ -197,6 +191,30 @@ const AudioGroup* Engine::addAudioGroup(const AudioGroupData& data)
     }
 
     return ret;
+}
+
+/** Add GameCube audio group data pointers to engine; must remain resident! */
+const AudioGroup* Engine::addAudioGroup(const AudioGroupData& data)
+{
+    removeAudioGroup(data);
+
+    std::unique_ptr<AudioGroup> grp;
+    switch (data.m_fmt)
+    {
+    case DataFormat::GCN:
+        grp = std::make_unique<AudioGroup>(data, GCNDataTag{});
+        break;
+    case DataFormat::N64:
+        grp = std::make_unique<AudioGroup>(data, N64DataTag{});
+        break;
+    case DataFormat::PC:
+        grp = std::make_unique<AudioGroup>(data, PCDataTag{});
+        break;
+    }
+    if (!grp)
+        return nullptr;
+
+    return _addAudioGroup(data, std::move(grp));
 }
 
 /** Remove audio group from engine */
@@ -331,11 +349,14 @@ std::shared_ptr<Voice> Engine::fxStart(int sfxId, float vol, float pan, Submix* 
 
     std::shared_ptr<Voice> ret = _allocateVoice(*grp, std::get<1>(search->second),
                                                 32000.0, true, false, smx);
-    if (!ret->loadSoundObject(SBig(entry->objId), 0, 1000.f, entry->defKey, entry->defVel, 0))
+
+    ObjectId oid = (grp->getDataFormat() == DataFormat::PC) ? entry->objId : SBig(entry->objId);
+    if (!ret->loadSoundObject(oid, 0, 1000.f, entry->defKey, entry->defVel, 0))
     {
         _destroyVoice(ret.get());
         return {};
     }
+
     ret->setVolume(vol);
     ret->setPan(pan);
     return ret;
@@ -358,12 +379,15 @@ std::shared_ptr<Emitter> Engine::addEmitter(const Vector3f& pos, const Vector3f&
                                                 32000.0, true, true, smx);
     m_activeEmitters.emplace(m_activeEmitters.end(), new Emitter(*this, *grp, std::move(vox)));
     Emitter& ret = *m_activeEmitters.back();
-    if (!ret.getVoice()->loadSoundObject(entry->objId, 0, 1000.f, entry->defKey, entry->defVel, 0))
+
+    ObjectId oid = (grp->getDataFormat() == DataFormat::PC) ? entry->objId : SBig(entry->objId);
+    if (!ret.getVoice()->loadSoundObject(oid, 0, 1000.f, entry->defKey, entry->defVel, 0))
     {
         ret._destroy();
         m_activeEmitters.pop_back();
         return {};
     }
+
     vox->setPan(entry->panning);
     ret.setPos(pos);
     ret.setDir(dir);
