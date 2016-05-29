@@ -187,8 +187,7 @@ void AudioGroupProject::_allocateConvBuffers(const unsigned char* data, N64DataT
 
             /* MIDI setups */
             const uint8_t* setupData = subData + header.midiSetupsOff;
-            const uint8_t* setupEnd = subData + header.groupEndOff;
-            while (setupData < setupEnd)
+            while (*reinterpret_cast<const uint32_t*>(setupData) != 0xffffffff)
             {
                 ++midiSetupCount;
                 setupData += 8 * 16 + 4;
@@ -252,8 +251,7 @@ AudioGroupProject::AudioGroupProject(const unsigned char* data, N64DataTag)
 
             /* MIDI setups */
             const uint8_t* setupData = subData + header.midiSetupsOff;
-            const uint8_t* setupEnd = subData + header.groupEndOff;
-            while (setupData < setupEnd)
+            while (*reinterpret_cast<const uint32_t*>(setupData) != 0xffffffff)
             {
                 uint16_t songId = SBig(*reinterpret_cast<const uint16_t*>(setupData));
                 const std::array<MusyX1MIDISetup, 16>* midiSetups =
@@ -329,8 +327,7 @@ void AudioGroupProject::_allocateConvBuffers(const unsigned char* data, PCDataTa
 
             /* MIDI setups */
             const uint8_t* setupData = subData + group->midiSetupsOff;
-            const uint8_t* setupEnd = subData + group->groupEndOff;
-            while (setupData < setupEnd)
+            while (*reinterpret_cast<const uint32_t*>(setupData) != 0xffffffff)
             {
                 ++midiSetupCount;
                 setupData += 8 * 16 + 4;
@@ -392,10 +389,9 @@ AudioGroupProject::AudioGroupProject(const unsigned char* data, PCDataTag)
 
             /* MIDI setups */
             const uint8_t* setupData = subData + group->midiSetupsOff;
-            const uint8_t* setupEnd = subData + group->groupEndOff;
-            while (setupData < setupEnd)
+            while (*reinterpret_cast<const uint32_t*>(setupData) != 0xffffffff)
             {
-                uint16_t songId = SBig(*reinterpret_cast<const uint16_t*>(setupData));
+                uint16_t songId = *reinterpret_cast<const uint16_t*>(setupData);
                 const std::array<MusyX1MIDISetup, 16>* midiSetups =
                     reinterpret_cast<const std::array<MusyX1MIDISetup, 16>*>(setupData + 4);
 
@@ -438,7 +434,7 @@ AudioGroupProject::AudioGroupProject(const unsigned char* data, PCDataTag)
 
 AudioGroupProject AudioGroupProject::CreateAudioGroupProject(const AudioGroupData& data)
 {
-    switch (data.m_fmt)
+    switch (data.getDataFormat())
     {
     case DataFormat::GCN:
         return AudioGroupProject(data.getProj(), GCNDataTag{});

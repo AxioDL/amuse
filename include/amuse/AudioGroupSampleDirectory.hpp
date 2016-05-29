@@ -26,21 +26,29 @@ public:
         uint32_t m_adpcmParmOffset;
         void swapBig();
     };
-    struct ADPCMParms
+    union ADPCMParms
     {
-        uint16_t m_bytesPerFrame;
-        uint8_t m_ps;
-        uint8_t m_lps;
-        int16_t m_hist2;
-        int16_t m_hist1;
-        int16_t m_coefs[8][2];
-        void swapBig();
+        struct DSPParms
+        {
+            uint16_t m_bytesPerFrame;
+            uint8_t m_ps;
+            uint8_t m_lps;
+            int16_t m_hist2;
+            int16_t m_hist1;
+            int16_t m_coefs[8][2];
+        } dsp;
+        struct VADPCMParms
+        {
+            int16_t m_coefs[8][2][8];
+        } vadpcm;
+        void swapBigDSP();
+        void swapBigVADPCM();
     };
 private:
     std::unordered_map<uint16_t, std::pair<Entry, ADPCMParms>> m_entries;
 public:
     AudioGroupSampleDirectory(const unsigned char* data, GCNDataTag);
-    AudioGroupSampleDirectory(const unsigned char* data, N64DataTag);
+    AudioGroupSampleDirectory(const unsigned char* data, const unsigned char* sampData, N64DataTag);
     AudioGroupSampleDirectory(const unsigned char* data, PCDataTag);
 };
 

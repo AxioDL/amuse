@@ -15,7 +15,7 @@ AudioGroup::AudioGroup(const AudioGroupData& data, GCNDataTag)
 AudioGroup::AudioGroup(const AudioGroupData& data, N64DataTag)
 : m_proj(data.getProj(), N64DataTag{}),
   m_pool(data.getPool()),
-  m_sdir(data.getSdir(), N64DataTag{}),
+  m_sdir(data.getSdir(), data.getSamp(), N64DataTag{}),
   m_samp(data.getSamp()),
   m_fmt(DataFormat::N64)
 {}

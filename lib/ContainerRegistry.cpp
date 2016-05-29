@@ -518,18 +518,15 @@ static bool ValidateRS1N64(FILE* fp)
     if (endPos > 32 * 1024 * 1024)
         return false; /* N64 ROM definitely won't exceed 32MB */
 
-    FSeek(fp, 59, SEEK_SET);
-    uint32_t gameId;
-    fread(&gameId, 1, 4, fp);
-    if (gameId != 0x4e525345 && gameId != 0x4553524e)
-        return false; /* GameId not 'NRSE' */
-    FSeek(fp, 0, SEEK_SET);
-
     std::unique_ptr<uint8_t[]> data(new uint8_t[endPos]);
     fread(data.get(), 1, endPos, fp);
 
     if ((data[0] & 0x80) != 0x80 && (data[3] & 0x80) == 0x80)
         SwapN64Rom(data.get(), endPos);
+
+    const uint32_t* gameId = reinterpret_cast<const uint32_t*>(&data[59]);
+    if (*gameId != 0x4e525345 && *gameId != 0x4553524e)
+        return false; /* GameId not 'NRSE' */
 
     const uint8_t* dataSeg = reinterpret_cast<const uint8_t*>(memmem(data.get(), endPos,
                                                                      "dbg_data\0\0\0\0\0\0\0\0", 16));

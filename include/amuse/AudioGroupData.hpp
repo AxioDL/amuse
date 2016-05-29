@@ -10,7 +10,6 @@ namespace amuse
 class AudioGroupData
 {
     friend class Engine;
-    friend class AudioGroupProject;
 protected:
     unsigned char* m_proj;
     unsigned char* m_pool;
@@ -41,6 +40,8 @@ public:
     {
         return m_proj != nullptr && m_pool != nullptr && m_sdir != nullptr && m_samp != nullptr;
     }
+
+    DataFormat getDataFormat() const {return m_fmt;}
 };
 
 /** A buffer-owning version of AudioGroupData */

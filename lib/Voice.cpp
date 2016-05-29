@@ -94,8 +94,11 @@ bool Voice::_checkSamplePos(bool& looped)
         {
             /* Turn over looped sample */
             m_curSamplePos = m_curSample->first.m_loopStartSample;
-            m_prev1 = m_curSample->second.m_hist1;
-            m_prev2 = m_curSample->second.m_hist2;
+            if (m_curFormat == SampleFormat::DSP)
+            {
+                m_prev1 = m_curSample->second.dsp.m_hist1;
+                m_prev2 = m_curSample->second.dsp.m_hist2;
+            }
             looped = true;
         }
         else
@@ -408,8 +411,15 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
                 case SampleFormat::DSP:
                 {
                     decSamples = DSPDecompressFrameRanged(data, m_curSampleData + 8 * block,
-                                                          m_curSample->second.m_coefs,
+                                                          m_curSample->second.dsp.m_coefs,
                                                           &m_prev1, &m_prev2, rem, remCount);
+                    break;
+                }
+                case SampleFormat::N64:
+                {
+                    decSamples = N64MusyXDecompressFrameRanged(data, m_curSampleData + 256 + 40 * block,
+                                                               m_curSample->second.vadpcm.m_coefs,
+                                                               rem, remCount);
                     break;
                 }
                 case SampleFormat::PCM:
@@ -421,11 +431,12 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
                     decSamples = remCount;
                     break;
                 }
-                case SampleFormat::N64:
+                case SampleFormat::PCM_PC:
                 {
-                    decSamples = N64MusyXDecompressFrameRanged(data, m_curSampleData + 256 + 40 * block,
-                                                               reinterpret_cast<const int16_t(*)[2][8]>(m_curSampleData),
-                                                               rem, remCount);
+                    const int16_t* pcm = reinterpret_cast<const int16_t*>(m_curSampleData);
+                    remCount = std::min(samplesRem, m_lastSamplePos - m_curSamplePos);
+                    memcpy(data, pcm + m_curSamplePos, remCount * sizeof(int16_t));
+                    decSamples = remCount;
                     break;
                 }
                 default:
@@ -465,8 +476,15 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
                     case SampleFormat::DSP:
                     {
                         decSamples = DSPDecompressFrame(data, m_curSampleData + 8 * block,
-                                                        m_curSample->second.m_coefs,
+                                                        m_curSample->second.dsp.m_coefs,
                                                         &m_prev1, &m_prev2, remCount);
+                        break;
+                    }
+                    case SampleFormat::N64:
+                    {
+                        decSamples = N64MusyXDecompressFrame(data, m_curSampleData + 256 + 40 * block,
+                                                             m_curSample->second.vadpcm.m_coefs,
+                                                             remCount);
                         break;
                     }
                     case SampleFormat::PCM:
@@ -478,11 +496,12 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
                         decSamples = remCount;
                         break;
                     }
-                    case SampleFormat::N64:
+                    case SampleFormat::PCM_PC:
                     {
-                        decSamples = N64MusyXDecompressFrame(data, m_curSampleData + 256 + 40 * block,
-                                                             reinterpret_cast<const int16_t(*)[2][8]>(m_curSampleData),
-                                                             remCount);
+                        const int16_t* pcm = reinterpret_cast<const int16_t*>(m_curSampleData);
+                        remCount = std::min(samplesRem, m_lastSamplePos - m_curSamplePos);
+                        memcpy(data, pcm + m_curSamplePos, remCount * sizeof(int16_t));
+                        decSamples = remCount;
                         break;
                     }
                     default:
@@ -725,13 +744,17 @@ void Voice::startSample(int16_t sampId, int32_t offset)
         m_curSampleData = m_audioGroup.getSampleData(m_curSample->first.m_sampleOff);
         m_prev1 = 0;
         m_prev2 = 0;
-        m_curFormat = SampleFormat(m_curSample->first.m_numSamples >> 24);
+        if (m_audioGroup.getDataFormat() == DataFormat::PC)
+            m_curFormat = SampleFormat::PCM_PC;
+        else
+            m_curFormat = SampleFormat(m_curSample->first.m_numSamples >> 24);
         m_lastSamplePos = m_curSample->first.m_loopLengthSamples ?
             (m_curSample->first.m_loopStartSample + m_curSample->first.m_loopLengthSamples) : numSamples;
 
         if (m_curFormat != SampleFormat::DSP &&
             m_curFormat != SampleFormat::PCM &&
-            m_curFormat != SampleFormat::N64)
+            m_curFormat != SampleFormat::N64 &&
+            m_curFormat != SampleFormat::PCM_PC)
         {
             m_curSample = nullptr;
             return;
@@ -746,11 +769,11 @@ void Voice::startSample(int16_t sampId, int32_t offset)
             uint32_t block = m_curSamplePos / 14;
             uint32_t rem = m_curSamplePos % 14;
             for (uint32_t b = 0 ; b < block ; ++b)
-                DSPDecompressFrameStateOnly(m_curSampleData + 8 * b, m_curSample->second.m_coefs,
+                DSPDecompressFrameStateOnly(m_curSampleData + 8 * b, m_curSample->second.dsp.m_coefs,
                                             &m_prev1, &m_prev2, 14);
 
             if (rem)
-                DSPDecompressFrameStateOnly(m_curSampleData + 8 * block, m_curSample->second.m_coefs,
+                DSPDecompressFrameStateOnly(m_curSampleData + 8 * block, m_curSample->second.dsp.m_coefs,
                                             &m_prev1, &m_prev2, rem);
         }
     }

@@ -1,5 +1,6 @@
 #include "amuse/AudioGroupSampleDirectory.hpp"
 #include "amuse/Common.hpp"
+#include <string.h>
 
 namespace amuse
 {
@@ -16,16 +17,23 @@ void AudioGroupSampleDirectory::Entry::swapBig()
     m_adpcmParmOffset = SBig(m_adpcmParmOffset);
 }
 
-void AudioGroupSampleDirectory::ADPCMParms::swapBig()
+void AudioGroupSampleDirectory::ADPCMParms::swapBigDSP()
 {
-    m_bytesPerFrame = SBig(m_bytesPerFrame);
-    m_hist2 = SBig(m_hist2);
-    m_hist1 = SBig(m_hist1);
+    dsp.m_bytesPerFrame = SBig(dsp.m_bytesPerFrame);
+    dsp.m_hist2 = SBig(dsp.m_hist2);
+    dsp.m_hist1 = SBig(dsp.m_hist1);
     for (int i=0 ; i<8 ; ++i)
     {
-        m_coefs[i][0] = SBig(m_coefs[i][0]);
-        m_coefs[i][1] = SBig(m_coefs[i][1]);
+        dsp.m_coefs[i][0] = SBig(dsp.m_coefs[i][0]);
+        dsp.m_coefs[i][1] = SBig(dsp.m_coefs[i][1]);
     }
+}
+
+void AudioGroupSampleDirectory::ADPCMParms::swapBigVADPCM()
+{
+    int16_t* allCoefs = reinterpret_cast<int16_t*>(vadpcm.m_coefs[0][0]);
+    for (int i=0 ; i<128 ; ++i)
+        allCoefs[i] = SBig(allCoefs[i]);
 }
 
 AudioGroupSampleDirectory::AudioGroupSampleDirectory(const unsigned char* data, GCNDataTag)
@@ -46,7 +54,7 @@ AudioGroupSampleDirectory::AudioGroupSampleDirectory(const unsigned char* data, 
                 reinterpret_cast<const AudioGroupSampleDirectory::ADPCMParms*>(data +
                     store.first.m_adpcmParmOffset);
             store.second = *adpcm;
-            store.second.swapBig();
+            store.second.swapBigDSP();
         }
 
         cur += 32;
@@ -86,7 +94,8 @@ struct MusyX1SdirEntry
     }
 };
 
-AudioGroupSampleDirectory::AudioGroupSampleDirectory(const unsigned char* data, N64DataTag)
+AudioGroupSampleDirectory::AudioGroupSampleDirectory(const unsigned char* data,
+                                                     const unsigned char* sampData, N64DataTag)
 {
     const unsigned char* cur = data;
     while (*reinterpret_cast<const uint32_t*>(cur) != 0xffffffff)
@@ -96,6 +105,9 @@ AudioGroupSampleDirectory::AudioGroupSampleDirectory(const unsigned char* data, 
 
         std::pair<Entry, ADPCMParms>& store = m_entries[ent.m_sfxId];
         ent.setIntoMusyX2(store.first);
+
+        memcpy(&store.second.vadpcm.m_coefs, sampData + ent.m_sampleOff, 256);
+        store.second.swapBigVADPCM();
 
         cur += 24;
     }
