@@ -12,18 +12,18 @@ AudioGroup::AudioGroup(const AudioGroupData& data, GCNDataTag)
   m_fmt(DataFormat::GCN)
 {}
 
-AudioGroup::AudioGroup(const AudioGroupData& data, N64DataTag)
-: m_proj(data.getProj(), N64DataTag{}),
+AudioGroup::AudioGroup(const AudioGroupData& data, bool absOffs, N64DataTag)
+: m_proj(data.getProj(), absOffs, N64DataTag{}),
   m_pool(data.getPool()),
-  m_sdir(data.getSdir(), data.getSamp(), N64DataTag{}),
+  m_sdir(data.getSdir(), data.getSamp(), absOffs, N64DataTag{}),
   m_samp(data.getSamp()),
   m_fmt(DataFormat::N64)
 {}
 
-AudioGroup::AudioGroup(const AudioGroupData& data, PCDataTag)
-: m_proj(data.getProj(), PCDataTag{}),
+AudioGroup::AudioGroup(const AudioGroupData& data, bool absOffs, PCDataTag)
+: m_proj(data.getProj(), absOffs, PCDataTag{}),
   m_pool(data.getPool(), PCDataTag{}),
-  m_sdir(data.getSdir(), PCDataTag{}),
+  m_sdir(data.getSdir(), absOffs, PCDataTag{}),
   m_samp(data.getSamp()),
   m_fmt(DataFormat::PC)
 {}

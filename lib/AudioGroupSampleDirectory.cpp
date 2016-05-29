@@ -94,36 +94,109 @@ struct MusyX1SdirEntry
     }
 };
 
+struct MusyX1AbsSdirEntry
+{
+    uint16_t m_sfxId;
+    uint32_t m_sampleOff;
+    uint32_t m_unk;
+    uint32_t m_pitchSampleRate;
+    uint32_t m_numSamples;
+    uint32_t m_loopStartSample;
+    uint32_t m_loopLengthSamples;
+
+    void swapBig()
+    {
+        m_sfxId = SBig(m_sfxId);
+        m_sampleOff = SBig(m_sampleOff);
+        m_unk = SBig(m_unk);
+        m_pitchSampleRate = SBig(m_pitchSampleRate);
+        m_numSamples = SBig(m_numSamples);
+        m_loopStartSample = SBig(m_loopStartSample);
+        m_loopLengthSamples = SBig(m_loopLengthSamples);
+    }
+
+    void setIntoMusyX2(AudioGroupSampleDirectory::Entry& ent) const
+    {
+        ent.m_sfxId = m_sfxId;
+        ent.m_sampleOff = m_sampleOff;
+        ent.m_unk = m_unk;
+        ent.m_pitch = m_pitchSampleRate >> 24;
+        ent.m_sampleRate = m_pitchSampleRate & 0xffff;
+        ent.m_numSamples = m_numSamples;
+        ent.m_loopStartSample = m_loopStartSample;
+        ent.m_loopLengthSamples = m_loopLengthSamples;
+        ent.m_adpcmParmOffset = 0;
+    }
+};
+
 AudioGroupSampleDirectory::AudioGroupSampleDirectory(const unsigned char* data,
-                                                     const unsigned char* sampData, N64DataTag)
+                                                     const unsigned char* sampData,
+                                                     bool absOffs, N64DataTag)
 {
     const unsigned char* cur = data;
-    while (*reinterpret_cast<const uint32_t*>(cur) != 0xffffffff)
+
+    if (absOffs)
     {
-        MusyX1SdirEntry ent = *reinterpret_cast<const MusyX1SdirEntry*>(cur);
-        ent.swapBig();
+        while (*reinterpret_cast<const uint32_t*>(cur) != 0xffffffff)
+        {
+            MusyX1AbsSdirEntry ent = *reinterpret_cast<const MusyX1AbsSdirEntry*>(cur);
+            ent.swapBig();
 
-        std::pair<Entry, ADPCMParms>& store = m_entries[ent.m_sfxId];
-        ent.setIntoMusyX2(store.first);
+            std::pair<Entry, ADPCMParms>& store = m_entries[ent.m_sfxId];
+            ent.setIntoMusyX2(store.first);
 
-        memcpy(&store.second.vadpcm.m_coefs, sampData + ent.m_sampleOff, 256);
-        store.second.swapBigVADPCM();
+            memcpy(&store.second.vadpcm.m_coefs, sampData + ent.m_sampleOff, 256);
+            store.second.swapBigVADPCM();
 
-        cur += 24;
+            cur += 28;
+        }
+    }
+    else
+    {
+        while (*reinterpret_cast<const uint32_t*>(cur) != 0xffffffff)
+        {
+            MusyX1SdirEntry ent = *reinterpret_cast<const MusyX1SdirEntry*>(cur);
+            ent.swapBig();
+
+            std::pair<Entry, ADPCMParms>& store = m_entries[ent.m_sfxId];
+            ent.setIntoMusyX2(store.first);
+
+            memcpy(&store.second.vadpcm.m_coefs, sampData + ent.m_sampleOff, 256);
+            store.second.swapBigVADPCM();
+
+            cur += 24;
+        }
     }
 }
 
-AudioGroupSampleDirectory::AudioGroupSampleDirectory(const unsigned char* data, PCDataTag)
+AudioGroupSampleDirectory::AudioGroupSampleDirectory(const unsigned char* data,
+                                                     bool absOffs, PCDataTag)
 {
     const unsigned char* cur = data;
-    while (*reinterpret_cast<const uint32_t*>(cur) != 0xffffffff)
+
+    if (absOffs)
     {
-        const MusyX1SdirEntry* ent = reinterpret_cast<const MusyX1SdirEntry*>(cur);
+        while (*reinterpret_cast<const uint32_t*>(cur) != 0xffffffff)
+        {
+            const MusyX1AbsSdirEntry* ent = reinterpret_cast<const MusyX1AbsSdirEntry*>(cur);
 
-        std::pair<Entry, ADPCMParms>& store = m_entries[ent->m_sfxId];
-        ent->setIntoMusyX2(store.first);
+            std::pair<Entry, ADPCMParms>& store = m_entries[ent->m_sfxId];
+            ent->setIntoMusyX2(store.first);
 
-        cur += 24;
+            cur += 28;
+        }
+    }
+    else
+    {
+        while (*reinterpret_cast<const uint32_t*>(cur) != 0xffffffff)
+        {
+            const MusyX1SdirEntry* ent = reinterpret_cast<const MusyX1SdirEntry*>(cur);
+
+            std::pair<Entry, ADPCMParms>& store = m_entries[ent->m_sfxId];
+            ent->setIntoMusyX2(store.first);
+
+            cur += 24;
+        }
     }
 }
 

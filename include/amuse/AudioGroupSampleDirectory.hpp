@@ -48,8 +48,9 @@ private:
     std::unordered_map<uint16_t, std::pair<Entry, ADPCMParms>> m_entries;
 public:
     AudioGroupSampleDirectory(const unsigned char* data, GCNDataTag);
-    AudioGroupSampleDirectory(const unsigned char* data, const unsigned char* sampData, N64DataTag);
-    AudioGroupSampleDirectory(const unsigned char* data, PCDataTag);
+    AudioGroupSampleDirectory(const unsigned char* data, const unsigned char* sampData,
+                              bool absOffs, N64DataTag);
+    AudioGroupSampleDirectory(const unsigned char* data, bool absOffs, PCDataTag);
 };
 
 }

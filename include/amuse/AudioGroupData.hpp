@@ -16,20 +16,26 @@ protected:
     unsigned char* m_sdir;
     unsigned char* m_samp;
     DataFormat m_fmt;
+    bool m_absOffs;
 
     AudioGroupData(unsigned char* proj, unsigned char* pool,
-                   unsigned char* sdir, unsigned char* samp, DataFormat fmt)
-    : m_proj(proj), m_pool(pool), m_sdir(sdir), m_samp(samp), m_fmt(fmt) {}
+                   unsigned char* sdir, unsigned char* samp,
+                   DataFormat fmt, bool absOffs)
+    : m_proj(proj), m_pool(pool), m_sdir(sdir), m_samp(samp),
+      m_fmt(fmt), m_absOffs(absOffs) {}
 public:
     AudioGroupData(unsigned char* proj, unsigned char* pool,
                    unsigned char* sdir, unsigned char* samp, GCNDataTag)
-    : m_proj(proj), m_pool(pool), m_sdir(sdir), m_samp(samp), m_fmt(DataFormat::GCN) {}
+    : m_proj(proj), m_pool(pool), m_sdir(sdir), m_samp(samp),
+      m_fmt(DataFormat::GCN), m_absOffs(true) {}
     AudioGroupData(unsigned char* proj, unsigned char* pool,
-                   unsigned char* sdir, unsigned char* samp, N64DataTag)
-    : m_proj(proj), m_pool(pool), m_sdir(sdir), m_samp(samp), m_fmt(DataFormat::N64) {}
+                   unsigned char* sdir, unsigned char* samp, bool absOffs, N64DataTag)
+    : m_proj(proj), m_pool(pool), m_sdir(sdir), m_samp(samp),
+      m_fmt(DataFormat::N64), m_absOffs(absOffs) {}
     AudioGroupData(unsigned char* proj, unsigned char* pool,
-                   unsigned char* sdir, unsigned char* samp, PCDataTag)
-    : m_proj(proj), m_pool(pool), m_sdir(sdir), m_samp(samp), m_fmt(DataFormat::PC) {}
+                   unsigned char* sdir, unsigned char* samp, bool absOffs, PCDataTag)
+    : m_proj(proj), m_pool(pool), m_sdir(sdir), m_samp(samp),
+      m_fmt(DataFormat::PC), m_absOffs(absOffs) {}
 
     const unsigned char* getProj() const {return m_proj;}
     const unsigned char* getPool() const {return m_pool;}
@@ -42,6 +48,7 @@ public:
     }
 
     DataFormat getDataFormat() const {return m_fmt;}
+    bool getAbsoluteProjOffsets() const {return m_absOffs;}
 };
 
 /** A buffer-owning version of AudioGroupData */

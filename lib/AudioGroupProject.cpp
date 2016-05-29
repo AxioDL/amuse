@@ -152,7 +152,7 @@ struct MusyX1MIDISetup
     }
 };
 
-void AudioGroupProject::_allocateConvBuffers(const unsigned char* data, N64DataTag)
+void AudioGroupProject::_allocateConvBuffers(const unsigned char* data, bool absOffs, N64DataTag)
 {
     size_t normPageCount = 0;
     size_t drumPageCount = 0;
@@ -161,7 +161,7 @@ void AudioGroupProject::_allocateConvBuffers(const unsigned char* data, N64DataT
     const GroupHeader* group = reinterpret_cast<const GroupHeader*>(data);
     while (group->groupEndOff != 0xffffffff)
     {
-        const unsigned char* subData = data + 8;
+        const unsigned char* subData = absOffs ? data : data + 8;
         GroupHeader header = *group;
         header.swapBig();
 
@@ -194,8 +194,13 @@ void AudioGroupProject::_allocateConvBuffers(const unsigned char* data, N64DataT
             }
         }
 
-        data += header.groupEndOff;
-        group = reinterpret_cast<const GroupHeader*>(data);
+        if (absOffs)
+            group = reinterpret_cast<const GroupHeader*>(data + header.groupEndOff);
+        else
+        {
+            data += header.groupEndOff;
+            group = reinterpret_cast<const GroupHeader*>(data);
+        }
     }
 
     if (normPageCount)
@@ -206,9 +211,9 @@ void AudioGroupProject::_allocateConvBuffers(const unsigned char* data, N64DataT
         m_convMidiSetups.reset(new std::array<SongGroupIndex::MIDISetup, 16>[midiSetupCount]);
 }
 
-AudioGroupProject::AudioGroupProject(const unsigned char* data, N64DataTag)
+AudioGroupProject::AudioGroupProject(const unsigned char* data, bool absOffs, N64DataTag)
 {
-    _allocateConvBuffers(data, N64DataTag{});
+    _allocateConvBuffers(data, absOffs, N64DataTag{});
     SongGroupIndex::PageEntry* normPagesBuf = m_convNormalPages.get();
     SongGroupIndex::PageEntry* drumPagesBuf = m_convDrumPages.get();
     std::array<SongGroupIndex::MIDISetup, 16>* midiSetupsBuf = m_convMidiSetups.get();
@@ -216,7 +221,7 @@ AudioGroupProject::AudioGroupProject(const unsigned char* data, N64DataTag)
     const GroupHeader* group = reinterpret_cast<const GroupHeader*>(data);
     while (group->groupEndOff != 0xffffffff)
     {
-        const unsigned char* subData = data + 8;
+        const unsigned char* subData = absOffs ? data : data + 8;
         GroupHeader header = *group;
         header.swapBig();
 
@@ -289,12 +294,17 @@ AudioGroupProject::AudioGroupProject(const unsigned char* data, N64DataTag)
             bIdx->m_layersIndex = reinterpret_cast<const uint16_t*>(subData + header.layerIdsOff);
         }
 
-        data += header.groupEndOff;
-        group = reinterpret_cast<const GroupHeader*>(data);
+        if (absOffs)
+            group = reinterpret_cast<const GroupHeader*>(data + header.groupEndOff);
+        else
+        {
+            data += header.groupEndOff;
+            group = reinterpret_cast<const GroupHeader*>(data);
+        }
     }
 }
 
-void AudioGroupProject::_allocateConvBuffers(const unsigned char* data, PCDataTag)
+void AudioGroupProject::_allocateConvBuffers(const unsigned char* data, bool absOffs, PCDataTag)
 {
     size_t normPageCount = 0;
     size_t drumPageCount = 0;
@@ -303,7 +313,7 @@ void AudioGroupProject::_allocateConvBuffers(const unsigned char* data, PCDataTa
     const GroupHeader* group = reinterpret_cast<const GroupHeader*>(data);
     while (group->groupEndOff != 0xffffffff)
     {
-        const unsigned char* subData = data + 8;
+        const unsigned char* subData = absOffs ? data : data + 8;
 
         if (group->type == GroupType::Song)
         {
@@ -334,8 +344,13 @@ void AudioGroupProject::_allocateConvBuffers(const unsigned char* data, PCDataTa
             }
         }
 
-        data += group->groupEndOff;
-        group = reinterpret_cast<const GroupHeader*>(data);
+        if (absOffs)
+            group = reinterpret_cast<const GroupHeader*>(data + group->groupEndOff);
+        else
+        {
+            data += group->groupEndOff;
+            group = reinterpret_cast<const GroupHeader*>(data);
+        }
     }
 
     if (normPageCount)
@@ -346,9 +361,9 @@ void AudioGroupProject::_allocateConvBuffers(const unsigned char* data, PCDataTa
         m_convMidiSetups.reset(new std::array<SongGroupIndex::MIDISetup, 16>[midiSetupCount]);
 }
 
-AudioGroupProject::AudioGroupProject(const unsigned char* data, PCDataTag)
+AudioGroupProject::AudioGroupProject(const unsigned char* data, bool absOffs, PCDataTag)
 {
-    _allocateConvBuffers(data, PCDataTag{});
+    _allocateConvBuffers(data, absOffs, PCDataTag{});
     SongGroupIndex::PageEntry* normPagesBuf = m_convNormalPages.get();
     SongGroupIndex::PageEntry* drumPagesBuf = m_convDrumPages.get();
     std::array<SongGroupIndex::MIDISetup, 16>* midiSetupsBuf = m_convMidiSetups.get();
@@ -356,7 +371,7 @@ AudioGroupProject::AudioGroupProject(const unsigned char* data, PCDataTag)
     const GroupHeader* group = reinterpret_cast<const GroupHeader*>(data);
     while (group->groupEndOff != 0xffffffff)
     {
-        const unsigned char* subData = data + 8;
+        const unsigned char* subData = absOffs ? data : data + 8;
 
         AudioGroupIndex* bIdx = nullptr;
 
@@ -427,8 +442,13 @@ AudioGroupProject::AudioGroupProject(const unsigned char* data, PCDataTag)
             bIdx->m_layersIndex = reinterpret_cast<const uint16_t*>(subData + group->layerIdsOff);
         }
 
-        data += group->groupEndOff;
-        group = reinterpret_cast<const GroupHeader*>(data);
+        if (absOffs)
+            group = reinterpret_cast<const GroupHeader*>(data + group->groupEndOff);
+        else
+        {
+            data += group->groupEndOff;
+            group = reinterpret_cast<const GroupHeader*>(data);
+        }
     }
 }
 
@@ -439,9 +459,9 @@ AudioGroupProject AudioGroupProject::CreateAudioGroupProject(const AudioGroupDat
     case DataFormat::GCN:
         return AudioGroupProject(data.getProj(), GCNDataTag{});
     case DataFormat::N64:
-        return AudioGroupProject(data.getProj(), N64DataTag{});
+        return AudioGroupProject(data.getProj(), data.getAbsoluteProjOffsets(), N64DataTag{});
     case DataFormat::PC:
-        return AudioGroupProject(data.getProj(), PCDataTag{});
+        return AudioGroupProject(data.getProj(), data.getAbsoluteProjOffsets(), PCDataTag{});
     }
 }
 

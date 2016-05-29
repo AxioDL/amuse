@@ -51,6 +51,10 @@ const char* ContainerRegistry::TypeToName(Type tp)
         return "Star Wars: Rogue Squadron (PC)";
     case Type::RogueSquadronN64:
         return "Star Wars: Rogue Squadron (N64)";
+    case Type::BattleForNabooPC:
+        return "Star Wars Episode I: Battle for Naboo (PC)";
+    case Type::BattleForNabooN64:
+        return "Star Wars Episode I: Battle for Naboo (N64)";
     case Type::RogueSquadron2:
         return "Star Wars: Rogue Squadron 2 (GCN)";
     case Type::RogueSquadron3:
@@ -371,13 +375,13 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadMP2(FILE
                         fread(pool.get(), 1, poolSz, fp);
 
                         std::unique_ptr<uint8_t[]> proj(new uint8_t[projSz]);
-                        fread(pool.get(), 1, projSz, fp);
+                        fread(proj.get(), 1, projSz, fp);
 
                         std::unique_ptr<uint8_t[]> sdir(new uint8_t[sdirSz]);
-                        fread(pool.get(), 1, sdirSz, fp);
+                        fread(sdir.get(), 1, sdirSz, fp);
 
                         std::unique_ptr<uint8_t[]> samp(new uint8_t[sampSz]);
-                        fread(pool.get(), 1, sampSz, fp);
+                        fread(samp.get(), 1, sampSz, fp);
 
                         ret.emplace_back(std::move(name), IntrusiveAudioGroupData{proj.release(), pool.release(),
                                                                                   sdir.release(), samp.release(), GCNDataTag{}});
@@ -410,7 +414,14 @@ struct RS1FSTEntry
     }
 };
 
-static void SwapN64Rom(void* data, size_t size)
+static void SwapN64Rom16(void* data, size_t size)
+{
+    uint16_t* words = reinterpret_cast<uint16_t*>(data);
+    for (size_t i=0 ; i<size/2 ; ++i)
+        words[i] = SBig(words[i]);
+}
+
+static void SwapN64Rom32(void* data, size_t size)
 {
     uint32_t* words = reinterpret_cast<uint32_t*>(data);
     for (size_t i=0 ; i<size/4 ; ++i)
@@ -505,7 +516,8 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadRS1PC(FI
             }
             
             ret.emplace_back("Group", IntrusiveAudioGroupData{proj.release(), pool.release(),
-                                                              sdir.release(), samp.release(), PCDataTag{}});
+                                                              sdir.release(), samp.release(),
+                                                              false, PCDataTag{}});
         }
     }
 
@@ -522,11 +534,15 @@ static bool ValidateRS1N64(FILE* fp)
     fread(data.get(), 1, endPos, fp);
 
     if ((data[0] & 0x80) != 0x80 && (data[3] & 0x80) == 0x80)
-        SwapN64Rom(data.get(), endPos);
+        SwapN64Rom32(data.get(), endPos);
+    else if ((data[0] & 0x80) != 0x80 && (data[1] & 0x80) == 0x80)
+        SwapN64Rom16(data.get(), endPos);
 
+#if 0
     const uint32_t* gameId = reinterpret_cast<const uint32_t*>(&data[59]);
-    if (*gameId != 0x4e525345 && *gameId != 0x4553524e)
-        return false; /* GameId not 'NRSE' */
+    if (*gameId != 0x4553524e && *gameId != 0x4a53524e && *gameId != 0x5053524e)
+        return false; /* GameId not 'NRSE', 'NRSJ', or 'NRSP' */
+#endif
 
     const uint8_t* dataSeg = reinterpret_cast<const uint8_t*>(memmem(data.get(), endPos,
                                                                      "dbg_data\0\0\0\0\0\0\0\0", 16));
@@ -571,7 +587,9 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadRS1N64(F
     fread(data.get(), 1, endPos, fp);
 
     if ((data[0] & 0x80) != 0x80 && (data[3] & 0x80) == 0x80)
-        SwapN64Rom(data.get(), endPos);
+        SwapN64Rom32(data.get(), endPos);
+    else if ((data[0] & 0x80) != 0x80 && (data[1] & 0x80) == 0x80)
+        SwapN64Rom16(data.get(), endPos);
 
     const uint8_t* dataSeg = reinterpret_cast<const uint8_t*>(memmem(data.get(), endPos,
                                                                      "dbg_data\0\0\0\0\0\0\0\0", 16));
@@ -656,7 +674,261 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadRS1N64(F
         }
 
         ret.emplace_back("Group", IntrusiveAudioGroupData{proj.release(), pool.release(),
-                                                          sdir.release(), samp.release(), N64DataTag{}});
+                                                          sdir.release(), samp.release(),
+                                                          false, N64DataTag{}});
+    }
+
+    return ret;
+}
+
+static bool ValidateBFNPC(FILE* fp)
+{
+    size_t endPos = FileLength(fp);
+
+    uint32_t fstOff;
+    uint32_t fstSz;
+    if (fread(&fstOff, 1, 4, fp) == 4 && fread(&fstSz, 1, 4, fp) == 4)
+    {
+        if (fstOff + fstSz <= endPos)
+        {
+            FSeek(fp, fstOff, SEEK_SET);
+            uint32_t elemCount = fstSz / 32;
+            std::unique_ptr<RS1FSTEntry[]> entries(new RS1FSTEntry[elemCount]);
+            fread(entries.get(), fstSz, 1, fp);
+
+            uint8_t foundComps = 0;
+            for (uint32_t i=0 ; i<elemCount ; ++i)
+            {
+                RS1FSTEntry& entry = entries[i];
+                if (!strncmp("proj", entry.name, 16))
+                    foundComps |= 1;
+                else if (!strncmp("pool", entry.name, 16))
+                    foundComps |= 2;
+                else if (!strncmp("sdir", entry.name, 16))
+                    foundComps |= 4;
+                else if (!strncmp("samp", entry.name, 16))
+                    foundComps |= 8;
+            }
+
+            if (foundComps == 0xf)
+                return true;
+        }
+    }
+
+    return false;
+}
+
+static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadBFNPC(FILE* fp)
+{
+    std::vector<std::pair<std::string, IntrusiveAudioGroupData>> ret;
+    size_t endPos = FileLength(fp);
+
+    uint32_t fstOff;
+    uint32_t fstSz;
+    if (fread(&fstOff, 1, 4, fp) == 4 && fread(&fstSz, 1, 4, fp) == 4)
+    {
+        if (fstOff + fstSz <= endPos)
+        {
+            FSeek(fp, fstOff, SEEK_SET);
+            uint32_t elemCount = fstSz / 32;
+            std::unique_ptr<RS1FSTEntry[]> entries(new RS1FSTEntry[elemCount]);
+            fread(entries.get(), fstSz, 1, fp);
+
+            std::unique_ptr<uint8_t[]> proj;
+            std::unique_ptr<uint8_t[]> pool;
+            std::unique_ptr<uint8_t[]> sdir;
+            std::unique_ptr<uint8_t[]> samp;
+
+            for (uint32_t i=0 ; i<elemCount ; ++i)
+            {
+                RS1FSTEntry& entry = entries[i];
+                if (!strncmp("proj", entry.name, 16))
+                {
+                    proj.reset(new uint8_t[entry.decompSz]);
+                    FSeek(fp, entry.offset, SEEK_SET);
+                    fread(proj.get(), 1, entry.decompSz, fp);
+                }
+                else if (!strncmp("pool", entry.name, 16))
+                {
+                    pool.reset(new uint8_t[entry.decompSz]);
+                    FSeek(fp, entry.offset, SEEK_SET);
+                    fread(pool.get(), 1, entry.decompSz, fp);
+                }
+                else if (!strncmp("sdir", entry.name, 16))
+                {
+                    sdir.reset(new uint8_t[entry.decompSz]);
+                    FSeek(fp, entry.offset, SEEK_SET);
+                    fread(sdir.get(), 1, entry.decompSz, fp);
+                }
+                else if (!strncmp("samp", entry.name, 16))
+                {
+                    samp.reset(new uint8_t[entry.decompSz]);
+                    FSeek(fp, entry.offset, SEEK_SET);
+                    fread(samp.get(), 1, entry.decompSz, fp);
+                }
+            }
+
+            ret.emplace_back("Group", IntrusiveAudioGroupData{proj.release(), pool.release(),
+                                                              sdir.release(), samp.release(),
+                                                              true, PCDataTag{}});
+        }
+    }
+
+    return ret;
+}
+
+static bool ValidateBFNN64(FILE* fp)
+{
+    size_t endPos = FileLength(fp);
+    if (endPos > 32 * 1024 * 1024)
+        return false; /* N64 ROM definitely won't exceed 32MB */
+
+    std::unique_ptr<uint8_t[]> data(new uint8_t[endPos]);
+    fread(data.get(), 1, endPos, fp);
+
+    if ((data[0] & 0x80) != 0x80 && (data[3] & 0x80) == 0x80)
+        SwapN64Rom32(data.get(), endPos);
+    else if ((data[0] & 0x80) != 0x80 && (data[1] & 0x80) == 0x80)
+        SwapN64Rom16(data.get(), endPos);
+
+#if 0
+    const uint32_t* gameId = reinterpret_cast<const uint32_t*>(&data[59]);
+    if (*gameId != 0x4553524e && *gameId != 0x4a53524e && *gameId != 0x5053524e)
+        return false; /* GameId not 'NRSE', 'NRSJ', or 'NRSP' */
+#endif
+
+    const uint8_t* dataSeg = reinterpret_cast<const uint8_t*>(memmem(data.get(), endPos,
+                                                                     "dbg_data\0\0\0\0\0\0\0\0", 16));
+    if (dataSeg)
+    {
+        dataSeg += 28;
+        size_t fstEnd = SBig(*reinterpret_cast<const uint32_t*>(dataSeg));
+        dataSeg += 4;
+        size_t fstOff = SBig(*reinterpret_cast<const uint32_t*>(dataSeg));
+        if (endPos <= size_t(dataSeg - data.get()) + fstOff || endPos <= size_t(dataSeg - data.get()) + fstEnd)
+            return false;
+
+        const RS1FSTEntry* entry = reinterpret_cast<const RS1FSTEntry*>(dataSeg + fstOff);
+        const RS1FSTEntry* lastEnt = reinterpret_cast<const RS1FSTEntry*>(dataSeg + fstEnd);
+
+        uint8_t foundComps = 0;
+        for (; entry != lastEnt ; ++entry)
+        {
+            if (!strncmp("proj", entry->name, 16))
+                foundComps |= 1;
+            else if (!strncmp("pool", entry->name, 16))
+                foundComps |= 2;
+            else if (!strncmp("sdir", entry->name, 16))
+                foundComps |= 4;
+            else if (!strncmp("samp", entry->name, 16))
+                foundComps |= 8;
+        }
+
+        if (foundComps == 0xf)
+            return true;
+    }
+
+    return false;
+}
+
+static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadBFNN64(FILE* fp)
+{
+    std::vector<std::pair<std::string, IntrusiveAudioGroupData>> ret;
+    size_t endPos = FileLength(fp);
+
+    std::unique_ptr<uint8_t[]> data(new uint8_t[endPos]);
+    fread(data.get(), 1, endPos, fp);
+
+    if ((data[0] & 0x80) != 0x80 && (data[3] & 0x80) == 0x80)
+        SwapN64Rom32(data.get(), endPos);
+    else if ((data[0] & 0x80) != 0x80 && (data[1] & 0x80) == 0x80)
+        SwapN64Rom16(data.get(), endPos);
+
+    const uint8_t* dataSeg = reinterpret_cast<const uint8_t*>(memmem(data.get(), endPos,
+                                                                     "dbg_data\0\0\0\0\0\0\0\0", 16));
+    if (dataSeg)
+    {
+        dataSeg += 28;
+        size_t fstEnd = SBig(*reinterpret_cast<const uint32_t*>(dataSeg));
+        dataSeg += 4;
+        size_t fstOff = SBig(*reinterpret_cast<const uint32_t*>(dataSeg));
+        if (endPos <= size_t(dataSeg - data.get()) + fstOff || endPos <= size_t(dataSeg - data.get()) + fstEnd)
+            return ret;
+
+        const RS1FSTEntry* entry = reinterpret_cast<const RS1FSTEntry*>(dataSeg + fstOff);
+        const RS1FSTEntry* lastEnt = reinterpret_cast<const RS1FSTEntry*>(dataSeg + fstEnd);
+
+        std::unique_ptr<uint8_t[]> proj;
+        std::unique_ptr<uint8_t[]> pool;
+        std::unique_ptr<uint8_t[]> sdir;
+        std::unique_ptr<uint8_t[]> samp;
+
+        for (; entry != lastEnt ; ++entry)
+        {
+            RS1FSTEntry ent = *entry;
+            ent.swapBig();
+
+            if (!strncmp("proj", ent.name, 16))
+            {
+                if (ent.compSz == 0xffffffff)
+                {
+                    proj.reset(new uint8_t[ent.decompSz]);
+                    memcpy(proj.get(), dataSeg + ent.offset, ent.decompSz);
+                }
+                else
+                {
+                    proj.reset(new uint8_t[ent.decompSz]);
+                    uLongf outSz = ent.decompSz;
+                    uncompress(proj.get(), &outSz, dataSeg + ent.offset, ent.compSz);
+                }
+            }
+            else if (!strncmp("pool", ent.name, 16))
+            {
+                if (ent.compSz == 0xffffffff)
+                {
+                    pool.reset(new uint8_t[ent.decompSz]);
+                    memcpy(pool.get(), dataSeg + ent.offset, ent.decompSz);
+                }
+                else
+                {
+                    pool.reset(new uint8_t[ent.decompSz]);
+                    uLongf outSz = ent.decompSz;
+                    uncompress(pool.get(), &outSz, dataSeg + ent.offset, ent.compSz);
+                }
+            }
+            else if (!strncmp("sdir", ent.name, 16))
+            {
+                if (ent.compSz == 0xffffffff)
+                {
+                    sdir.reset(new uint8_t[ent.decompSz]);
+                    memcpy(sdir.get(), dataSeg + ent.offset, ent.decompSz);
+                }
+                else
+                {
+                    sdir.reset(new uint8_t[ent.decompSz]);
+                    uLongf outSz = ent.decompSz;
+                    uncompress(sdir.get(), &outSz, dataSeg + ent.offset, ent.compSz);
+                }
+            }
+            else if (!strncmp("samp", ent.name, 16))
+            {
+                if (ent.compSz == 0xffffffff)
+                {
+                    samp.reset(new uint8_t[ent.decompSz]);
+                    memcpy(samp.get(), dataSeg + ent.offset, ent.decompSz);
+                }
+                else
+                {
+                    samp.reset(new uint8_t[ent.decompSz]);
+                    uLongf outSz = ent.decompSz;
+                    uncompress(samp.get(), &outSz, dataSeg + ent.offset, ent.compSz);
+                }
+            }
+        }
+
+        ret.emplace_back("Group", IntrusiveAudioGroupData{proj.release(), pool.release(),
+                                                          sdir.release(), samp.release(),
+                                                          true, N64DataTag{}});
     }
 
     return ret;
@@ -989,6 +1261,18 @@ ContainerRegistry::Type ContainerRegistry::DetectContainerType(const char* path)
             return Type::RogueSquadronN64;
         }
 
+        if (ValidateBFNPC(fp))
+        {
+            fclose(fp);
+            return Type::BattleForNabooPC;
+        }
+
+        if (ValidateBFNN64(fp))
+        {
+            fclose(fp);
+            return Type::BattleForNabooN64;
+        }
+
         if (ValidateRS2(fp))
         {
             fclose(fp);
@@ -1103,13 +1387,16 @@ ContainerRegistry::LoadContainer(const char* path)
         /* SDIR-based format detection */
         if (*reinterpret_cast<uint32_t*>(sdir.get() + 8) == 0x0)
             ret.emplace_back("Group", IntrusiveAudioGroupData{proj.release(), pool.release(),
-                                                              sdir.release(), samp.release(), GCNDataTag{}});
+                                                              sdir.release(), samp.release(),
+                                                              GCNDataTag{}});
         else if (sdir[9] == 0x0)
             ret.emplace_back("Group", IntrusiveAudioGroupData{proj.release(), pool.release(),
-                                                              sdir.release(), samp.release(), N64DataTag{}});
+                                                              sdir.release(), samp.release(),
+                                                              false, N64DataTag{}});
         else
             ret.emplace_back("Group", IntrusiveAudioGroupData{proj.release(), pool.release(),
-                                                              sdir.release(), samp.release(), PCDataTag{}});
+                                                              sdir.release(), samp.release(),
+                                                              false, PCDataTag{}});
 
         return ret;
     }
@@ -1142,6 +1429,20 @@ ContainerRegistry::LoadContainer(const char* path)
         if (ValidateRS1N64(fp))
         {
             auto ret = LoadRS1N64(fp);
+            fclose(fp);
+            return ret;
+        }
+
+        if (ValidateBFNPC(fp))
+        {
+            auto ret = LoadBFNPC(fp);
+            fclose(fp);
+            return ret;
+        }
+
+        if (ValidateBFNN64(fp))
+        {
+            auto ret = LoadBFNN64(fp);
             fclose(fp);
             return ret;
         }

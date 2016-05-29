@@ -205,10 +205,10 @@ const AudioGroup* Engine::addAudioGroup(const AudioGroupData& data)
         grp = std::make_unique<AudioGroup>(data, GCNDataTag{});
         break;
     case DataFormat::N64:
-        grp = std::make_unique<AudioGroup>(data, N64DataTag{});
+        grp = std::make_unique<AudioGroup>(data, data.m_absOffs, N64DataTag{});
         break;
     case DataFormat::PC:
-        grp = std::make_unique<AudioGroup>(data, PCDataTag{});
+        grp = std::make_unique<AudioGroup>(data, data.m_absOffs, PCDataTag{});
         break;
     }
     if (!grp)

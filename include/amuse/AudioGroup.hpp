@@ -24,8 +24,8 @@ class AudioGroup
 public:
     operator bool() const {return m_valid;}
     AudioGroup(const AudioGroupData& data, GCNDataTag);
-    AudioGroup(const AudioGroupData& data, N64DataTag);
-    AudioGroup(const AudioGroupData& data, PCDataTag);
+    AudioGroup(const AudioGroupData& data, bool absOffs, N64DataTag);
+    AudioGroup(const AudioGroupData& data, bool absOffs, PCDataTag);
 
     const Sample* getSample(int sfxId) const;
     const unsigned char* getSampleData(uint32_t offset) const;

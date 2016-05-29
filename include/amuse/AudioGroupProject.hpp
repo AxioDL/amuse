@@ -76,13 +76,13 @@ class AudioGroupProject
     std::unique_ptr<SongGroupIndex::PageEntry[]> m_convNormalPages;
     std::unique_ptr<SongGroupIndex::PageEntry[]> m_convDrumPages;
     std::unique_ptr<std::array<SongGroupIndex::MIDISetup, 16>[]> m_convMidiSetups;
-    void _allocateConvBuffers(const unsigned char* data, N64DataTag);
-    void _allocateConvBuffers(const unsigned char* data, PCDataTag);
+    void _allocateConvBuffers(const unsigned char* data, bool absOffs, N64DataTag);
+    void _allocateConvBuffers(const unsigned char* data, bool absOffs, PCDataTag);
 
 public:
     AudioGroupProject(const unsigned char* data, GCNDataTag);
-    AudioGroupProject(const unsigned char* data, N64DataTag);
-    AudioGroupProject(const unsigned char* data, PCDataTag);
+    AudioGroupProject(const unsigned char* data, bool absOffs, N64DataTag);
+    AudioGroupProject(const unsigned char* data, bool absOffs, PCDataTag);
     static AudioGroupProject CreateAudioGroupProject(const AudioGroupData& data);
 
     const SongGroupIndex* getSongGroupIndex(int groupId) const;

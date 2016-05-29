@@ -19,6 +19,8 @@ public:
         MetroidPrime2,
         RogueSquadronPC,
         RogueSquadronN64,
+        BattleForNabooPC,
+        BattleForNabooN64,
         RogueSquadron2,
         RogueSquadron3
     };
