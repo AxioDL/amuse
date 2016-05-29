@@ -7,6 +7,40 @@ The project is designed for compatibility with Audio Groups and Song data
 found in PC/N64/GCN/GBA games using the *MusyX* audio engine; providing an
 alternate runtime library to use for sequencing these games' audio libraries.
 
+#### Command-Line Player
+
+[Download](https://github.com/AxioDL/amuse/releases)
+
+A simple command-line program for loading and playing AudioGroups out of
+game archives or raw (`.proj`,`.pool`,`.sdir`,`.samp`) files is provided.
+
+```sh
+[jacko@ghor ~]$ amuseplay test.proj
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+░░░   ████ ████  ┃  ████ ████ ████   ┃   ████ ████  ░░░
+░░░   ████ ████  ┃  ████ ████ ████   ┃   ████ ████  ░░░
+░░░   ▌W▐█ ▌E▐█  ┃  ▌T▐█ ▌Y▐█ ▌U▐█   ┃   ▌O▐█ ▌P▐█  ░░░
+░░░    │    │    ┃    │    │    │    ┃    │    │    ░░░
+░░░ A  │ S  │ D  ┃ F  │ G  │ H  │ J  ┃ K  │ L  │ ;  ░░░
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+<left/right>: cycle MIDI setup / channel, <up/down>: volume, <space>: PANIC
+<tab>: sustain pedal, <window-Y>: pitch wheel, <window-X>: mod wheel
+<Z/X>: octave, <C/V>: velocity, <B/N>: channel, <,/.>: program, <Q>: quit
+  0 Setup 0, Chan 0, Prog 0, Octave: 4, Vel: 64, VOL: 80%
+```
+
+The command-line program requires a windowing environment and will open a
+small 100x100 window alongside your terminal/cmd. This window **must** be
+frontmost, since it listens to full keyboard events through it.
+
+If a MIDI keyboard is connected and recognized by your OS before `amuseplay` 
+is launched, you may directly control the sequencer using physical input.
+
+On OS X and Linux, `amuseplay` will advertise a virtual MIDI-IN port for
+other audio applications to route their MIDI messages to. This enables
+tracker, drum machine, and DAW applications to produce sampled audio 
+using Amuse directly.
+
 #### Library
 
 The Amuse API exposes full interactivity between a client application
@@ -78,9 +112,3 @@ int main(int argc, char* argv[])
     return 0;
 }
 ```
-
-#### Tool
-
-In addition to the library, a command-line tool for performing various pipeline
-tasks is provided. Compilers for audio groups and song data, as well as basic
-playback functionality is available via the tool.
