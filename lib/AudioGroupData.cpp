@@ -38,6 +38,7 @@ IntrusiveAudioGroupData& IntrusiveAudioGroupData::operator=(IntrusiveAudioGroupD
     m_pool = other.m_pool;
     m_sdir = other.m_sdir;
     m_samp = other.m_samp;
+    m_fmt = other.m_fmt;
 
     return *this;
 }
