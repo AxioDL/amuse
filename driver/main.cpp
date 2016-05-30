@@ -636,6 +636,12 @@ struct AppCallback : boo::IApplicationCallback
                 else
                     Log.report(logvisor::Fatal, "unable to find Song %d", userSel);
             }
+            else
+            {
+                m_arrData = &songs[0].second;
+                m_groupId = m_arrData->m_groupId;
+                m_setupId = m_arrData->m_setupId;
+            }
         }
 
         /* Get group selection from user */
