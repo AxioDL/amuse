@@ -689,7 +689,7 @@ struct AppCallback : boo::IApplicationCallback
         if (m_argc > 2)
         {
             std::experimental::optional<athena::io::FileReader> r;
-            r.emplace(m_argv[m_argc-1], 32 * 1024, false);
+            r.emplace(m_argv[2], 32 * 1024, false);
             if (!r->hasError())
             {
                 uint32_t version = r->readUint32Big();
