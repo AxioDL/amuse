@@ -568,13 +568,20 @@ struct AppCallback : boo::IApplicationCallback
         if (m_argc < 2)
             Log.report(logvisor::Fatal, "needs group path argument");
 
-        amuse::ContainerRegistry::Type cType = amuse::ContainerRegistry::DetectContainerType(m_argv[1]);
+#if _WIN32
+        char utf8Path[1024];
+        WideCharToMultiByte(CP_UTF8, 0, m_argv[1], -1, utf8Path, 1024, nullptr, nullptr);
+#else
+        const char* utf8Path = m_argv[1];
+#endif
+
+        amuse::ContainerRegistry::Type cType = amuse::ContainerRegistry::DetectContainerType(utf8Path);
         if (cType == amuse::ContainerRegistry::Type::Invalid)
             Log.report(logvisor::Fatal, "invalid/no data at path argument");
         Log.report(logvisor::Info, "Found '%s' Audio Group data", amuse::ContainerRegistry::TypeToName(cType));
 
         std::vector<std::pair<std::string, amuse::IntrusiveAudioGroupData>> data =
-            amuse::ContainerRegistry::LoadContainer(m_argv[1]);
+            amuse::ContainerRegistry::LoadContainer(utf8Path);
         if (data.empty())
             Log.report(logvisor::Fatal, "invalid/no data at path argument");
 

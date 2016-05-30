@@ -4,8 +4,11 @@
 #include <algorithm>
 #include <limits.h>
 #include <stdio.h>
-#include <strings.h>
 #include <stdint.h>
+
+#ifndef _MSC_VER
+#include <strings.h>
+#endif
 
 namespace amuse
 {

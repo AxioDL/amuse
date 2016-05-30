@@ -53,7 +53,7 @@ AudioGroupSampleDirectory::AudioGroupSampleDirectory(const unsigned char* data, 
             const AudioGroupSampleDirectory::ADPCMParms* adpcm =
                 reinterpret_cast<const AudioGroupSampleDirectory::ADPCMParms*>(data +
                     store.first.m_adpcmParmOffset);
-            store.second = *adpcm;
+            store.second.dsp = adpcm->dsp;
             store.second.swapBigDSP();
         }
 

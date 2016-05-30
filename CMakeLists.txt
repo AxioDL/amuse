@@ -62,7 +62,7 @@ set(HEADERS
 unset(EXTRAS)
 if(TARGET boo)
   include_directories(${BOO_INCLUDE_DIR} ${BOO_INCLUDE_DIR}/../lib ${BOO_INCLUDE_DIR}/../soxr/src
-                      ${LOGVISOR_INCLUDE_DIR} ${ATHENA_INCLUDE_DIR})
+                      ${LOGVISOR_INCLUDE_DIR} ${ATHENA_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR})
   list(APPEND EXTRAS lib/BooBackend.cpp include/amuse/BooBackend.hpp)
 endif()
 
