@@ -4,6 +4,7 @@
 #include <string.h>
 #include <string>
 #include <memory>
+#include <unordered_map>
 #include <zlib.h>
 
 #if _WIN32
@@ -92,6 +93,21 @@ static bool IsChunkExtension(const char* path, const char*& dotOut)
             !CompareCaseInsensitive(ext, ".sdir") ||
             !CompareCaseInsensitive(ext, ".sam") ||
             !CompareCaseInsensitive(ext, ".samp"))
+        {
+            dotOut = ext;
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool IsSongExtension(const char* path, const char*& dotOut)
+{
+    const char* ext = strrchr(path, '.');
+    if (ext)
+    {
+        if (!CompareCaseInsensitive(ext, ".son") ||
+            !CompareCaseInsensitive(ext, ".sng"))
         {
             dotOut = ext;
             return true;
@@ -236,6 +252,147 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadMP1(FILE
                                                                                   sdir.release(), samp.release(), GCNDataTag{}});
                     }
                 }
+                FSeek(fp, origPos, SEEK_SET);
+            }
+        }
+    }
+
+    return ret;
+}
+
+static bool ValidateMP1Songs(FILE* fp)
+{
+    FileLength(fp);
+
+    uint32_t magic;
+    fread(&magic, 1, 4, fp);
+    magic = SBig(magic);
+
+    if (magic == 0x00030005)
+    {
+        FSeek(fp, 8, SEEK_SET);
+
+        uint32_t nameCount;
+        fread(&nameCount, 1, 4, fp);
+        nameCount = SBig(nameCount);
+        for (uint32_t i=0 ; i<nameCount ; ++i)
+        {
+            FSeek(fp, 8, SEEK_CUR);
+            uint32_t nameLen;
+            fread(&nameLen, 1, 4, fp);
+            nameLen = SBig(nameLen);
+            FSeek(fp, nameLen, SEEK_CUR);
+        }
+
+        uint32_t resCount;
+        fread(&resCount, 1, 4, fp);
+        resCount = SBig(resCount);
+        for (uint32_t i=0 ; i<resCount ; ++i)
+        {
+            FSeek(fp, 4, SEEK_CUR);
+            uint32_t type;
+            fread(&type, 1, 4, fp);
+            type = SBig(type);
+            FSeek(fp, 8, SEEK_CUR);
+            uint32_t offset;
+            fread(&offset, 1, 4, fp);
+            offset = SBig(offset);
+
+            if (type == 0x43534E47)
+                return true;
+        }
+    }
+
+    return false;
+}
+
+static std::vector<std::pair<std::string, ContainerRegistry::SongData>> LoadMP1Songs(FILE* fp)
+{
+    std::vector<std::pair<std::string, ContainerRegistry::SongData>> ret;
+    FileLength(fp);
+
+    uint32_t magic;
+    fread(&magic, 1, 4, fp);
+    magic = SBig(magic);
+
+    if (magic == 0x00030005)
+    {
+        FSeek(fp, 8, SEEK_SET);
+
+        uint32_t nameCount;
+        fread(&nameCount, 1, 4, fp);
+        nameCount = SBig(nameCount);
+
+        std::unordered_map<uint32_t, std::string> names;
+        names.reserve(nameCount);
+        for (uint32_t i=0 ; i<nameCount ; ++i)
+        {
+            FSeek(fp, 4, SEEK_CUR);
+            uint32_t id;
+            fread(&id, 1, 4, fp);
+            id = SBig(id);
+            uint32_t nameLen;
+            fread(&nameLen, 1, 4, fp);
+            nameLen = SBig(nameLen);
+            std::string str(nameLen, '\0');
+            fread(&str[0], 1, nameLen, fp);
+            names[id] = std::move(str);
+        }
+
+        uint32_t resCount;
+        fread(&resCount, 1, 4, fp);
+        resCount = SBig(resCount);
+        ret.reserve(resCount);
+        for (uint32_t i=0 ; i<resCount ; ++i)
+        {
+            FSeek(fp, 4, SEEK_CUR);
+            uint32_t type;
+            fread(&type, 1, 4, fp);
+            type = SBig(type);
+            uint32_t id;
+            fread(&id, 1, 4, fp);
+            id = SBig(id);
+            uint32_t size;
+            fread(&size, 1, 4, fp);
+            size = SBig(size);
+            uint32_t offset;
+            fread(&offset, 1, 4, fp);
+            offset = SBig(offset);
+
+            if (type == 0x43534E47)
+            {
+                int64_t origPos = FTell(fp);
+                FSeek(fp, offset + 4, SEEK_SET);
+
+                uint32_t midiSetup;
+                fread(&midiSetup, 1, 4, fp);
+                midiSetup = SBig(midiSetup);
+
+                uint32_t groupId;
+                fread(&groupId, 1, 4, fp);
+                groupId = SBig(groupId);
+
+                FSeek(fp, 4, SEEK_CUR);
+
+                uint32_t sonLength;
+                fread(&sonLength, 1, 4, fp);
+                sonLength = SBig(sonLength);
+
+                std::unique_ptr<uint8_t[]> song(new uint8_t[sonLength]);
+                fread(song.get(), 1, sonLength, fp);
+
+                auto search = names.find(id);
+                if (search != names.end())
+                    ret.emplace_back(std::move(search->second),
+                                     ContainerRegistry::SongData(std::move(song), sonLength, groupId, midiSetup));
+                else
+                {
+                    char name[128];
+                    snprintf(name, 128, "%08X", id);
+                    ret.emplace_back(name, ContainerRegistry::SongData(std::move(song), sonLength, groupId, midiSetup));
+                }
+
+
                 FSeek(fp, origPos, SEEK_SET);
             }
         }
@@ -962,6 +1119,13 @@ struct RS23GroupHead
     uint32_t sampOff;
     uint32_t sampLen;
 
+    uint32_t unkOff;
+    uint32_t unkLen;
+
+    uint32_t sonCount;
+    uint32_t sonIdxBeginOff;
+    uint32_t sonIdxEndOff;
+
     void swapBig()
     {
         projOff = SBig(projOff);
@@ -972,6 +1136,27 @@ struct RS23GroupHead
         sdirLen = SBig(sdirLen);
         sampOff = SBig(sampOff);
         sampLen = SBig(sampLen);
+        unkOff = SBig(unkOff);
+        unkLen = SBig(unkLen);
+        sonCount = SBig(sonCount);
+        sonIdxBeginOff = SBig(sonIdxBeginOff);
+        sonIdxEndOff = SBig(sonIdxEndOff);
+    }
+};
+
+struct RS23SONHead
+{
+    uint32_t offset;
+    uint32_t length;
+    uint16_t groupId;
+    uint16_t setupId;
+
+    void swapBig()
+    {
+        offset = SBig(offset);
+        length = SBig(length);
+        groupId = SBig(groupId);
+        setupId = SBig(setupId);
     }
 };
 
@@ -1057,6 +1242,68 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadRS2(FILE
                 snprintf(name, 128, "GroupFile%u", j);
                 ret.emplace_back(name, IntrusiveAudioGroupData{proj.release(), pool.release(),
                                                                sdir.release(), samp.release(), GCNDataTag{}});
+            }
+
+            break;
+        }
+    }
+
+    return ret;
+}
+
+static std::vector<std::pair<std::string, ContainerRegistry::SongData>> LoadRS2Songs(FILE* fp)
+{
+    std::vector<std::pair<std::string, ContainerRegistry::SongData>> ret;
+    size_t endPos = FileLength(fp);
+
+    uint64_t fstOff;
+    fread(&fstOff, 1, 8, fp);
+    fstOff = SBig(fstOff);
+    uint64_t fstSz;
+    fread(&fstSz, 1, 8, fp);
+    fstSz = SBig(fstSz);
+
+    if (fstOff + fstSz > endPos)
+        return ret;
+
+    FSeek(fp, int64_t(fstOff), SEEK_SET);
+    for (size_t i=0 ; i<fstSz/64 ; ++i)
+    {
+        RS2FSTEntry entry;
+        fread(&entry, 1, 64, fp);
+        entry.swapBig();
+        if (!strncmp("data", entry.name, 32))
+        {
+            FSeek(fp, int64_t(entry.offset), SEEK_SET);
+            std::unique_ptr<uint8_t[]> audData(new uint8_t[entry.decompSz]);
+            fread(audData.get(), 1, entry.decompSz, fp);
+
+            uint32_t indexOff = SBig(*reinterpret_cast<uint32_t*>(audData.get() + 4));
+            uint32_t groupCount = SBig(*reinterpret_cast<uint32_t*>(audData.get() + indexOff));
+            const uint32_t* groupOffs = reinterpret_cast<const uint32_t*>(audData.get() + indexOff + 4);
+
+            for (uint32_t j=0 ; j<groupCount ; ++j)
+            {
+                const uint8_t* groupData = audData.get() + SBig(groupOffs[j]);
+                RS23GroupHead head = *reinterpret_cast<const RS23GroupHead*>(groupData);
+                head.swapBig();
+
+                if (!head.sonCount)
+                    continue;
+
+                const RS23SONHead* sonData = reinterpret_cast<const RS23SONHead*>(audData.get() + head.sonIdxBeginOff);
+                for (int s=0 ; s<head.sonCount ; ++s)
+                {
+                    RS23SONHead sonHead = sonData[s];
+                    sonHead.swapBig();
+
+                    char name[128];
+                    snprintf(name, 128, "GroupFile%u-%u", j, s);
+                    std::unique_ptr<uint8_t[]> song(new uint8_t[sonHead.length]);
+                    memcpy(song.get(), audData.get() + sonHead.offset, sonHead.length);
+                    ret.emplace_back(name, ContainerRegistry::SongData(std::move(song), sonHead.length,
+                                                                       sonHead.groupId, sonHead.setupId));
+                }
             }
 
             break;
@@ -1457,6 +1704,85 @@ ContainerRegistry::LoadContainer(const char* path)
         if (ValidateRS3(fp))
         {
             auto ret = LoadRS3(fp);
+            fclose(fp);
+            return ret;
+        }
+
+        fclose(fp);
+    }
+
+    return {};
+}
+
+std::vector<std::pair<std::string, ContainerRegistry::SongData>>
+ContainerRegistry::LoadSongs(const char* path)
+{
+    FILE* fp;
+
+    /* See if provided file is a raw song */
+    const char* dot = nullptr;
+    if (IsSongExtension(path, dot))
+    {
+        fp = fopen(path, "rb");
+        size_t fLen = FileLength(fp);
+        if (!fLen)
+        {
+            fclose(fp);
+            return {};
+        }
+        std::unique_ptr<uint8_t[]> song(new uint8_t[fLen]);
+        fread(song.get(), 1, fLen, fp);
+        fclose(fp);
+
+        std::vector<std::pair<std::string, SongData>> ret;
+        ret.emplace_back("Song", SongData(std::move(song), fLen, -1, -1));
+        return ret;
+    }
+
+    /* Now attempt archive-file case */
+    fp = fopen(path, "rb");
+    if (fp)
+    {
+        if (ValidateMP1Songs(fp))
+        {
+            auto ret = LoadMP1Songs(fp);
+            fclose(fp);
+            return ret;
+        }
+
+#if 0
+        if (ValidateRS1PCSongs(fp))
+        {
+            auto ret = LoadRS1PCSongs(fp);
+            fclose(fp);
+            return ret;
+        }
+
+        if (ValidateRS1N64Songs(fp))
+        {
+            auto ret = LoadRS1N64Songs(fp);
+            fclose(fp);
+            return ret;
+        }
+
+        if (ValidateBFNPCSongs(fp))
+        {
+            auto ret = LoadBFNPCSongs(fp);
+            fclose(fp);
+            return ret;
+        }
+
+        if (ValidateBFNN64Songs(fp))
+        {
+            auto ret = LoadBFNN64Songs(fp);
+            fclose(fp);
+            return ret;
+        }
+#endif
+
+        if (ValidateRS2(fp))
+        {
+            auto ret = LoadRS2Songs(fp);
             fclose(fp);
             return ret;
         }

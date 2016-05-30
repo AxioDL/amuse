@@ -71,7 +71,7 @@ struct AppCallback : boo::IApplicationCallback
     int8_t m_octave = 4;
     int8_t m_velocity = 64;
     std::shared_ptr<amuse::Sequencer> m_seq;
-    std::unique_ptr<uint8_t[]> m_arrData;
+    amuse::ContainerRegistry::SongData* m_arrData = nullptr;
 
     /* SFX playback selection */
     int m_sfxId = -1;
@@ -116,7 +116,7 @@ struct AppCallback : boo::IApplicationCallback
         m_seq->setVolume(m_volume);
 
         if (m_arrData)
-            m_seq->playSong(m_arrData.get(), false);
+            m_seq->playSong(m_arrData->m_data.get(), false);
 
         UpdateSongDisplay();
     }
@@ -604,6 +604,40 @@ struct AppCallback : boo::IApplicationCallback
                 allSFXGroups[it->first] = std::make_pair(&grp, &it->second);
         }
 
+        /* Attempt loading song */
+        std::vector<std::pair<std::string, amuse::ContainerRegistry::SongData>> songs;
+        if (m_argc > 2)
+        {
+            songs = amuse::ContainerRegistry::LoadSongs(m_argv[2]);
+
+            /* Get song selection from user */
+            if (songs.size() > 1)
+            {
+                /* Ask user to specify which song */
+                printf("Multiple Songs discovered:\n");
+                int idx = 0;
+                for (const auto& pair : songs)
+                {
+                    printf("    %d %s (Group %d, Setup %d)\n", idx++,
+                           pair.first.c_str(), pair.second.m_groupId, pair.second.m_setupId);
+                }
+
+                int userSel = 0;
+                printf("Enter Song Number: ");
+                if (scanf("%d", &userSel) <= 0)
+                    Log.report(logvisor::Fatal, "unable to parse prompt");
+
+                if (userSel < songs.size())
+                {
+                    m_arrData = &songs[userSel].second;
+                    m_groupId = m_arrData->m_groupId;
+                    m_setupId = m_arrData->m_setupId;
+                }
+                else
+                    Log.report(logvisor::Fatal, "unable to find Song %d", userSel);
+            }
+        }
+
         /* Get group selection from user */
         if (m_groupId != -1)
         {
@@ -618,7 +652,7 @@ struct AppCallback : boo::IApplicationCallback
         {
             /* Ask user to specify which group in project */
             printf("Multiple Audio Groups discovered:\n");
-            for (const auto& pair :allSFXGroups)
+            for (const auto& pair : allSFXGroups)
             {
                 printf("    %d %s (SFXGroup)  %" PRISize " sfx-entries\n",
                        pair.first, pair.second.first->first.c_str(),
@@ -690,33 +724,6 @@ struct AppCallback : boo::IApplicationCallback
 
         if (!selData)
             Log.report(logvisor::Fatal, "unable to select audio group data");
-
-
-        /* Attempt loading song */
-        if (m_argc > 2)
-        {
-            std::experimental::optional<athena::io::FileReader> r;
-            r.emplace(m_argv[2], 32 * 1024, false);
-            if (!r->hasError())
-            {
-                uint32_t version = r->readUint32Big();
-                if (version == 0x18)
-                {
-                    /* Raw SON data */
-                    r->seek(0, athena::SeekOrigin::Begin);
-                    m_arrData = r->readUBytes(r->length());
-                }
-                else if (version == 0x2)
-                {
-                    /* Retro CSNG data */
-                    m_setupId = r->readUint32Big();
-                    m_groupId = r->readUint32Big();
-                    r->readUint32Big();
-                    uint32_t sonLength = r->readUint32Big();
-                    m_arrData = r->readUBytes(sonLength);
-                }
-            }
-        }
 
         /* Build voice engine */
         std::unique_ptr<boo::IAudioVoiceEngine> voxEngine = boo::NewAudioVoiceEngine();
