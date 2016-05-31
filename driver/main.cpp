@@ -731,7 +731,7 @@ struct AppCallback : boo::IApplicationCallback
                         exit(1);
                     }
                 }
-                else
+                else if (songs.size() == 1)
                 {
                     m_arrData = &songs[0].second;
                     m_groupId = m_arrData->m_groupId;

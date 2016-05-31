@@ -107,7 +107,8 @@ static bool IsSongExtension(const char* path, const char*& dotOut)
     if (ext)
     {
         if (!CompareCaseInsensitive(ext, ".son") ||
-            !CompareCaseInsensitive(ext, ".sng"))
+            !CompareCaseInsensitive(ext, ".sng") ||
+            !CompareCaseInsensitive(ext, ".song"))
         {
             dotOut = ext;
             return true;
