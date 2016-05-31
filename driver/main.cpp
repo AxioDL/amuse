@@ -664,7 +664,7 @@ struct AppCallback : boo::IApplicationCallback
                     else
                         Log.report(logvisor::Fatal, "unable to find Song %d", userSel);
                 }
-                else
+                else if (songs.size() == 1)
                 {
                     m_arrData = &songs[0].second;
                     m_groupId = m_arrData->m_groupId;
