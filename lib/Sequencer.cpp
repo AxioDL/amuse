@@ -50,7 +50,7 @@ void Sequencer::_destroy()
     {
         m_engine.removeSubmix(m_submix);
         m_submix = nullptr;
-    }
+    }        
 }
 
 Sequencer::~Sequencer()

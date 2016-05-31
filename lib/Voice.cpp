@@ -254,12 +254,12 @@ bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
     if (m_envelopeTime >= 0.0)
     {
         m_envelopeTime += dt;
-        float start = m_envelopeStart / 127.f;
-        float end = m_envelopeEnd / 127.f;
-        double t = std::max(0.0, std::min(1.0, m_envelopeTime / m_envelopeDur));
+        float start = m_envelopeStart;
+        float end = m_envelopeEnd;
+        float t = std::max(0.f, std::min(1.f, float(m_envelopeTime / m_envelopeDur)));
         if (m_envelopeCurve)
             t = (*m_envelopeCurve)[int(t*127.f)] / 127.f;
-        m_curVol = (start * (1.0f - t)) + (end * t);
+        m_curVol = clamp(0.f, (start * (1.0f - t)) + (end * t), 1.f);
 
         /* Done with envelope */
         if (m_envelopeTime > m_envelopeDur)
@@ -848,7 +848,7 @@ void Voice::setSurroundPan(float span)
 
 void Voice::startEnvelope(double dur, float vol, const Curve* envCurve)
 {
-    m_envelopeTime = m_voiceTime;
+    m_envelopeTime = 0.f;
     m_envelopeDur = dur;
     m_envelopeStart = clamp(0.f, m_curVol, 1.f);
     m_envelopeEnd = clamp(0.f, vol, 1.f);
@@ -857,7 +857,7 @@ void Voice::startEnvelope(double dur, float vol, const Curve* envCurve)
 
 void Voice::startFadeIn(double dur, float vol, const Curve* envCurve)
 {
-    m_envelopeTime = m_voiceTime;
+    m_envelopeTime = 0.f;
     m_envelopeDur = dur;
     m_envelopeStart = 0.f;
     m_envelopeEnd = clamp(0.f, vol, 1.f);
@@ -1018,15 +1018,21 @@ void Voice::setAftertouch(uint8_t aftertouch)
 
 void Voice::_notifyCtrlChange(uint8_t ctrl, int8_t val)
 {
-    if (ctrl == 64)
+    if (ctrl == 0x40)
     {
-        if (val >= 64)
+        if (val >= 0x40)
             setPedal(true);
         else
             setPedal(false);
     }
+    else if (ctrl == 0x41)
+    {
+        printf("PORTAMENTO %d\n", val);
+    }
     else if (ctrl == 0x5b)
+    {
         setReverbVol(val / 127.f);
+    }
 
     for (std::shared_ptr<Voice>& vox : m_childVoices)
         vox->_notifyCtrlChange(ctrl, val);
