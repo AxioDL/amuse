@@ -37,6 +37,9 @@ public:
     /** Set channel-gains for audio source (AudioChannel enum for array index) */
     virtual void setMatrixCoefficients(const float coefs[8], bool slew)=0;
 
+    /** Set submix-channel-gains for audio source (AudioChannel enum for array index) */
+    virtual void setSubmixMatrixCoefficients(const float coefs[8], bool slew)=0;
+
     /** Called by client to dynamically adjust the pitch of voices with dynamic pitch enabled */
     virtual void setPitchRatio(double ratio, bool slew)=0;
 

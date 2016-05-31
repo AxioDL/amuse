@@ -24,7 +24,6 @@ class Submix
     friend class Sequencer;
     Engine& m_root;
     Submix* m_submix = nullptr; /**< Parent submix of this submix (or NULL if mixing to main output) */
-    std::list<Submix>::iterator m_engineIt; /**< Iterator to self within Engine's list for quick deletion */
     std::unique_ptr<IBackendSubmix> m_backendSubmix; /**< Handle to client-implemented backend submix */
     std::vector<std::unique_ptr<EffectBaseTypeless>> m_effectStack; /**< Ordered list of effects to apply to submix */
     bool m_destroyed = false;

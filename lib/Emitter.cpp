@@ -15,7 +15,7 @@ Emitter::Emitter(Engine& engine, const AudioGroup& group, std::shared_ptr<Voice>
 void Emitter::_destroy()
 {
     Entity::_destroy();
-    m_engine._destroyVoice(m_vox.get());
+    m_vox->kill();
 }
 
 void Emitter::setPos(const Vector3f& pos)

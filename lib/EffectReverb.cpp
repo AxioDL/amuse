@@ -140,7 +140,7 @@ void EffectReverbStdImp<T>::applyEffect(T* audio, size_t frameCount, const Chann
     float dampWet = x118_level * 0.6f;
     float dampDry = 0.6f - dampWet;
 
-    for (size_t f=0 ; f<frameCount ;)
+    for (size_t f=0 ; f<frameCount ; f+=160)
     {
         for (int c=0 ; c<chanMap.m_channelCount ; ++c)
         {
@@ -153,7 +153,8 @@ void EffectReverbStdImp<T>::applyEffect(T* audio, size_t frameCount, const Chann
             ReverbDelayLine* linesC = x78_C[c];
             ReverbDelayLine* linesAP = x0_AP[c];
 
-            for (int s=0 ; s<160 && f<frameCount ; ++s, ++f)
+            int procSamples = std::min(160ul, frameCount - f);
+            for (int s=0 ; s<procSamples ; ++s)
             {
                 float sample = audio[s * chanMap.m_channelCount + c];
 
@@ -255,7 +256,7 @@ void EffectReverbHiImp<T>::_update()
             size_t tapDelay = CTapDelays[t] * m_sampleRate / 32000.0;
             combLine.allocate(tapDelay);
             combLine.setdelay(tapDelay);
-            x16c_combCoef[c][t] = std::pow(10.f, tapDelay * -3 / timeSamples);
+            x16c_combCoef[c][t] = std::pow(10.f, tapDelay * -3.f / timeSamples);
         }
 
         for (int t=0 ; t<2 ; ++t)
@@ -301,6 +302,7 @@ void EffectReverbHiImp<T>::_update()
         }
     }
 
+    x1a8_internalCrosstalk = x1dc_crosstalk;
     m_dirty = false;
 }
 
@@ -324,9 +326,10 @@ void EffectReverbHiImp<T>::_handleReverb(T* audio, int c, int chanCount, int sam
     float damping = x1a0_damping;
     int32_t preDelayTime = x1a4_preDelayTime;
 
-    float sample = audio[c];
-    for (int s=1 ; s<sampleCount ; ++s)
+    for (int s=0 ; s<sampleCount ; ++s)
     {
+        float sample = audio[s * chanCount + c];
+
         /* Pre-delay stage */
         float sample2 = sample;
         if (preDelayTime != 0)
@@ -420,8 +423,7 @@ void EffectReverbHiImp<T>::_handleReverb(T* audio, int c, int chanCount, int sam
             lineLP.x4_outPoint = 0;
 
         /* Mix out */
-        audio[(s-1) * chanCount + c] = ClampFull<T>(dampWet * allPass + dampDry * sample);
-        sample = audio[s * chanCount + c];
+        audio[s * chanCount + c] = ClampFull<T>(dampWet * allPass + dampDry * sample);
     }
 
     x1b8_preDelayPtr[c] = preDelayPtr;

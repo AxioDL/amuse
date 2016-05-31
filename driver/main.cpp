@@ -123,7 +123,7 @@ struct AppCallback : boo::IApplicationCallback
     int8_t m_octave = 4;
     int8_t m_velocity = 64;
     std::shared_ptr<amuse::Sequencer> m_seq;
-    std::unique_ptr<uint8_t[]> m_arrData;
+    amuse::ContainerRegistry::SongData* m_arrData = nullptr;
 
     /* SFX playback selection */
     int m_sfxId = -1;
@@ -132,13 +132,14 @@ struct AppCallback : boo::IApplicationCallback
     int8_t m_lastChanProg = -1;
 
     /* Control state */
-    float m_volume = 0.8f;
+    float m_volume = 0.5f;
     float m_modulation = 0.f;
     float m_pitchBend = 0.f;
     bool m_updateDisp = false;
     bool m_running = true;
     bool m_wantsNext = false;
     bool m_wantsPrev = false;
+    bool m_breakout = false;
     int m_panicCount = 0;
 
     void UpdateSongDisplay()
@@ -168,7 +169,7 @@ struct AppCallback : boo::IApplicationCallback
         m_seq->setVolume(m_volume);
 
         if (m_arrData)
-            m_seq->playSong(m_arrData.get(), false);
+            m_seq->playSong(m_arrData->m_data.get(), false);
 
         UpdateSongDisplay();
     }
@@ -182,7 +183,7 @@ struct AppCallback : boo::IApplicationCallback
                "░░░    │    │    ┃    │    │    │    ┃    │    │    ░░░\n"
                "░░░ A  │ S  │ D  ┃ F  │ G  │ H  │ J  ┃ K  │ L  │ ;  ░░░\n"
                "░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░\n"
-               "<left/right>: cycle MIDI setup / channel, <up/down>: volume, <space>: PANIC\n"
+               "<left/right>: cycle MIDI setup, <up/down>: volume, <space>: PANIC\n"
                "<tab>: sustain pedal, <window-Y>: pitch wheel, <window-X>: mod wheel\n"
                "<Z/X>: octave, <C/V>: velocity, <B/N>: channel, <,/.>: program, <Q>: quit\n");
 
@@ -271,6 +272,14 @@ struct AppCallback : boo::IApplicationCallback
                 UpdateSongDisplay();
             }
 
+            if (m_breakout)
+            {
+                m_breakout = false;
+                m_seq->allOff(true);
+                m_seq.reset();
+                break;
+            }
+
             m_win->waitForRetrace();
         }
     }
@@ -348,6 +357,13 @@ struct AppCallback : boo::IApplicationCallback
             {
                 m_vox.reset();
                 UpdateSFXDisplay();
+            }
+
+            if (m_breakout)
+            {
+                m_breakout = false;
+                m_vox.reset();
+                break;
             }
 
             m_win->waitForRetrace();
@@ -665,153 +681,185 @@ struct AppCallback : boo::IApplicationCallback
                 allSFXGroups[it->first] = std::make_pair(&grp, &it->second);
         }
 
-        /* Get group selection from user */
-        if (m_groupId != -1)
+        while (m_running)
         {
-            if (allSongGroups.find(m_groupId) != allSongGroups.end())
-                m_sfxGroup = false;
-            else if (allSFXGroups.find(m_groupId) != allSFXGroups.end())
-                m_sfxGroup = true;
-            else
-            {
-                Log.report(logvisor::Error, "unable to find Group %d", m_groupId);
-                exit(1);
-            }
-        }
-        else if (totalGroups > 1)
-        {
-            /* Ask user to specify which group in project */
-            printf("Multiple Audio Groups discovered:\n");
-            for (const auto& pair :allSFXGroups)
-            {
-                printf("    %d %s (SFXGroup)  %" PRISize " sfx-entries\n",
-                       pair.first, pair.second.first->first.c_str(),
-                       pair.second.second->m_sfxEntries.size());
-            }
-            for (const auto& pair : allSongGroups)
-            {
-                printf("    %d %s (SongGroup)  %" PRISize " normal-pages, %" PRISize " drum-pages\n",
-                       pair.first, pair.second.first->first.c_str(),
-                       pair.second.second->m_normPages.size(), pair.second.second->m_drumPages.size());
-            }
+            m_groupId = -1;
+            m_setupId = -1;
 
-            int userSel = 0;
-            printf("Enter Group Number: ");
-            if (scanf("%d", &userSel) <= 0)
+            /* Attempt loading song */
+            std::vector<std::pair<std::string, amuse::ContainerRegistry::SongData>> songs;
+            if (m_argc > 2)
             {
-                Log.report(logvisor::Error, "unable to parse prompt");
-                exit(1);
-            }
+#if _WIN32
+                char utf8Path[1024];
+                WideCharToMultiByte(CP_UTF8, 0, m_argv[2], -1, utf8Path, 1024, nullptr, nullptr);
+#else
+                const char* utf8Path = m_argv[2];
+#endif
 
-            if (allSongGroups.find(userSel) != allSongGroups.end())
-            {
-                m_groupId = userSel;
-                m_sfxGroup = false;
-            }
-            else if (allSFXGroups.find(userSel) != allSFXGroups.end())
-            {
-                m_groupId = userSel;
-                m_sfxGroup = true;
-            }
-            else
-            {
-                Log.report(logvisor::Error, "unable to find Group %d", userSel);
-                exit(1);
-            }
-        }
-        else if (totalGroups == 1)
-        {
-            /* Load one and only group */
-            if (allSongGroups.size())
-            {
-                const auto& pair = *allSongGroups.cbegin();
-                m_groupId = pair.first;
-                m_sfxGroup = false;
-            }
-            else
-            {
-                const auto& pair = *allSFXGroups.cbegin();
-                m_groupId = pair.first;
-                m_sfxGroup = true;
-            }
-        }
-        else
-        {
-            Log.report(logvisor::Error, "empty project");
-            exit(1);
-        }
+                songs = amuse::ContainerRegistry::LoadSongs(utf8Path);
 
-        /* Make final group selection */
-        amuse::IntrusiveAudioGroupData* selData = nullptr;
-        const amuse::SongGroupIndex* songIndex = nullptr;
-        const amuse::SFXGroupIndex* sfxIndex = nullptr;
-        auto songSearch = allSongGroups.find(m_groupId);
-        if (songSearch != allSongGroups.end())
-        {
-            selData = &songSearch->second.first->second;
-            songIndex = songSearch->second.second;
-        }
-        else
-        {
-            auto sfxSearch = allSFXGroups.find(m_groupId);
-            if (sfxSearch != allSFXGroups.end())
-            {
-                selData = &sfxSearch->second.first->second;
-                sfxIndex = sfxSearch->second.second;
-            }
-        }
-
-        if (!selData)
-        {
-            Log.report(logvisor::Error, "unable to select audio group data");
-            exit(1);
-        }
-
-
-        /* Attempt loading song */
-        if (m_argc > 2)
-        {
-            std::experimental::optional<athena::io::FileReader> r;
-            r.emplace(m_argv[m_argc-1], 32 * 1024, false);
-            if (!r->hasError())
-            {
-                uint32_t version = r->readUint32Big();
-                if (version == 0x18)
+                /* Get song selection from user */
+                if (songs.size() > 1)
                 {
-                    /* Raw SON data */
-                    r->seek(0, athena::SeekOrigin::Begin);
-                    m_arrData = r->readUBytes(r->length());
+                    /* Ask user to specify which song */
+                    printf("Multiple Songs discovered:\n");
+                    int idx = 0;
+                    for (const auto& pair : songs)
+                    {
+                        printf("    %d %s (Group %d, Setup %d)\n", idx++,
+                               pair.first.c_str(), pair.second.m_groupId, pair.second.m_setupId);
+                    }
+
+                    int userSel = 0;
+                    printf("Enter Song Number: ");
+                    if (scanf("%d", &userSel) <= 0)
+                    {
+                        Log.report(logvisor::Error, "unable to parse prompt");
+                        exit(1);
+                    }
+
+                    if (userSel < songs.size())
+                    {
+                        m_arrData = &songs[userSel].second;
+                        m_groupId = m_arrData->m_groupId;
+                        m_setupId = m_arrData->m_setupId;
+                    }
+                    else
+                    {
+                        Log.report(logvisor::Error, "unable to find Song %d", userSel);
+                        exit(1);
+                    }
                 }
-                else if (version == 0x2)
+                else
                 {
-                    /* Retro CSNG data */
-                    m_setupId = r->readUint32Big();
-                    m_groupId = r->readUint32Big();
-                    r->readUint32Big();
-                    uint32_t sonLength = r->readUint32Big();
-                    m_arrData = r->readUBytes(sonLength);
+                    m_arrData = &songs[0].second;
+                    m_groupId = m_arrData->m_groupId;
+                    m_setupId = m_arrData->m_setupId;
                 }
             }
+
+            /* Get group selection from user */
+            if (m_groupId != -1)
+            {
+                if (allSongGroups.find(m_groupId) != allSongGroups.end())
+                    m_sfxGroup = false;
+                else if (allSFXGroups.find(m_groupId) != allSFXGroups.end())
+                    m_sfxGroup = true;
+                else
+                {
+                    Log.report(logvisor::Error, "unable to find Group %d", m_groupId);
+                    exit(1);
+                }
+            }
+            else if (totalGroups > 1)
+            {
+                /* Ask user to specify which group in project */
+                printf("Multiple Audio Groups discovered:\n");
+                for (const auto& pair : allSFXGroups)
+                {
+                    printf("    %d %s (SFXGroup)  %" PRISize " sfx-entries\n",
+                           pair.first, pair.second.first->first.c_str(),
+                           pair.second.second->m_sfxEntries.size());
+                }
+                for (const auto& pair : allSongGroups)
+                {
+                    printf("    %d %s (SongGroup)  %" PRISize " normal-pages, %" PRISize " drum-pages\n",
+                           pair.first, pair.second.first->first.c_str(),
+                           pair.second.second->m_normPages.size(), pair.second.second->m_drumPages.size());
+                }
+
+                int userSel = 0;
+                printf("Enter Group Number: ");
+                if (scanf("%d", &userSel) <= 0)
+                {
+                    Log.report(logvisor::Error, "unable to parse prompt");
+                    exit(1);
+                }
+
+                if (allSongGroups.find(userSel) != allSongGroups.end())
+                {
+                    m_groupId = userSel;
+                    m_sfxGroup = false;
+                }
+                else if (allSFXGroups.find(userSel) != allSFXGroups.end())
+                {
+                    m_groupId = userSel;
+                    m_sfxGroup = true;
+                }
+                else
+                {
+                    Log.report(logvisor::Error, "unable to find Group %d", userSel);
+                    exit(1);
+                }
+            }
+            else if (totalGroups == 1)
+            {
+                /* Load one and only group */
+                if (allSongGroups.size())
+                {
+                    const auto& pair = *allSongGroups.cbegin();
+                    m_groupId = pair.first;
+                    m_sfxGroup = false;
+                }
+                else
+                {
+                    const auto& pair = *allSFXGroups.cbegin();
+                    m_groupId = pair.first;
+                    m_sfxGroup = true;
+                }
+            }
+            else
+            {
+                Log.report(logvisor::Error, "empty project");
+                exit(1);
+            }
+
+            /* Make final group selection */
+            amuse::IntrusiveAudioGroupData* selData = nullptr;
+            const amuse::SongGroupIndex* songIndex = nullptr;
+            const amuse::SFXGroupIndex* sfxIndex = nullptr;
+            auto songSearch = allSongGroups.find(m_groupId);
+            if (songSearch != allSongGroups.end())
+            {
+                selData = &songSearch->second.first->second;
+                songIndex = songSearch->second.second;
+            }
+            else
+            {
+                auto sfxSearch = allSFXGroups.find(m_groupId);
+                if (sfxSearch != allSFXGroups.end())
+                {
+                    selData = &sfxSearch->second.first->second;
+                    sfxIndex = sfxSearch->second.second;
+                }
+            }
+
+            if (!selData)
+            {
+                Log.report(logvisor::Error, "unable to select audio group data");
+                exit(1);
+            }
+
+            /* Build voice engine */
+            std::unique_ptr<boo::IAudioVoiceEngine> voxEngine = boo::NewAudioVoiceEngine();
+            amuse::BooBackendVoiceAllocator booBackend(*voxEngine);
+            m_engine.emplace(booBackend, amuse::AmplitudeMode::PerSample);
+
+            /* Load group into engine */
+            const amuse::AudioGroup* group = m_engine->addAudioGroup(*selData);
+            if (!group)
+            {
+                Log.report(logvisor::Error, "unable to add audio group");
+                exit(1);
+            }
+
+            /* Enter playback loop */
+            if (m_sfxGroup)
+                SFXLoop(*sfxIndex);
+            else
+                SongLoop(*songIndex);
         }
-
-        /* Build voice engine */
-        std::unique_ptr<boo::IAudioVoiceEngine> voxEngine = boo::NewAudioVoiceEngine();
-        amuse::BooBackendVoiceAllocator booBackend(*voxEngine);
-        m_engine.emplace(booBackend, amuse::AmplitudeMode::BlockLinearized);
-
-        /* Load group into engine */
-        const amuse::AudioGroup* group = m_engine->addAudioGroup(*selData);
-        if (!group)
-        {
-            Log.report(logvisor::Error, "unable to add audio group");
-            exit(1);
-        }
-
-        /* Enter playback loop */
-        if (m_sfxGroup)
-            SFXLoop(*sfxIndex);
-        else
-            SongLoop(*songIndex);
 
         return 0;
     }
@@ -866,6 +914,8 @@ void EventCallback::specialKeyDown(boo::ESpecialKey key, boo::EModifierKey mods,
             m_app.m_seq->setVolume(m_app.m_volume);
         m_app.m_updateDisp = true;
         break;
+    case boo::ESpecialKey::Esc:
+        m_app.m_breakout = true;
     default: break;
     }
 }

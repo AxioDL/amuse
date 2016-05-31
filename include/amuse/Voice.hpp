@@ -35,7 +35,6 @@ class Voice : public Entity
     int m_vid; /**< VoiceID of this voice instance */
     bool m_emitter; /**< Voice is part of an Emitter */
     Submix* m_submix = nullptr; /**< Submix this voice outputs to (or NULL for the main output mix) */
-    std::list<std::shared_ptr<Voice>>::iterator m_engineIt; /**< Iterator to self within Engine's list for quick deletion */
 
     std::unique_ptr<IBackendVoice> m_backendVoice; /**< Handle to client-implemented backend voice */
     SoundMacroState m_state; /**< State container for SoundMacro playback */
@@ -48,11 +47,11 @@ class Voice : public Entity
 
     enum class SampleFormat : uint8_t
     {
-        DSP,   /**< GCN DSP-ucode ADPCM (very common for GameCube games) */
-        IMA,   /**< IMA-ADPCM (rarely used within MusyX itself) */
-        PCM,   /**< Big-endian PCM found in MusyX2 demo GM instruments */
-        N64,   /**< 2-stage VADPCM coding with SAMP-embedded codebooks */
-        PCM_PC /**< Little-endian PCM found in PC Rogue Squadron (actually enum 0 which conflicts with DSP-ADPCM) */
+        DSP,      /**< GCN DSP-ucode ADPCM (very common for GameCube games) */
+        DSP_DRUM, /**< GCN DSP-ucode ADPCM (seems to be set into drum samples for expanding their amplitude appropriately) */
+        PCM,      /**< Big-endian PCM found in MusyX2 demo GM instruments */
+        N64,      /**< 2-stage VADPCM coding with SAMP-embedded codebooks */
+        PCM_PC    /**< Little-endian PCM found in PC Rogue Squadron (actually enum 0 which conflicts with DSP-ADPCM) */
     };
     const Sample* m_curSample = nullptr; /**< Current sample entry playing */
     const unsigned char* m_curSampleData = nullptr; /**< Current sample data playing */
@@ -142,8 +141,8 @@ class Voice : public Entity
     std::shared_ptr<Voice> _findVoice(int vid, std::weak_ptr<Voice> thisPtr);
     std::unique_ptr<int8_t[]>& _ensureCtrlVals();
 
-    std::shared_ptr<Voice> _allocateVoice(double sampleRate, bool dynamicPitch);
-    std::list<std::shared_ptr<Voice>>::iterator _destroyVoice(Voice* voice);
+    std::list<std::shared_ptr<Voice>>::iterator _allocateVoice(double sampleRate, bool dynamicPitch);
+    std::list<std::shared_ptr<Voice>>::iterator _destroyVoice(std::list<std::shared_ptr<Voice>>::iterator it);
 
     bool _loadSoundMacro(const unsigned char* macroData, int macroStep, double ticksPerSec,
                          uint8_t midiKey, uint8_t midiVel, uint8_t midiMod, bool pushPc=false);
@@ -319,6 +318,9 @@ public:
 
     /** Get count of all voices in hierarchy, including this one */
     size_t getTotalVoices() const;
+
+    /** Recursively mark voice as dead for Engine to deallocate on next cycle */
+    void kill();
 
 };
 

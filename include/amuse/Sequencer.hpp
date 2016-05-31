@@ -30,7 +30,6 @@ class Sequencer : public Entity
     const SongGroupIndex& m_songGroup; /**< Quick access to song group project index */
     const SongGroupIndex::MIDISetup* m_midiSetup = nullptr; /**< Selected MIDI setup */
     Submix* m_submix = nullptr; /**< Submix this sequencer outputs to (or NULL for the main output mix) */
-    std::list<std::shared_ptr<Sequencer>>::iterator m_engineIt; /**< Iterator to self within Engine's list for quick deletion */
 
     const unsigned char* m_arrData = nullptr; /**< Current playing arrangement data */
     SongState m_songState; /**< State of current arrangement playback */
@@ -47,7 +46,6 @@ class Sequencer : public Entity
         uint8_t m_chanId;
         const SongGroupIndex::MIDISetup& m_setup;
         const SongGroupIndex::PageEntry* m_page = nullptr;
-        Submix* m_submix = nullptr;
         ~ChannelState();
         ChannelState(Sequencer& parent, uint8_t chanId);
 

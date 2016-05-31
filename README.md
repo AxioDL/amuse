@@ -23,7 +23,7 @@ game archives or raw (`.proj`,`.pool`,`.sdir`,`.samp`) files is provided.
 ░░░    │    │    ┃    │    │    │    ┃    │    │    ░░░
 ░░░ A  │ S  │ D  ┃ F  │ G  │ H  │ J  ┃ K  │ L  │ ;  ░░░
 ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-<left/right>: cycle MIDI setup / channel, <up/down>: volume, <space>: PANIC
+<left/right>: cycle MIDI setup, <up/down>: volume, <space>: PANIC
 <tab>: sustain pedal, <window-Y>: pitch wheel, <window-X>: mod wheel
 <Z/X>: octave, <C/V>: velocity, <B/N>: channel, <,/.>: program, <Q>: quit
   0 Setup 0, Chan 0, Prog 0, Octave: 4, Vel: 64, VOL: 80%

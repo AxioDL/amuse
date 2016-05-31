@@ -137,7 +137,7 @@ class EffectReverbHiImp : public EffectBase<T>, public EffectReverbHi
     int32_t x1a4_preDelayTime = 0; /**< Sample count of pre-delay */
     std::unique_ptr<float[]> x1ac_preDelayLine[8]; /**< Dedicated pre-delay buffers */
     float* x1b8_preDelayPtr[8] = {}; /**< Current pre-delay pointers */
-    float x1a8_internalCrosstalk;
+    float x1a8_internalCrosstalk = 0.f;
 
     double m_sampleRate; /**< copy of sample rate */
     void _update();

@@ -155,7 +155,7 @@ void Voice::_bringOutYourDead()
         vox->_bringOutYourDead();
         if (vox->_isRecursivelyDead())
         {
-            it = _destroyVoice(vox);
+            it = _destroyVoice(it);
             continue;
         }
         ++it;
@@ -186,23 +186,26 @@ std::unique_ptr<int8_t[]>& Voice::_ensureCtrlVals()
     return m_ctrlValsSelf;
 }
 
-std::shared_ptr<Voice> Voice::_allocateVoice(double sampleRate, bool dynamicPitch)
+std::list<std::shared_ptr<Voice>>::iterator Voice::_allocateVoice(double sampleRate, bool dynamicPitch)
 {
     auto it = m_childVoices.emplace(m_childVoices.end(), new Voice(m_engine, m_audioGroup,
                                     m_groupId, m_engine.m_nextVid++, m_emitter, m_submix));
-    m_childVoices.back()->m_backendVoice =
-        m_engine.getBackend().allocateVoice(*m_childVoices.back(), sampleRate, dynamicPitch);
-    m_childVoices.back()->m_engineIt = it;
-    return m_childVoices.back();
+    if (m_submix)
+        m_childVoices.back()->m_backendVoice =
+            m_submix->m_backendSubmix->allocateVoice(*m_childVoices.back(), sampleRate, dynamicPitch);
+    else
+        m_childVoices.back()->m_backendVoice =
+            m_engine.getBackend().allocateVoice(*m_childVoices.back(), sampleRate, dynamicPitch);
+    return it;
 }
 
-std::list<std::shared_ptr<Voice>>::iterator Voice::_destroyVoice(Voice* voice)
+std::list<std::shared_ptr<Voice>>::iterator Voice::_destroyVoice(std::list<std::shared_ptr<Voice>>::iterator it)
 {
-    if (voice->m_destroyed)
+    if ((*it)->m_destroyed)
         return m_childVoices.begin();
 
-    voice->_destroy();
-    return m_childVoices.erase(voice->m_engineIt);
+    (*it)->_destroy();
+    return m_childVoices.erase(it);
 }
 
 static void ApplyVolume(float vol, int16_t& samp)
@@ -250,12 +253,12 @@ bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
     if (m_envelopeTime >= 0.0)
     {
         m_envelopeTime += dt;
-        float start = m_envelopeStart / 127.f;
-        float end = m_envelopeEnd / 127.f;
-        double t = std::max(0.0, std::min(1.0, m_envelopeTime / m_envelopeDur));
+        float start = m_envelopeStart;
+        float end = m_envelopeEnd;
+        float t = std::max(0.f, std::min(1.f, float(m_envelopeTime / m_envelopeDur)));
         if (m_envelopeCurve)
             t = (*m_envelopeCurve)[int(t*127.f)] / 127.f;
-        m_curVol = (start * (1.0f - t)) + (end * t);
+        m_curVol = clamp(0.f, (start * (1.0f - t)) + (end * t), 1.f);
 
         /* Done with envelope */
         if (m_envelopeTime > m_envelopeDur)
@@ -373,20 +376,9 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
 {
     uint32_t samplesRem = samples;
     size_t samplesProc = 0;
-    bool dead = true;
 
-    /* Attempt to load stopped sample for immediate decoding */
-    if (!m_curSample)
-    {
-        dead = m_state.advance(*this, samples / m_sampleRate);
-        if (!dead)
-        {
-            memset(data, 0, sizeof(int16_t) * samples);
-            return samples;
-        }
-    }
-    else
-        dead = m_state.advance(*this, samples / m_sampleRate);
+    /* Process SoundMacro; bootstrapping sample if needed */
+    bool dead = m_state.advance(*this, samples / m_sampleRate);
 
     if (m_curSample)
     {
@@ -537,7 +529,7 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
     else
         memset(data, 0, sizeof(int16_t) * samples);
 
-    if (dead && m_voxState == VoiceState::KeyOff &&
+    if (dead && (!m_curSample || m_voxState == VoiceState::KeyOff) &&
         m_sampleEndTrap.macroId == 0xffff &&
         m_messageTrap.macroId == 0xffff &&
         (!m_curSample || (m_curSample && m_volAdsr.isComplete())))
@@ -560,17 +552,17 @@ int Voice::maxVid() const
 std::shared_ptr<Voice> Voice::_startChildMacro(ObjectId macroId, int macroStep, double ticksPerSec,
                                                uint8_t midiKey, uint8_t midiVel, uint8_t midiMod, bool pushPc)
 {
-    std::shared_ptr<Voice> vox = _allocateVoice(32000.0, true);
-    if (!vox->loadSoundObject(macroId, macroStep, ticksPerSec, midiKey,
-                              midiVel, midiMod, pushPc))
+    std::list<std::shared_ptr<Voice>>::iterator vox = _allocateVoice(32000.0, true);
+    if (!(*vox)->loadSoundObject(macroId, macroStep, ticksPerSec, midiKey,
+                                 midiVel, midiMod, pushPc))
     {
-        _destroyVoice(vox.get());
+        _destroyVoice(vox);
         return {};
     }
-    vox->setVolume(m_userVol);
-    vox->setPan(m_userPan);
-    vox->setSurroundPan(m_userSpan);
-    return vox;
+    (*vox)->setVolume(m_userVol);
+    (*vox)->setPan(m_userPan);
+    (*vox)->setSurroundPan(m_userSpan);
+    return *vox;
 }
 
 std::shared_ptr<Voice> Voice::startChildMacro(int8_t addNote, ObjectId macroId, int macroStep)
@@ -744,21 +736,17 @@ void Voice::startSample(int16_t sampId, int32_t offset)
         m_curSampleData = m_audioGroup.getSampleData(m_curSample->first.m_sampleOff);
         m_prev1 = 0;
         m_prev2 = 0;
+
         if (m_audioGroup.getDataFormat() == DataFormat::PC)
             m_curFormat = SampleFormat::PCM_PC;
         else
             m_curFormat = SampleFormat(m_curSample->first.m_numSamples >> 24);
+
+        if (m_curFormat == SampleFormat::DSP_DRUM)
+            m_curFormat = SampleFormat::DSP;
+
         m_lastSamplePos = m_curSample->first.m_loopLengthSamples ?
             (m_curSample->first.m_loopStartSample + m_curSample->first.m_loopLengthSamples) : numSamples;
-
-        if (m_curFormat != SampleFormat::DSP &&
-            m_curFormat != SampleFormat::PCM &&
-            m_curFormat != SampleFormat::N64 &&
-            m_curFormat != SampleFormat::PCM_PC)
-        {
-            m_curSample = nullptr;
-            return;
-        }
 
         bool looped;
         _checkSamplePos(looped);
@@ -829,6 +817,10 @@ void Voice::_setPan(float pan)
     coefs[7] *= 1.f - std::fabs(totalSpan);
 
     m_backendVoice->setMatrixCoefficients(coefs, true);
+
+    for (int i=0 ; i<8 ; ++i)
+        coefs[i] *= m_curReverbVol;
+    m_backendVoice->setSubmixMatrixCoefficients(coefs, true);
 }
 
 void Voice::setPan(float pan)
@@ -855,7 +847,7 @@ void Voice::setSurroundPan(float span)
 
 void Voice::startEnvelope(double dur, float vol, const Curve* envCurve)
 {
-    m_envelopeTime = m_voiceTime;
+    m_envelopeTime = 0.f;
     m_envelopeDur = dur;
     m_envelopeStart = clamp(0.f, m_curVol, 1.f);
     m_envelopeEnd = clamp(0.f, vol, 1.f);
@@ -864,7 +856,7 @@ void Voice::startEnvelope(double dur, float vol, const Curve* envCurve)
 
 void Voice::startFadeIn(double dur, float vol, const Curve* envCurve)
 {
-    m_envelopeTime = m_voiceTime;
+    m_envelopeTime = 0.f;
     m_envelopeDur = dur;
     m_envelopeStart = 0.f;
     m_envelopeEnd = clamp(0.f, vol, 1.f);
@@ -946,7 +938,10 @@ void Voice::setPitchSweep2(uint8_t times, int16_t add)
 
 void Voice::setReverbVol(float rvol)
 {
-    m_curReverbVol = rvol;
+    m_curReverbVol = clamp(0.f, rvol, 1.f);
+    _setPan(m_curPan);
+    for (std::shared_ptr<Voice>& vox : m_childVoices)
+        vox->setReverbVol(rvol);
 }
 
 void Voice::setAdsr(ObjectId adsrId, bool dls)
@@ -1022,12 +1017,20 @@ void Voice::setAftertouch(uint8_t aftertouch)
 
 void Voice::_notifyCtrlChange(uint8_t ctrl, int8_t val)
 {
-    if (ctrl == 64)
+    if (ctrl == 0x40)
     {
-        if (val >= 64)
+        if (val >= 0x40)
             setPedal(true);
         else
             setPedal(false);
+    }
+    else if (ctrl == 0x41)
+    {
+        printf("PORTAMENTO %d\n", val);
+    }
+    else if (ctrl == 0x5b)
+    {
+        setReverbVol(val / 127.f);
     }
 
     for (std::shared_ptr<Voice>& vox : m_childVoices)
@@ -1040,6 +1043,13 @@ size_t Voice::getTotalVoices() const
     for (const std::shared_ptr<Voice>& vox : m_childVoices)
         ret += vox->getTotalVoices();
     return ret;
+}
+
+void Voice::kill()
+{
+    m_voxState = VoiceState::Dead;
+    for (const std::shared_ptr<Voice>& vox : m_childVoices)
+        vox->kill();
 }
 
 }

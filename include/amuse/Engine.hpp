@@ -50,15 +50,17 @@ class Engine
     std::pair<AudioGroup*, const SongGroupIndex*> _findSongGroup(int groupId) const;
     std::pair<AudioGroup*, const SFXGroupIndex*> _findSFXGroup(int groupId) const;
 
-    std::shared_ptr<Voice> _allocateVoice(const AudioGroup& group, int groupId, double sampleRate,
-                                          bool dynamicPitch, bool emitter, Submix* smx);
-    std::shared_ptr<Sequencer> _allocateSequencer(const AudioGroup& group, int groupId,
-                                                  int setupId, Submix* smx);
-    Submix* _allocateSubmix(Submix* smx);
-    std::list<std::shared_ptr<Voice>>::iterator _destroyVoice(Voice* voice);
-    std::list<std::shared_ptr<Sequencer>>::iterator _destroySequencer(Sequencer* sequencer);
-    std::list<Submix>::iterator _destroySubmix(Submix* smx);
-    std::list<Submix>::iterator _removeSubmix(Submix* smx);
+    std::list<std::shared_ptr<Voice>>::iterator
+    _allocateVoice(const AudioGroup& group, int groupId, double sampleRate,
+                   bool dynamicPitch, bool emitter, Submix* smx);
+    std::list<std::shared_ptr<Sequencer>>::iterator
+    _allocateSequencer(const AudioGroup& group, int groupId,
+                       int setupId, Submix* smx);
+    std::list<Submix>::iterator _allocateSubmix(Submix* smx);
+    std::list<std::shared_ptr<Voice>>::iterator _destroyVoice(std::list<std::shared_ptr<Voice>>::iterator it);
+    std::list<std::shared_ptr<Sequencer>>::iterator _destroySequencer(std::list<std::shared_ptr<Sequencer>>::iterator it);
+    std::list<Submix>::iterator _destroySubmix(std::list<Submix>::iterator it);
+    std::list<Submix>::iterator _removeSubmix(std::list<Submix>::iterator it);
     void _bringOutYourDead();
     void _5MsCallback(double dt);
 public:
