@@ -13,8 +13,9 @@ namespace amuse
 
 Engine::~Engine()
 {
-    while (m_activeSequencers.size())
-        m_activeSequencers.front()->_destroy();
+    for (std::shared_ptr<Sequencer>& seq : m_activeSequencers)
+        if (!seq->m_destroyed)
+            seq->_destroy();
     while (m_activeSubmixes.size())
         removeSubmix(&m_activeSubmixes.front());
     for (std::shared_ptr<Emitter>& emitter : m_activeEmitters)
