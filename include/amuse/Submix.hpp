@@ -56,6 +56,7 @@ public:
             return static_cast<ImpType&>(*m_effectStack.back());
         }
         case SubmixFormat::Int32:
+        default:
         {
             using ImpType = typename T::template ImpType<int32_t>;
             m_effectStack.emplace_back(new ImpType(args..., m_backendSubmix->getSampleRate()));

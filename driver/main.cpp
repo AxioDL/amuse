@@ -30,6 +30,58 @@ static inline void SNPrintf(boo::SystemChar* str, size_t maxlen, const boo::Syst
     va_end(va);
 }
 
+#if _WIN32
+#include <DbgHelp.h>
+#pragma comment(lib, "Dbghelp.lib")
+
+#include <signal.h>
+
+static void abortHandler( int signum )
+{
+    unsigned int   i;
+    void         * stack[ 100 ];
+    unsigned short frames;
+    SYMBOL_INFO  * symbol;
+    HANDLE         process;
+
+    process = GetCurrentProcess();
+    SymInitialize( process, NULL, TRUE );
+    frames               = CaptureStackBackTrace( 0, 100, stack, NULL );
+    symbol               = ( SYMBOL_INFO * )calloc( sizeof( SYMBOL_INFO ) + 256 * sizeof( char ), 1 );
+    symbol->MaxNameLen   = 255;
+    symbol->SizeOfStruct = sizeof( SYMBOL_INFO );
+
+    for( i = 0; i < frames; i++ )
+    {
+        SymFromAddr( process, ( DWORD64 )( stack[ i ] ), 0, symbol );
+
+        printf( "%i: %s - 0x%0llX", frames - i - 1, symbol->Name, symbol->Address );
+
+        DWORD  dwDisplacement;
+        IMAGEHLP_LINE64 line;
+        SymSetOptions(SYMOPT_LOAD_LINES);
+
+        line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
+        if (SymGetLineFromAddr64(process, ( DWORD64 )( stack[ i ] ), &dwDisplacement, &line))
+        {
+            // SymGetLineFromAddr64 returned success
+            printf(" LINE %d\n", line.LineNumber);
+        }
+        else
+        {
+            printf("\n");
+        }
+    }
+
+    free( symbol );
+
+    // If you caught one of the above signals, it is likely you just
+    // want to quit your program right now.
+    system("PAUSE");
+    exit( signum );
+}
+#endif
+
 struct AppCallback;
 
 struct EventCallback : boo::IWindowCallback
@@ -566,7 +618,10 @@ struct AppCallback : boo::IApplicationCallback
 
         /* Load data */
         if (m_argc < 2)
-            Log.report(logvisor::Fatal, "needs group path argument");
+        {
+            Log.report(logvisor::Error, "needs group path argument");
+            exit(1);
+        }
 
 #if _WIN32
         char utf8Path[1024];
@@ -577,13 +632,19 @@ struct AppCallback : boo::IApplicationCallback
 
         amuse::ContainerRegistry::Type cType = amuse::ContainerRegistry::DetectContainerType(utf8Path);
         if (cType == amuse::ContainerRegistry::Type::Invalid)
-            Log.report(logvisor::Fatal, "invalid/no data at path argument");
+        {
+            Log.report(logvisor::Error, "invalid/no data at path argument");
+            exit(1);
+        }
         Log.report(logvisor::Info, "Found '%s' Audio Group data", amuse::ContainerRegistry::TypeToName(cType));
 
         std::vector<std::pair<std::string, amuse::IntrusiveAudioGroupData>> data =
             amuse::ContainerRegistry::LoadContainer(utf8Path);
         if (data.empty())
-            Log.report(logvisor::Fatal, "invalid/no data at path argument");
+        {
+            Log.report(logvisor::Error, "invalid/no data at path argument");
+            exit(1);
+        }
 
         std::list<amuse::AudioGroupProject> m_projs;
         std::map<int, std::pair<std::pair<std::string, amuse::IntrusiveAudioGroupData>*, const amuse::SongGroupIndex*>> allSongGroups;
@@ -612,7 +673,10 @@ struct AppCallback : boo::IApplicationCallback
             else if (allSFXGroups.find(m_groupId) != allSFXGroups.end())
                 m_sfxGroup = true;
             else
-                Log.report(logvisor::Fatal, "unable to find Group %d", m_groupId);
+            {
+                Log.report(logvisor::Error, "unable to find Group %d", m_groupId);
+                exit(1);
+            }
         }
         else if (totalGroups > 1)
         {
@@ -634,7 +698,10 @@ struct AppCallback : boo::IApplicationCallback
             int userSel = 0;
             printf("Enter Group Number: ");
             if (scanf("%d", &userSel) <= 0)
-                Log.report(logvisor::Fatal, "unable to parse prompt");
+            {
+                Log.report(logvisor::Error, "unable to parse prompt");
+                exit(1);
+            }
 
             if (allSongGroups.find(userSel) != allSongGroups.end())
             {
@@ -647,7 +714,10 @@ struct AppCallback : boo::IApplicationCallback
                 m_sfxGroup = true;
             }
             else
-                Log.report(logvisor::Fatal, "unable to find Group %d", userSel);
+            {
+                Log.report(logvisor::Error, "unable to find Group %d", userSel);
+                exit(1);
+            }
         }
         else if (totalGroups == 1)
         {
@@ -666,7 +736,10 @@ struct AppCallback : boo::IApplicationCallback
             }
         }
         else
-            Log.report(logvisor::Fatal, "empty project");
+        {
+            Log.report(logvisor::Error, "empty project");
+            exit(1);
+        }
 
         /* Make final group selection */
         amuse::IntrusiveAudioGroupData* selData = nullptr;
@@ -689,7 +762,10 @@ struct AppCallback : boo::IApplicationCallback
         }
 
         if (!selData)
-            Log.report(logvisor::Fatal, "unable to select audio group data");
+        {
+            Log.report(logvisor::Error, "unable to select audio group data");
+            exit(1);
+        }
 
 
         /* Attempt loading song */
@@ -726,7 +802,10 @@ struct AppCallback : boo::IApplicationCallback
         /* Load group into engine */
         const amuse::AudioGroup* group = m_engine->addAudioGroup(*selData);
         if (!group)
-            Log.report(logvisor::Fatal, "unable to add audio group");
+        {
+            Log.report(logvisor::Error, "unable to add audio group");
+            exit(1);
+        }
 
         /* Enter playback loop */
         if (m_sfxGroup)
@@ -850,6 +929,11 @@ int main(int argc, const boo::SystemChar** argv)
 #if _WIN32
 int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR lpCmdLine, int)
 {
+    signal( SIGABRT, abortHandler );
+    signal( SIGSEGV, abortHandler );
+    signal( SIGILL,  abortHandler );
+    signal( SIGFPE,  abortHandler );
+
     int argc = 0;
     const boo::SystemChar** argv = (const wchar_t**)(CommandLineToArgvW(lpCmdLine, &argc));
     static boo::SystemChar selfPath[1024];

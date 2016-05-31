@@ -457,6 +457,7 @@ AudioGroupProject AudioGroupProject::CreateAudioGroupProject(const AudioGroupDat
     switch (data.getDataFormat())
     {
     case DataFormat::GCN:
+    default:
         return AudioGroupProject(data.getProj(), GCNDataTag{});
     case DataFormat::N64:
         return AudioGroupProject(data.getProj(), data.getAbsoluteProjOffsets(), N64DataTag{});

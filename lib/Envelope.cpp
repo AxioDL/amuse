@@ -97,6 +97,7 @@ float Envelope::advance(double dt)
         return std::min(m_releaseStartFactor, 1.0 - releaseFac);
     }
     case State::Complete:
+    default:
         return 0.f;
     }
 }
