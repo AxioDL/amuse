@@ -142,7 +142,7 @@ void EffectReverbStdImp<T>::applyEffect(T* audio, size_t frameCount, const Chann
 
     for (size_t f=0 ; f<frameCount ; f+=160)
     {
-        for (int c=0 ; c<chanMap.m_channelCount ; ++c)
+        for (unsigned c=0 ; c<chanMap.m_channelCount ; ++c)
         {
             float* combCoefs = xf4_combCoef[c];
             float& lpLastOut = x10c_lpLastout[c];
@@ -153,7 +153,7 @@ void EffectReverbStdImp<T>::applyEffect(T* audio, size_t frameCount, const Chann
             ReverbDelayLine* linesC = x78_C[c];
             ReverbDelayLine* linesAP = x0_AP[c];
 
-            int procSamples = std::min(160ul, frameCount - f);
+            int procSamples = std::min(size_t(160), frameCount - f);
             for (int s=0 ; s<procSamples ; ++s)
             {
                 float sample = audio[s * chanMap.m_channelCount + c];
@@ -455,7 +455,7 @@ void EffectReverbHiImp<T>::applyEffect(T* audio, size_t frameCount, const Channe
     for (size_t f=0 ; f<frameCount ; f+=160)
     {
         size_t blockSamples = std::min(size_t(160), frameCount - f);
-        for (int i=0 ; i<chanMap.m_channelCount ; ++i)
+        for (unsigned i=0 ; i<chanMap.m_channelCount ; ++i)
         {
             if (i == 0 && x1a8_internalCrosstalk != 0.f)
             {
