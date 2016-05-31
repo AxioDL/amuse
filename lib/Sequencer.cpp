@@ -45,7 +45,6 @@ void Sequencer::_bringOutYourDead()
 
 void Sequencer::_destroy()
 {
-    printf("DESTROY %p\n", this);
     Entity::_destroy();
     if (m_submix)
     {
@@ -56,9 +55,11 @@ void Sequencer::_destroy()
 
 Sequencer::~Sequencer()
 {
-    printf("DEALLOC %p\n", this);
     if (m_submix)
+    {
         m_engine.removeSubmix(m_submix);
+        m_submix = nullptr;
+    }
 }
 
 Sequencer::Sequencer(Engine& engine, const AudioGroup& group, int groupId,

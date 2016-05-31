@@ -76,7 +76,6 @@ Engine::_allocateSequencer(const AudioGroup& group, int groupId,
         return {};
     auto it = m_activeSequencers.emplace(m_activeSequencers.end(),
         new Sequencer(*this, group, groupId, *songGroup, setupId, smx));
-    printf("INSERT %p\n", it->get());
     return it;
 }
 
@@ -105,9 +104,7 @@ std::list<std::shared_ptr<Sequencer>>::iterator Engine::_destroySequencer(std::l
 #endif
     if ((*it)->m_destroyed)
         return m_activeSequencers.begin();
-    printf("TO DESTROY %p\n", it->get());
     (*it)->_destroy();
-    printf("ERASE %p\n", it->get());
     return m_activeSequencers.erase(it);
 }
 
@@ -288,34 +285,21 @@ Submix* Engine::addSubmix(Submix* smx)
 std::list<Submix>::iterator Engine::_removeSubmix(std::list<Submix>::iterator smx)
 {
     /* Delete all voices bound to submix */
-    for (auto it = m_activeVoices.begin() ; it != m_activeVoices.end() ;)
+    for (auto it = m_activeVoices.begin() ; it != m_activeVoices.end() ; ++it)
     {
         Voice* vox = it->get();
-
         Submix* vsmx = vox->getSubmix();
         if (vsmx == &*smx)
-        {
-            vox->_destroy();
-            it = m_activeVoices.erase(it);
-            continue;
-        }
-        ++it;
+            vox->kill();
     }
 
     /* Delete all sequencers bound to submix */
-    for (auto it = m_activeSequencers.begin() ; it != m_activeSequencers.end() ;)
+    for (auto it = m_activeSequencers.begin() ; it != m_activeSequencers.end() ; ++it)
     {
         Sequencer* seq = it->get();
-
         Submix* ssmx = seq->getSubmix();
         if (ssmx == &*smx)
-        {
-            if (!seq->m_destroyed)
-                seq->_destroy();
-            it = m_activeSequencers.erase(it);
-            continue;
-        }
-        ++it;
+            seq->kill();
     }
 
     /* Delete all submixes bound to submix */
