@@ -47,7 +47,6 @@ class Sequencer : public Entity
         uint8_t m_chanId;
         const SongGroupIndex::MIDISetup& m_setup;
         const SongGroupIndex::PageEntry* m_page = nullptr;
-        Submix* m_submix = nullptr;
         ~ChannelState();
         ChannelState(Sequencer& parent, uint8_t chanId);
 

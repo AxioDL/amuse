@@ -51,35 +51,28 @@ void Sequencer::_destroy()
         m_engine.removeSubmix(m_submix);
         m_submix = nullptr;
     }
-
-    for (auto& chan : m_chanStates)
-    {
-        if (chan)
-        {
-            if (chan->m_submix)
-            {
-                m_engine.removeSubmix(chan->m_submix);
-                chan->m_submix = nullptr;
-            }
-        }
-    }
 }
 
-Sequencer::~Sequencer() {}
+Sequencer::~Sequencer()
+{
+    if (m_submix)
+        m_engine.removeSubmix(m_submix);
+}
 
 Sequencer::Sequencer(Engine& engine, const AudioGroup& group, int groupId,
                      const SongGroupIndex& songGroup, int setupId, Submix* smx)
-: Entity(engine, group, groupId), m_songGroup(songGroup), m_submix(smx)
+: Entity(engine, group, groupId), m_songGroup(songGroup)
 {
     auto it = m_songGroup.m_midiSetups.find(setupId);
     if (it != m_songGroup.m_midiSetups.cend())
         m_midiSetup = it->second->data();
+
+    m_submix = m_engine.addSubmix(smx);
+    m_submix->makeReverbHi(0.2f, 1.f, 1.f, 0.5f, 0.f, 0.f);
 }
 
 Sequencer::ChannelState::~ChannelState()
 {
-    if (m_submix)
-        m_parent.m_engine.removeSubmix(m_submix);
 }
 
 Sequencer::ChannelState::ChannelState(Sequencer& parent, uint8_t chanId)
@@ -98,14 +91,10 @@ Sequencer::ChannelState::ChannelState(Sequencer& parent, uint8_t chanId)
             m_page = it->second;
     }
 
-    m_submix = m_parent.m_engine.addSubmix(m_parent.m_submix);
-    if (m_setup.reverb)
-        m_submix->makeReverbStd(0.5f, m_setup.reverb / 127.f, 5.f, 0.5f, 0.f);
-    if (m_setup.chorus)
-        m_submix->makeChorus(15, m_setup.chorus * 5 / 127, 5000);
-
     m_curVol = m_setup.volume / 127.f;
     m_curPan = m_setup.panning / 64.f - 1.f;
+    m_ctrlVals[0x5b] = m_setup.reverb;
+    m_ctrlVals[0x5d] = m_setup.chorus;
 }
 
 void Sequencer::advance(double dt)
@@ -155,7 +144,7 @@ std::shared_ptr<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velo
 
     std::shared_ptr<Voice> ret = m_parent.m_engine._allocateVoice(m_parent.m_audioGroup,
                                                                   m_parent.m_groupId, 32000.0,
-                                                                  true, false, m_submix);
+                                                                  true, false, m_parent.m_submix);
     if (ret)
     {
         m_chanVoxs[note] = ret;
@@ -168,6 +157,7 @@ std::shared_ptr<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velo
             return {};
         }
         ret->setVolume(m_parent.m_curVol * m_curVol);
+        ret->setReverbVol(m_ctrlVals[0x5b] / 127.f);
         ret->setPan(m_curPan);
         ret->setPitchWheel(m_curPitchWheel);
 

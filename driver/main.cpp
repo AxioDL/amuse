@@ -130,7 +130,7 @@ struct AppCallback : boo::IApplicationCallback
                "░░░    │    │    ┃    │    │    │    ┃    │    │    ░░░\n"
                "░░░ A  │ S  │ D  ┃ F  │ G  │ H  │ J  ┃ K  │ L  │ ;  ░░░\n"
                "░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░\n"
-               "<left/right>: cycle MIDI setup / channel, <up/down>: volume, <space>: PANIC\n"
+               "<left/right>: cycle MIDI setup, <up/down>: volume, <space>: PANIC\n"
                "<tab>: sustain pedal, <window-Y>: pitch wheel, <window-X>: mod wheel\n"
                "<Z/X>: octave, <C/V>: velocity, <B/N>: channel, <,/.>: program, <Q>: quit\n");
 

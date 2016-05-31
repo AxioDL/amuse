@@ -190,8 +190,12 @@ std::shared_ptr<Voice> Voice::_allocateVoice(double sampleRate, bool dynamicPitc
 {
     auto it = m_childVoices.emplace(m_childVoices.end(), new Voice(m_engine, m_audioGroup,
                                     m_groupId, m_engine.m_nextVid++, m_emitter, m_submix));
-    m_childVoices.back()->m_backendVoice =
-        m_engine.getBackend().allocateVoice(*m_childVoices.back(), sampleRate, dynamicPitch);
+    if (m_submix)
+        m_childVoices.back()->m_backendVoice =
+            m_submix->m_backendSubmix->allocateVoice(*m_childVoices.back(), sampleRate, dynamicPitch);
+    else
+        m_childVoices.back()->m_backendVoice =
+            m_engine.getBackend().allocateVoice(*m_childVoices.back(), sampleRate, dynamicPitch);
     m_childVoices.back()->m_engineIt = it;
     return m_childVoices.back();
 }
@@ -373,20 +377,9 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
 {
     uint32_t samplesRem = samples;
     size_t samplesProc = 0;
-    bool dead = true;
 
-    /* Attempt to load stopped sample for immediate decoding */
-    if (!m_curSample)
-    {
-        dead = m_state.advance(*this, samples / m_sampleRate);
-        if (!dead)
-        {
-            memset(data, 0, sizeof(int16_t) * samples);
-            return samples;
-        }
-    }
-    else
-        dead = m_state.advance(*this, samples / m_sampleRate);
+    /* Process SoundMacro; bootstrapping sample if needed */
+    bool dead = m_state.advance(*this, samples / m_sampleRate);
 
     if (m_curSample)
     {
@@ -537,7 +530,7 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
     else
         memset(data, 0, sizeof(int16_t) * samples);
 
-    if (dead && m_voxState == VoiceState::KeyOff &&
+    if (dead && (!m_curSample || m_voxState == VoiceState::KeyOff) &&
         m_sampleEndTrap.macroId == 0xffff &&
         m_messageTrap.macroId == 0xffff &&
         (!m_curSample || (m_curSample && m_volAdsr.isComplete())))
@@ -744,21 +737,17 @@ void Voice::startSample(int16_t sampId, int32_t offset)
         m_curSampleData = m_audioGroup.getSampleData(m_curSample->first.m_sampleOff);
         m_prev1 = 0;
         m_prev2 = 0;
+
         if (m_audioGroup.getDataFormat() == DataFormat::PC)
             m_curFormat = SampleFormat::PCM_PC;
         else
             m_curFormat = SampleFormat(m_curSample->first.m_numSamples >> 24);
+
+        if (m_curFormat == SampleFormat::DSP_DRUM)
+            m_curFormat = SampleFormat::DSP;
+
         m_lastSamplePos = m_curSample->first.m_loopLengthSamples ?
             (m_curSample->first.m_loopStartSample + m_curSample->first.m_loopLengthSamples) : numSamples;
-
-        if (m_curFormat != SampleFormat::DSP &&
-            m_curFormat != SampleFormat::PCM &&
-            m_curFormat != SampleFormat::N64 &&
-            m_curFormat != SampleFormat::PCM_PC)
-        {
-            m_curSample = nullptr;
-            return;
-        }
 
         bool looped;
         _checkSamplePos(looped);
@@ -829,6 +818,10 @@ void Voice::_setPan(float pan)
     coefs[7] *= 1.f - std::fabs(totalSpan);
 
     m_backendVoice->setMatrixCoefficients(coefs, true);
+
+    for (int i=0 ; i<8 ; ++i)
+        coefs[i] *= m_curReverbVol;
+    m_backendVoice->setSubmixMatrixCoefficients(coefs, true);
 }
 
 void Voice::setPan(float pan)
@@ -946,7 +939,10 @@ void Voice::setPitchSweep2(uint8_t times, int16_t add)
 
 void Voice::setReverbVol(float rvol)
 {
-    m_curReverbVol = rvol;
+    m_curReverbVol = clamp(0.f, rvol, 1.f);
+    _setPan(m_curPan);
+    for (std::shared_ptr<Voice>& vox : m_childVoices)
+        vox->setReverbVol(rvol);
 }
 
 void Voice::setAdsr(ObjectId adsrId, bool dls)
@@ -1029,6 +1025,8 @@ void Voice::_notifyCtrlChange(uint8_t ctrl, int8_t val)
         else
             setPedal(false);
     }
+    else if (ctrl == 0x5b)
+        setReverbVol(val / 127.f);
 
     for (std::shared_ptr<Voice>& vox : m_childVoices)
         vox->_notifyCtrlChange(ctrl, val);

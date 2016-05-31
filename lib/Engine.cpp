@@ -57,8 +57,12 @@ std::shared_ptr<Voice> Engine::_allocateVoice(const AudioGroup& group, int group
 {
     auto it = m_activeVoices.emplace(m_activeVoices.end(),
         new Voice(*this, group, groupId, m_nextVid++, emitter, smx));
-    m_activeVoices.back()->m_backendVoice =
-        m_backend.allocateVoice(*m_activeVoices.back(), sampleRate, dynamicPitch);
+    if (smx)
+        m_activeVoices.back()->m_backendVoice =
+            smx->m_backendSubmix->allocateVoice(*m_activeVoices.back(), sampleRate, dynamicPitch);
+    else
+        m_activeVoices.back()->m_backendVoice =
+            m_backend.allocateVoice(*m_activeVoices.back(), sampleRate, dynamicPitch);
     m_activeVoices.back()->m_engineIt = it;
     return m_activeVoices.back();
 }

@@ -48,11 +48,11 @@ class Voice : public Entity
 
     enum class SampleFormat : uint8_t
     {
-        DSP,   /**< GCN DSP-ucode ADPCM (very common for GameCube games) */
-        IMA,   /**< IMA-ADPCM (rarely used within MusyX itself) */
-        PCM,   /**< Big-endian PCM found in MusyX2 demo GM instruments */
-        N64,   /**< 2-stage VADPCM coding with SAMP-embedded codebooks */
-        PCM_PC /**< Little-endian PCM found in PC Rogue Squadron (actually enum 0 which conflicts with DSP-ADPCM) */
+        DSP,      /**< GCN DSP-ucode ADPCM (very common for GameCube games) */
+        DSP_DRUM, /**< GCN DSP-ucode ADPCM (seems to be set into drum samples for expanding their amplitude appropriately) */
+        PCM,      /**< Big-endian PCM found in MusyX2 demo GM instruments */
+        N64,      /**< 2-stage VADPCM coding with SAMP-embedded codebooks */
+        PCM_PC    /**< Little-endian PCM found in PC Rogue Squadron (actually enum 0 which conflicts with DSP-ADPCM) */
     };
     const Sample* m_curSample = nullptr; /**< Current sample entry playing */
     const unsigned char* m_curSampleData = nullptr; /**< Current sample data playing */
