@@ -45,6 +45,7 @@ void Sequencer::_bringOutYourDead()
 
 void Sequencer::_destroy()
 {
+    printf("DESTROY %p\n", this);
     Entity::_destroy();
     if (m_submix)
     {
@@ -55,6 +56,7 @@ void Sequencer::_destroy()
 
 Sequencer::~Sequencer()
 {
+    printf("DEALLOC %p\n", this);
     if (m_submix)
         m_engine.removeSubmix(m_submix);
 }
@@ -142,30 +144,31 @@ std::shared_ptr<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velo
         m_chanVoxs.erase(keySearch);
     }
 
-    std::shared_ptr<Voice> ret = m_parent.m_engine._allocateVoice(m_parent.m_audioGroup,
-                                                                  m_parent.m_groupId, 32000.0,
-                                                                  true, false, m_parent.m_submix);
-    if (ret)
+    std::list<std::shared_ptr<Voice>>::iterator ret =
+        m_parent.m_engine._allocateVoice(m_parent.m_audioGroup,
+                                         m_parent.m_groupId, 32000.0,
+                                         true, false, m_parent.m_submix);
+    if (*ret)
     {
-        m_chanVoxs[note] = ret;
-        ret->installCtrlValues(m_ctrlVals);
+        m_chanVoxs[note] = *ret;
+        (*ret)->installCtrlValues(m_ctrlVals);
 
         ObjectId oid = (m_parent.m_audioGroup.getDataFormat() == DataFormat::PC) ? m_page->objId : SBig(m_page->objId);
-        if (!ret->loadSoundObject(oid, 0, 1000.f, note, velocity, m_ctrlVals[1]))
+        if (!(*ret)->loadSoundObject(oid, 0, 1000.f, note, velocity, m_ctrlVals[1]))
         {
-            m_parent.m_engine._destroyVoice(ret.get());
+            m_parent.m_engine._destroyVoice(ret);
             return {};
         }
-        ret->setVolume(m_parent.m_curVol * m_curVol);
-        ret->setReverbVol(m_ctrlVals[0x5b] / 127.f);
-        ret->setPan(m_curPan);
-        ret->setPitchWheel(m_curPitchWheel);
+        (*ret)->setVolume(m_parent.m_curVol * m_curVol);
+        (*ret)->setReverbVol(m_ctrlVals[0x5b] / 127.f);
+        (*ret)->setPan(m_curPan);
+        (*ret)->setPitchWheel(m_curPitchWheel);
 
         if (m_ctrlVals[64] > 64)
-            ret->setPedal(true);
+            (*ret)->setPedal(true);
     }
 
-    return ret;
+    return *ret;
 }
 
 std::shared_ptr<Voice> Sequencer::keyOn(uint8_t chan, uint8_t note, uint8_t velocity)
@@ -313,9 +316,9 @@ void Sequencer::allOff(bool now)
             if (chan)
             {
                 for (const auto& vox : chan->m_chanVoxs)
-                    m_engine._destroyVoice(vox.second.get());
+                    vox.second->kill();
                 for (const auto& vox : chan->m_keyoffVoxs)
-                    m_engine._destroyVoice(vox.get());
+                    vox->kill();
                 chan->m_chanVoxs.clear();
                 chan->m_keyoffVoxs.clear();
             }
@@ -334,9 +337,9 @@ void Sequencer::allOff(uint8_t chan, bool now)
     if (now)
     {
         for (const auto& vox : m_chanStates[chan]->m_chanVoxs)
-            m_engine._destroyVoice(vox.second.get());
+            vox.second->kill();
         for (const auto& vox : m_chanStates[chan]->m_keyoffVoxs)
-            m_engine._destroyVoice(vox.get());
+            vox->kill();
         m_chanStates[chan]->m_chanVoxs.clear();
         m_chanStates[chan]->m_keyoffVoxs.clear();
     }

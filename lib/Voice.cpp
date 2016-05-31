@@ -155,7 +155,7 @@ void Voice::_bringOutYourDead()
         vox->_bringOutYourDead();
         if (vox->_isRecursivelyDead())
         {
-            it = _destroyVoice(vox);
+            it = _destroyVoice(it);
             continue;
         }
         ++it;
@@ -186,7 +186,7 @@ std::unique_ptr<int8_t[]>& Voice::_ensureCtrlVals()
     return m_ctrlValsSelf;
 }
 
-std::shared_ptr<Voice> Voice::_allocateVoice(double sampleRate, bool dynamicPitch)
+std::list<std::shared_ptr<Voice>>::iterator Voice::_allocateVoice(double sampleRate, bool dynamicPitch)
 {
     auto it = m_childVoices.emplace(m_childVoices.end(), new Voice(m_engine, m_audioGroup,
                                     m_groupId, m_engine.m_nextVid++, m_emitter, m_submix));
@@ -196,17 +196,16 @@ std::shared_ptr<Voice> Voice::_allocateVoice(double sampleRate, bool dynamicPitc
     else
         m_childVoices.back()->m_backendVoice =
             m_engine.getBackend().allocateVoice(*m_childVoices.back(), sampleRate, dynamicPitch);
-    m_childVoices.back()->m_engineIt = it;
-    return m_childVoices.back();
+    return it;
 }
 
-std::list<std::shared_ptr<Voice>>::iterator Voice::_destroyVoice(Voice* voice)
+std::list<std::shared_ptr<Voice>>::iterator Voice::_destroyVoice(std::list<std::shared_ptr<Voice>>::iterator it)
 {
-    if (voice->m_destroyed)
+    if ((*it)->m_destroyed)
         return m_childVoices.begin();
 
-    voice->_destroy();
-    return m_childVoices.erase(voice->m_engineIt);
+    (*it)->_destroy();
+    return m_childVoices.erase(it);
 }
 
 static void ApplyVolume(float vol, int16_t& samp)
@@ -553,17 +552,17 @@ int Voice::maxVid() const
 std::shared_ptr<Voice> Voice::_startChildMacro(ObjectId macroId, int macroStep, double ticksPerSec,
                                                uint8_t midiKey, uint8_t midiVel, uint8_t midiMod, bool pushPc)
 {
-    std::shared_ptr<Voice> vox = _allocateVoice(32000.0, true);
-    if (!vox->loadSoundObject(macroId, macroStep, ticksPerSec, midiKey,
-                              midiVel, midiMod, pushPc))
+    std::list<std::shared_ptr<Voice>>::iterator vox = _allocateVoice(32000.0, true);
+    if (!(*vox)->loadSoundObject(macroId, macroStep, ticksPerSec, midiKey,
+                                 midiVel, midiMod, pushPc))
     {
-        _destroyVoice(vox.get());
+        _destroyVoice(vox);
         return {};
     }
-    vox->setVolume(m_userVol);
-    vox->setPan(m_userPan);
-    vox->setSurroundPan(m_userSpan);
-    return vox;
+    (*vox)->setVolume(m_userVol);
+    (*vox)->setPan(m_userPan);
+    (*vox)->setSurroundPan(m_userSpan);
+    return *vox;
 }
 
 std::shared_ptr<Voice> Voice::startChildMacro(int8_t addNote, ObjectId macroId, int macroStep)
@@ -1044,6 +1043,13 @@ size_t Voice::getTotalVoices() const
     for (const std::shared_ptr<Voice>& vox : m_childVoices)
         ret += vox->getTotalVoices();
     return ret;
+}
+
+void Voice::kill()
+{
+    m_voxState = VoiceState::Dead;
+    for (const std::shared_ptr<Voice>& vox : m_childVoices)
+        vox->kill();
 }
 
 }

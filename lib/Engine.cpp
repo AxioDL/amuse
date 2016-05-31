@@ -52,8 +52,9 @@ std::pair<AudioGroup*, const SFXGroupIndex*> Engine::_findSFXGroup(int groupId) 
     return {};
 }
 
-std::shared_ptr<Voice> Engine::_allocateVoice(const AudioGroup& group, int groupId, double sampleRate,
-                                              bool dynamicPitch, bool emitter, Submix* smx)
+std::list<std::shared_ptr<Voice>>::iterator
+Engine::_allocateVoice(const AudioGroup& group, int groupId, double sampleRate,
+                       bool dynamicPitch, bool emitter, Submix* smx)
 {
     auto it = m_activeVoices.emplace(m_activeVoices.end(),
         new Voice(*this, group, groupId, m_nextVid++, emitter, smx));
@@ -63,61 +64,62 @@ std::shared_ptr<Voice> Engine::_allocateVoice(const AudioGroup& group, int group
     else
         m_activeVoices.back()->m_backendVoice =
             m_backend.allocateVoice(*m_activeVoices.back(), sampleRate, dynamicPitch);
-    m_activeVoices.back()->m_engineIt = it;
-    return m_activeVoices.back();
+    return it;
 }
 
-std::shared_ptr<Sequencer> Engine::_allocateSequencer(const AudioGroup& group, int groupId,
-                                                      int setupId, Submix* smx)
+std::list<std::shared_ptr<Sequencer>>::iterator
+Engine::_allocateSequencer(const AudioGroup& group, int groupId,
+                           int setupId, Submix* smx)
 {
     const SongGroupIndex* songGroup = group.getProj().getSongGroupIndex(groupId);
     if (!songGroup)
         return {};
     auto it = m_activeSequencers.emplace(m_activeSequencers.end(),
         new Sequencer(*this, group, groupId, *songGroup, setupId, smx));
-    m_activeSequencers.back()->m_engineIt = it;
-    return m_activeSequencers.back();
+    printf("INSERT %p\n", it->get());
+    return it;
 }
 
-Submix* Engine::_allocateSubmix(Submix* smx)
+std::list<Submix>::iterator Engine::_allocateSubmix(Submix* smx)
 {
     auto it = m_activeSubmixes.emplace(m_activeSubmixes.end(), *this, smx);
     m_activeSubmixes.back().m_backendSubmix = m_backend.allocateSubmix(m_activeSubmixes.back());
-    m_activeSubmixes.back().m_engineIt = it;
-    return &m_activeSubmixes.back();
+    return it;
 }
 
-std::list<std::shared_ptr<Voice>>::iterator Engine::_destroyVoice(Voice* voice)
+std::list<std::shared_ptr<Voice>>::iterator Engine::_destroyVoice(std::list<std::shared_ptr<Voice>>::iterator it)
 {
 #ifndef NDEBUG
-    assert(this == &voice->getEngine());
+    assert(this == &(*it)->getEngine());
 #endif
-    if (voice->m_destroyed)
+    if ((*it)->m_destroyed)
         return m_activeVoices.begin();
-    voice->_destroy();
-    return m_activeVoices.erase(voice->m_engineIt);
+    (*it)->_destroy();
+    return m_activeVoices.erase(it);
 }
 
-std::list<std::shared_ptr<Sequencer>>::iterator Engine::_destroySequencer(Sequencer* sequencer)
+std::list<std::shared_ptr<Sequencer>>::iterator Engine::_destroySequencer(std::list<std::shared_ptr<Sequencer>>::iterator it)
 {
 #ifndef NDEBUG
-    assert(this == &sequencer->getEngine());
+    assert(this == &(*it)->getEngine());
 #endif
-    if (sequencer->m_destroyed)
+    if ((*it)->m_destroyed)
         return m_activeSequencers.begin();
-    sequencer->_destroy();
-    return m_activeSequencers.erase(sequencer->m_engineIt);
+    printf("TO DESTROY %p\n", it->get());
+    (*it)->_destroy();
+    printf("ERASE %p\n", it->get());
+    return m_activeSequencers.erase(it);
 }
 
-std::list<Submix>::iterator Engine::_destroySubmix(Submix* smx)
+std::list<Submix>::iterator Engine::_destroySubmix(std::list<Submix>::iterator it)
 {
 #ifndef NDEBUG
-    assert(this == &smx->getEngine());
+    assert(this == &it->getEngine());
 #endif
-    if (smx->m_destroyed)
+    if (it->m_destroyed)
         return m_activeSubmixes.begin();
-    smx->_destroy();
-    return m_activeSubmixes.erase(smx->m_engineIt);
+    it->_destroy();
+    return m_activeSubmixes.erase(it);
 }
 
 void Engine::_bringOutYourDead()
@@ -140,7 +142,7 @@ void Engine::_bringOutYourDead()
         vox->_bringOutYourDead();
         if (vox->_isRecursivelyDead())
         {
-            it = _destroyVoice(vox);
+            it = _destroyVoice(it);
             continue;
         }
         ++it;
@@ -152,7 +154,7 @@ void Engine::_bringOutYourDead()
         seq->_bringOutYourDead();
         if (seq->m_state == SequencerState::Dead)
         {
-            it = _destroySequencer(seq);
+            it = _destroySequencer(it);
             continue;
         }
         ++it;
@@ -280,10 +282,10 @@ void Engine::removeAudioGroup(const AudioGroupData& data)
 /** Create new Submix (a.k.a 'Studio') within root mix engine */
 Submix* Engine::addSubmix(Submix* smx)
 {
-    return _allocateSubmix(smx);
+    return &*_allocateSubmix(smx);
 }
 
-std::list<Submix>::iterator Engine::_removeSubmix(Submix* smx)
+std::list<Submix>::iterator Engine::_removeSubmix(std::list<Submix>::iterator smx)
 {
     /* Delete all voices bound to submix */
     for (auto it = m_activeVoices.begin() ; it != m_activeVoices.end() ;)
@@ -291,7 +293,7 @@ std::list<Submix>::iterator Engine::_removeSubmix(Submix* smx)
         Voice* vox = it->get();
 
         Submix* vsmx = vox->getSubmix();
-        if (vsmx == smx)
+        if (vsmx == &*smx)
         {
             vox->_destroy();
             it = m_activeVoices.erase(it);
@@ -306,7 +308,7 @@ std::list<Submix>::iterator Engine::_removeSubmix(Submix* smx)
         Sequencer* seq = it->get();
 
         Submix* ssmx = seq->getSubmix();
-        if (ssmx == smx)
+        if (ssmx == &*smx)
         {
             if (!seq->m_destroyed)
                 seq->_destroy();
@@ -320,9 +322,9 @@ std::list<Submix>::iterator Engine::_removeSubmix(Submix* smx)
     for (auto it = m_activeSubmixes.begin() ; it != m_activeSubmixes.end() ;)
     {
         Submix* ssmx = it->getParentSubmix();
-        if (ssmx == smx)
+        if (ssmx == &*smx)
         {
-            it = _removeSubmix(&*it);
+            it = _removeSubmix(it);
             continue;
         }
         ++it;
@@ -337,7 +339,16 @@ void Engine::removeSubmix(Submix* smx)
 {
     if (!smx)
         return;
-    _removeSubmix(smx);
+
+    for (auto it = m_activeSubmixes.begin() ; it != m_activeSubmixes.end() ;)
+    {
+        if (&*it == &*smx)
+        {
+            it = _removeSubmix(it);
+            break;
+        }
+        ++it;
+    }
 }
 
 /** Start soundFX playing from loaded audio groups */
@@ -352,19 +363,20 @@ std::shared_ptr<Voice> Engine::fxStart(int sfxId, float vol, float pan, Submix* 
     if (!grp)
         return nullptr;
 
-    std::shared_ptr<Voice> ret = _allocateVoice(*grp, std::get<1>(search->second),
-                                                32000.0, true, false, smx);
+    std::list<std::shared_ptr<Voice>>::iterator ret =
+        _allocateVoice(*grp, std::get<1>(search->second),
+                       32000.0, true, false, smx);
 
     ObjectId oid = (grp->getDataFormat() == DataFormat::PC) ? entry->objId : SBig(entry->objId);
-    if (!ret->loadSoundObject(oid, 0, 1000.f, entry->defKey, entry->defVel, 0))
+    if (!(*ret)->loadSoundObject(oid, 0, 1000.f, entry->defKey, entry->defVel, 0))
     {
-        _destroyVoice(ret.get());
+        _destroyVoice(ret);
         return {};
     }
 
-    ret->setVolume(vol);
-    ret->setPan(pan);
-    return ret;
+    (*ret)->setVolume(vol);
+    (*ret)->setPan(pan);
+    return *ret;
 }
 
 /** Start soundFX playing from loaded audio groups, attach to positional emitter */
@@ -380,20 +392,21 @@ std::shared_ptr<Emitter> Engine::addEmitter(const Vector3f& pos, const Vector3f&
     if (!grp)
         return nullptr;
 
-    std::shared_ptr<Voice> vox = _allocateVoice(*grp, std::get<1>(search->second),
-                                                32000.0, true, true, smx);
-    m_activeEmitters.emplace(m_activeEmitters.end(), new Emitter(*this, *grp, std::move(vox)));
-    Emitter& ret = *m_activeEmitters.back();
+    std::list<std::shared_ptr<Voice>>::iterator vox =
+        _allocateVoice(*grp, std::get<1>(search->second),
+                       32000.0, true, true, smx);
+    auto emitIt = m_activeEmitters.emplace(m_activeEmitters.end(), new Emitter(*this, *grp, std::move(*vox)));
+    Emitter& ret = *(*emitIt);
 
     ObjectId oid = (grp->getDataFormat() == DataFormat::PC) ? entry->objId : SBig(entry->objId);
     if (!ret.getVoice()->loadSoundObject(oid, 0, 1000.f, entry->defKey, entry->defVel, 0))
     {
         ret._destroy();
-        m_activeEmitters.pop_back();
+        m_activeEmitters.erase(emitIt);
         return {};
     }
 
-    vox->setPan(entry->panning);
+    (*vox)->setPan(entry->panning);
     ret.setPos(pos);
     ret.setDir(dir);
     ret.setMaxDist(maxDist);
@@ -401,7 +414,7 @@ std::shared_ptr<Emitter> Engine::addEmitter(const Vector3f& pos, const Vector3f&
     ret.setMinVol(minVol);
     ret.setMaxVol(maxVol);
 
-    return m_activeEmitters.back();
+    return *emitIt;
 }
 
 /** Start song playing from loaded audio groups */
@@ -412,13 +425,13 @@ std::shared_ptr<Sequencer> Engine::seqPlay(int groupId, int songId,
     if (!songGrp.second)
         return {};
 
-    std::shared_ptr<Sequencer> ret = _allocateSequencer(*songGrp.first, groupId, songId, smx);
-    if (!ret)
+    std::list<std::shared_ptr<Sequencer>>::iterator ret = _allocateSequencer(*songGrp.first, groupId, songId, smx);
+    if (!*ret)
         return {};
 
     if (arrData)
-        ret->playSong(arrData);
-    return ret;
+        (*ret)->playSong(arrData);
+    return *ret;
 }
 
 /** Find voice from VoiceId */
@@ -451,7 +464,7 @@ void Engine::killKeygroup(uint8_t kg, bool now)
         {
             if (now)
             {
-                it = _destroyVoice(vox);
+                it = _destroyVoice(it);
                 continue;
             }
             vox->keyOff();
