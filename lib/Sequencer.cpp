@@ -169,7 +169,7 @@ std::shared_ptr<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velo
         (*ret)->installCtrlValues(m_ctrlVals);
 
         ObjectId oid = (m_parent.m_audioGroup.getDataFormat() == DataFormat::PC) ? m_page->objId : SBig(m_page->objId);
-        if (!(*ret)->loadSoundObject(oid, 0, 1000.f, note, velocity, m_ctrlVals[1]))
+        if (!(*ret)->loadSoundObject(oid, 0, m_parent.m_ticksPerSec, note, velocity, m_ctrlVals[1]))
         {
             m_parent.m_engine._destroyVoice(ret);
             return {};
@@ -465,6 +465,7 @@ void Sequencer::playSong(const unsigned char* arrData, bool dieOnEnd)
     m_arrData = arrData;
     m_dieOnEnd = dieOnEnd;
     m_songState.initialize(arrData);
+    setTempo(m_songState.getTempo() * 384 / 60);
     m_state = SequencerState::Playing;
 }
 

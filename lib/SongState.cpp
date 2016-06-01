@@ -326,6 +326,7 @@ bool SongState::advance(Sequencer& seq, double dt)
             {
                 /* Turn over tempo */
                 m_tempo = change.m_tempo;
+                seq.setTempo(m_tempo * 384 / 60);
                 ++m_tempoPtr;
                 continue;
             }

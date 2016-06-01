@@ -109,6 +109,9 @@ public:
      *  @return `true` if END reached
      */
     bool advance(Sequencer& seq, double dt);
+
+    /** Get current song tempo in BPM */
+    uint32_t getTempo() const {return m_tempo;}
 };
 
 }

@@ -216,7 +216,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
                     m_pc.back().second = macroStep;
                 else
                     vox.loadSoundObject(macroId, macroStep, m_ticksPerSec,
-                                       m_initKey, m_initVel, m_initMod);
+                                        m_initKey, m_initVel, m_initMod);
             }
 
             break;
@@ -300,7 +300,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
                 m_pc.back().second = macroStep;
             else
                 vox.loadSoundObject(macroId, macroStep, m_ticksPerSec,
-                                   m_initKey, m_initVel, m_initMod);
+                                    m_initKey, m_initVel, m_initMod);
 
             break;
         }
@@ -389,7 +389,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
                     m_pc.back().second = macroStep;
                 else
                     vox.loadSoundObject(macroId, macroStep, m_ticksPerSec,
-                                       m_initKey, m_initVel, m_initMod);
+                                        m_initKey, m_initVel, m_initMod);
             }
 
             break;
@@ -512,7 +512,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
                     m_pc.back().second = macroStep;
                 else
                     vox.loadSoundObject(macroId, macroStep, m_ticksPerSec,
-                                       m_initKey, m_initVel, m_initMod);
+                                        m_initKey, m_initVel, m_initMod);
             }
 
             break;
@@ -769,7 +769,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
                 m_pc.push_back({m_pc.back().first, macroStep});
             else
                 vox.loadSoundObject(macroId, macroStep, m_ticksPerSec,
-                                   m_initKey, m_initVel, m_initMod, true);
+                                    m_initKey, m_initVel, m_initMod, true);
 
             m_header = *reinterpret_cast<const Header*>(m_pc.back().first);
             if (vox.getAudioGroup().getDataFormat() != DataFormat::PC)
