@@ -696,46 +696,79 @@ struct AppCallback : boo::IApplicationCallback
 #else
                 const char* utf8Path = m_argv[2];
 #endif
-
+                songs = amuse::ContainerRegistry::LoadSongs(utf8Path);
+            }
+            else
                 songs = amuse::ContainerRegistry::LoadSongs(utf8Path);
 
-                /* Get song selection from user */
-                if (songs.size() > 1)
+            if (songs.size())
+            {
+                bool play = true;
+                if (m_argc <= 2)
                 {
-                    /* Ask user to specify which song */
-                    printf("Multiple Songs discovered:\n");
-                    int idx = 0;
-                    for (const auto& pair : songs)
+                    bool prompt = true;
+                    while (true)
                     {
-                        printf("    %d %s (Group %d, Setup %d)\n", idx++,
-                               pair.first.c_str(), pair.second.m_groupId, pair.second.m_setupId);
+                        if (prompt)
+                        {
+                            printf("Play Song? (Y/N): ");
+                            prompt = false;
+                        }
+                        char userSel;
+                        if (scanf("%c", &userSel) <= 0 || userSel == '\n')
+                            continue;
+                        userSel = tolower(userSel);
+                        if (userSel == 'n')
+                            play = false;
+                        else if (userSel != 'y')
+                        {
+                            prompt = true;
+                            continue;
+                        }
+                        break;
                     }
+                }
 
-                    int userSel = 0;
-                    printf("Enter Song Number: ");
-                    if (scanf("%d", &userSel) <= 0)
+                if (play)
+                {
+                    /* Get song selection from user */
+                    if (songs.size() > 1)
                     {
-                        Log.report(logvisor::Error, "unable to parse prompt");
-                        exit(1);
+                        /* Ask user to specify which song */
+                        printf("Multiple Songs discovered:\n");
+                        int idx = 0;
+                        for (const auto& pair : songs)
+                        {
+                            printf("    %d %s (Group %d, Setup %d)\n", idx++,
+                                   pair.first.c_str(), pair.second.m_groupId, pair.second.m_setupId);
+                        }
+
+                        int userSel = 0;
+                        printf("Enter Song Number: ");
+                        if (scanf("%d", &userSel) <= 0)
+                        {
+                            Log.report(logvisor::Error, "unable to parse prompt");
+                            exit(1);
+                        }
+
+                        if (userSel < songs.size())
+                        {
+                            m_arrData = &songs[userSel].second;
+                            m_groupId = m_arrData->m_groupId;
+                            m_setupId = m_arrData->m_setupId;
+                        }
+                        else
+                        {
+                            Log.report(logvisor::Error, "unable to find Song %d", userSel);
+                            exit(1);
+                        }
                     }
-
-                    if (userSel < songs.size())
+                    else if (songs.size() == 1)
                     {
-                        m_arrData = &songs[userSel].second;
+                        m_arrData = &songs[0].second;
                         m_groupId = m_arrData->m_groupId;
                         m_setupId = m_arrData->m_setupId;
                     }
-                    else
-                    {
-                        Log.report(logvisor::Error, "unable to find Song %d", userSel);
-                        exit(1);
-                    }
-                }
-                else if (songs.size() == 1)
-                {
-                    m_arrData = &songs[0].second;
-                    m_groupId = m_arrData->m_groupId;
-                    m_setupId = m_arrData->m_setupId;
                 }
             }
 
@@ -859,6 +892,8 @@ struct AppCallback : boo::IApplicationCallback
                 SFXLoop(*sfxIndex);
             else
                 SongLoop(*songIndex);
+
+            printf("\n\n");
         }
 
         return 0;
