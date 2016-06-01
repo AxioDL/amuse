@@ -10,8 +10,6 @@ namespace amuse
 template <typename T>
 EffectDelayImp<T>::EffectDelayImp(uint32_t initDelay, uint32_t initFeedback,
                                   uint32_t initOutput, double sampleRate)
-: m_sampsPerMs(std::ceil(sampleRate / 1000.0)),
-  m_blockSamples(m_sampsPerMs * 5)
 {
     initDelay = clamp(10u, initDelay, 5000u);
     initFeedback = clamp(0u, initFeedback, 100u);
@@ -23,6 +21,15 @@ EffectDelayImp<T>::EffectDelayImp(uint32_t initDelay, uint32_t initFeedback,
         x48_feedback[i] = initFeedback;
         x54_output[i] = initOutput;
     }
+
+    _setup(sampleRate);
+}
+
+template <typename T>
+void EffectDelayImp<T>::_setup(double sampleRate)
+{
+    m_sampsPerMs = std::ceil(sampleRate / 1000.0);
+    m_blockSamples = m_sampsPerMs * 5;
 
     _update();
 }

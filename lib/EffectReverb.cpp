@@ -71,9 +71,17 @@ EffectReverbHi::EffectReverbHi(float coloration, float mix, float time,
 template <typename T>
 EffectReverbStdImp<T>::EffectReverbStdImp(float coloration, float mix, float time,
                                           float damping, float preDelay, double sampleRate)
-: EffectReverbStd(coloration, mix, time, damping, preDelay),
-  m_sampleRate(sampleRate)
-{}
+: EffectReverbStd(coloration, mix, time, damping, preDelay)
+{
+    _setup(sampleRate);
+}
+
+template <typename T>
+void EffectReverbStdImp<T>::_setup(double sampleRate)
+{
+    m_sampleRate = sampleRate;
+    _update();
+}
 
 template <typename T>
 void EffectReverbStdImp<T>::_update()
@@ -238,9 +246,15 @@ template <typename T>
 EffectReverbHiImp<T>::EffectReverbHiImp(float coloration, float mix, float time,
                                         float damping, float preDelay, float crosstalk,
                                         double sampleRate)
-: EffectReverbHi(coloration, mix, time, damping, preDelay, crosstalk),
-  m_sampleRate(sampleRate)
+: EffectReverbHi(coloration, mix, time, damping, preDelay, crosstalk)
 {
+    _setup(sampleRate);
+}
+
+template <typename T>
+void EffectReverbHiImp<T>::_setup(double sampleRate)
+{
+    m_sampleRate = sampleRate;
     _update();
 }
 

@@ -12,6 +12,7 @@ class EffectBaseTypeless
 {
 public:
     virtual ~EffectBaseTypeless() = default;
+    virtual void resetOutputSampleRate(double sampleRate)=0;
 };
 
 template <typename T>

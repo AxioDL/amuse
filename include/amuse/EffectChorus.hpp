@@ -53,7 +53,7 @@ public:
 template <typename T>
 class EffectChorusImp : public EffectBase<T>, public EffectChorus
 {
-    T* x0_lastChans[8][AMUSE_CHORUS_NUM_BLOCKS]; /**< Evenly-allocated pointer-table for each channel's delay */
+    T* x0_lastChans[8][AMUSE_CHORUS_NUM_BLOCKS] = {}; /**< Evenly-allocated pointer-table for each channel's delay */
 
     uint8_t x24_currentLast = 1; /**< Last 5ms block-idx to be processed */
     T x28_oldChans[8][4] = {}; /**< Unprocessed history of previous 4 samples */
@@ -84,12 +84,14 @@ class EffectChorusImp : public EffectBase<T>, public EffectChorus
     uint32_t m_sampsPerMs; /**< canonical count of samples per ms for the current backend */
     uint32_t m_blockSamples; /**< count of samples in a 5ms block */
 
+    void _setup(double sampleRate);
     void _update();
 
 public:
     ~EffectChorusImp();
     EffectChorusImp(uint32_t baseDelay, uint32_t variation, uint32_t period, double sampleRate);
     void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap);
+    void resetOutputSampleRate(double sampleRate) {_setup(sampleRate);}
 };
 
 }

@@ -80,10 +80,12 @@ class EffectDelayImp : public EffectBase<T>, public EffectDelay
 
     uint32_t m_sampsPerMs; /**< canonical count of samples per ms for the current backend */
     uint32_t m_blockSamples; /**< count of samples in a 5ms block */
+    void _setup(double sampleRate);
     void _update();
 public:
     EffectDelayImp(uint32_t initDelay, uint32_t initFeedback, uint32_t initOutput, double sampleRate);
     void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap);
+    void resetOutputSampleRate(double sampleRate) {_setup(sampleRate);}
 };
 
 }

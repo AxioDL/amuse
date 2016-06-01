@@ -52,4 +52,10 @@ void Submix::applyEffect(float* audio, size_t frameCount, const ChannelMap& chan
         ((EffectBase<float>&)*effect).applyEffect(audio, frameCount, chanMap);
 }
 
+void Submix::resetOutputSampleRate(double sampleRate)
+{
+    for (const std::unique_ptr<EffectBaseTypeless>& effect : m_effectStack)
+        effect->resetOutputSampleRate(sampleRate);
+}
+
 }

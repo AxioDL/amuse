@@ -99,6 +99,9 @@ public:
     /** in/out transformation entry for audio effect */
     void applyEffect(float* audio, size_t frameCount, const ChannelMap& chanMap) const;
 
+    /** advice effects of changing sample rate */
+    void resetOutputSampleRate(double sampleRate);
+
     Engine& getEngine() {return m_root;}
 };
 

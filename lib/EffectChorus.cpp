@@ -148,10 +148,19 @@ EffectChorus::EffectChorus(uint32_t baseDelay, uint32_t variation, uint32_t peri
 template <typename T>
 EffectChorusImp<T>::EffectChorusImp(uint32_t baseDelay, uint32_t variation,
                               uint32_t period, double sampleRate)
-: EffectChorus(baseDelay, variation, period),
-  m_sampsPerMs(std::ceil(sampleRate / 1000.0)),
-  m_blockSamples(m_sampsPerMs * 5)
+: EffectChorus(baseDelay, variation, period)
 {
+    _setup(sampleRate);
+}
+
+template <typename T>
+void EffectChorusImp<T>::_setup(double sampleRate)
+{
+    m_sampsPerMs = std::ceil(sampleRate / 1000.0);
+    m_blockSamples = m_sampsPerMs * 5;
+
+    delete[] x0_lastChans[0][0];
+
     T* buf = new T[m_blockSamples * AMUSE_CHORUS_NUM_BLOCKS * 8];
     memset(buf, 0, m_blockSamples * AMUSE_CHORUS_NUM_BLOCKS * 8 * sizeof(T));
     size_t chanPitch = m_blockSamples * AMUSE_CHORUS_NUM_BLOCKS;
@@ -161,6 +170,8 @@ EffectChorusImp<T>::EffectChorusImp(uint32_t baseDelay, uint32_t variation,
             x0_lastChans[c][i] = buf + chanPitch * c + m_blockSamples * i;
 
     x6c_src.x88_trigger = chanPitch;
+
+    m_dirty = true;
 }
 
 template <typename T>

@@ -77,6 +77,11 @@ void BooBackendSubmix::SubmixCallback::applyEffect(float* audio, size_t frameCou
     return m_parent.m_clientSmx.applyEffect(audio, frameCount, reinterpret_cast<const ChannelMap&>(chanMap));
 }
 
+void BooBackendSubmix::SubmixCallback::resetOutputSampleRate(double sampleRate)
+{
+    m_parent.m_clientSmx.resetOutputSampleRate(sampleRate);
+}
+
 BooBackendSubmix::BooBackendSubmix(boo::IAudioVoiceEngine& engine, Submix& clientSmx)
 : m_clientSmx(clientSmx), m_cb(*this), m_booSubmix(engine.allocateNewSubmix(&m_cb))
 {}

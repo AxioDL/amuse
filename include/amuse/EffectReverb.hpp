@@ -115,11 +115,13 @@ class EffectReverbStdImp : public EffectBase<T>, public EffectReverbStd
     float* x130_preDelayPtr[8] = {}; /**< Current pre-delay pointers */
 
     double m_sampleRate; /**< copy of sample rate */
+    void _setup(double sampleRate);
     void _update();
 public:
     EffectReverbStdImp(float coloration, float mix, float time,
                        float damping, float preDelay, double sampleRate);
     void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap);
+    void resetOutputSampleRate(double sampleRate) {_setup(sampleRate);}
 };
 
 /** High-quality 3-stage reverb with per-channel low-pass and crosstalk */
@@ -140,6 +142,7 @@ class EffectReverbHiImp : public EffectBase<T>, public EffectReverbHi
     float x1a8_internalCrosstalk = 0.f;
 
     double m_sampleRate; /**< copy of sample rate */
+    void _setup(double sampleRate);
     void _update();
     void _handleReverb(T* audio, int chanIdx, int chanCount, int sampleCount);
     void _doCrosstalk(T* audio, float wet, float dry, int chanCount, int sampleCount);
@@ -147,6 +150,7 @@ public:
     EffectReverbHiImp(float coloration, float mix, float time,
                       float damping, float preDelay, float crosstalk, double sampleRate);
     void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap);
+    void resetOutputSampleRate(double sampleRate) {_setup(sampleRate);}
 };
 
 }

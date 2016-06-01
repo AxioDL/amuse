@@ -55,6 +55,7 @@ class BooBackendSubmix : public IBackendSubmix
                          const boo::ChannelMap& chanMap, double sampleRate) const;
         void applyEffect(float* audio, size_t frameCount,
                          const boo::ChannelMap& chanMap, double sampleRate) const;
+        void resetOutputSampleRate(double sampleRate);
         SubmixCallback(BooBackendSubmix& parent) : m_parent(parent) {}
     } m_cb;
     std::unique_ptr<boo::IAudioSubmix> m_booSubmix;
