@@ -52,6 +52,7 @@ class Sequencer : public Entity
         /** Voices corresponding to currently-pressed keys in channel */
         std::unordered_map<uint8_t, std::shared_ptr<Voice>> m_chanVoxs;
         std::unordered_set<std::shared_ptr<Voice>> m_keyoffVoxs;
+        std::weak_ptr<Voice> m_lastVoice;
         int8_t m_ctrlVals[128] = {}; /**< MIDI controller values */
         float m_curPitchWheel = 0.f; /**< MIDI pitch-wheel */
         int8_t m_curProgram = 0; /**< MIDI program number */

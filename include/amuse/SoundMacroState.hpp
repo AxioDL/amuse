@@ -145,9 +145,9 @@ class SoundMacroState
     uint8_t m_midiSustain; /**< Sustain MIDI controller */
     uint8_t m_midiRelease; /**< Release MIDI controller */
 
-    uint8_t m_portamentoMode; /**< (0: Off, 1: On, 2: MIDI specified) */
-    uint8_t m_portamentoType; /**< (0: New key pressed while old key pressed, 1: Always) */
-    float m_portamentoTime; /**< portamento transition time, 0.f will perform legato */
+    uint8_t m_portamentoMode = 2; /**< (0: Off, 1: On, 2: MIDI specified) */
+    uint8_t m_portamentoType = 0; /**< (0: New key pressed while old key pressed, 1: Always) */
+    float m_portamentoTime = 0.5f; /**< portamento transition time, 0.f will perform legato */
 
     /** Used to build a multi-component formula for overriding controllers */
     struct Evaluator

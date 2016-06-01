@@ -135,10 +135,24 @@ std::shared_ptr<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velo
     if (!m_page)
         return {};
 
+    /* If portamento is enabled for voice, pre-empt spawning new voices */
+    if (std::shared_ptr<Voice> lastVoice = m_lastVoice.lock())
+    {
+        uint8_t lastNote = lastVoice->getLastNote();
+        if (lastVoice->doPortamento(note))
+        {
+            m_chanVoxs.erase(lastNote);
+            m_chanVoxs[note] = lastVoice;
+            return lastVoice;
+        }
+    }
+
     /* Ensure keyoff sent first */
     auto keySearch = m_chanVoxs.find(note);
     if (keySearch != m_chanVoxs.cend())
     {
+        if (keySearch->second == m_lastVoice.lock())
+            m_lastVoice.reset();
         keySearch->second->keyOff();
         keySearch->second->setPedal(false);
         m_keyoffVoxs.emplace(std::move(keySearch->second));
@@ -167,6 +181,8 @@ std::shared_ptr<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velo
 
         if (m_ctrlVals[64] > 64)
             (*ret)->setPedal(true);
+
+        m_lastVoice = *ret;
     }
 
     return *ret;
@@ -189,6 +205,8 @@ void Sequencer::ChannelState::keyOff(uint8_t note, uint8_t velocity)
     if (keySearch == m_chanVoxs.cend())
         return;
 
+    if (keySearch->second == m_lastVoice.lock())
+        m_lastVoice.reset();
     keySearch->second->keyOff();
     m_keyoffVoxs.emplace(std::move(keySearch->second));
     m_chanVoxs.erase(keySearch);
@@ -303,6 +321,8 @@ void Sequencer::ChannelState::allOff()
 {
     for (auto it = m_chanVoxs.begin() ; it != m_chanVoxs.end() ;)
     {
+        if (it->second == m_lastVoice.lock())
+            m_lastVoice.reset();
         it->second->keyOff();
         m_keyoffVoxs.emplace(std::move(it->second));
         it = m_chanVoxs.erase(it);
@@ -355,6 +375,8 @@ void Sequencer::ChannelState::killKeygroup(uint8_t kg, bool now)
         Voice* vox = it->second.get();
         if (vox->m_keygroup == kg)
         {
+            if (it->second == m_lastVoice.lock())
+                m_lastVoice.reset();
             if (now)
             {
                 it = m_chanVoxs.erase(it);

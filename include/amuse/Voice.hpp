@@ -96,6 +96,9 @@ class Voice : public Entity
     Envelope m_pitchAdsr; /**< Pitch envelope for SETPITCHADSR */
     int32_t m_pitchEnvRange; /**< Pitch delta for SETPITCHADSR (in cents) */
 
+    float m_portamentoTime; /**< time since last portamento invocation, -1 for no active portamento-glide */
+    int32_t m_portamentoTarget; /**< destination pitch for latest portamento invocation */
+
     uint32_t m_pitchSweep1; /**< Current value of PITCHSWEEP1 controller (in cents) */
     uint32_t m_pitchSweep2; /**< Current value of PITCHSWEEP2 controller (in cents) */
     int16_t m_pitchSweep1Add; /**< Value to add to PITCHSWEEP1 controller each cycle */
@@ -274,6 +277,9 @@ public:
 
     /** Get note played on voice */
     uint8_t getLastNote() const {return m_state.m_initKey;}
+
+    /** Do portamento glide; returns `false` if portamento disabled */
+    bool doPortamento(uint8_t newNote);
 
     /** Get MIDI Controller value on voice */
     int8_t getCtrlValue(uint8_t ctrl) const

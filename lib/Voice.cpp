@@ -52,6 +52,7 @@ void Voice::_reset()
     m_pitchSweep2 = 0;
     m_pitchSweep2Times = 0;
     m_pitchSweep2It = 0;
+    m_portamentoTime = -1.f;
     m_envelopeTime = -1.f;
     m_panningTime = -1.f;
     m_spanningTime = -1.f;
@@ -333,9 +334,24 @@ bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
     newPitch = m_curPitch;
     refresh |= m_pitchDirty;
     m_pitchDirty = false;
+    if (m_portamentoTime >= 0.f)
+    {
+        m_portamentoTime += dt;
+        float t = std::max(0.f, std::min(1.f, m_portamentoTime / m_state.m_portamentoTime));
+
+        newPitch = (m_curPitch * (1.0f - t)) + (m_portamentoTarget * t);
+        refresh = true;
+
+        /* Done with portamento */
+        if (m_portamentoTime > m_state.m_portamentoTime)
+        {
+            m_portamentoTime = -1.f;
+            m_curPitch = m_portamentoTarget;
+        }
+    }
     if (m_pitchEnv)
     {
-        newPitch = m_curPitch * m_pitchAdsr.advance(dt);
+        newPitch *= m_pitchAdsr.advance(dt);
         refresh = true;
     }
 
@@ -865,7 +881,7 @@ void Voice::startFadeIn(double dur, float vol, const Curve* envCurve)
 
 void Voice::startPanning(double dur, uint8_t panPos, int8_t panWidth)
 {
-    m_panningTime = m_voiceTime;
+    m_panningTime = 0.f;
     m_panningDur = dur;
     m_panPos = panPos;
     m_panWidth = panWidth;
@@ -873,7 +889,7 @@ void Voice::startPanning(double dur, uint8_t panPos, int8_t panWidth)
 
 void Voice::startSpanning(double dur, uint8_t spanPos, int8_t spanWidth)
 {
-    m_spanningTime = m_voiceTime;
+    m_spanningTime = 0.f;
     m_spanningDur = dur;
     m_spanPos = spanPos;
     m_spanWidth = spanWidth;
@@ -1015,6 +1031,32 @@ void Voice::setAftertouch(uint8_t aftertouch)
         vox->setAftertouch(aftertouch);
 }
 
+bool Voice::doPortamento(uint8_t newNote)
+{
+    bool pState;
+    switch (m_state.m_portamentoMode)
+    {
+    case 0:
+    default:
+        pState = false;
+        break;
+    case 1:
+        pState = true;
+        break;
+    case 2:
+        pState = getCtrlValue(65) >= 64;
+        break;
+    }
+
+    if (!pState)
+        return false;
+
+    m_portamentoTime = 0.f;
+    m_portamentoTarget = newNote * 100;
+    m_state.m_initKey = newNote;
+    return true;
+}
+
 void Voice::_notifyCtrlChange(uint8_t ctrl, int8_t val)
 {
     if (ctrl == 0x40)
@@ -1023,10 +1065,6 @@ void Voice::_notifyCtrlChange(uint8_t ctrl, int8_t val)
             setPedal(true);
         else
             setPedal(false);
-    }
-    else if (ctrl == 0x41)
-    {
-        printf("PORTAMENTO %d\n", val);
     }
     else if (ctrl == 0x5b)
     {

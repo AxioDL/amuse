@@ -135,7 +135,8 @@ void SoundMacroState::initialize(const unsigned char* ptr, int step, double tick
     m_loopCountdown = -1;
     m_lastPlayMacroVid = -1;
     m_useAdsrControllers = false;
-    m_portamentoMode = 0;
+    m_portamentoMode = 2;
+    m_portamentoTime = 0.5f;
     m_header = *reinterpret_cast<const Header*>(ptr);
     if (swapData)
         m_header.swapBig();
