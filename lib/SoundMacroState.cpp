@@ -54,12 +54,12 @@ float SoundMacroState::Evaluator::evaluate(const Voice& vox, const SoundMacroSta
             case 130:
                 /* LFO1 */
                 if (vox.m_lfoPeriods[0])
-                    thisValue = std::sin(vox.m_voiceTime / vox.m_lfoPeriods[0] * 2.f * M_PIF);
+                    thisValue = (std::sin(vox.m_voiceTime / vox.m_lfoPeriods[0] * 2.f * M_PIF) / 2.f + 1.f) * 127.f;
                 break;
             case 131:
                 /* LFO2 */
                 if (vox.m_lfoPeriods[1])
-                    thisValue = std::sin(vox.m_voiceTime / vox.m_lfoPeriods[1] * 2.f * M_PIF);
+                    thisValue = (std::sin(vox.m_voiceTime / vox.m_lfoPeriods[1] * 2.f * M_PIF) / 2.f + 1.f) * 127.f;
                 break;
             case 132:
                 /* Surround panning */
@@ -346,7 +346,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
             int16_t macroStep = *reinterpret_cast<int16_t*>(&cmd.m_data[3]);
             //int8_t priority = cmd.m_data[5];
             //int8_t maxVoices = cmd.m_data[6];
-
+            
             std::shared_ptr<Voice> sibVox = vox.startChildMacro(addNote, macroId, macroStep);
             if (sibVox)
                 m_lastPlayMacroVid = sibVox->vid();

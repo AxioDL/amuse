@@ -12,6 +12,7 @@ void Envelope::reset(const ADSR* adsr)
     m_sustainFactor = adsr->getSustain();
     m_releaseTime = adsr->getRelease();
     m_releaseStartFactor = 0.0;
+    m_adsrSet = true;
 }
 
 void Envelope::reset(const ADSRDLS* adsr, int8_t note, int8_t vel)
@@ -23,6 +24,7 @@ void Envelope::reset(const ADSRDLS* adsr, int8_t note, int8_t vel)
     m_sustainFactor = adsr->getSustain();
     m_releaseTime = adsr->getRelease();
     m_releaseStartFactor = 0.0;
+    m_adsrSet = true;
 }
 
 void Envelope::keyOff()

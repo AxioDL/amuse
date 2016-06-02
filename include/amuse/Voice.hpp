@@ -79,14 +79,14 @@ class Voice : public Entity
     float m_userSpan = 0.f; /**< User span of voice */
     float m_curSpan = 0.f; /**< Current surround pan of voice */
     float m_curPitchWheel = 0.f; /**< Current normalized wheel value for control */
-    int32_t m_pitchWheelUp; /**< Up range for pitchwheel control in cents */
-    int32_t m_pitchWheelDown; /**< Down range for pitchwheel control in cents */
-    int32_t m_pitchWheelVal; /**< Current resolved pitchwheel delta for control */
+    int32_t m_pitchWheelUp = 600; /**< Up range for pitchwheel control in cents */
+    int32_t m_pitchWheelDown = 600; /**< Down range for pitchwheel control in cents */
+    int32_t m_pitchWheelVal = 0; /**< Current resolved pitchwheel delta for control */
     int32_t m_curPitch; /**< Current base pitch in cents */
-    bool m_pitchDirty; /**< m_curPitch has been updated and needs sending to voice */
+    bool m_pitchDirty = true; /**< m_curPitch has been updated and needs sending to voice */
 
     Envelope m_volAdsr; /**< Volume envelope */
-    double m_envelopeTime; /**< time since last ENVELOPE command, -1 for no active volume-sweep */
+    double m_envelopeTime = -1.f; /**< time since last ENVELOPE command, -1 for no active volume-sweep */
     double m_envelopeDur; /**< requested duration of last ENVELOPE command */
     float m_envelopeStart; /**< initial value for last ENVELOPE command */
     float m_envelopeEnd; /**< final value for last ENVELOPE command */
@@ -96,42 +96,41 @@ class Voice : public Entity
     Envelope m_pitchAdsr; /**< Pitch envelope for SETPITCHADSR */
     int32_t m_pitchEnvRange; /**< Pitch delta for SETPITCHADSR (in cents) */
 
-    float m_portamentoTime; /**< time since last portamento invocation, -1 for no active portamento-glide */
+    float m_portamentoTime = -1.f; /**< time since last portamento invocation, -1 for no active portamento-glide */
     int32_t m_portamentoTarget; /**< destination pitch for latest portamento invocation */
 
-    uint32_t m_pitchSweep1; /**< Current value of PITCHSWEEP1 controller (in cents) */
-    uint32_t m_pitchSweep2; /**< Current value of PITCHSWEEP2 controller (in cents) */
-    int16_t m_pitchSweep1Add; /**< Value to add to PITCHSWEEP1 controller each cycle */
-    int16_t m_pitchSweep2Add; /**< Value to add to PITCHSWEEP2 controller each cycle */
-    uint8_t m_pitchSweep1Times; /**< Remaining times to advance PITCHSWEEP1 controller */
-    uint8_t m_pitchSweep2Times; /**< Remaining times to advance PITCHSWEEP2 controller */
-    uint8_t m_pitchSweep1It; /**< Current iteration of PITCHSWEEP1 controller */
-    uint8_t m_pitchSweep2It; /**< Current iteration of PITCHSWEEP2 controller */
+    uint32_t m_pitchSweep1 = 0; /**< Current value of PITCHSWEEP1 controller (in cents) */
+    uint32_t m_pitchSweep2 = 0; /**< Current value of PITCHSWEEP2 controller (in cents) */
+    int16_t m_pitchSweep1Add = 0; /**< Value to add to PITCHSWEEP1 controller each cycle */
+    int16_t m_pitchSweep2Add = 0; /**< Value to add to PITCHSWEEP2 controller each cycle */
+    uint8_t m_pitchSweep1Times = 0; /**< Remaining times to advance PITCHSWEEP1 controller */
+    uint8_t m_pitchSweep2Times = 0; /**< Remaining times to advance PITCHSWEEP2 controller */
+    uint8_t m_pitchSweep1It = 0; /**< Current iteration of PITCHSWEEP1 controller */
+    uint8_t m_pitchSweep2It = 0; /**< Current iteration of PITCHSWEEP2 controller */
 
-    float m_panningTime; /**< time since last PANNING command, -1 for no active pan-sweep */
+    float m_panningTime = -1.f; /**< time since last PANNING command, -1 for no active pan-sweep */
     float m_panningDur; /**< requested duration of last PANNING command */
     uint8_t m_panPos; /**< initial pan value of last PANNING command */
     int8_t m_panWidth; /**< delta pan value to target of last PANNING command */
 
-    float m_spanningTime; /**< time since last SPANNING command, -1 for no active span-sweep */
+    float m_spanningTime = -1.f; /**< time since last SPANNING command, -1 for no active span-sweep */
     float m_spanningDur; /**< requested duration of last SPANNING command */
     uint8_t m_spanPos; /**< initial pan value of last SPANNING command */
     int8_t m_spanWidth; /**< delta pan value to target of last SPANNING command */
 
-    int32_t m_vibratoLevel; /**< scale of vibrato effect (in cents) */
-    int32_t m_vibratoModLevel; /**< scale of vibrato mod-wheel influence (in cents) */
-    float m_vibratoPeriod; /**< vibrato wave period-time, 0.f will disable vibrato */
-    bool m_vibratoModWheel; /**< vibrato scaled with mod-wheel if set */
+    int32_t m_vibratoLevel = 0; /**< scale of vibrato effect (in cents) */
+    int32_t m_vibratoModLevel = 0; /**< scale of vibrato mod-wheel influence (in cents) */
+    float m_vibratoPeriod = 0.f; /**< vibrato wave period-time, 0.f will disable vibrato */
+    bool m_vibratoModWheel = false; /**< vibrato scaled with mod-wheel if set */
 
-    float m_tremoloScale; /**< minimum volume factor produced via LFO */
-    float m_tremoloModScale; /**< minimum volume factor produced via LFO, scaled via mod wheel */
+    float m_tremoloScale = 0.f; /**< minimum volume factor produced via LFO */
+    float m_tremoloModScale = 0.f; /**< minimum volume factor produced via LFO, scaled via mod wheel */
 
-    float m_lfoPeriods[2]; /**< time-periods for LFO1 and LFO2 */
+    float m_lfoPeriods[2] = {}; /**< time-periods for LFO1 and LFO2 */
     std::unique_ptr<int8_t[]> m_ctrlValsSelf; /**< Self-owned MIDI Controller values */
     int8_t* m_extCtrlVals = nullptr; /**< MIDI Controller values (external storage) */
 
     void _destroy();
-    void _reset();
     bool _checkSamplePos(bool& looped);
     void _doKeyOff();
     void _macroKeyOff();
@@ -307,7 +306,10 @@ public:
     }
 
     /** Get ModWheel value on voice */
-    int8_t getModWheel() const {return getCtrlValue(1);}
+    int8_t getModWheel() const
+    {
+        return m_state.m_modWheelSel ? m_state.m_modWheelSel.evaluate(*this, m_state) : getCtrlValue(1);
+    }
 
     /** 'install' external MIDI controller storage */
     void installCtrlValues(int8_t* cvs)

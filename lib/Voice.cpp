@@ -39,32 +39,6 @@ Voice::Voice(Engine& engine, const AudioGroup& group, int groupId, ObjectId oid,
     //fprintf(stderr, "ALLOC %d\n", m_vid);
 }
 
-void Voice::_reset()
-{
-    m_curAftertouch = 0;
-    m_pitchWheelUp = 600;
-    m_pitchWheelDown = 600;
-    m_pitchWheelVal = 0;
-    m_pitchDirty = true;
-    m_pitchSweep1 = 0;
-    m_pitchSweep1Times = 0;
-    m_pitchSweep1It = 0;
-    m_pitchSweep2 = 0;
-    m_pitchSweep2Times = 0;
-    m_pitchSweep2It = 0;
-    m_portamentoTime = -1.f;
-    m_envelopeTime = -1.f;
-    m_panningTime = -1.f;
-    m_spanningTime = -1.f;
-    m_vibratoLevel = 0;
-    m_vibratoModLevel = 0;
-    m_vibratoPeriod = 0.f;
-    m_tremoloScale = 0.f;
-    m_tremoloModScale = 0.f;
-    m_lfoPeriods[0] = 0.f;
-    m_lfoPeriods[1] = 0.f;
-}
-
 void Voice::_macroSampleEnd()
 {
     if (m_sampleEndTrap.macroId != 0xffff)
@@ -124,8 +98,18 @@ bool Voice::_checkSamplePos(bool& looped)
 
 void Voice::_doKeyOff()
 {
-    m_volAdsr.keyOff();
-    m_pitchAdsr.keyOff();
+    if (m_state.m_inWait && m_state.m_keyoffWait)
+    {
+        if (m_volAdsr.isAdsrSet())
+            m_volAdsr.keyOff();
+        if (m_pitchAdsr.isAdsrSet())
+            m_pitchAdsr.keyOff();
+    }
+    else
+    {
+        m_volAdsr.keyOff();
+        m_pitchAdsr.keyOff();
+    }
     m_state.keyoffNotify(*this);
 }
 
@@ -260,16 +244,55 @@ bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
         if (m_envelopeCurve)
             t = (*m_envelopeCurve)[int(t*127.f)] / 127.f;
         m_curVol = clamp(0.f, (start * (1.0f - t)) + (end * t), 1.f);
+        
+        //printf("%d %f\n", m_vid, m_curVol);
 
         /* Done with envelope */
         if (m_envelopeTime > m_envelopeDur)
             m_envelopeTime = -1.f;
     }
 
+    /* Dynamically evaluate per-sample SoundMacro parameters */
+    float evalVol = m_state.m_volumeSel ? ((m_state.m_volumeSel.evaluate(*this, m_state) / 127.f) * m_curVol) : m_curVol;
+
+    bool panDirty = false;
+    if (m_state.m_panSel)
+    {
+        float evalPan = (m_state.m_panSel.evaluate(*this, m_state) - 64.f) / 64.f;
+        if (evalPan != m_curPan)
+        {
+            m_curPan = evalPan;
+            panDirty = true;
+        }
+    }
+    if (m_state.m_spanSel)
+    {
+        float evalSpan = (m_state.m_spanSel.evaluate(*this, m_state) - 64.f) / 64.f;
+        if (evalSpan != m_curSpan)
+        {
+            m_curSpan = evalSpan;
+            panDirty = true;
+        }
+    }
+    if (m_state.m_reverbSel)
+    {
+        float evalRev = m_state.m_reverbSel.evaluate(*this, m_state) / 127.f;
+        if (evalRev != m_curReverbVol)
+        {
+            m_curReverbVol = evalRev;
+            panDirty = true;
+        }
+    }
+    if (panDirty)
+        _setPan(m_curPan);
+
+    if (m_state.m_pitchWheelSel)
+        setPitchWheel(m_state.m_pitchWheelSel.evaluate(*this, m_state) / 127.f);
+
     /* Factor in ADSR envelope state */
     float adsr = m_volAdsr.advance(dt);
     m_lastLevel = m_nextLevel;
-    m_nextLevel = m_userVol * m_curVol * adsr * (m_state.m_curVel / 127.f);
+    m_nextLevel = m_userVol * evalVol * adsr * (m_state.m_curVel / 127.f);
 
     /* Apply tremolo */
     if (m_state.m_tremoloSel && (m_tremoloScale || m_tremoloModScale))
@@ -395,6 +418,14 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
 
     /* Process SoundMacro; bootstrapping sample if needed */
     bool dead = m_state.advance(*this, samples / m_sampleRate);
+
+    /* Process per-block evaluators here */
+    if (m_state.m_pedalSel)
+    {
+        bool pedal = m_state.m_pedalSel.evaluate(*this, m_state) >= 64;
+        if (pedal != m_sustained)
+            setPedal(pedal);
+    }
 
     if (m_curSample)
     {
@@ -729,9 +760,9 @@ void Voice::startSample(int16_t sampId, int32_t offset)
     m_curSample = m_audioGroup.getSample(sampId);
     if (m_curSample)
     {
-        _reset();
         m_sampleRate = m_curSample->first.m_sampleRate;
         m_curPitch = m_curSample->first.m_pitch;
+        m_pitchDirty = true;
         setPitchWheel(m_curPitchWheel);
         m_backendVoice->resetSampleRate(m_curSample->first.m_sampleRate);
 
@@ -1044,7 +1075,7 @@ bool Voice::doPortamento(uint8_t newNote)
         pState = true;
         break;
     case 2:
-        pState = getCtrlValue(65) >= 64;
+        pState = (m_state.m_portamentoSel ? m_state.m_portamentoSel.evaluate(*this, m_state) : getCtrlValue(65)) >= 64;
         break;
     }
 
