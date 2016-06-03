@@ -71,7 +71,7 @@ Sequencer::Sequencer(Engine& engine, const AudioGroup& group, int groupId,
         m_midiSetup = it->second->data();
 
     m_submix = m_engine.addSubmix(smx);
-    m_submix->makeReverbHi(0.2f, 1.f, 1.f, 0.5f, 0.f, 0.f);
+    m_submix->makeReverbHi(0.2f, 0.65f, 1.f, 0.5f, 0.f, 0.f);
 }
 
 Sequencer::ChannelState::~ChannelState()

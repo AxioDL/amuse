@@ -2,6 +2,11 @@
 #import <AudioUnit/AudioUnit.h>
 #import <CoreAudioKit/AUViewController.h>
 #import "AudioUnitViewController.hpp"
+#import "AudioGroupFilePresenter.hpp"
+
+@class DataOutlineController;
+@class SamplesTableController;
+@class SFXTableController;
 
 @interface MainView : NSView
 {
@@ -26,6 +31,22 @@
     return NO;
 }
 
+@end
+
+@interface AppDelegate : NSObject <NSApplicationDelegate>
+{
+    IBOutlet NSWindow* mainWindow;
+    IBOutlet NSOutlineView* dataOutline;
+    IBOutlet NSTableView* sfxTable;
+    IBOutlet NSTableView* samplesTable;
+    IBOutlet NSTextView* creditsView;
+    
+    AudioGroupFilePresenter* groupFilePresenter;
+    
+    DataOutlineController* dataController;
+    SamplesTableController* samplesController;
+    SFXTableController* sfxController;
+}
 @end
 
 @interface MainTabView : NSTabView
@@ -55,14 +76,77 @@
 }
 @end
 
-@interface AppDelegate : NSObject <NSApplicationDelegate>
+@interface DataOutlineView : NSOutlineView
 {
-    IBOutlet NSWindow* mainWindow;
-    IBOutlet NSOutlineView* dataOutline;
-    IBOutlet NSTableView* sfxTable;
-    IBOutlet NSTableView* samplesTable;
-    IBOutlet NSTextView* creditsView;
+    
 }
+@end
+
+@implementation DataOutlineView
+
+- (id)initWithFrame:(NSRect)frameRect
+{
+    self = [super initWithFrame:frameRect];
+    [self registerForDraggedTypes:@[(__bridge NSString*)kUTTypeData]];
+    return self;
+}
+
+- (BOOL)performDragOperation:(id<NSDraggingInfo>)sender
+{
+    
+}
+
+@end
+
+@interface DataOutlineController : NSObject <NSOutlineViewDataSource, NSOutlineViewDelegate>
+{
+    
+}
+@end
+
+@implementation DataOutlineController
+
+
+
+@end
+
+@interface SamplesTableController : NSObject <NSTableViewDataSource, NSTableViewDelegate>
+{
+    
+}
+@end
+
+@implementation SamplesTableController
+
+- (NSInteger)numberOfRowsInTableView:(NSTableView*)tableView
+{
+    
+}
+
+- (nullable id)tableView:(NSTableView *)tableView objectValueForTableColumn:(nullable NSTableColumn*)tableColumn row:(NSInteger)row
+{
+    
+}
+
+@end
+
+@interface SFXTableController : NSObject <NSTableViewDataSource, NSTableViewDelegate>
+{
+    
+}
+@end
+
+@implementation SFXTableController
+
+- (NSInteger)numberOfRowsInTableView:(NSTableView*)tableView
+{
+}
+
+- (nullable id)tableView:(NSTableView *)tableView objectValueForTableColumn:(nullable NSTableColumn*)tableColumn row:(NSInteger)row
+{
+    
+}
+
 @end
 
 @implementation AppDelegate
@@ -71,6 +155,23 @@
 {
     [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"NSConstraintBasedLayoutVisualizeMutuallyExclusiveConstraints"];
     [mainWindow.toolbar setSelectedItemIdentifier:@"DataTab"];
+    
+    groupFilePresenter = [AudioGroupFilePresenter new];
+    
+    dataController = [DataOutlineController new];
+    dataOutline.dataSource = dataController;
+    dataOutline.delegate = dataController;
+    [dataOutline reloadItem:nil reloadChildren:YES];
+    
+    samplesController = [SamplesTableController new];
+    samplesTable.dataSource = samplesController;
+    samplesTable.delegate = samplesController;
+    [samplesTable reloadData];
+    
+    sfxController = [SFXTableController new];
+    sfxTable.dataSource = sfxController;
+    sfxTable.delegate = sfxController;
+    [sfxTable reloadData];
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender
