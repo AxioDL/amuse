@@ -37,6 +37,7 @@ public:
     static const char* TypeToName(Type tp);
     static Type DetectContainerType(const char* path);
     static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadContainer(const char* path);
+    static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadContainer(const char* path, Type& typeOut);
     static std::vector<std::pair<std::string, SongData>> LoadSongs(const char* path);
 };
 

@@ -119,7 +119,8 @@ static bool IsSongExtension(const char* path, const char*& dotOut)
 
 static bool ValidateMP1(FILE* fp)
 {
-    FileLength(fp);
+    if (FileLength(fp) > 40 * 1024 * 1024)
+        return false;
 
     uint32_t magic;
     fread(&magic, 1, 4, fp);
@@ -228,29 +229,34 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadMP1(FILE
                         ReadString(fp);
                         std::string name = ReadString(fp);
 
-                        uint32_t len;
-                        fread(&len, 1, 4, fp);
-                        len = SBig(len);
-                        std::unique_ptr<uint8_t[]> pool(new uint8_t[len]);
-                        fread(pool.get(), 1, len, fp);
+                        uint32_t poolLen;
+                        fread(&poolLen, 1, 4, fp);
+                        poolLen = SBig(poolLen);
+                        std::unique_ptr<uint8_t[]> pool(new uint8_t[poolLen]);
+                        fread(pool.get(), 1, poolLen, fp);
 
-                        fread(&len, 1, 4, fp);
-                        len = SBig(len);
-                        std::unique_ptr<uint8_t[]> proj(new uint8_t[len]);
-                        fread(proj.get(), 1, len, fp);
+                        uint32_t projLen;
+                        fread(&projLen, 1, 4, fp);
+                        projLen = SBig(projLen);
+                        std::unique_ptr<uint8_t[]> proj(new uint8_t[projLen]);
+                        fread(proj.get(), 1, projLen, fp);
 
-                        fread(&len, 1, 4, fp);
-                        len = SBig(len);
-                        std::unique_ptr<uint8_t[]> samp(new uint8_t[len]);
-                        fread(samp.get(), 1, len, fp);
+                        uint32_t sampLen;
+                        fread(&sampLen, 1, 4, fp);
+                        sampLen = SBig(sampLen);
+                        std::unique_ptr<uint8_t[]> samp(new uint8_t[sampLen]);
+                        fread(samp.get(), 1, sampLen, fp);
 
-                        fread(&len, 1, 4, fp);
-                        len = SBig(len);
-                        std::unique_ptr<uint8_t[]> sdir(new uint8_t[len]);
-                        fread(sdir.get(), 1, len, fp);
+                        uint32_t sdirLen;
+                        fread(&sdirLen, 1, 4, fp);
+                        sdirLen = SBig(sdirLen);
+                        std::unique_ptr<uint8_t[]> sdir(new uint8_t[sdirLen]);
+                        fread(sdir.get(), 1, sdirLen, fp);
 
-                        ret.emplace_back(std::move(name), IntrusiveAudioGroupData{proj.release(), pool.release(),
-                                                                                  sdir.release(), samp.release(), GCNDataTag{}});
+                        ret.emplace_back(std::move(name), IntrusiveAudioGroupData{proj.release(), projLen,
+                                                                                  pool.release(), poolLen,
+                                                                                  sdir.release(), sdirLen,
+                                                                                  samp.release(), sampLen, GCNDataTag{}});
                     }
                 }
                 FSeek(fp, origPos, SEEK_SET);
@@ -263,7 +269,8 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadMP1(FILE
 
 static bool ValidateMP1Songs(FILE* fp)
 {
-    FileLength(fp);
+    if (FileLength(fp) > 40 * 1024 * 1024)
+        return false;
 
     uint32_t magic;
     fread(&magic, 1, 4, fp);
@@ -404,7 +411,8 @@ static std::vector<std::pair<std::string, ContainerRegistry::SongData>> LoadMP1S
 
 static bool ValidateMP2(FILE* fp)
 {
-    FileLength(fp);
+    if (FileLength(fp) > 40 * 1024 * 1024)
+        return false;
 
     uint32_t magic;
     fread(&magic, 1, 4, fp);
@@ -541,8 +549,10 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadMP2(FILE
                         std::unique_ptr<uint8_t[]> samp(new uint8_t[sampSz]);
                         fread(samp.get(), 1, sampSz, fp);
 
-                        ret.emplace_back(std::move(name), IntrusiveAudioGroupData{proj.release(), pool.release(),
-                                                                                  sdir.release(), samp.release(), GCNDataTag{}});
+                        ret.emplace_back(std::move(name), IntrusiveAudioGroupData{proj.release(), projSz,
+                                                                                  pool.release(), poolSz,
+                                                                                  sdir.release(), sdirSz,
+                                                                                  samp.release(), sampSz, GCNDataTag{}});
                     }
                 }
                 FSeek(fp, origPos, SEEK_SET);
@@ -589,6 +599,8 @@ static void SwapN64Rom32(void* data, size_t size)
 static bool ValidateRS1PC(FILE* fp)
 {
     size_t endPos = FileLength(fp);
+    if (endPos > 100 * 1024 * 1024)
+        return false;
 
     uint32_t fstOff;
     uint32_t fstSz;
@@ -640,41 +652,49 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadRS1PC(FI
             fread(entries.get(), fstSz, 1, fp);
 
             std::unique_ptr<uint8_t[]> proj;
+            size_t projSz = 0;
             std::unique_ptr<uint8_t[]> pool;
+            size_t poolSz = 0;
             std::unique_ptr<uint8_t[]> sdir;
+            size_t sdirSz = 0;
             std::unique_ptr<uint8_t[]> samp;
+            size_t sampSz = 0;
 
             for (uint32_t i=0 ; i<elemCount ; ++i)
             {
                 RS1FSTEntry& entry = entries[i];
                 if (!strncmp("proj_SND", entry.name, 16))
                 {
+                    projSz = entry.decompSz;
                     proj.reset(new uint8_t[entry.decompSz]);
                     FSeek(fp, entry.offset, SEEK_SET);
                     fread(proj.get(), 1, entry.decompSz, fp);
                 }
                 else if (!strncmp("pool_SND", entry.name, 16))
                 {
+                    poolSz = entry.decompSz;
                     pool.reset(new uint8_t[entry.decompSz]);
                     FSeek(fp, entry.offset, SEEK_SET);
                     fread(pool.get(), 1, entry.decompSz, fp);
                 }
                 else if (!strncmp("sdir_SND", entry.name, 16))
                 {
+                    sdirSz = entry.decompSz;
                     sdir.reset(new uint8_t[entry.decompSz]);
                     FSeek(fp, entry.offset, SEEK_SET);
                     fread(sdir.get(), 1, entry.decompSz, fp);
                 }
                 else if (!strncmp("samp_SND", entry.name, 16))
                 {
+                    sampSz = entry.decompSz;
                     samp.reset(new uint8_t[entry.decompSz]);
                     FSeek(fp, entry.offset, SEEK_SET);
                     fread(samp.get(), 1, entry.decompSz, fp);
                 }
             }
             
-            ret.emplace_back("Group", IntrusiveAudioGroupData{proj.release(), pool.release(),
-                                                              sdir.release(), samp.release(),
+            ret.emplace_back("Group", IntrusiveAudioGroupData{proj.release(), projSz, pool.release(), poolSz,
+                                                              sdir.release(), sdirSz, samp.release(), sampSz,
                                                               false, PCDataTag{}});
         }
     }
@@ -764,9 +784,13 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadRS1N64(F
         const RS1FSTEntry* lastEnt = reinterpret_cast<const RS1FSTEntry*>(dataSeg + fstEnd);
 
         std::unique_ptr<uint8_t[]> proj;
+        size_t projSz = 0;
         std::unique_ptr<uint8_t[]> pool;
+        size_t poolSz = 0;
         std::unique_ptr<uint8_t[]> sdir;
+        size_t sdirSz = 0;
         std::unique_ptr<uint8_t[]> samp;
+        size_t sampSz = 0;
 
         for (; entry != lastEnt ; ++entry)
         {
@@ -786,6 +810,7 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadRS1N64(F
                     uLongf outSz = ent.decompSz;
                     uncompress(proj.get(), &outSz, dataSeg + ent.offset, ent.compSz);
                 }
+                projSz = ent.decompSz;
             }
             else if (!strncmp("pool_SND", ent.name, 16))
             {
@@ -800,6 +825,7 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadRS1N64(F
                     uLongf outSz = ent.decompSz;
                     uncompress(pool.get(), &outSz, dataSeg + ent.offset, ent.compSz);
                 }
+                poolSz = ent.decompSz;
             }
             else if (!strncmp("sdir_SND", ent.name, 16))
             {
@@ -814,6 +840,7 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadRS1N64(F
                     uLongf outSz = ent.decompSz;
                     uncompress(sdir.get(), &outSz, dataSeg + ent.offset, ent.compSz);
                 }
+                sdirSz = ent.decompSz;
             }
             else if (!strncmp("samp_SND", ent.name, 16))
             {
@@ -828,11 +855,12 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadRS1N64(F
                     uLongf outSz = ent.decompSz;
                     uncompress(samp.get(), &outSz, dataSeg + ent.offset, ent.compSz);
                 }
+                sampSz = ent.decompSz;
             }
         }
 
-        ret.emplace_back("Group", IntrusiveAudioGroupData{proj.release(), pool.release(),
-                                                          sdir.release(), samp.release(),
+        ret.emplace_back("Group", IntrusiveAudioGroupData{proj.release(), projSz, pool.release(), poolSz,
+                                                          sdir.release(), sdirSz, samp.release(), sampSz,
                                                           false, N64DataTag{}});
     }
 
@@ -842,7 +870,9 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadRS1N64(F
 static bool ValidateBFNPC(FILE* fp)
 {
     size_t endPos = FileLength(fp);
-
+    if (endPos > 100 * 1024 * 1024)
+        return false;
+    
     uint32_t fstOff;
     uint32_t fstSz;
     if (fread(&fstOff, 1, 4, fp) == 4 && fread(&fstSz, 1, 4, fp) == 4)
@@ -893,9 +923,13 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadBFNPC(FI
             fread(entries.get(), fstSz, 1, fp);
 
             std::unique_ptr<uint8_t[]> proj;
+            size_t projSz = 0;
             std::unique_ptr<uint8_t[]> pool;
+            size_t poolSz = 0;
             std::unique_ptr<uint8_t[]> sdir;
+            size_t sdirSz = 0;
             std::unique_ptr<uint8_t[]> samp;
+            size_t sampSz = 0;
 
             for (uint32_t i=0 ; i<elemCount ; ++i)
             {
@@ -905,29 +939,33 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadBFNPC(FI
                     proj.reset(new uint8_t[entry.decompSz]);
                     FSeek(fp, entry.offset, SEEK_SET);
                     fread(proj.get(), 1, entry.decompSz, fp);
+                    projSz = entry.decompSz;
                 }
                 else if (!strncmp("pool", entry.name, 16))
                 {
                     pool.reset(new uint8_t[entry.decompSz]);
                     FSeek(fp, entry.offset, SEEK_SET);
                     fread(pool.get(), 1, entry.decompSz, fp);
+                    poolSz = entry.decompSz;
                 }
                 else if (!strncmp("sdir", entry.name, 16))
                 {
                     sdir.reset(new uint8_t[entry.decompSz]);
                     FSeek(fp, entry.offset, SEEK_SET);
                     fread(sdir.get(), 1, entry.decompSz, fp);
+                    sdirSz = entry.decompSz;
                 }
                 else if (!strncmp("samp", entry.name, 16))
                 {
                     samp.reset(new uint8_t[entry.decompSz]);
                     FSeek(fp, entry.offset, SEEK_SET);
                     fread(samp.get(), 1, entry.decompSz, fp);
+                    sampSz = entry.decompSz;
                 }
             }
 
-            ret.emplace_back("Group", IntrusiveAudioGroupData{proj.release(), pool.release(),
-                                                              sdir.release(), samp.release(),
+            ret.emplace_back("Group", IntrusiveAudioGroupData{proj.release(), projSz, pool.release(), poolSz,
+                                                              sdir.release(), sdirSz, samp.release(), sampSz,
                                                               true, PCDataTag{}});
         }
     }
@@ -1017,9 +1055,13 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadBFNN64(F
         const RS1FSTEntry* lastEnt = reinterpret_cast<const RS1FSTEntry*>(dataSeg + fstEnd);
 
         std::unique_ptr<uint8_t[]> proj;
+        size_t projSz = 0;
         std::unique_ptr<uint8_t[]> pool;
+        size_t poolSz = 0;
         std::unique_ptr<uint8_t[]> sdir;
+        size_t sdirSz = 0;
         std::unique_ptr<uint8_t[]> samp;
+        size_t sampSz = 0;
 
         for (; entry != lastEnt ; ++entry)
         {
@@ -1039,6 +1081,7 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadBFNN64(F
                     uLongf outSz = ent.decompSz;
                     uncompress(proj.get(), &outSz, dataSeg + ent.offset, ent.compSz);
                 }
+                projSz = ent.decompSz;
             }
             else if (!strncmp("pool", ent.name, 16))
             {
@@ -1053,6 +1096,7 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadBFNN64(F
                     uLongf outSz = ent.decompSz;
                     uncompress(pool.get(), &outSz, dataSeg + ent.offset, ent.compSz);
                 }
+                poolSz = ent.decompSz;
             }
             else if (!strncmp("sdir", ent.name, 16))
             {
@@ -1067,6 +1111,7 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadBFNN64(F
                     uLongf outSz = ent.decompSz;
                     uncompress(sdir.get(), &outSz, dataSeg + ent.offset, ent.compSz);
                 }
+                sdirSz = ent.decompSz;
             }
             else if (!strncmp("samp", ent.name, 16))
             {
@@ -1081,11 +1126,12 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadBFNN64(F
                     uLongf outSz = ent.decompSz;
                     uncompress(samp.get(), &outSz, dataSeg + ent.offset, ent.compSz);
                 }
+                sampSz = ent.decompSz;
             }
         }
 
-        ret.emplace_back("Group", IntrusiveAudioGroupData{proj.release(), pool.release(),
-                                                          sdir.release(), samp.release(),
+        ret.emplace_back("Group", IntrusiveAudioGroupData{proj.release(), projSz, pool.release(), poolSz,
+                                                          sdir.release(), sdirSz, samp.release(), sampSz,
                                                           true, N64DataTag{}});
     }
 
@@ -1164,7 +1210,9 @@ struct RS23SONHead
 static bool ValidateRS2(FILE* fp)
 {
     size_t endPos = FileLength(fp);
-
+    if (endPos > 600 * 1024 * 1024)
+        return false;
+    
     uint64_t fstOff;
     fread(&fstOff, 1, 8, fp);
     fstOff = SBig(fstOff);
@@ -1241,8 +1289,8 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadRS2(FILE
 
                 char name[128];
                 snprintf(name, 128, "GroupFile%u", j);
-                ret.emplace_back(name, IntrusiveAudioGroupData{proj.release(), pool.release(),
-                                                               sdir.release(), samp.release(), GCNDataTag{}});
+                ret.emplace_back(name, IntrusiveAudioGroupData{proj.release(), head.projLen, pool.release(), head.poolLen,
+                                                               sdir.release(), head.sdirLen, samp.release(), head.sampLen, GCNDataTag{}});
             }
 
             break;
@@ -1334,7 +1382,9 @@ struct RS3FSTEntry
 static bool ValidateRS3(FILE* fp)
 {
     size_t endPos = FileLength(fp);
-
+    if (endPos > 600 * 1024 * 1024)
+        return false;
+    
     uint64_t fstOff;
     fread(&fstOff, 1, 8, fp);
     fstOff = SBig(fstOff);
@@ -1409,8 +1459,8 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadRS3(FILE
 
                 char name[128];
                 snprintf(name, 128, "GroupFile%u", j);
-                ret.emplace_back(name, IntrusiveAudioGroupData{proj.release(), pool.release(),
-                                                               sdir.release(), samp.release(), GCNDataTag{}});
+                ret.emplace_back(name, IntrusiveAudioGroupData{proj.release(), head.projLen, pool.release(), head.poolLen,
+                                                               sdir.release(), head.sdirLen, samp.release(), head.sampLen, GCNDataTag{}});
             }
 
             break;
@@ -1538,11 +1588,19 @@ ContainerRegistry::Type ContainerRegistry::DetectContainerType(const char* path)
 
     return Type::Invalid;
 }
-
+    
 std::vector<std::pair<std::string, IntrusiveAudioGroupData>>
 ContainerRegistry::LoadContainer(const char* path)
 {
+    Type typeOut;
+    return LoadContainer(path, typeOut);
+};
+
+std::vector<std::pair<std::string, IntrusiveAudioGroupData>>
+ContainerRegistry::LoadContainer(const char* path, Type& typeOut)
+{
     FILE* fp;
+    typeOut = Type::Invalid;
 
     /* See if provided file is one of four raw chunks */
     const char* dot = nullptr;
@@ -1603,49 +1661,50 @@ ContainerRegistry::LoadContainer(const char* path)
         fclose(fp);
 
         fp = fopen(projPath, "rb");
-        size_t fLen = FileLength(fp);
-        if (!fLen)
+        size_t projLen = FileLength(fp);
+        if (!projLen)
             return ret;
-        std::unique_ptr<uint8_t[]> proj(new uint8_t[fLen]);
-        fread(proj.get(), 1, fLen, fp);
+        std::unique_ptr<uint8_t[]> proj(new uint8_t[projLen]);
+        fread(proj.get(), 1, projLen, fp);
 
         fp = fopen(poolPath, "rb");
-        fLen = FileLength(fp);
-        if (!fLen)
+        size_t poolLen = FileLength(fp);
+        if (!poolLen)
             return ret;
-        std::unique_ptr<uint8_t[]> pool(new uint8_t[fLen]);
-        fread(pool.get(), 1, fLen, fp);
+        std::unique_ptr<uint8_t[]> pool(new uint8_t[poolLen]);
+        fread(pool.get(), 1, poolLen, fp);
 
         fp = fopen(sdirPath, "rb");
-        fLen = FileLength(fp);
-        if (!fLen)
+        size_t sdirLen = FileLength(fp);
+        if (!sdirLen)
             return ret;
-        std::unique_ptr<uint8_t[]> sdir(new uint8_t[fLen]);
-        fread(sdir.get(), 1, fLen, fp);
+        std::unique_ptr<uint8_t[]> sdir(new uint8_t[sdirLen]);
+        fread(sdir.get(), 1, sdirLen, fp);
 
         fp = fopen(sampPath, "rb");
-        fLen = FileLength(fp);
-        if (!fLen)
+        size_t sampLen = FileLength(fp);
+        if (!sampPath)
             return ret;
-        std::unique_ptr<uint8_t[]> samp(new uint8_t[fLen]);
-        fread(samp.get(), 1, fLen, fp);
+        std::unique_ptr<uint8_t[]> samp(new uint8_t[sampLen]);
+        fread(samp.get(), 1, sampLen, fp);
 
         fclose(fp);
 
         /* SDIR-based format detection */
         if (*reinterpret_cast<uint32_t*>(sdir.get() + 8) == 0x0)
-            ret.emplace_back("Group", IntrusiveAudioGroupData{proj.release(), pool.release(),
-                                                              sdir.release(), samp.release(),
+            ret.emplace_back("Group", IntrusiveAudioGroupData{proj.release(), projLen, pool.release(), poolLen,
+                                                              sdir.release(), sdirLen, samp.release(), sampLen,
                                                               GCNDataTag{}});
         else if (sdir[9] == 0x0)
-            ret.emplace_back("Group", IntrusiveAudioGroupData{proj.release(), pool.release(),
-                                                              sdir.release(), samp.release(),
+            ret.emplace_back("Group", IntrusiveAudioGroupData{proj.release(), projLen, pool.release(), poolLen,
+                                                              sdir.release(), sdirLen, samp.release(), sampLen,
                                                               false, N64DataTag{}});
         else
-            ret.emplace_back("Group", IntrusiveAudioGroupData{proj.release(), pool.release(),
-                                                              sdir.release(), samp.release(),
+            ret.emplace_back("Group", IntrusiveAudioGroupData{proj.release(), projLen, pool.release(), poolLen,
+                                                              sdir.release(), sdirLen, samp.release(), sampLen,
                                                               false, PCDataTag{}});
 
+        typeOut = Type::Raw4;
         return ret;
     }
 
@@ -1657,6 +1716,7 @@ ContainerRegistry::LoadContainer(const char* path)
         {
             auto ret = LoadMP1(fp);
             fclose(fp);
+            typeOut = Type::MetroidPrime;
             return ret;
         }
 
@@ -1664,6 +1724,7 @@ ContainerRegistry::LoadContainer(const char* path)
         {
             auto ret = LoadMP2(fp);
             fclose(fp);
+            typeOut = Type::MetroidPrime2;
             return ret;
         }
 
@@ -1671,6 +1732,7 @@ ContainerRegistry::LoadContainer(const char* path)
         {
             auto ret = LoadRS1PC(fp);
             fclose(fp);
+            typeOut = Type::RogueSquadronPC;
             return ret;
         }
 
@@ -1678,6 +1740,7 @@ ContainerRegistry::LoadContainer(const char* path)
         {
             auto ret = LoadRS1N64(fp);
             fclose(fp);
+            typeOut = Type::RogueSquadronN64;
             return ret;
         }
 
@@ -1685,6 +1748,7 @@ ContainerRegistry::LoadContainer(const char* path)
         {
             auto ret = LoadBFNPC(fp);
             fclose(fp);
+            typeOut = Type::BattleForNabooPC;
             return ret;
         }
 
@@ -1692,6 +1756,7 @@ ContainerRegistry::LoadContainer(const char* path)
         {
             auto ret = LoadBFNN64(fp);
             fclose(fp);
+            typeOut = Type::BattleForNabooN64;
             return ret;
         }
 
@@ -1699,6 +1764,7 @@ ContainerRegistry::LoadContainer(const char* path)
         {
             auto ret = LoadRS2(fp);
             fclose(fp);
+            typeOut = Type::RogueSquadron2;
             return ret;
         }
 
@@ -1706,6 +1772,7 @@ ContainerRegistry::LoadContainer(const char* path)
         {
             auto ret = LoadRS3(fp);
             fclose(fp);
+            typeOut = Type::RogueSquadron3;
             return ret;
         }
 

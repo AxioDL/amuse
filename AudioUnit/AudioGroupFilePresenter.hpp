@@ -5,20 +5,44 @@
 #import <AppKit/AppKit.h>
 #include <map>
 #include <string>
+#include "optional.hpp"
+#include <amuse/amuse.hpp>
+#include <athena/FileReader.hpp>
 
 @class AudioGroupFilePresenter;
+@class AudioGroupDataToken;
+@class AudioGroupCollectionToken;
 
 struct AudioGroupDataCollection
 {
+    std::string m_name;
     NSURL* m_proj;
     NSURL* m_pool;
     NSURL* m_sdir;
     NSURL* m_samp;
+    NSURL* m_meta;
+
+    AudioGroupDataToken* m_token;
     
-    std::unique_ptr<uint8_t[]> m_projData;
-    std::unique_ptr<uint8_t[]> m_poolData;
-    std::unique_ptr<uint8_t[]> m_sdirData;
-    std::unique_ptr<uint8_t[]> m_sampData;
+    std::vector<uint8_t> m_projData;
+    std::vector<uint8_t> m_poolData;
+    std::vector<uint8_t> m_sdirData;
+    std::vector<uint8_t> m_sampData;
+    
+    struct MetaData
+    {
+        amuse::DataFormat fmt;
+        uint32_t absOffs;
+        uint32_t active;
+        MetaData(amuse::DataFormat fmtIn, uint32_t absOffsIn, uint32_t activeIn)
+        : fmt(fmtIn), absOffs(absOffsIn), active(activeIn) {}
+        MetaData(athena::io::FileReader& r)
+        : fmt(amuse::DataFormat(r.readUint32Big())), absOffs(r.readUint32Big()), active(r.readUint32Big()) {}
+    };
+    std::experimental::optional<MetaData> m_metaData;
+    
+    std::experimental::optional<amuse::AudioGroupData> m_loadedData;
+    std::experimental::optional<amuse::AudioGroupProject> m_loadedProj;
 
     void moveURL(NSURL* oldUrl, NSURL* newUrl);
 
@@ -26,24 +50,82 @@ struct AudioGroupDataCollection
     bool loadPool(AudioGroupFilePresenter* presenter);
     bool loadSdir(AudioGroupFilePresenter* presenter);
     bool loadSamp(AudioGroupFilePresenter* presenter);
+    bool loadMeta(AudioGroupFilePresenter* presenter);
 
-    AudioGroupDataCollection(NSURL* proj, NSURL* pool, NSURL* sdir, NSURL* samp)
-    : m_proj(proj), m_pool(pool), m_sdir(sdir), m_samp(samp) {}
-    bool isDataComplete () const {return m_projData && m_poolData && m_sdirData && m_sampData;}
+    AudioGroupDataCollection(const std::string& name, NSURL* proj, NSURL* pool, NSURL* sdir, NSURL* samp, NSURL* meta);
+    bool isDataComplete() const {return m_projData.size() && m_poolData.size() && m_sdirData.size() && m_sampData.size() && m_metaData;}
+    bool _attemptLoad(AudioGroupFilePresenter* presenter);
 };
 
-@interface AudioGroupFilePresenter : NSObject <NSFilePresenter, NSOutlineViewDataSource>
+template <class T>
+class IteratorTracker
+{
+    typename std::map<std::string, T>::const_iterator m_audioGroupOutlineBegin;
+    typename std::map<std::string, T>::const_iterator m_audioGroupOutlineEnd;
+    typename std::map<std::string, T>::const_iterator m_audioGroupOutlineIt;
+    size_t m_audioGroupOutlineIdx = 0;
+    
+public:
+    IteratorTracker(typename std::map<std::string, T>::const_iterator begin,
+                    typename std::map<std::string, T>::const_iterator end)
+    : m_audioGroupOutlineBegin(begin), m_audioGroupOutlineEnd(end), m_audioGroupOutlineIt(begin) {}
+    typename std::map<std::string, T>::const_iterator seekToIndex(size_t idx)
+    {
+        if (idx == m_audioGroupOutlineIdx)
+            return m_audioGroupOutlineIt;
+        if (idx < m_audioGroupOutlineIdx)
+        {
+            for (; idx < m_audioGroupOutlineIdx && m_audioGroupOutlineIt != m_audioGroupOutlineBegin ;
+                 --m_audioGroupOutlineIdx, --m_audioGroupOutlineIt) {}
+            return m_audioGroupOutlineIt;
+        }
+        for (; idx > m_audioGroupOutlineIdx && m_audioGroupOutlineIt != m_audioGroupOutlineEnd ;
+             ++m_audioGroupOutlineIdx, ++m_audioGroupOutlineIt) {}
+        return m_audioGroupOutlineIt;
+    }
+};
+
+struct AudioGroupCollection
+{
+    NSURL* m_url;
+    
+    AudioGroupCollectionToken* m_token;
+    std::map<std::string, AudioGroupDataCollection> m_groups;
+    std::experimental::optional<IteratorTracker<AudioGroupDataCollection>> m_iteratorTracker;
+    
+    AudioGroupCollection(NSURL* url);
+    void addCollection(std::vector<std::pair<std::string, amuse::IntrusiveAudioGroupData>>&& collection);
+    void update(AudioGroupFilePresenter* presenter);
+};
+
+@interface AudioGroupDataToken : NSObject
+{
+@public
+    AudioGroupDataCollection* m_collection;
+}
+- (id)initWithDataCollection:(AudioGroupDataCollection*)collection;
+@end
+
+@interface AudioGroupCollectionToken : NSObject
+{
+@public
+    AudioGroupCollection* m_collection;
+}
+- (id)initWithCollection:(AudioGroupCollection*)collection;
+@end
+
+@interface AudioGroupFilePresenter : NSObject <NSFilePresenter, NSOutlineViewDataSource, NSOutlineViewDelegate>
 {
     NSURL* m_groupURL;
     NSOperationQueue* m_dataQueue;
-    std::map<std::string, AudioGroupDataCollection> m_audioGroupCollections;
+    std::map<std::string, AudioGroupCollection> m_audioGroupCollections;
+    NSOutlineView* lastOutlineView;
     
-    std::map<std::string, AudioGroupDataCollection>::const_iterator m_audioGroupOutlineIt;
-    size_t m_audioGroupOutlineIdx;
+    std::experimental::optional<IteratorTracker<AudioGroupCollection>> m_iteratorTracker;
 }
-
+- (BOOL)addCollectionName:(std::string&&)name items:(std::vector<std::pair<std::string, amuse::IntrusiveAudioGroupData>>&&)collection;
 - (void)update;
-
+- (void)resetIterators;
 @end
 
 #endif // __AMUSE_AUDIOUNIT_AUDIOGROUPFILEPRESENTER_HPP__

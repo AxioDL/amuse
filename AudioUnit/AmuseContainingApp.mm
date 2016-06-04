@@ -3,6 +3,7 @@
 #import <CoreAudioKit/AUViewController.h>
 #import "AudioUnitViewController.hpp"
 #import "AudioGroupFilePresenter.hpp"
+#include <amuse/amuse.hpp>
 
 @class DataOutlineController;
 @class SamplesTableController;
@@ -37,16 +38,17 @@
 {
     IBOutlet NSWindow* mainWindow;
     IBOutlet NSOutlineView* dataOutline;
+    IBOutlet NSSearchField* dataSearchField;
     IBOutlet NSTableView* sfxTable;
     IBOutlet NSTableView* samplesTable;
     IBOutlet NSTextView* creditsView;
     
     AudioGroupFilePresenter* groupFilePresenter;
     
-    DataOutlineController* dataController;
     SamplesTableController* samplesController;
     SFXTableController* sfxController;
 }
+- (BOOL)importURL:(NSURL*)url;
 @end
 
 @interface MainTabView : NSTabView
@@ -98,17 +100,6 @@
 
 @end
 
-@interface DataOutlineController : NSObject <NSOutlineViewDataSource, NSOutlineViewDelegate>
-{
-    
-}
-@end
-
-@implementation DataOutlineController
-
-
-
-@end
 
 @interface SamplesTableController : NSObject <NSTableViewDataSource, NSTableViewDelegate>
 {
@@ -158,9 +149,8 @@
     
     groupFilePresenter = [AudioGroupFilePresenter new];
     
-    dataController = [DataOutlineController new];
-    dataOutline.dataSource = dataController;
-    dataOutline.delegate = dataController;
+    dataOutline.dataSource = groupFilePresenter;
+    dataOutline.delegate = groupFilePresenter;
     [dataOutline reloadItem:nil reloadChildren:YES];
     
     samplesController = [SamplesTableController new];
@@ -179,9 +169,34 @@
     return YES;
 }
 
-- (IBAction)quitApp:(id)sender
+- (BOOL)importURL:(NSURL*)url
 {
-    [NSApp terminate:sender];
+    amuse::ContainerRegistry::Type containerType;
+    std::vector<std::pair<std::string, amuse::IntrusiveAudioGroupData>> data =
+        amuse::ContainerRegistry::LoadContainer(url.path.UTF8String, containerType);
+    if (data.empty())
+    {
+        NSString* err = [NSString stringWithFormat:@"Unable to load Audio Groups from %s", url.path.UTF8String];
+        NSAlert* alert = [[NSAlert alloc] init];
+        alert.informativeText = err;
+        alert.messageText = @"Invalid Data File";
+        [alert runModal];
+        return false;
+    }
+    
+    std::string name(amuse::ContainerRegistry::TypeToName(containerType));
+    return [groupFilePresenter addCollectionName:std::move(name) items:std::move(data)];
+}
+
+- (IBAction)importFile:(id)sender
+{
+    __block NSOpenPanel* panel = [NSOpenPanel openPanel];
+    [panel beginSheetModalForWindow:mainWindow completionHandler:^(NSInteger result) {
+        if (result == NSFileHandlingPanelOKButton)
+        {
+            [self importURL:panel.URL];
+        }
+    }];
 }
 
 @end
