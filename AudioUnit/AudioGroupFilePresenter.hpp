@@ -55,6 +55,9 @@ struct AudioGroupDataCollection
     AudioGroupDataCollection(const std::string& name, NSURL* proj, NSURL* pool, NSURL* sdir, NSURL* samp, NSURL* meta);
     bool isDataComplete() const {return m_projData.size() && m_poolData.size() && m_sdirData.size() && m_sampData.size() && m_metaData;}
     bool _attemptLoad(AudioGroupFilePresenter* presenter);
+    
+    void enable(AudioGroupFilePresenter* presenter);
+    void disable(AudioGroupFilePresenter* presenter);
 };
 
 template <class T>
@@ -90,12 +93,14 @@ struct AudioGroupCollection
     NSURL* m_url;
     
     AudioGroupCollectionToken* m_token;
-    std::map<std::string, AudioGroupDataCollection> m_groups;
-    std::experimental::optional<IteratorTracker<AudioGroupDataCollection>> m_iteratorTracker;
+    std::map<std::string, std::unique_ptr<AudioGroupDataCollection>> m_groups;
+    std::vector<std::map<std::string, std::unique_ptr<AudioGroupDataCollection>>::iterator> m_filterGroups;
+    //std::experimental::optional<IteratorTracker<std::unique_ptr<AudioGroupDataCollection>>> m_iteratorTracker;
     
     AudioGroupCollection(NSURL* url);
     void addCollection(std::vector<std::pair<std::string, amuse::IntrusiveAudioGroupData>>&& collection);
     void update(AudioGroupFilePresenter* presenter);
+    bool doSearch(const std::string& str);
 };
 
 @interface AudioGroupDataToken : NSObject
@@ -118,14 +123,18 @@ struct AudioGroupCollection
 {
     NSURL* m_groupURL;
     NSOperationQueue* m_dataQueue;
-    std::map<std::string, AudioGroupCollection> m_audioGroupCollections;
+    std::map<std::string, std::unique_ptr<AudioGroupCollection>> m_audioGroupCollections;
+    std::vector<std::map<std::string, std::unique_ptr<AudioGroupCollection>>::iterator> m_filterAudioGroupCollections;
     NSOutlineView* lastOutlineView;
+    NSString* searchStr;
     
-    std::experimental::optional<IteratorTracker<AudioGroupCollection>> m_iteratorTracker;
+    //std::experimental::optional<IteratorTracker<std::unique_ptr<AudioGroupCollection>>> m_iteratorTracker;
 }
 - (BOOL)addCollectionName:(std::string&&)name items:(std::vector<std::pair<std::string, amuse::IntrusiveAudioGroupData>>&&)collection;
 - (void)update;
 - (void)resetIterators;
+- (void)setSearchFilter:(NSString*)str;
+- (void)removeSelectedItem;
 @end
 
 #endif // __AMUSE_AUDIOUNIT_AUDIOGROUPFILEPRESENTER_HPP__

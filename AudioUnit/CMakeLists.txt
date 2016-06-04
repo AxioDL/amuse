@@ -48,7 +48,7 @@ if (APPLE AND (NOT CMAKE_OSX_DEPLOYMENT_TARGET OR CMAKE_OSX_DEPLOYMENT_TARGET VE
         ${CMAKE_CURRENT_SOURCE_DIR}/AmuseContainerMainMenu.xib
         DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/AmuseContainerMainMenu.xib
       )
-      add_executable(amuse-au-container MACOSX_BUNDLE AmuseContainingApp.mm
+      add_executable(amuse-au-container MACOSX_BUNDLE AmuseContainingApp.hpp AmuseContainingApp.mm
                      AudioUnitBackend.hpp AudioUnitBackend.mm
                      AudioUnitViewController.hpp AudioUnitViewController.mm
                      AudioGroupFilePresenter.hpp AudioGroupFilePresenter.mm

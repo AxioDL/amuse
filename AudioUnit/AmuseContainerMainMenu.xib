@@ -19,6 +19,8 @@
                 <outlet property="dataOutline" destination="Vlv-Jw-A4U" id="Ggn-DC-cUY"/>
                 <outlet property="dataSearchField" destination="Huk-pR-ayq" id="MbL-0b-KGw"/>
                 <outlet property="mainWindow" destination="FDh-Mc-OFY" id="CQQ-Dm-Kv3"/>
+                <outlet property="removeDataButton" destination="eh8-gl-WoS" id="U9P-dt-tN5"/>
+                <outlet property="removeDataMenu" destination="pa3-QI-u2k" id="xnq-of-WvG"/>
                 <outlet property="samplesTable" destination="Frt-wZ-1ZI" id="riC-O4-JXo"/>
                 <outlet property="sfxTable" destination="4nw-rf-Dh4" id="ebY-ro-tqk"/>
             </connections>
@@ -78,12 +80,15 @@
                 </menuItem>
                 <menuItem title="Edit" id="5QF-Oa-p0T">
                     <modifierMask key="keyEquivalentModifierMask"/>
-                    <menu key="submenu" title="Edit" id="W48-6f-4Dl">
+                    <menu key="submenu" title="Edit" autoenablesItems="NO" id="W48-6f-4Dl">
                         <items>
-                            <menuItem title="Delete" id="pa3-QI-u2k">
+                            <menuItem title="Delete" enabled="NO" id="pa3-QI-u2k">
+                                <string key="keyEquivalent" base64-UTF8="YES">
+CA
+</string>
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="delete:" target="-1" id="0Mk-Ml-PaM"/>
+                                    <action selector="removeDataItem:" target="Y3H-Qy-a7C" id="aAl-Ko-LrT"/>
                                 </connections>
                             </menuItem>
                             <menuItem title="Select All" keyEquivalent="a" id="Ruw-6m-B2m">
@@ -182,10 +187,13 @@
                                             <constraints>
                                                 <constraint firstAttribute="width" constant="31" id="HLy-Rb-n4I"/>
                                             </constraints>
-                                            <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="NSRemoveTemplate" imagePosition="overlaps" alignment="center" lineBreakMode="truncatingTail" state="on" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="edx-l4-aHD">
+                                            <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="NSRemoveTemplate" imagePosition="overlaps" alignment="center" lineBreakMode="truncatingTail" enabled="NO" state="on" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="edx-l4-aHD">
                                                 <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
+                                            <connections>
+                                                <action selector="removeDataItem:" target="Y3H-Qy-a7C" id="hau-zt-Ozz"/>
+                                            </connections>
                                         </button>
                                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="mpK-AK-Otf">
                                             <rect key="frame" x="58" y="-1" width="486" height="32"/>
@@ -213,7 +221,7 @@
                                                                     <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
                                                                     <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
                                                                 </tableHeaderCell>
-                                                                <buttonCell key="dataCell" type="check" title="CollectionTitle" bezelStyle="regularSquare" imagePosition="left" alignment="left" lineBreakMode="truncatingTail" inset="2" id="Lpp-wh-qX7">
+                                                                <buttonCell key="dataCell" type="check" title="CollectionTitle" bezelStyle="regularSquare" imagePosition="left" alignment="left" lineBreakMode="truncatingTail" allowsMixedState="YES" inset="2" id="Lpp-wh-qX7">
                                                                     <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                                     <font key="font" metaFont="system"/>
                                                                 </buttonCell>
@@ -255,11 +263,14 @@
                                             <constraints>
                                                 <constraint firstAttribute="height" constant="22" id="uJy-eO-Y8o"/>
                                             </constraints>
-                                            <searchFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" borderStyle="bezel" usesSingleLineMode="YES" bezelStyle="round" id="u9E-Ld-d6I">
+                                            <searchFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" borderStyle="bezel" usesSingleLineMode="YES" bezelStyle="round" sendsSearchStringImmediately="YES" id="u9E-Ld-d6I">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                             </searchFieldCell>
+                                            <connections>
+                                                <action selector="filterDataOutline:" target="Y3H-Qy-a7C" id="D8g-Qv-0QG"/>
+                                            </connections>
                                         </searchField>
                                     </subviews>
                                     <constraints>

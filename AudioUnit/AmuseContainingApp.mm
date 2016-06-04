@@ -2,7 +2,7 @@
 #import <AudioUnit/AudioUnit.h>
 #import <CoreAudioKit/AUViewController.h>
 #import "AudioUnitViewController.hpp"
-#import "AudioGroupFilePresenter.hpp"
+#import "AmuseContainingApp.hpp"
 #include <amuse/amuse.hpp>
 
 @class DataOutlineController;
@@ -34,21 +34,19 @@
 
 @end
 
-@interface AppDelegate : NSObject <NSApplicationDelegate>
+
+@implementation DataOutlineView
+- (id)initWithFrame:(NSRect)frameRect
 {
-    IBOutlet NSWindow* mainWindow;
-    IBOutlet NSOutlineView* dataOutline;
-    IBOutlet NSSearchField* dataSearchField;
-    IBOutlet NSTableView* sfxTable;
-    IBOutlet NSTableView* samplesTable;
-    IBOutlet NSTextView* creditsView;
-    
-    AudioGroupFilePresenter* groupFilePresenter;
-    
-    SamplesTableController* samplesController;
-    SFXTableController* sfxController;
+    self = [super initWithFrame:frameRect];
+    [self registerForDraggedTypes:@[(__bridge NSString*)kUTTypeData]];
+    return self;
 }
-- (BOOL)importURL:(NSURL*)url;
+
+- (BOOL)performDragOperation:(id<NSDraggingInfo>)sender
+{
+    return NO;
+}
 @end
 
 @interface MainTabView : NSTabView
@@ -78,34 +76,6 @@
 }
 @end
 
-@interface DataOutlineView : NSOutlineView
-{
-    
-}
-@end
-
-@implementation DataOutlineView
-
-- (id)initWithFrame:(NSRect)frameRect
-{
-    self = [super initWithFrame:frameRect];
-    [self registerForDraggedTypes:@[(__bridge NSString*)kUTTypeData]];
-    return self;
-}
-
-- (BOOL)performDragOperation:(id<NSDraggingInfo>)sender
-{
-    
-}
-
-@end
-
-
-@interface SamplesTableController : NSObject <NSTableViewDataSource, NSTableViewDelegate>
-{
-    
-}
-@end
 
 @implementation SamplesTableController
 
@@ -121,11 +91,6 @@
 
 @end
 
-@interface SFXTableController : NSObject <NSTableViewDataSource, NSTableViewDelegate>
-{
-    
-}
-@end
 
 @implementation SFXTableController
 
@@ -197,6 +162,30 @@
             [self importURL:panel.URL];
         }
     }];
+}
+
+- (IBAction)filterDataOutline:(id)sender
+{
+    [groupFilePresenter setSearchFilter:[sender stringValue]];
+}
+
+- (IBAction)removeDataItem:(id)sender
+{
+    [groupFilePresenter removeSelectedItem];
+}
+
+- (void)outlineView:(DataOutlineView *)ov selectionChanged:(id)item
+{
+    if ([item isKindOfClass:[AudioGroupCollectionToken class]])
+    {
+        removeDataButton.enabled = TRUE;
+        removeDataMenu.enabled = TRUE;
+    }
+    else
+    {
+        removeDataButton.enabled = FALSE;
+        removeDataMenu.enabled = FALSE;
+    }
 }
 
 @end
