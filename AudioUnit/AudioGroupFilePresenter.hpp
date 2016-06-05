@@ -12,6 +12,8 @@
 @class AudioGroupFilePresenter;
 @class AudioGroupDataToken;
 @class AudioGroupCollectionToken;
+@class AudioGroupSFXToken;
+@class AudioGroupSampleToken;
 
 struct AudioGroupDataCollection
 {
@@ -42,7 +44,7 @@ struct AudioGroupDataCollection
     std::experimental::optional<MetaData> m_metaData;
     
     std::experimental::optional<amuse::AudioGroupData> m_loadedData;
-    std::experimental::optional<amuse::AudioGroupProject> m_loadedProj;
+    const amuse::AudioGroup* m_loadedGroup;
 
     void moveURL(NSURL* oldUrl, NSURL* newUrl);
 
@@ -72,6 +74,8 @@ struct AudioGroupCollection
     void addCollection(std::vector<std::pair<std::string, amuse::IntrusiveAudioGroupData>>&& collection);
     void update(AudioGroupFilePresenter* presenter);
     bool doSearch(const std::string& str);
+    void addSFX(std::vector<AudioGroupSFXToken*>& vecOut);
+    void addSamples(std::vector<AudioGroupSampleToken*>& vecOut);
 };
 
 @interface AudioGroupDataToken : NSObject
@@ -90,6 +94,26 @@ struct AudioGroupCollection
 - (id)initWithCollection:(AudioGroupCollection*)collection;
 @end
 
+@interface AudioGroupSFXToken : NSObject
+{
+@public
+    NSAttributedString* m_name;
+    int m_loadId;
+    const amuse::SFXGroupIndex::SFXEntry* m_sfx;
+}
+- (id)initWithName:(NSAttributedString*)name loadId:(int)loadId sfx:(const amuse::SFXGroupIndex::SFXEntry*)sfx;
+@end
+
+@interface AudioGroupSampleToken : NSObject
+{
+@public
+    NSAttributedString* m_name;
+    const std::pair<amuse::AudioGroupSampleDirectory::Entry, amuse::AudioGroupSampleDirectory::ADPCMParms>* m_sample;
+}
+- (id)initWithName:(NSAttributedString*)name samp:(const std::pair<amuse::AudioGroupSampleDirectory::Entry,
+                                                   amuse::AudioGroupSampleDirectory::ADPCMParms>*)sample;
+@end
+
 @interface AudioGroupFilePresenter : NSObject <NSFilePresenter, NSOutlineViewDataSource, NSOutlineViewDelegate>
 {
     NSURL* m_groupURL;
@@ -98,6 +122,10 @@ struct AudioGroupCollection
     std::vector<std::map<std::string, std::unique_ptr<AudioGroupCollection>>::iterator> m_filterAudioGroupCollections;
     NSOutlineView* lastOutlineView;
     NSString* searchStr;
+    
+@public
+    std::vector<AudioGroupSFXToken*> m_sfxTableData;
+    std::vector<AudioGroupSampleToken*> m_sampleTableData;
 }
 - (BOOL)addCollectionName:(std::string&&)name items:(std::vector<std::pair<std::string, amuse::IntrusiveAudioGroupData>>&&)collection;
 - (void)update;

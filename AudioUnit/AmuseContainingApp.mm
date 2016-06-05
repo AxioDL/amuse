@@ -9,11 +9,25 @@
 @class SamplesTableController;
 @class SFXTableController;
 
-/* Blocks mousedown events */
+/* Blocks mousedown events (so button may be used as a visual element only) */
 @interface InactiveButton : NSButton {}
 @end
 @implementation InactiveButton
 - (void)mouseDown:(NSEvent *)theEvent {}
+@end
+
+/* Restricts mousedown to checkbox */
+@interface RestrictedCheckButton : NSButtonCell {}
+@end
+@implementation RestrictedCheckButton
+- (NSCellHitResult)hitTestForEvent:(NSEvent *)event inRect:(NSRect)cellFrame ofView:(NSView *)controlView
+{
+    NSRect restrictFrame = cellFrame;
+    restrictFrame.size.width = 22;
+    if (NSPointInRect([controlView convertPoint:[event locationInWindow] fromView:nil], restrictFrame))
+        return NSCellHitTrackableArea;
+    return NSCellHitNone;
+}
 @end
 
 @interface MainView : NSView
@@ -89,12 +103,49 @@
 
 - (NSInteger)numberOfRowsInTableView:(NSTableView*)tableView
 {
-    
+    return presenter->m_sampleTableData.size();
 }
 
-- (nullable id)tableView:(NSTableView *)tableView objectValueForTableColumn:(nullable NSTableColumn*)tableColumn row:(NSInteger)row
+- (NSView*)tableView:(NSTableView *)tableView viewForTableColumn:(nullable NSTableColumn *)tableColumn row:(NSInteger)row
 {
-    
+    if (presenter->m_sampleTableData.size() <= row)
+        return nil;
+    NSTableCellView* view = [tableView makeViewWithIdentifier:@"SampleIDColumn" owner:self];
+    AudioGroupSampleToken* sampToken = presenter->m_sampleTableData[row];
+    if ([tableColumn.identifier isEqualToString:@"SampleIDColumn"])
+        view.textField.attributedStringValue = sampToken->m_name;
+    else if ([tableColumn.identifier isEqualToString:@"SampleDetailsColumn"])
+        view.textField.stringValue = @"";
+    else
+        view.textField.attributedStringValue = sampToken->m_name;
+    return view;
+}
+
+- (BOOL)tableView:(NSTableView *)tableView isGroupRow:(NSInteger)row
+{
+    if (presenter->m_sampleTableData.size() <= row)
+        return NO;
+    AudioGroupSampleToken* sampToken = presenter->m_sampleTableData[row];
+    if (!sampToken->m_sample)
+        return YES;
+    return NO;
+}
+
+- (BOOL)tableView:(NSTableView *)tableView shouldSelectRow:(NSInteger)row
+{
+    if (presenter->m_sampleTableData.size() <= row)
+        return NO;
+    AudioGroupSampleToken* sampToken = presenter->m_sampleTableData[row];
+    if (!sampToken->m_sample)
+        return NO;
+    return YES;
+}
+
+- (id)initWithAudioGroupPresenter:(AudioGroupFilePresenter*)present
+{
+    self = [super init];
+    presenter = present;
+    return self;
 }
 
 @end
@@ -104,11 +155,60 @@
 
 - (NSInteger)numberOfRowsInTableView:(NSTableView*)tableView
 {
+    return presenter->m_sfxTableData.size();
 }
 
-- (nullable id)tableView:(NSTableView *)tableView objectValueForTableColumn:(nullable NSTableColumn*)tableColumn row:(NSInteger)row
+- (NSView*)tableView:(NSTableView *)tableView viewForTableColumn:(nullable NSTableColumn *)tableColumn row:(NSInteger)row
 {
-    
+    if (presenter->m_sfxTableData.size() <= row)
+        return nil;
+    NSTableCellView* view = [tableView makeViewWithIdentifier:@"SFXIDColumn" owner:self];
+    AudioGroupSFXToken* sfxToken = presenter->m_sfxTableData[row];
+    if ([tableColumn.identifier isEqualToString:@"SFXIDColumn"])
+        view.textField.attributedStringValue = sfxToken->m_name;
+    else if ([tableColumn.identifier isEqualToString:@"SFXDetailsColumn"])
+        view.textField.stringValue = @"";
+    else
+        view.textField.attributedStringValue = sfxToken->m_name;
+    return view;
+}
+
+- (BOOL)tableView:(NSTableView *)tableView isGroupRow:(NSInteger)row
+{
+    if (presenter->m_sfxTableData.size() <= row)
+        return NO;
+    AudioGroupSFXToken* sfxToken = presenter->m_sfxTableData[row];
+    if (!sfxToken->m_sfx)
+        return YES;
+    return NO;
+}
+
+- (BOOL)tableView:(NSTableView *)tableView shouldSelectRow:(NSInteger)row
+{
+    if (presenter->m_sfxTableData.size() <= row)
+        return NO;
+    AudioGroupSFXToken* sfxToken = presenter->m_sfxTableData[row];
+    if (!sfxToken->m_sfx)
+        return NO;
+    return YES;
+}
+
+- (void)tableViewSelectionDidChange:(NSNotification *)notification
+{
+    NSTableView* table = notification.object;
+    NSInteger row = table.selectedRow;
+    if (presenter->m_sfxTableData.size() <= row)
+        return;
+    AudioGroupSFXToken* sfxToken = presenter->m_sfxTableData[row];
+    AppDelegate* delegate = NSApp.delegate;
+    [delegate startSFX:sfxToken->m_loadId];
+}
+
+- (id)initWithAudioGroupPresenter:(AudioGroupFilePresenter*)present
+{
+    self = [super init];
+    presenter = present;
+    return self;
 }
 
 @end
@@ -117,7 +217,10 @@
 
 - (void)applicationWillFinishLaunching:(NSNotification*)notification
 {
-    [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"NSConstraintBasedLayoutVisualizeMutuallyExclusiveConstraints"];
+    booEngine = boo::NewAudioVoiceEngine();
+    amuseAllocator.emplace(*booEngine);
+    amuseEngine.emplace(*amuseAllocator);
+    
     [mainWindow.toolbar setSelectedItemIdentifier:@"DataTab"];
     
     groupFilePresenter = [AudioGroupFilePresenter new];
@@ -126,15 +229,22 @@
     dataOutline.delegate = groupFilePresenter;
     [dataOutline reloadItem:nil reloadChildren:YES];
     
-    samplesController = [SamplesTableController new];
+    samplesController = [[SamplesTableController alloc] initWithAudioGroupPresenter:groupFilePresenter];
     samplesTable.dataSource = samplesController;
     samplesTable.delegate = samplesController;
     [samplesTable reloadData];
     
-    sfxController = [SFXTableController new];
+    sfxController = [[SFXTableController alloc] initWithAudioGroupPresenter:groupFilePresenter];
     sfxTable.dataSource = sfxController;
     sfxTable.delegate = sfxController;
     [sfxTable reloadData];
+    
+    [NSTimer scheduledTimerWithTimeInterval:1.0 / 60.0 target:self selector:@selector(pumpTimer:) userInfo:nil repeats:YES];
+}
+
+- (void)pumpTimer:(NSTimer*)timer
+{
+    amuseEngine->pumpEngine();
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender
@@ -172,6 +282,23 @@
             [self importURL:panel.URL];
         }
     }];
+}
+
+- (void)startSFX:(int)sfxId
+{
+    if (activeSFXVox)
+        activeSFXVox->keyOff();
+    activeSFXVox = amuseEngine->fxStart(sfxId, 1.f, 0.f);
+}
+
+- (void)startSample:(int)sampleId
+{
+}
+
+- (void)reloadTables
+{
+    [sfxTable reloadData];
+    [samplesTable reloadData];
 }
 
 - (IBAction)filterDataOutline:(id)sender

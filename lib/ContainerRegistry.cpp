@@ -1293,7 +1293,7 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadRS2(FILE
                 if (head.projLen && head.poolLen && head.sdirLen && head.sampLen)
                 {
                     char name[128];
-                    snprintf(name, 128, "GroupFile%u", j);
+                    snprintf(name, 128, "GroupFile%02u", j);
                     ret.emplace_back(name, IntrusiveAudioGroupData{proj.release(), head.projLen, pool.release(), head.poolLen,
                                                                    sdir.release(), head.sdirLen, samp.release(), head.sampLen, GCNDataTag{}});
                 }
@@ -1353,7 +1353,7 @@ static std::vector<std::pair<std::string, ContainerRegistry::SongData>> LoadRS2S
                     sonHead.swapBig();
 
                     char name[128];
-                    snprintf(name, 128, "GroupFile%u-%u", j, s);
+                    snprintf(name, 128, "GroupFile%02u-%u", j, s);
                     std::unique_ptr<uint8_t[]> song(new uint8_t[sonHead.length]);
                     memcpy(song.get(), audData.get() + sonHead.offset, sonHead.length);
                     ret.emplace_back(name, ContainerRegistry::SongData(std::move(song), sonHead.length,
@@ -1466,7 +1466,7 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadRS3(FILE
                 if (head.projLen && head.poolLen && head.sdirLen && head.sampLen)
                 {
                     char name[128];
-                    snprintf(name, 128, "GroupFile%u", j);
+                    snprintf(name, 128, "GroupFile%02u", j);
                     ret.emplace_back(name, IntrusiveAudioGroupData{proj.release(), head.projLen, pool.release(), head.poolLen,
                                                                    sdir.release(), head.sdirLen, samp.release(), head.sampLen, GCNDataTag{}});
                 }

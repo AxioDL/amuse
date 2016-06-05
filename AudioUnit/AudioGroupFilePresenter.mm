@@ -28,6 +28,28 @@ static std::string StrToLower(const std::string& str)
 }
 @end
 
+@implementation AudioGroupSFXToken
+- (id)initWithName:(NSAttributedString*)name loadId:(int)loadId sfx:(const amuse::SFXGroupIndex::SFXEntry*)sfx
+{
+    self = [super init];
+    m_name = name;
+    m_loadId = loadId;
+    m_sfx = sfx;
+    return self;
+}
+@end
+
+@implementation AudioGroupSampleToken
+- (id)initWithName:(NSAttributedString*)name samp:(const std::pair<amuse::AudioGroupSampleDirectory::Entry,
+                                                   amuse::AudioGroupSampleDirectory::ADPCMParms>*)sample
+{
+    self = [super init];
+    m_name = name;
+    m_sample = sample;
+    return self;
+}
+@end
+
 @implementation AudioGroupFilePresenter
 
 - (NSURL*)presentedItemURL
@@ -130,6 +152,56 @@ bool AudioGroupCollection::doSearch(const std::string& str)
     return ret;
 }
 
+void AudioGroupCollection::addSFX(std::vector<AudioGroupSFXToken*>& vecOut)
+{
+    for (auto it = m_groups.begin() ; it != m_groups.end() ; ++it)
+    {
+        if (!it->second->m_metaData->active)
+            continue;
+        const auto& sfxGroups = it->second->m_loadedGroup->getProj().sfxGroups();
+        std::map<int, const amuse::SFXGroupIndex*> sortGroups;
+        for (const auto& pair : sfxGroups)
+            sortGroups[pair.first] = &pair.second;
+        for (const auto& pair : sortGroups)
+        {
+            NSMutableAttributedString* name = [[NSMutableAttributedString alloc] initWithString:m_url.lastPathComponent attributes:@{NSForegroundColorAttributeName: [NSColor grayColor]}];
+            [name appendAttributedString:[[NSAttributedString alloc] initWithString:[NSString stringWithFormat:@"  %s (%d)", it->first.c_str(), pair.first]]];
+            vecOut.push_back([[AudioGroupSFXToken alloc] initWithName:name loadId:0 sfx:nil]);
+            std::map<int, const amuse::SFXGroupIndex::SFXEntry*> sortSfx;
+            for (const auto& pair : pair.second->m_sfxEntries)
+                sortSfx[pair.first] = pair.second;
+            for (const auto& sfx : sortSfx)
+            {
+                name = [[NSMutableAttributedString alloc] initWithString:[NSString stringWithFormat:@"%d", sfx.first]];
+                vecOut.push_back([[AudioGroupSFXToken alloc] initWithName:name loadId:sfx.first sfx:sfx.second]);
+            }
+        }
+    }
+}
+
+void AudioGroupCollection::addSamples(std::vector<AudioGroupSampleToken*>& vecOut)
+{
+    for (auto it = m_groups.begin() ; it != m_groups.end() ; ++it)
+    {
+        if (!it->second->m_metaData->active)
+            continue;
+        const auto& samps = it->second->m_loadedGroup->getSdir().sampleEntries();
+        std::map<int, const std::pair<amuse::AudioGroupSampleDirectory::Entry, amuse::AudioGroupSampleDirectory::ADPCMParms>*> sortSamps;
+        for (const auto& pair : samps)
+            sortSamps[pair.first] = &pair.second;
+        
+        NSMutableAttributedString* name = [[NSMutableAttributedString alloc] initWithString:m_url.lastPathComponent attributes:@{NSForegroundColorAttributeName: [NSColor grayColor]}];
+        [name appendAttributedString:[[NSAttributedString alloc] initWithString:[NSString stringWithFormat:@"  %s", it->first.c_str()]]];
+        vecOut.push_back([[AudioGroupSampleToken alloc] initWithName:name samp:nil]);
+        
+        for (const auto& pair : sortSamps)
+        {
+            name = [[NSMutableAttributedString alloc] initWithString:[NSString stringWithFormat:@"%d", pair.first]];
+            vecOut.push_back([[AudioGroupSampleToken alloc] initWithName:name samp:pair.second]);
+        }
+    }
+}
+
 AudioGroupDataCollection::AudioGroupDataCollection(const std::string& name, NSURL* proj, NSURL* pool,
                                                    NSURL* sdir, NSURL* samp, NSURL* meta)
 : m_name(name), m_proj(proj), m_pool(pool), m_sdir(sdir), m_samp(samp), m_meta(meta),
@@ -137,7 +209,9 @@ AudioGroupDataCollection::AudioGroupDataCollection(const std::string& name, NSUR
 
 bool AudioGroupDataCollection::_attemptLoad(AudioGroupFilePresenter* presenter)
 {
-    if (m_metaData && m_loadedData && m_loadedProj)
+    amuse::Engine& engine = *((AppDelegate*)NSApp.delegate)->amuseEngine;
+    
+    if (m_metaData && m_loadedData && m_loadedGroup)
         return true;
     if (!loadProj(presenter))
         return false;
@@ -176,12 +250,8 @@ bool AudioGroupDataCollection::_attemptLoad(AudioGroupFilePresenter* presenter)
             break;
     }
     
-    if (m_metaData && m_loadedData)
-    {
-        m_loadedProj.emplace(amuse::AudioGroupProject::CreateAudioGroupProject(*m_loadedData));
-        return true;
-    }
-    return false;
+    m_loadedGroup = engine.addAudioGroup(*m_loadedData);
+    return m_loadedData && m_loadedGroup;
 }
 
 void AudioGroupDataCollection::enable(AudioGroupFilePresenter* presenter)
@@ -437,22 +507,22 @@ bool AudioGroupDataCollection::loadMeta(AudioGroupFilePresenter* presenter)
             return [NSNumber numberWithInt:data.m_metaData->active ? NSOnState : NSOffState];
         else if ([tableColumn.identifier isEqualToString:@"DetailsColumn"])
         {
-            if (!data.m_loadedProj)
+            if (!data.m_loadedGroup)
                 return @"";
-            if (data.m_loadedProj->songGroups().size() && data.m_loadedProj->sfxGroups().size())
+            if (data.m_loadedGroup->getProj().songGroups().size() && data.m_loadedGroup->getProj().sfxGroups().size())
                 return [NSString stringWithFormat:@"%zu Song Group%s, %zu SFX Group%s",
-                        data.m_loadedProj->songGroups().size(),
-                        data.m_loadedProj->songGroups().size() > 1 ? "s" : "",
-                        data.m_loadedProj->sfxGroups().size(),
-                        data.m_loadedProj->sfxGroups().size() > 1 ? "s" : ""];
-            else if (data.m_loadedProj->songGroups().size())
+                        data.m_loadedGroup->getProj().songGroups().size(),
+                        data.m_loadedGroup->getProj().songGroups().size() > 1 ? "s" : "",
+                        data.m_loadedGroup->getProj().sfxGroups().size(),
+                        data.m_loadedGroup->getProj().sfxGroups().size() > 1 ? "s" : ""];
+            else if (data.m_loadedGroup->getProj().songGroups().size())
                 return [NSString stringWithFormat:@"%zu Song Group%s",
-                        data.m_loadedProj->songGroups().size(),
-                        data.m_loadedProj->songGroups().size() > 1 ? "s" : ""];
-            else if (data.m_loadedProj->sfxGroups().size())
+                        data.m_loadedGroup->getProj().songGroups().size(),
+                        data.m_loadedGroup->getProj().songGroups().size() > 1 ? "s" : ""];
+            else if (data.m_loadedGroup->getProj().sfxGroups().size())
                 return [NSString stringWithFormat:@"%zu SFX Group%s",
-                        data.m_loadedProj->sfxGroups().size(),
-                        data.m_loadedProj->sfxGroups().size() > 1 ? "s" : ""];
+                        data.m_loadedGroup->getProj().sfxGroups().size(),
+                        data.m_loadedGroup->getProj().sfxGroups().size() > 1 ? "s" : ""];
             else
                 return @"";
         }
@@ -495,7 +565,7 @@ bool AudioGroupDataCollection::loadMeta(AudioGroupFilePresenter* presenter)
     }
     
     if (dirty)
-        [outlineView reloadItem:nil reloadChildren:YES];
+        [self resetIterators];
 }
 
 - (void)outlineView:(NSOutlineView *)outlineView willDisplayCell:(nonnull id)cell forTableColumn:(nullable NSTableColumn *)tableColumn item:(nonnull id)item
@@ -649,12 +719,19 @@ bool AudioGroupDataCollection::loadMeta(AudioGroupFilePresenter* presenter)
     if (searchStr)
         search = searchStr.UTF8String;
     
+    m_sfxTableData.clear();
+    m_sampleTableData.clear();
     m_filterAudioGroupCollections.clear();
     m_filterAudioGroupCollections.reserve(m_audioGroupCollections.size());
     for (auto it = m_audioGroupCollections.begin() ; it != m_audioGroupCollections.end() ; ++it)
+    {
+        it->second->addSFX(m_sfxTableData);
+        it->second->addSamples(m_sampleTableData);
         if (it->second->doSearch(search) || !searchStr || StrToLower(it->first).find(search) != std::string::npos)
             m_filterAudioGroupCollections.push_back(it);
+    }
     [lastOutlineView reloadItem:nil reloadChildren:YES];
+    [(AppDelegate*)NSApp.delegate reloadTables];
 }
 
 - (void)setSearchFilter:(NSString*)str

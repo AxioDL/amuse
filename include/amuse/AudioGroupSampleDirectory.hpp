@@ -51,6 +51,8 @@ public:
     AudioGroupSampleDirectory(const unsigned char* data, const unsigned char* sampData,
                               bool absOffs, N64DataTag);
     AudioGroupSampleDirectory(const unsigned char* data, bool absOffs, PCDataTag);
+    
+    const std::unordered_map<uint16_t, std::pair<Entry, ADPCMParms>>& sampleEntries() const {return m_entries;}
 };
 
 }
