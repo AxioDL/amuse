@@ -37,7 +37,7 @@ struct AudioGroupDataCollection
         MetaData(amuse::DataFormat fmtIn, uint32_t absOffsIn, uint32_t activeIn)
         : fmt(fmtIn), absOffs(absOffsIn), active(activeIn) {}
         MetaData(athena::io::FileReader& r)
-        : fmt(amuse::DataFormat(r.readUint32Big())), absOffs(r.readUint32Big()), active(r.readUint32Big()) {}
+        : fmt(amuse::DataFormat(r.readUint32Little())), absOffs(r.readUint32Little()), active(r.readUint32Little()) {}
     };
     std::experimental::optional<MetaData> m_metaData;
     
@@ -60,34 +60,6 @@ struct AudioGroupDataCollection
     void disable(AudioGroupFilePresenter* presenter);
 };
 
-template <class T>
-class IteratorTracker
-{
-    typename std::map<std::string, T>::const_iterator m_audioGroupOutlineBegin;
-    typename std::map<std::string, T>::const_iterator m_audioGroupOutlineEnd;
-    typename std::map<std::string, T>::const_iterator m_audioGroupOutlineIt;
-    size_t m_audioGroupOutlineIdx = 0;
-    
-public:
-    IteratorTracker(typename std::map<std::string, T>::const_iterator begin,
-                    typename std::map<std::string, T>::const_iterator end)
-    : m_audioGroupOutlineBegin(begin), m_audioGroupOutlineEnd(end), m_audioGroupOutlineIt(begin) {}
-    typename std::map<std::string, T>::const_iterator seekToIndex(size_t idx)
-    {
-        if (idx == m_audioGroupOutlineIdx)
-            return m_audioGroupOutlineIt;
-        if (idx < m_audioGroupOutlineIdx)
-        {
-            for (; idx < m_audioGroupOutlineIdx && m_audioGroupOutlineIt != m_audioGroupOutlineBegin ;
-                 --m_audioGroupOutlineIdx, --m_audioGroupOutlineIt) {}
-            return m_audioGroupOutlineIt;
-        }
-        for (; idx > m_audioGroupOutlineIdx && m_audioGroupOutlineIt != m_audioGroupOutlineEnd ;
-             ++m_audioGroupOutlineIdx, ++m_audioGroupOutlineIt) {}
-        return m_audioGroupOutlineIt;
-    }
-};
-
 struct AudioGroupCollection
 {
     NSURL* m_url;
@@ -95,7 +67,6 @@ struct AudioGroupCollection
     AudioGroupCollectionToken* m_token;
     std::map<std::string, std::unique_ptr<AudioGroupDataCollection>> m_groups;
     std::vector<std::map<std::string, std::unique_ptr<AudioGroupDataCollection>>::iterator> m_filterGroups;
-    //std::experimental::optional<IteratorTracker<std::unique_ptr<AudioGroupDataCollection>>> m_iteratorTracker;
     
     AudioGroupCollection(NSURL* url);
     void addCollection(std::vector<std::pair<std::string, amuse::IntrusiveAudioGroupData>>&& collection);
@@ -127,8 +98,6 @@ struct AudioGroupCollection
     std::vector<std::map<std::string, std::unique_ptr<AudioGroupCollection>>::iterator> m_filterAudioGroupCollections;
     NSOutlineView* lastOutlineView;
     NSString* searchStr;
-    
-    //std::experimental::optional<IteratorTracker<std::unique_ptr<AudioGroupCollection>>> m_iteratorTracker;
 }
 - (BOOL)addCollectionName:(std::string&&)name items:(std::vector<std::pair<std::string, amuse::IntrusiveAudioGroupData>>&&)collection;
 - (void)update;

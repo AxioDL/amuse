@@ -9,6 +9,13 @@
 @class SamplesTableController;
 @class SFXTableController;
 
+/* Blocks mousedown events */
+@interface InactiveButton : NSButton {}
+@end
+@implementation InactiveButton
+- (void)mouseDown:(NSEvent *)theEvent {}
+@end
+
 @interface MainView : NSView
 {
     AudioUnitViewController* amuseVC;
@@ -36,16 +43,17 @@
 
 
 @implementation DataOutlineView
+- (id)initWithCoder:(NSCoder *)coder
+{
+    self = [super initWithCoder:coder];
+    [self registerForDraggedTypes:@[NSURLPboardType]];
+    return self;
+}
 - (id)initWithFrame:(NSRect)frameRect
 {
     self = [super initWithFrame:frameRect];
-    [self registerForDraggedTypes:@[(__bridge NSString*)kUTTypeData]];
+    [self registerForDraggedTypes:@[NSURLPboardType]];
     return self;
-}
-
-- (BOOL)performDragOperation:(id<NSDraggingInfo>)sender
-{
-    return NO;
 }
 @end
 
@@ -107,7 +115,7 @@
 
 @implementation AppDelegate
 
-- (void)applicationDidFinishLaunching:(NSNotification*)notification
+- (void)applicationWillFinishLaunching:(NSNotification*)notification
 {
     [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"NSConstraintBasedLayoutVisualizeMutuallyExclusiveConstraints"];
     [mainWindow.toolbar setSelectedItemIdentifier:@"DataTab"];
@@ -150,6 +158,8 @@
     }
     
     std::string name(amuse::ContainerRegistry::TypeToName(containerType));
+    if (containerType == amuse::ContainerRegistry::Type::Raw4)
+        name = url.URLByDeletingPathExtension.lastPathComponent.UTF8String;
     return [groupFilePresenter addCollectionName:std::move(name) items:std::move(data)];
 }
 
@@ -186,6 +196,12 @@
         removeDataButton.enabled = FALSE;
         removeDataMenu.enabled = FALSE;
     }
+}
+
+- (BOOL)application:(NSApplication *)sender openFile:(NSString *)filename
+{
+    NSURL* url = [NSURL fileURLWithPath:filename isDirectory:NO];
+    return [self importURL:url];
 }
 
 @end

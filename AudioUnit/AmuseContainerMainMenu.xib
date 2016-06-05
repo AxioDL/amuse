@@ -91,11 +91,6 @@ CA
                                     <action selector="removeDataItem:" target="Y3H-Qy-a7C" id="aAl-Ko-LrT"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Select All" keyEquivalent="a" id="Ruw-6m-B2m">
-                                <connections>
-                                    <action selector="selectAll:" target="-1" id="VNm-Mi-diN"/>
-                                </connections>
-                            </menuItem>
                         </items>
                     </menu>
                 </menuItem>
@@ -195,9 +190,9 @@ CA
                                                 <action selector="removeDataItem:" target="Y3H-Qy-a7C" id="hau-zt-Ozz"/>
                                             </connections>
                                         </button>
-                                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="mpK-AK-Otf">
+                                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="mpK-AK-Otf" customClass="InactiveButton">
                                             <rect key="frame" x="58" y="-1" width="486" height="32"/>
-                                            <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" imagePosition="overlaps" alignment="center" lineBreakMode="truncatingTail" refusesFirstResponder="YES" state="on" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="JwG-gw-HOj">
+                                            <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" imagePosition="overlaps" alignment="center" lineBreakMode="truncatingTail" state="on" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="JwG-gw-HOj">
                                                 <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
@@ -215,7 +210,7 @@ CA
                                                         <color key="backgroundColor" name="_sourceListBackgroundColor" catalog="System" colorSpace="catalog"/>
                                                         <color key="gridColor" name="gridColor" catalog="System" colorSpace="catalog"/>
                                                         <tableColumns>
-                                                            <tableColumn identifier="CollectionColumn" width="193" minWidth="100" maxWidth="1000" id="DlG-iE-h1a">
+                                                            <tableColumn identifier="CollectionColumn" width="300" minWidth="100" maxWidth="1000" id="DlG-iE-h1a">
                                                                 <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" title="Collection">
                                                                     <font key="font" metaFont="smallSystem"/>
                                                                     <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
@@ -227,7 +222,7 @@ CA
                                                                 </buttonCell>
                                                                 <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
                                                             </tableColumn>
-                                                            <tableColumn identifier="DetailsColumn" width="343" minWidth="40" maxWidth="1000" id="alh-ut-BoX">
+                                                            <tableColumn identifier="DetailsColumn" width="236" minWidth="40" maxWidth="1000" id="alh-ut-BoX">
                                                                 <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" title="Details">
                                                                     <font key="font" metaFont="smallSystem"/>
                                                                     <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
@@ -258,8 +253,8 @@ CA
                                                 <autoresizingMask key="autoresizingMask"/>
                                             </tableHeaderView>
                                         </scrollView>
-                                        <searchField wantsLayer="YES" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Huk-pR-ayq">
-                                            <rect key="frame" x="65" y="4" width="474" height="22"/>
+                                        <searchField wantsLayer="YES" verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Huk-pR-ayq">
+                                            <rect key="frame" x="64" y="3" width="476" height="22"/>
                                             <constraints>
                                                 <constraint firstAttribute="height" constant="22" id="uJy-eO-Y8o"/>
                                             </constraints>

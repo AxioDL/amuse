@@ -6,6 +6,10 @@
   <string>@APPLE_TEAM_ID@.@APPLE_BUNDLE_ID@</string>
   <key>com.apple.developer.team-identifier</key>
   <string>@APPLE_TEAM_ID@</string>
+  <key>com.apple.security.app-sandbox</key>
+  <true/>
+  <key>com.apple.security.files.user-selected.read-only</key>
+  <true/>
   <key>com.apple.security.application-groups</key>
   <array>
     <string>group.io.github.axiodl.Amuse.AudioGroups</string>

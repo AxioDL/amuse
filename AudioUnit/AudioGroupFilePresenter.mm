@@ -137,7 +137,7 @@ AudioGroupDataCollection::AudioGroupDataCollection(const std::string& name, NSUR
 
 bool AudioGroupDataCollection::_attemptLoad(AudioGroupFilePresenter* presenter)
 {
-    if (m_metaData && m_loadedProj)
+    if (m_metaData && m_loadedData && m_loadedProj)
         return true;
     if (!loadProj(presenter))
         return false;
@@ -176,7 +176,7 @@ bool AudioGroupDataCollection::_attemptLoad(AudioGroupFilePresenter* presenter)
             break;
     }
     
-    if (m_metaData && m_loadedProj)
+    if (m_metaData && m_loadedData)
     {
         m_loadedProj.emplace(amuse::AudioGroupProject::CreateAudioGroupProject(*m_loadedData));
         return true;
@@ -426,7 +426,9 @@ bool AudioGroupDataCollection::loadMeta(AudioGroupFilePresenter* presenter)
                 return [NSNumber numberWithInt:NSMixedState];
         }
         else if ([tableColumn.identifier isEqualToString:@"DetailsColumn"])
-            return [NSString stringWithFormat:@"%" PRISize " groups", collection.m_groups.size()];
+            return [NSString stringWithFormat:@"%zu Audio Group%s",
+                    collection.m_groups.size(),
+                    collection.m_groups.size() > 1 ? "s" : ""];
     }
     else if ([item isKindOfClass:[AudioGroupDataToken class]])
     {
@@ -437,8 +439,22 @@ bool AudioGroupDataCollection::loadMeta(AudioGroupFilePresenter* presenter)
         {
             if (!data.m_loadedProj)
                 return @"";
-            return [NSString stringWithFormat:@"%zu SongGroups, %zu SFXGroups",
-                    data.m_loadedProj->songGroups().size(), data.m_loadedProj->sfxGroups().size()];
+            if (data.m_loadedProj->songGroups().size() && data.m_loadedProj->sfxGroups().size())
+                return [NSString stringWithFormat:@"%zu Song Group%s, %zu SFX Group%s",
+                        data.m_loadedProj->songGroups().size(),
+                        data.m_loadedProj->songGroups().size() > 1 ? "s" : "",
+                        data.m_loadedProj->sfxGroups().size(),
+                        data.m_loadedProj->sfxGroups().size() > 1 ? "s" : ""];
+            else if (data.m_loadedProj->songGroups().size())
+                return [NSString stringWithFormat:@"%zu Song Group%s",
+                        data.m_loadedProj->songGroups().size(),
+                        data.m_loadedProj->songGroups().size() > 1 ? "s" : ""];
+            else if (data.m_loadedProj->sfxGroups().size())
+                return [NSString stringWithFormat:@"%zu SFX Group%s",
+                        data.m_loadedProj->sfxGroups().size(),
+                        data.m_loadedProj->sfxGroups().size() > 1 ? "s" : ""];
+            else
+                return @"";
         }
     }
     
@@ -505,6 +521,27 @@ bool AudioGroupDataCollection::loadMeta(AudioGroupFilePresenter* presenter)
     [(AppDelegate*)NSApp.delegate outlineView:ov selectionChanged:item];
 }
 
+- (NSDragOperation)outlineView:(NSOutlineView *)outlineView validateDrop:(id<NSDraggingInfo>)info proposedItem:(id)item proposedChildIndex:(NSInteger)index
+{
+    [outlineView setDropItem:nil dropChildIndex:NSOutlineViewDropOnItemIndex];
+    NSPasteboard* pboard = [info draggingPasteboard];
+    if ([[pboard types] containsObject:NSURLPboardType])
+        return NSDragOperationCopy;
+    return NSDragOperationNone;
+}
+
+- (BOOL)outlineView:(NSOutlineView *)outlineView acceptDrop:(id<NSDraggingInfo>)info item:(id)item childIndex:(NSInteger)index
+{
+    NSPasteboard* pboard = [info draggingPasteboard];
+    if ([[pboard types] containsObject:NSURLPboardType])
+    {
+        NSURL* url = [NSURL URLFromPasteboard:pboard];
+        [(AppDelegate*)NSApp.delegate importURL:url];
+        return YES;
+    }
+    return NO;
+}
+
 - (BOOL)addCollectionName:(std::string&&)name items:(std::vector<std::pair<std::string, amuse::IntrusiveAudioGroupData>>&&)collection
 {
     NSFileCoordinator* coord = [[NSFileCoordinator alloc] initWithFilePresenter:self];
@@ -560,6 +597,7 @@ bool AudioGroupDataCollection::loadMeta(AudioGroupFilePresenter* presenter)
         }
     }];
     
+    [self resetIterators];
     return true;
 }
 
@@ -627,7 +665,18 @@ bool AudioGroupDataCollection::loadMeta(AudioGroupFilePresenter* presenter)
 
 - (void)removeSelectedItem
 {
-
+    id item = [lastOutlineView itemAtRow:lastOutlineView.selectedRow];
+    if ([item isKindOfClass:[AudioGroupCollectionToken class]])
+    {
+        AudioGroupCollection& collection = *((AudioGroupCollectionToken*)item)->m_collection;
+        NSURL* collectionURL = collection.m_url;
+        NSString* lastComp = collectionURL.lastPathComponent;
+        m_audioGroupCollections.erase(lastComp.UTF8String);
+        [self resetIterators];
+        [[NSFileManager defaultManager] removeItemAtURL:collectionURL error:nil];
+        if (m_audioGroupCollections.empty())
+            [(AppDelegate*)NSApp.delegate outlineView:(DataOutlineView*)lastOutlineView selectionChanged:nil];
+    }
 }
 
 - (id)init

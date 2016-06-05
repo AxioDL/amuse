@@ -49,17 +49,17 @@ const char* ContainerRegistry::TypeToName(Type tp)
     case Type::MetroidPrime2:
         return "Metroid Prime 2 (GCN)";
     case Type::RogueSquadronPC:
-        return "Star Wars: Rogue Squadron (PC)";
+        return "Star Wars - Rogue Squadron (PC)";
     case Type::RogueSquadronN64:
-        return "Star Wars: Rogue Squadron (N64)";
+        return "Star Wars - Rogue Squadron (N64)";
     case Type::BattleForNabooPC:
-        return "Star Wars Episode I: Battle for Naboo (PC)";
+        return "Star Wars Episode I - Battle for Naboo (PC)";
     case Type::BattleForNabooN64:
-        return "Star Wars Episode I: Battle for Naboo (N64)";
+        return "Star Wars Episode I - Battle for Naboo (N64)";
     case Type::RogueSquadron2:
-        return "Star Wars: Rogue Squadron 2 (GCN)";
+        return "Star Wars - Rogue Squadron 2 (GCN)";
     case Type::RogueSquadron3:
-        return "Star Wars: Rogue Squadron 3 (GCN)";
+        return "Star Wars - Rogue Squadron 3 (GCN)";
     }
 }
 
@@ -536,23 +536,26 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadMP2(FILE
                         uint32_t sampSz;
                         fread(&sampSz, 1, 4, fp);
                         sampSz = SBig(sampSz);
+                        
+                        if (projSz && poolSz && sdirSz && sampSz)
+                        {
+                            std::unique_ptr<uint8_t[]> pool(new uint8_t[poolSz]);
+                            fread(pool.get(), 1, poolSz, fp);
 
-                        std::unique_ptr<uint8_t[]> pool(new uint8_t[poolSz]);
-                        fread(pool.get(), 1, poolSz, fp);
+                            std::unique_ptr<uint8_t[]> proj(new uint8_t[projSz]);
+                            fread(proj.get(), 1, projSz, fp);
 
-                        std::unique_ptr<uint8_t[]> proj(new uint8_t[projSz]);
-                        fread(proj.get(), 1, projSz, fp);
+                            std::unique_ptr<uint8_t[]> sdir(new uint8_t[sdirSz]);
+                            fread(sdir.get(), 1, sdirSz, fp);
 
-                        std::unique_ptr<uint8_t[]> sdir(new uint8_t[sdirSz]);
-                        fread(sdir.get(), 1, sdirSz, fp);
+                            std::unique_ptr<uint8_t[]> samp(new uint8_t[sampSz]);
+                            fread(samp.get(), 1, sampSz, fp);
 
-                        std::unique_ptr<uint8_t[]> samp(new uint8_t[sampSz]);
-                        fread(samp.get(), 1, sampSz, fp);
-
-                        ret.emplace_back(std::move(name), IntrusiveAudioGroupData{proj.release(), projSz,
-                                                                                  pool.release(), poolSz,
-                                                                                  sdir.release(), sdirSz,
-                                                                                  samp.release(), sampSz, GCNDataTag{}});
+                            ret.emplace_back(std::move(name), IntrusiveAudioGroupData{proj.release(), projSz,
+                                                                                      pool.release(), poolSz,
+                                                                                      sdir.release(), sdirSz,
+                                                                                      samp.release(), sampSz, GCNDataTag{}});
+                        }
                     }
                 }
                 FSeek(fp, origPos, SEEK_SET);
@@ -1287,10 +1290,13 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadRS2(FILE
                 std::unique_ptr<uint8_t[]> samp(new uint8_t[head.sampLen]);
                 memcpy(samp.get(), audData.get() + head.sampOff, head.sampLen);
 
-                char name[128];
-                snprintf(name, 128, "GroupFile%u", j);
-                ret.emplace_back(name, IntrusiveAudioGroupData{proj.release(), head.projLen, pool.release(), head.poolLen,
-                                                               sdir.release(), head.sdirLen, samp.release(), head.sampLen, GCNDataTag{}});
+                if (head.projLen && head.poolLen && head.sdirLen && head.sampLen)
+                {
+                    char name[128];
+                    snprintf(name, 128, "GroupFile%u", j);
+                    ret.emplace_back(name, IntrusiveAudioGroupData{proj.release(), head.projLen, pool.release(), head.poolLen,
+                                                                   sdir.release(), head.sdirLen, samp.release(), head.sampLen, GCNDataTag{}});
+                }
             }
 
             break;
@@ -1457,10 +1463,13 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadRS3(FILE
                 std::unique_ptr<uint8_t[]> samp(new uint8_t[head.sampLen]);
                 memcpy(samp.get(), audData.get() + head.sampOff, head.sampLen);
 
-                char name[128];
-                snprintf(name, 128, "GroupFile%u", j);
-                ret.emplace_back(name, IntrusiveAudioGroupData{proj.release(), head.projLen, pool.release(), head.poolLen,
-                                                               sdir.release(), head.sdirLen, samp.release(), head.sampLen, GCNDataTag{}});
+                if (head.projLen && head.poolLen && head.sdirLen && head.sampLen)
+                {
+                    char name[128];
+                    snprintf(name, 128, "GroupFile%u", j);
+                    ret.emplace_back(name, IntrusiveAudioGroupData{proj.release(), head.projLen, pool.release(), head.poolLen,
+                                                                   sdir.release(), head.sdirLen, samp.release(), head.sampLen, GCNDataTag{}});
+                }
             }
 
             break;
