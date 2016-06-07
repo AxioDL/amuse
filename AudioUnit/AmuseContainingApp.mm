@@ -30,32 +30,6 @@
 }
 @end
 
-@interface MainView : NSView
-{
-    AudioUnitViewController* amuseVC;
-}
-@end
-
-@implementation MainView
-
-- (id)initWithFrame:(NSRect)frameRect
-{
-    self = [super initWithFrame:frameRect];
-    if (!self)
-        return nil;
-    amuseVC = [[AudioUnitViewController alloc] initWithNibName:nil bundle:nil];
-    [self addSubview:amuseVC.view];
-    return self;
-}
-
-- (BOOL)translatesAutoresizingMaskIntoConstraints
-{
-    return NO;
-}
-
-@end
-
-
 @implementation DataOutlineView
 - (id)initWithCoder:(NSCoder *)coder
 {
@@ -200,7 +174,7 @@
     if (presenter->m_sfxTableData.size() <= row)
         return;
     AudioGroupSFXToken* sfxToken = presenter->m_sfxTableData[row];
-    AppDelegate* delegate = NSApp.delegate;
+    AppDelegate* delegate = (AppDelegate*)NSApp.delegate;
     [delegate startSFX:sfxToken->m_loadId];
 }
 
@@ -223,7 +197,7 @@
     
     [mainWindow.toolbar setSelectedItemIdentifier:@"DataTab"];
     
-    groupFilePresenter = [AudioGroupFilePresenter new];
+    groupFilePresenter = [[AudioGroupFilePresenter alloc] initWithAudioGroupClient:self];
     
     dataOutline.dataSource = groupFilePresenter;
     dataOutline.delegate = groupFilePresenter;
@@ -329,6 +303,11 @@
 {
     NSURL* url = [NSURL fileURLWithPath:filename isDirectory:NO];
     return [self importURL:url];
+}
+
+- (amuse::Engine&)getAmuseEngine
+{
+    return *amuseEngine;
 }
 
 @end

@@ -16,23 +16,16 @@
 #include "amuse/IBackendVoice.hpp"
 #include "amuse/IBackendSubmix.hpp"
 #include "amuse/IBackendVoiceAllocator.hpp"
+#import "AudioGroupFilePresenter.hpp"
+
+@class AudioUnitViewController;
 
 namespace amuse
 {
 
-/** Backend MIDI event reader for controlling sequencer with external hardware / software */
-class AudioUnitBackendMIDIReader : public BooBackendMIDIReader
-{
-    friend class AudioUnitBackendVoiceAllocator;
-public:
-    AudioUnitBackendMIDIReader(Engine& engine)
-    : BooBackendMIDIReader(engine, "AudioUnit MIDI") {}
-};
-
 /** Backend voice allocator implementation for AudioUnit mixer */
 class AudioUnitBackendVoiceAllocator : public BooBackendVoiceAllocator
 {
-    friend class AudioUnitBackendMIDIReader;
 public:
     AudioUnitBackendVoiceAllocator(boo::IAudioVoiceEngine& booEngine)
     : BooBackendVoiceAllocator(booEngine) {}
@@ -42,13 +35,20 @@ void RegisterAudioUnit();
 
 }
 
-@interface AmuseAudioUnit : AUAudioUnit
+@interface AmuseAudioUnit : AUAudioUnit <AudioGroupClient>
 {
+@public
+    AudioUnitViewController* m_viewController;
     std::unique_ptr<boo::IAudioVoiceEngine> m_booBackend;
     std::experimental::optional<amuse::AudioUnitBackendVoiceAllocator> m_voxAlloc;
     std::experimental::optional<amuse::Engine> m_engine;
+    AudioGroupFilePresenter* m_filePresenter;
+    AUAudioUnitBus* m_outBus;
     AUAudioUnitBusArray* m_outs;
 }
+- (nullable id)initWithComponentDescription:(AudioComponentDescription)componentDescription
+                                      error:(NSError * __nullable * __nonnull)outError
+                             viewController:(AudioUnitViewController* __nonnull)vc;
 @end
 
 #endif

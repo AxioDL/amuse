@@ -5,73 +5,155 @@
 #error ARC Required
 #endif
 
-@interface AudioUnitView : NSView
+@implementation GroupBrowserDelegate
+
+- (BOOL)browser:(NSBrowser *)sender isColumnValid:(NSInteger)column
 {
-    NSButton* m_fileButton;
+    if (column == 0)
+        return YES;
+    else if (column == 1)
+    {
+        AudioGroupCollectionToken* collection = [sender selectedCellInColumn:0];
+        if (collection)
+            return YES;
+    }
+    else if (column == 2)
+    {
+        AudioGroupDataToken* groupFile = [sender selectedCellInColumn:1];
+        if (groupFile)
+            return YES;
+    }
+    return NO;
 }
-- (void)clickFileButton;
-@end
 
-@implementation AudioUnitView
-
-- (id)init
+- (NSInteger)browser:(NSBrowser *)sender numberOfRowsInColumn:(NSInteger)column
 {
-    self = [super initWithFrame:NSMakeRect(0, 0, 200, 300)];
-    m_fileButton = [[NSButton alloc] initWithFrame:NSMakeRect(100, 100, 30, 10)];
-    m_fileButton.target = self;
-    m_fileButton.action = @selector(clickFileButton);
-    [self addSubview:m_fileButton];
+    if (column == 0)
+        return m_audioUnit->m_filePresenter->m_filterAudioGroupCollections.size();
+    else if (column == 1)
+    {
+        AudioGroupCollectionToken* collection = [sender selectedCellInColumn:0];
+        if (!collection)
+            return 0;
+        return collection->m_collection->m_filterGroups.size();
+    }
+    else if (column == 2)
+    {
+        AudioGroupDataToken* groupFile = [sender selectedCellInColumn:1];
+        if (!groupFile)
+            return 0;
+        const amuse::AudioGroup* audioGroupFile = groupFile->m_collection->m_loadedGroup;
+        return audioGroupFile->getProj().songGroups().size() + audioGroupFile->getProj().sfxGroups().size();
+    }
+    return 0;
+}
+
+- (NSInteger)browser:(NSBrowser *)browser numberOfChildrenOfItem:(id)item
+{
+    if (!item)
+        return m_audioUnit->m_filePresenter->m_filterAudioGroupCollections.size();
+    else if ([item isKindOfClass:[AudioGroupCollectionToken class]])
+    {
+        AudioGroupCollectionToken* collection = item;
+        return collection->m_collection->m_filterGroups.size();
+    }
+    else if ([item isKindOfClass:[AudioGroupDataToken class]])
+    {
+        AudioGroupDataToken* groupFile = item;
+        const amuse::AudioGroup* audioGroupFile = groupFile->m_collection->m_loadedGroup;
+        return audioGroupFile->getProj().songGroups().size() + audioGroupFile->getProj().sfxGroups().size();
+    }
+    else
+        return 0;
+}
+
+- (NSString *)browser:(NSBrowser *)sender titleOfColumn:(NSInteger)column
+{
+    if (column == 0)
+        return @"Collection";
+    else if (column == 1)
+        return @"File";
+    else if (column == 2)
+        return @"Group";
+    return nil;
+}
+
+- (id)browser:(NSBrowser *)browser child:(NSInteger)index ofItem:(id)item
+{
+    if (!item)
+        return m_audioUnit->m_filePresenter->m_filterAudioGroupCollections[index]->second->m_token;
+    else if ([item isKindOfClass:[AudioGroupCollectionToken class]])
+    {
+        AudioGroupCollectionToken* collection = item;
+        return collection->m_collection->m_filterGroups[index]->second->m_token;
+    }
+    else if ([item isKindOfClass:[AudioGroupDataToken class]])
+    {
+        AudioGroupDataToken* groupFile = item;
+        return groupFile->m_collection->m_groupTokens[index];
+    }
+    else
+        return 0;
+}
+
+- (BOOL)browser:(NSBrowser *)browser isLeafItem:(id)item
+{
+    if ([item isKindOfClass:[AudioGroupToken class]])
+        return YES;
+    return NO;
+}
+
+- (BOOL)browser:(NSBrowser *)browser shouldEditItem:(id)item
+{
+    return NO;
+}
+
+- (id)browser:(NSBrowser *)browser objectValueForItem:(id)item
+{
+    if ([item isKindOfClass:[AudioGroupCollectionToken class]])
+    {
+        AudioGroupCollectionToken* collection = item;
+        return collection->m_collection->m_url.lastPathComponent;
+    }
+    else if ([item isKindOfClass:[AudioGroupDataToken class]])
+    {
+        AudioGroupDataToken* groupFile = item;
+        return @(groupFile->m_collection->m_name.c_str());
+    }
+    else if ([item isKindOfClass:[AudioGroupToken class]])
+    {
+        AudioGroupToken* group = item;
+        return group->m_name;
+    }
+    return nil;
+}
+
+- (id)initWithAudioUnit:(AmuseAudioUnit*)au
+{
+    self = [super init];
+    m_audioUnit = au;
     return self;
 }
 
-- (void)clickFileButton
-{
-    NSLog(@"Click");
-}
-
 @end
 
-@interface AudioUnitViewController ()
-
-@end
-
-@implementation AudioUnitViewController {
-    AUAudioUnit *audioUnit;
-}
+@implementation AudioUnitViewController
 
 - (void) viewDidLoad {
     [super viewDidLoad];
-
-    if (!audioUnit) {
-        return;
-    }
-
+    
+    self.preferredContentSize = NSMakeSize(510, 312);
     // Get the parameter tree and add observers for any parameters that the UI needs to keep in sync with the AudioUnit
 }
 
-- (void)loadView
-{
-    self.view = [AudioUnitView new];
-}
-
-- (NSSize)preferredContentSize
-{
-    return NSMakeSize(200, 300);
-}
-
-- (NSSize)preferredMaximumSize
-{
-    return NSMakeSize(200, 300);
-}
-
-- (NSSize)preferredMinimumSize
-{
-    return NSMakeSize(200, 300);
-}
-
 - (AUAudioUnit*)createAudioUnitWithComponentDescription:(AudioComponentDescription)desc error:(NSError**)error {
-    audioUnit = [[AmuseAudioUnit alloc] initWithComponentDescription:desc error:error];
-    return audioUnit;
+    m_audioUnit = [[AmuseAudioUnit alloc] initWithComponentDescription:desc error:error viewController:self];
+    m_groupBrowserDelegate = [[GroupBrowserDelegate alloc] initWithAudioUnit:m_audioUnit];
+    dispatch_sync(dispatch_get_main_queue(), ^
+    {
+        m_groupBrowser.delegate = m_groupBrowserDelegate;
+    });
+    return m_audioUnit;
 }
 
 @end

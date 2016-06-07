@@ -2,6 +2,8 @@
 #include <athena/FileReader.hpp>
 #include <amuse/AudioGroupProject.hpp>
 #import "AmuseContainingApp.hpp"
+#import "AudioUnitBackend.hpp"
+#import "AudioUnitViewController.hpp"
 
 static std::string StrToLower(const std::string& str)
 {
@@ -50,6 +52,23 @@ static std::string StrToLower(const std::string& str)
 }
 @end
 
+@implementation AudioGroupToken
+- (id)initWithName:(NSString*)name songGroup:(const amuse::SongGroupIndex*)group
+{
+    self = [super init];
+    m_name = name;
+    m_song = group;
+    return self;
+}
+- (id)initWithName:(NSString*)name sfxGroup:(const amuse::SFXGroupIndex*)group
+{
+    self = [super init];
+    m_name = name;
+    m_sfx = group;
+    return self;
+}
+@end
+
 @implementation AudioGroupFilePresenter
 
 - (NSURL*)presentedItemURL
@@ -65,7 +84,8 @@ static std::string StrToLower(const std::string& str)
 AudioGroupCollection::AudioGroupCollection(NSURL* url)
 : m_url(url), m_token([[AudioGroupCollectionToken alloc] initWithCollection:this]) {}
 
-void AudioGroupCollection::addCollection(std::vector<std::pair<std::string, amuse::IntrusiveAudioGroupData>>&& collection)
+void AudioGroupCollection::addCollection(AudioGroupFilePresenter* presenter,
+                                         std::vector<std::pair<std::string, amuse::IntrusiveAudioGroupData>>&& collection)
 {
     for (std::pair<std::string, amuse::IntrusiveAudioGroupData>& pair : collection)
     {
@@ -98,6 +118,7 @@ void AudioGroupCollection::addCollection(std::vector<std::pair<std::string, amus
         memmove(dataCollection.m_sampData.data(), dataIn.getSamp(), dataIn.getSampSize());
         
         dataCollection.m_metaData.emplace(dataIn.getDataFormat(), dataIn.getAbsoluteProjOffsets(), true);
+        dataCollection._indexData(presenter);
     }
 }
 
@@ -145,6 +166,20 @@ bool AudioGroupCollection::doSearch(const std::string& str)
     m_filterGroups.reserve(m_groups.size());
     for (auto it = m_groups.begin() ; it != m_groups.end() ; ++it)
         if (str.empty() || StrToLower(it->first).find(str) != std::string::npos)
+        {
+            m_filterGroups.push_back(it);
+            ret = true;
+        }
+    return ret;
+}
+
+bool AudioGroupCollection::doActiveFilter()
+{
+    bool ret = false;
+    m_filterGroups.clear();
+    m_filterGroups.reserve(m_groups.size());
+    for (auto it = m_groups.begin() ; it != m_groups.end() ; ++it)
+        if (it->second->m_metaData->active)
         {
             m_filterGroups.push_back(it);
             ret = true;
@@ -209,8 +244,6 @@ AudioGroupDataCollection::AudioGroupDataCollection(const std::string& name, NSUR
 
 bool AudioGroupDataCollection::_attemptLoad(AudioGroupFilePresenter* presenter)
 {
-    amuse::Engine& engine = *((AppDelegate*)NSApp.delegate)->amuseEngine;
-    
     if (m_metaData && m_loadedData && m_loadedGroup)
         return true;
     if (!loadProj(presenter))
@@ -224,6 +257,13 @@ bool AudioGroupDataCollection::_attemptLoad(AudioGroupFilePresenter* presenter)
     if (!loadMeta(presenter))
         return false;
     
+    return _indexData(presenter);
+}
+
+bool AudioGroupDataCollection::_indexData(AudioGroupFilePresenter* presenter)
+{
+    amuse::Engine& engine = [presenter->m_audioGroupClient getAmuseEngine];
+
     switch (m_metaData->fmt)
     {
         case amuse::DataFormat::GCN:
@@ -251,6 +291,36 @@ bool AudioGroupDataCollection::_attemptLoad(AudioGroupFilePresenter* presenter)
     }
     
     m_loadedGroup = engine.addAudioGroup(*m_loadedData);
+    m_groupTokens.clear();
+    if (m_loadedGroup)
+    {
+        m_groupTokens.reserve(m_loadedGroup->getProj().songGroups().size() +
+                              m_loadedGroup->getProj().sfxGroups().size());
+        
+        {
+            const auto& songGroups = m_loadedGroup->getProj().songGroups();
+            std::map<int, const amuse::SongGroupIndex*> sortGroups;
+            for (const auto& pair : songGroups)
+                sortGroups[pair.first] = &pair.second;
+            for (const auto& pair : sortGroups)
+            {
+                NSString* name = [NSString stringWithFormat:@"%d", pair.first];
+                m_groupTokens.push_back([[AudioGroupToken alloc] initWithName:name songGroup:pair.second]);
+            }
+        }
+        {
+            const auto& sfxGroups = m_loadedGroup->getProj().sfxGroups();
+            std::map<int, const amuse::SFXGroupIndex*> sortGroups;
+            for (const auto& pair : sfxGroups)
+                sortGroups[pair.first] = &pair.second;
+            for (const auto& pair : sortGroups)
+            {
+                NSString* name = [NSString stringWithFormat:@"%d", pair.first];
+                m_groupTokens.push_back([[AudioGroupToken alloc] initWithName:name sfxGroup:pair.second]);
+            }
+        }
+    }
+    
     return m_loadedData && m_loadedGroup;
 }
 
@@ -447,7 +517,7 @@ bool AudioGroupDataCollection::loadMeta(AudioGroupFilePresenter* presenter)
 
 - (NSInteger)outlineView:(NSOutlineView*)outlineView numberOfChildrenOfItem:(nullable id)item
 {
-    lastOutlineView = outlineView;
+    m_lastOutlineView = outlineView;
     if (!item)
         return m_filterAudioGroupCollections.size();
     
@@ -496,7 +566,7 @@ bool AudioGroupDataCollection::loadMeta(AudioGroupFilePresenter* presenter)
                 return [NSNumber numberWithInt:NSMixedState];
         }
         else if ([tableColumn.identifier isEqualToString:@"DetailsColumn"])
-            return [NSString stringWithFormat:@"%zu Audio Group%s",
+            return [NSString stringWithFormat:@"%zu Group File%s",
                     collection.m_groups.size(),
                     collection.m_groups.size() > 1 ? "s" : ""];
     }
@@ -620,7 +690,7 @@ bool AudioGroupDataCollection::loadMeta(AudioGroupFilePresenter* presenter)
     
     NSURL* dir = [m_groupURL URLByAppendingPathComponent:@(name.c_str())];
     __block AudioGroupCollection& insert = *m_audioGroupCollections.emplace(name, std::make_unique<AudioGroupCollection>(dir)).first->second;
-    insert.addCollection(std::move(collection));
+    insert.addCollection(self, std::move(collection));
     
     [coord coordinateWritingItemAtURL:m_groupURL options:0 error:nil
                            byAccessor:^(NSURL* newUrl)
@@ -715,34 +785,52 @@ bool AudioGroupDataCollection::loadMeta(AudioGroupFilePresenter* presenter)
 
 - (void)resetIterators
 {
-    std::string search;
-    if (searchStr)
-        search = searchStr.UTF8String;
-    
-    m_sfxTableData.clear();
-    m_sampleTableData.clear();
-    m_filterAudioGroupCollections.clear();
-    m_filterAudioGroupCollections.reserve(m_audioGroupCollections.size());
-    for (auto it = m_audioGroupCollections.begin() ; it != m_audioGroupCollections.end() ; ++it)
+    if ([(NSObject*)m_audioGroupClient isKindOfClass:[AppDelegate class]])
     {
-        it->second->addSFX(m_sfxTableData);
-        it->second->addSamples(m_sampleTableData);
-        if (it->second->doSearch(search) || !searchStr || StrToLower(it->first).find(search) != std::string::npos)
-            m_filterAudioGroupCollections.push_back(it);
+        std::string search;
+        if (m_searchStr)
+            search = m_searchStr.UTF8String;
+        
+        m_sfxTableData.clear();
+        m_sampleTableData.clear();
+        m_filterAudioGroupCollections.clear();
+        m_filterAudioGroupCollections.reserve(m_audioGroupCollections.size());
+        for (auto it = m_audioGroupCollections.begin() ; it != m_audioGroupCollections.end() ; ++it)
+        {
+            it->second->addSFX(m_sfxTableData);
+            it->second->addSamples(m_sampleTableData);
+            if (it->second->doSearch(search) || !m_searchStr || StrToLower(it->first).find(search) != std::string::npos)
+                m_filterAudioGroupCollections.push_back(it);
+        }
+        [m_lastOutlineView reloadItem:nil reloadChildren:YES];
+        [(AppDelegate*)m_audioGroupClient reloadTables];
     }
-    [lastOutlineView reloadItem:nil reloadChildren:YES];
-    [(AppDelegate*)NSApp.delegate reloadTables];
+    else
+    {
+        m_sfxTableData.clear();
+        m_sampleTableData.clear();
+        m_filterAudioGroupCollections.clear();
+        m_filterAudioGroupCollections.reserve(m_audioGroupCollections.size());
+        for (auto it = m_audioGroupCollections.begin() ; it != m_audioGroupCollections.end() ; ++it)
+        {
+            it->second->addSFX(m_sfxTableData);
+            it->second->addSamples(m_sampleTableData);
+            if (it->second->doActiveFilter())
+                m_filterAudioGroupCollections.push_back(it);
+        }
+        [((AmuseAudioUnit*)m_audioGroupClient)->m_viewController->m_groupBrowser loadColumnZero];
+    }
 }
 
 - (void)setSearchFilter:(NSString*)str
 {
-    searchStr = [str lowercaseString];
+    m_searchStr = [str lowercaseString];
     [self resetIterators];
 }
 
 - (void)removeSelectedItem
 {
-    id item = [lastOutlineView itemAtRow:lastOutlineView.selectedRow];
+    id item = [m_lastOutlineView itemAtRow:m_lastOutlineView.selectedRow];
     if ([item isKindOfClass:[AudioGroupCollectionToken class]])
     {
         AudioGroupCollection& collection = *((AudioGroupCollectionToken*)item)->m_collection;
@@ -752,12 +840,13 @@ bool AudioGroupDataCollection::loadMeta(AudioGroupFilePresenter* presenter)
         [self resetIterators];
         [[NSFileManager defaultManager] removeItemAtURL:collectionURL error:nil];
         if (m_audioGroupCollections.empty())
-            [(AppDelegate*)NSApp.delegate outlineView:(DataOutlineView*)lastOutlineView selectionChanged:nil];
+            [(AppDelegate*)NSApp.delegate outlineView:(DataOutlineView*)m_lastOutlineView selectionChanged:nil];
     }
 }
 
-- (id)init
+- (id)initWithAudioGroupClient:(id<AudioGroupClient>)client
 {
+    m_audioGroupClient = client;
     m_groupURL = [[NSFileManager defaultManager] containerURLForSecurityApplicationGroupIdentifier:@"group.io.github.axiodl.Amuse.AudioGroups"];
     if (!m_groupURL)
         return nil;

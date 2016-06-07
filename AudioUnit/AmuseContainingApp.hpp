@@ -28,7 +28,7 @@
 - (id)initWithAudioGroupPresenter:(AudioGroupFilePresenter*)present;
 @end
 
-@interface AppDelegate : NSObject <NSApplicationDelegate>
+@interface AppDelegate : NSObject <NSApplicationDelegate, AudioGroupClient>
 {
     IBOutlet NSWindow* mainWindow;
     IBOutlet NSOutlineView* dataOutline;

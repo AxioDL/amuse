@@ -21,9 +21,18 @@ if (APPLE AND (NOT CMAKE_OSX_DEPLOYMENT_TARGET OR CMAKE_OSX_DEPLOYMENT_TARGET VE
     if(EXISTS "${PROV_PROFILE}")
 
       # Extension App
+      add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/AudioUnitViewController.nib
+        COMMAND ibtool --errors --warnings --notices --module amuse_au --auto-activate-custom-fonts
+        --target-device mac --minimum-deployment-target 10.11 --output-format human-readable-text --compile
+        ${CMAKE_CURRENT_BINARY_DIR}/AudioUnitViewController.nib
+        ${CMAKE_CURRENT_SOURCE_DIR}/AudioUnitViewController.xib
+        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/AudioUnitViewController.xib
+      )
       add_executable(amuse-au MACOSX_BUNDLE AudioUnitBackend.hpp AudioUnitBackend.mm
                      AudioUnitViewController.hpp AudioUnitViewController.mm
-                     AudioGroupFilePresenter.hpp AudioGroupFilePresenter.mm)
+                     AudioGroupFilePresenter.hpp AudioGroupFilePresenter.mm
+                     AudioUnitViewController.nib)
 
       set(APPLE_BUNDLE_ID "io.github.axiodl.Amuse.AudioUnit")
       configure_file(${CMAKE_CURRENT_SOURCE_DIR}/AmuseExtension.entitlements.in
@@ -69,6 +78,9 @@ if (APPLE AND (NOT CMAKE_OSX_DEPLOYMENT_TARGET OR CMAKE_OSX_DEPLOYMENT_TARGET VE
                             XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "${APPLE_DEV_ID}")
 
       add_custom_command(TARGET amuse-au POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+        "${CMAKE_CURRENT_BINARY_DIR}/AudioUnitViewController.nib"
+        "$<TARGET_FILE_DIR:amuse-au>/../Resources/AudioUnitViewController.nib"
         COMMAND ${CMAKE_COMMAND} -E copy "${PROV_PROFILE}" "$<TARGET_FILE_DIR:amuse-au>/../embedded.provisionprofile"
         COMMAND ${CMAKE_COMMAND} -E remove_directory "$<TARGET_FILE_DIR:amuse-au-container>/../PlugIns/amuse-au.appex"
         COMMAND ${CMAKE_COMMAND} -E copy_directory "$<TARGET_FILE_DIR:amuse-au>/../.."

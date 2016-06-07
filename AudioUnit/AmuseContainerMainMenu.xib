@@ -297,7 +297,7 @@ CA
                                                 <rect key="frame" x="1" y="0.0" width="542" height="366"/>
                                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                 <subviews>
-                                                    <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" multipleSelection="NO" autosaveColumns="NO" rowSizeStyle="automatic" headerView="9pb-bl-sSa" viewBased="YES" id="4nw-rf-Dh4">
+                                                    <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" columnReordering="NO" multipleSelection="NO" autosaveColumns="NO" rowSizeStyle="automatic" headerView="9pb-bl-sSa" viewBased="YES" id="4nw-rf-Dh4">
                                                         <rect key="frame" x="0.0" y="0.0" width="542" height="343"/>
                                                         <autoresizingMask key="autoresizingMask"/>
                                                         <size key="intercellSpacing" width="3" height="2"/>
@@ -418,7 +418,7 @@ CA
                                                 <rect key="frame" x="1" y="0.0" width="542" height="365"/>
                                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                 <subviews>
-                                                    <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" multipleSelection="NO" autosaveColumns="NO" rowSizeStyle="automatic" headerView="fQK-tA-ezw" viewBased="YES" id="Frt-wZ-1ZI">
+                                                    <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" columnReordering="NO" multipleSelection="NO" autosaveColumns="NO" rowSizeStyle="automatic" headerView="fQK-tA-ezw" viewBased="YES" id="Frt-wZ-1ZI">
                                                         <rect key="frame" x="0.0" y="0.0" width="542" height="342"/>
                                                         <autoresizingMask key="autoresizingMask"/>
                                                         <size key="intercellSpacing" width="3" height="2"/>

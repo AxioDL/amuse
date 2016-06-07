@@ -119,8 +119,8 @@ std::string BooBackendMIDIReader::description()
 
 BooBackendMIDIReader::~BooBackendMIDIReader() {}
 
-BooBackendMIDIReader::BooBackendMIDIReader(Engine& engine, const char* name)
-: m_engine(engine), m_decoder(*this)
+BooBackendMIDIReader::BooBackendMIDIReader(Engine& engine, const char* name, bool useLock)
+: m_engine(engine), m_decoder(*this), m_useLock(useLock)
 {
     BooBackendVoiceAllocator& voxAlloc = static_cast<BooBackendVoiceAllocator&>(engine.getBackend());
     if (!name)
@@ -145,7 +145,9 @@ BooBackendMIDIReader::BooBackendMIDIReader(Engine& engine, const char* name)
 
 void BooBackendMIDIReader::_MIDIReceive(std::vector<uint8_t>&& bytes)
 {
-    std::unique_lock<std::mutex> lk(m_midiMutex);
+    std::unique_lock<std::mutex> lk(m_midiMutex, std::defer_lock_t{});
+    if (m_useLock)
+        lk.lock();
     m_queue.emplace_back(std::chrono::steady_clock::now(), std::move(bytes));
 }
 
@@ -308,7 +310,7 @@ std::vector<std::pair<std::string, std::string>> BooBackendVoiceAllocator::enume
 
 std::unique_ptr<IMIDIReader> BooBackendVoiceAllocator::allocateMIDIReader(Engine& engine, const char* name)
 {
-    std::unique_ptr<IMIDIReader> ret = std::make_unique<BooBackendMIDIReader>(engine, name);
+    std::unique_ptr<IMIDIReader> ret = std::make_unique<BooBackendMIDIReader>(engine, name, m_booEngine.useMIDILock());
     if (!static_cast<BooBackendMIDIReader&>(*ret).m_midiIn)
         return {};
     return ret;

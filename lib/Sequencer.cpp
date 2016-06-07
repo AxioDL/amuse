@@ -79,25 +79,50 @@ Sequencer::ChannelState::~ChannelState()
 }
 
 Sequencer::ChannelState::ChannelState(Sequencer& parent, uint8_t chanId)
-: m_parent(parent), m_chanId(chanId), m_setup(m_parent.m_midiSetup[chanId])
+: m_parent(parent), m_chanId(chanId)
 {
-    if (chanId == 9)
+    if (m_parent.m_midiSetup)
     {
-        auto it = m_parent.m_songGroup.m_drumPages.find(m_setup.programNo);
-        if (it != m_parent.m_songGroup.m_drumPages.cend())
-            m_page = it->second;
+        m_setup = &m_parent.m_midiSetup[chanId];
+
+        if (chanId == 9)
+        {
+            auto it = m_parent.m_songGroup.m_drumPages.find(m_setup->programNo);
+            if (it != m_parent.m_songGroup.m_drumPages.cend())
+                m_page = it->second;
+        }
+        else
+        {
+            auto it = m_parent.m_songGroup.m_normPages.find(m_setup->programNo);
+            if (it != m_parent.m_songGroup.m_normPages.cend())
+                m_page = it->second;
+        }
+
+        m_curVol = m_setup->volume / 127.f;
+        m_curPan = m_setup->panning / 64.f - 1.f;
+        m_ctrlVals[0x5b] = m_setup->reverb;
+        m_ctrlVals[0x5d] = m_setup->chorus;
     }
     else
     {
-        auto it = m_parent.m_songGroup.m_normPages.find(m_setup.programNo);
-        if (it != m_parent.m_songGroup.m_normPages.cend())
-            m_page = it->second;
+        if (chanId == 9)
+        {
+            auto it = m_parent.m_songGroup.m_drumPages.find(0);
+            if (it != m_parent.m_songGroup.m_drumPages.cend())
+                m_page = it->second;
+        }
+        else
+        {
+            auto it = m_parent.m_songGroup.m_normPages.find(0);
+            if (it != m_parent.m_songGroup.m_normPages.cend())
+                m_page = it->second;
+        }
+        
+        m_curVol = 1.f;
+        m_curPan = 0.f;
+        m_ctrlVals[0x5b] = 0;
+        m_ctrlVals[0x5d] = 0;
     }
-
-    m_curVol = m_setup.volume / 127.f;
-    m_curPan = m_setup.panning / 64.f - 1.f;
-    m_ctrlVals[0x5b] = m_setup.reverb;
-    m_ctrlVals[0x5d] = m_setup.chorus;
 }
 
 void Sequencer::advance(double dt)
