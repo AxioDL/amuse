@@ -18,6 +18,8 @@ static logvisor::Module Log("amuse::AudioUnitBackend");
 
 struct AudioUnitVoiceEngine : boo::BaseAudioVoiceEngine
 {
+    AudioGroupToken* m_reqGroup = nullptr;
+    AudioGroupToken* m_curGroup = nullptr;
     std::vector<float> m_interleavedBuf;
     std::vector<std::unique_ptr<float[]>> m_renderBufs;
     size_t m_renderFrames = 0;
@@ -137,6 +139,8 @@ struct AudioUnitVoiceEngine : boo::BaseAudioVoiceEngine
             }
         }
     }
+    
+    double getCurrentSampleRate() const {return m_mixInfo.m_sampleRate;}
 };
 
 @implementation AmuseAudioUnit
@@ -165,7 +169,9 @@ struct AudioUnitVoiceEngine : boo::BaseAudioVoiceEngine
     //m_outBus.supportedChannelCounts = @[@1,@2];
     m_outBus.maximumChannelCount = 2;
     
-    m_outs = [[AUAudioUnitBusArray alloc] initWithAudioUnit:self busType:AUAudioUnitBusTypeOutput busses:@[m_outBus]];
+    m_outs = [[AUAudioUnitBusArray alloc] initWithAudioUnit:self
+                                                    busType:AUAudioUnitBusTypeOutput
+                                                     busses:@[m_outBus]];
 
     m_booBackend = std::make_unique<AudioUnitVoiceEngine>();
     if (!m_booBackend)
@@ -177,13 +183,19 @@ struct AudioUnitVoiceEngine : boo::BaseAudioVoiceEngine
     
     m_voxAlloc.emplace(*m_booBackend);
     m_engine.emplace(*m_voxAlloc);
-    dispatch_sync(dispatch_get_main_queue(), ^
-    {
+    dispatch_sync(dispatch_get_main_queue(),
+    ^{
         m_filePresenter = [[AudioGroupFilePresenter alloc] initWithAudioGroupClient:self];
     });
     
     self.maximumFramesToRender = 512;
     return self;
+}
+
+- (void)requestAudioGroup:(AudioGroupToken*)group
+{
+    AudioUnitVoiceEngine& voxEngine = static_cast<AudioUnitVoiceEngine&>(*m_booBackend);
+    voxEngine.m_reqGroup = group;
 }
 
 - (BOOL)allocateRenderResourcesAndReturnError:(NSError **)outError
@@ -232,11 +244,25 @@ struct AudioUnitVoiceEngine : boo::BaseAudioVoiceEngine
 {
     __block AudioUnitVoiceEngine& voxEngine = static_cast<AudioUnitVoiceEngine&>(*m_booBackend);
     __block amuse::Engine& amuseEngine = *m_engine;
+    __block std::shared_ptr<amuse::Sequencer> curSeq;
 
     return ^AUAudioUnitStatus(AudioUnitRenderActionFlags* actionFlags, const AudioTimeStamp* timestamp,
              AUAudioFrameCount frameCount, NSInteger outputBusNumber, AudioBufferList* outputData,
              const AURenderEvent* realtimeEventListHead, AURenderPullInputBlock pullInputBlock)
     {
+        /* Handle group load request */
+        AudioGroupToken* reqGroup = voxEngine.m_reqGroup;
+        if (voxEngine.m_curGroup != reqGroup)
+        {
+            voxEngine.m_curGroup = reqGroup;
+            if (reqGroup->m_song)
+            {
+                if (curSeq)
+                    curSeq->kill();
+                curSeq = amuseEngine.seqPlay(reqGroup->m_id, -1, nullptr);
+            }
+        }
+        
         /* Process MIDI events first */
         if (voxEngine.m_midiReceiver)
         {
@@ -245,9 +271,9 @@ struct AudioUnitVoiceEngine : boo::BaseAudioVoiceEngine
             {
                 if (event->eventType == AURenderEventMIDI)
                 {
-                    NSLog(@"MIDI %d %d", event->length, event->data[0]);
                     (*voxEngine.m_midiReceiver)(std::vector<uint8_t>(std::cbegin(event->data),
-                                                                     std::cbegin(event->data) + event->length));
+                                                                     std::cbegin(event->data) + event->length),
+                                                event->eventSampleTime / voxEngine.getCurrentSampleRate());
                 }
             }
         }

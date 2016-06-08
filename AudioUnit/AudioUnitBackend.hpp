@@ -49,6 +49,7 @@ void RegisterAudioUnit();
 - (nullable id)initWithComponentDescription:(AudioComponentDescription)componentDescription
                                       error:(NSError * __nullable * __nonnull)outError
                              viewController:(AudioUnitViewController* __nonnull)vc;
+- (void)requestAudioGroup:(AudioGroupToken*)group;
 @end
 
 #endif

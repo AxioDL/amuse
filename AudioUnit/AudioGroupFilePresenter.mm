@@ -53,18 +53,20 @@ static std::string StrToLower(const std::string& str)
 @end
 
 @implementation AudioGroupToken
-- (id)initWithName:(NSString*)name songGroup:(const amuse::SongGroupIndex*)group
+- (id)initWithName:(NSString*)name id:(int)gid songGroup:(const amuse::SongGroupIndex*)group
 {
     self = [super init];
     m_name = name;
     m_song = group;
+    m_id = gid;
     return self;
 }
-- (id)initWithName:(NSString*)name sfxGroup:(const amuse::SFXGroupIndex*)group
+- (id)initWithName:(NSString*)name id:(int)gid sfxGroup:(const amuse::SFXGroupIndex*)group
 {
     self = [super init];
     m_name = name;
     m_sfx = group;
+    m_id = gid;
     return self;
 }
 @end
@@ -78,7 +80,7 @@ static std::string StrToLower(const std::string& str)
 
 - (NSOperationQueue*)presentedItemOperationQueue
 {
-    return m_dataQueue;
+    return [NSOperationQueue mainQueue];
 }
 
 AudioGroupCollection::AudioGroupCollection(NSURL* url)
@@ -305,7 +307,8 @@ bool AudioGroupDataCollection::_indexData(AudioGroupFilePresenter* presenter)
             for (const auto& pair : sortGroups)
             {
                 NSString* name = [NSString stringWithFormat:@"%d", pair.first];
-                m_groupTokens.push_back([[AudioGroupToken alloc] initWithName:name songGroup:pair.second]);
+                m_groupTokens.push_back([[AudioGroupToken alloc] initWithName:name id:pair.first
+                                                                    songGroup:pair.second]);
             }
         }
         {
@@ -316,7 +319,8 @@ bool AudioGroupDataCollection::_indexData(AudioGroupFilePresenter* presenter)
             for (const auto& pair : sortGroups)
             {
                 NSString* name = [NSString stringWithFormat:@"%d", pair.first];
-                m_groupTokens.push_back([[AudioGroupToken alloc] initWithName:name sfxGroup:pair.second]);
+                m_groupTokens.push_back([[AudioGroupToken alloc] initWithName:name id:pair.first
+                                                                     sfxGroup:pair.second]);
             }
         }
     }
@@ -495,12 +499,10 @@ bool AudioGroupDataCollection::loadMeta(AudioGroupFilePresenter* presenter)
     return ret.operator bool();
 }
 
-- (void)presentedSubitemDidAppearAtURL:(NSURL*)url
+- (void)presentedSubitemDidChangeAtURL:(NSURL *)url
 {
-    if ([url.lastPathComponent isEqualToString:@"proj"] ||
-        [url.lastPathComponent isEqualToString:@"pool"] ||
-        [url.lastPathComponent isEqualToString:@"sdir"] ||
-        [url.lastPathComponent isEqualToString:@"samp"])
+    size_t relComps = url.pathComponents.count - m_groupURL.pathComponents.count;
+    if (relComps <= 1)
         [self update];
 }
 
@@ -850,7 +852,6 @@ bool AudioGroupDataCollection::loadMeta(AudioGroupFilePresenter* presenter)
     m_groupURL = [[NSFileManager defaultManager] containerURLForSecurityApplicationGroupIdentifier:@"group.io.github.axiodl.Amuse.AudioGroups"];
     if (!m_groupURL)
         return nil;
-    m_dataQueue = [NSOperationQueue new];
     [NSFileCoordinator addFilePresenter:self];
     [self update];
     return self;

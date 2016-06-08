@@ -128,6 +128,16 @@
     return nil;
 }
 
+- (NSIndexSet *)browser:(NSBrowser *)browser selectionIndexesForProposedSelection:(NSIndexSet *)proposedSelectionIndexes inColumn:(NSInteger)column
+{
+    if (column == 2)
+    {
+        AudioGroupToken* token = [browser itemAtRow:proposedSelectionIndexes.firstIndex inColumn:column];
+        [m_audioUnit requestAudioGroup:token];
+    }
+    return proposedSelectionIndexes;
+}
+
 - (id)initWithAudioUnit:(AmuseAudioUnit*)au
 {
     self = [super init];
@@ -152,6 +162,7 @@
     dispatch_sync(dispatch_get_main_queue(), ^
     {
         m_groupBrowser.delegate = m_groupBrowserDelegate;
+        [m_groupBrowser loadColumnZero];
     });
     return m_audioUnit;
 }

@@ -127,11 +127,12 @@ struct AudioGroupCollection
 {
 @public
     NSString* m_name;
+    int m_id;
     const amuse::SongGroupIndex* m_song;
     const amuse::SFXGroupIndex* m_sfx;
 }
-- (id)initWithName:(NSString*)name songGroup:(const amuse::SongGroupIndex*)group;
-- (id)initWithName:(NSString*)name sfxGroup:(const amuse::SFXGroupIndex*)group;
+- (id)initWithName:(NSString*)name id:(int)gid songGroup:(const amuse::SongGroupIndex*)group;
+- (id)initWithName:(NSString*)name id:(int)gid sfxGroup:(const amuse::SFXGroupIndex*)group;
 @end
 
 @interface AudioGroupFilePresenter : NSObject <NSFilePresenter, NSOutlineViewDataSource, NSOutlineViewDelegate>
@@ -139,7 +140,6 @@ struct AudioGroupCollection
 @public
     id<AudioGroupClient> m_audioGroupClient;
     NSURL* m_groupURL;
-    NSOperationQueue* m_dataQueue;
     std::map<std::string, std::unique_ptr<AudioGroupCollection>> m_audioGroupCollections;
     std::vector<std::map<std::string, std::unique_ptr<AudioGroupCollection>>::iterator> m_filterAudioGroupCollections;
     NSOutlineView* m_lastOutlineView;

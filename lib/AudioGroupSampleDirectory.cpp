@@ -145,7 +145,7 @@ AudioGroupSampleDirectory::AudioGroupSampleDirectory(const unsigned char* data,
             std::pair<Entry, ADPCMParms>& store = m_entries[ent.m_sfxId];
             ent.setIntoMusyX2(store.first);
 
-            memcpy(&store.second.vadpcm.m_coefs, sampData + ent.m_sampleOff, 256);
+            memmove(&store.second.vadpcm.m_coefs, sampData + ent.m_sampleOff, 256);
             store.second.swapBigVADPCM();
 
             cur += 28;
@@ -161,7 +161,7 @@ AudioGroupSampleDirectory::AudioGroupSampleDirectory(const unsigned char* data,
             std::pair<Entry, ADPCMParms>& store = m_entries[ent.m_sfxId];
             ent.setIntoMusyX2(store.first);
 
-            memcpy(&store.second.vadpcm.m_coefs, sampData + ent.m_sampleOff, 256);
+            memmove(&store.second.vadpcm.m_coefs, sampData + ent.m_sampleOff, 256);
             store.second.swapBigVADPCM();
 
             cur += 24;

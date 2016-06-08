@@ -2,6 +2,7 @@
 #include "amuse/Voice.hpp"
 #include "amuse/Submix.hpp"
 #include "amuse/Engine.hpp"
+#include <syslog.h>
 
 namespace amuse
 {
@@ -130,42 +131,46 @@ BooBackendMIDIReader::BooBackendMIDIReader(Engine& engine, const char* name, boo
         {
             m_midiIn = voxAlloc.m_booEngine.newRealMIDIIn(dev.first.c_str(),
                                                           std::bind(&BooBackendMIDIReader::_MIDIReceive, this,
-                                                                    std::placeholders::_1));
+                                                                    std::placeholders::_1, std::placeholders::_2));
             if (m_midiIn)
                 return;
         }
         m_midiIn = voxAlloc.m_booEngine.newVirtualMIDIIn(std::bind(&BooBackendMIDIReader::_MIDIReceive, this,
-                                                                   std::placeholders::_1));
+                                                                   std::placeholders::_1, std::placeholders::_2));
     }
     else
         m_midiIn = voxAlloc.m_booEngine.newRealMIDIIn(name,
                                                       std::bind(&BooBackendMIDIReader::_MIDIReceive, this,
-                                                                std::placeholders::_1));
+                                                                std::placeholders::_1, std::placeholders::_2));
 }
 
-void BooBackendMIDIReader::_MIDIReceive(std::vector<uint8_t>&& bytes)
+void BooBackendMIDIReader::_MIDIReceive(std::vector<uint8_t>&& bytes, double time)
 {
     std::unique_lock<std::mutex> lk(m_midiMutex, std::defer_lock_t{});
-    if (m_useLock)
-        lk.lock();
-    m_queue.emplace_back(std::chrono::steady_clock::now(), std::move(bytes));
+    if (m_useLock) lk.lock();
+    m_queue.emplace_back(time, std::move(bytes));
+#if 0
+    openlog("LogIt", (LOG_CONS|LOG_PERROR|LOG_PID), LOG_DAEMON);
+    syslog(LOG_EMERG, "MIDI receive %f\n", time);
+    closelog();
+#endif
 }
 
 void BooBackendMIDIReader::pumpReader(double dt)
 {
     dt += 0.001; /* Add 1ms to ensure consumer keeps up with producer */
 
-    std::unique_lock<std::mutex> lk(m_midiMutex);
+    std::unique_lock<std::mutex> lk(m_midiMutex, std::defer_lock_t{});
+    if (m_useLock) lk.lock();
     if (m_queue.empty())
         return;
 
     /* Determine range of buffer updates within this period */
     auto periodEnd = m_queue.cbegin();
-    std::chrono::steady_clock::time_point startPt = m_queue.front().first;
+    double startPt = m_queue.front().first;
     for (; periodEnd != m_queue.cend() ; ++periodEnd)
     {
-        double delta = std::chrono::duration_cast<std::chrono::microseconds>
-                       (periodEnd->first - startPt).count() / 1000000.0;
+        double delta = periodEnd->first - startPt;
         if (delta > dt)
             break;
     }
@@ -176,6 +181,15 @@ void BooBackendMIDIReader::pumpReader(double dt)
     /* Dispatch buffers */
     for (auto it = m_queue.begin() ; it != periodEnd ;)
     {
+#if 0
+        char str[64];
+        sprintf(str, "MIDI %zu %f ", it->second.size(), it->first);
+        for (uint8_t byte : it->second)
+            sprintf(str + strlen(str), "%02X ", byte);
+        openlog("LogIt", (LOG_CONS|LOG_PERROR|LOG_PID), LOG_DAEMON);
+        syslog(LOG_EMERG, "%s\n", str);
+        closelog();
+#endif
         m_decoder.receiveBytes(it->second.cbegin(), it->second.cend());
         it = m_queue.erase(it);
     }
@@ -185,12 +199,22 @@ void BooBackendMIDIReader::noteOff(uint8_t chan, uint8_t key, uint8_t velocity)
 {
     for (std::shared_ptr<Sequencer>& seq : m_engine.getActiveSequencers())
         seq->keyOff(chan, key, velocity);
+#if 0
+    openlog("LogIt", (LOG_CONS|LOG_PERROR|LOG_PID), LOG_DAEMON);
+    syslog(LOG_EMERG, "NoteOff %d", key);
+    closelog();
+#endif
 }
 
 void BooBackendMIDIReader::noteOn(uint8_t chan, uint8_t key, uint8_t velocity)
 {
     for (std::shared_ptr<Sequencer>& seq : m_engine.getActiveSequencers())
         seq->keyOn(chan, key, velocity);
+#if 0
+    openlog("LogIt", (LOG_CONS|LOG_PERROR|LOG_PID), LOG_DAEMON);
+    syslog(LOG_EMERG, "NoteOn %d", key);
+    closelog();
+#endif
 }
 
 void BooBackendMIDIReader::notePressure(uint8_t /*chan*/, uint8_t /*key*/, uint8_t /*pressure*/)

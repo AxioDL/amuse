@@ -805,7 +805,7 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadRS1N64(F
                 if (ent.compSz == 0xffffffff)
                 {
                     proj.reset(new uint8_t[ent.decompSz]);
-                    memcpy(proj.get(), dataSeg + ent.offset, ent.decompSz);
+                    memmove(proj.get(), dataSeg + ent.offset, ent.decompSz);
                 }
                 else
                 {
@@ -820,7 +820,7 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadRS1N64(F
                 if (ent.compSz == 0xffffffff)
                 {
                     pool.reset(new uint8_t[ent.decompSz]);
-                    memcpy(pool.get(), dataSeg + ent.offset, ent.decompSz);
+                    memmove(pool.get(), dataSeg + ent.offset, ent.decompSz);
                 }
                 else
                 {
@@ -835,7 +835,7 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadRS1N64(F
                 if (ent.compSz == 0xffffffff)
                 {
                     sdir.reset(new uint8_t[ent.decompSz]);
-                    memcpy(sdir.get(), dataSeg + ent.offset, ent.decompSz);
+                    memmove(sdir.get(), dataSeg + ent.offset, ent.decompSz);
                 }
                 else
                 {
@@ -850,7 +850,7 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadRS1N64(F
                 if (ent.compSz == 0xffffffff)
                 {
                     samp.reset(new uint8_t[ent.decompSz]);
-                    memcpy(samp.get(), dataSeg + ent.offset, ent.decompSz);
+                    memmove(samp.get(), dataSeg + ent.offset, ent.decompSz);
                 }
                 else
                 {
@@ -1076,7 +1076,7 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadBFNN64(F
                 if (ent.compSz == 0xffffffff)
                 {
                     proj.reset(new uint8_t[ent.decompSz]);
-                    memcpy(proj.get(), dataSeg + ent.offset, ent.decompSz);
+                    memmove(proj.get(), dataSeg + ent.offset, ent.decompSz);
                 }
                 else
                 {
@@ -1091,7 +1091,7 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadBFNN64(F
                 if (ent.compSz == 0xffffffff)
                 {
                     pool.reset(new uint8_t[ent.decompSz]);
-                    memcpy(pool.get(), dataSeg + ent.offset, ent.decompSz);
+                    memmove(pool.get(), dataSeg + ent.offset, ent.decompSz);
                 }
                 else
                 {
@@ -1106,7 +1106,7 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadBFNN64(F
                 if (ent.compSz == 0xffffffff)
                 {
                     sdir.reset(new uint8_t[ent.decompSz]);
-                    memcpy(sdir.get(), dataSeg + ent.offset, ent.decompSz);
+                    memmove(sdir.get(), dataSeg + ent.offset, ent.decompSz);
                 }
                 else
                 {
@@ -1121,7 +1121,7 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadBFNN64(F
                 if (ent.compSz == 0xffffffff)
                 {
                     samp.reset(new uint8_t[ent.decompSz]);
-                    memcpy(samp.get(), dataSeg + ent.offset, ent.decompSz);
+                    memmove(samp.get(), dataSeg + ent.offset, ent.decompSz);
                 }
                 else
                 {
@@ -1279,16 +1279,16 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadRS2(FILE
                 head.swapBig();
 
                 std::unique_ptr<uint8_t[]> pool(new uint8_t[head.poolLen]);
-                memcpy(pool.get(), audData.get() + head.poolOff, head.poolLen);
+                memmove(pool.get(), audData.get() + head.poolOff, head.poolLen);
 
                 std::unique_ptr<uint8_t[]> proj(new uint8_t[head.projLen]);
-                memcpy(proj.get(), audData.get() + head.projOff, head.projLen);
+                memmove(proj.get(), audData.get() + head.projOff, head.projLen);
 
                 std::unique_ptr<uint8_t[]> sdir(new uint8_t[head.sdirLen]);
-                memcpy(sdir.get(), audData.get() + head.sdirOff, head.sdirLen);
+                memmove(sdir.get(), audData.get() + head.sdirOff, head.sdirLen);
 
                 std::unique_ptr<uint8_t[]> samp(new uint8_t[head.sampLen]);
-                memcpy(samp.get(), audData.get() + head.sampOff, head.sampLen);
+                memmove(samp.get(), audData.get() + head.sampOff, head.sampLen);
 
                 if (head.projLen && head.poolLen && head.sdirLen && head.sampLen)
                 {
@@ -1355,7 +1355,7 @@ static std::vector<std::pair<std::string, ContainerRegistry::SongData>> LoadRS2S
                     char name[128];
                     snprintf(name, 128, "GroupFile%02u-%u", j, s);
                     std::unique_ptr<uint8_t[]> song(new uint8_t[sonHead.length]);
-                    memcpy(song.get(), audData.get() + sonHead.offset, sonHead.length);
+                    memmove(song.get(), audData.get() + sonHead.offset, sonHead.length);
                     ret.emplace_back(name, ContainerRegistry::SongData(std::move(song), sonHead.length,
                                                                        sonHead.groupId, sonHead.setupId));
                 }
@@ -1452,16 +1452,16 @@ static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadRS3(FILE
                 head.swapBig();
 
                 std::unique_ptr<uint8_t[]> pool(new uint8_t[head.poolLen]);
-                memcpy(pool.get(), audData.get() + head.poolOff, head.poolLen);
+                memmove(pool.get(), audData.get() + head.poolOff, head.poolLen);
 
                 std::unique_ptr<uint8_t[]> proj(new uint8_t[head.projLen]);
-                memcpy(proj.get(), audData.get() + head.projOff, head.projLen);
+                memmove(proj.get(), audData.get() + head.projOff, head.projLen);
 
                 std::unique_ptr<uint8_t[]> sdir(new uint8_t[head.sdirLen]);
-                memcpy(sdir.get(), audData.get() + head.sdirOff, head.sdirLen);
+                memmove(sdir.get(), audData.get() + head.sdirOff, head.sdirLen);
 
                 std::unique_ptr<uint8_t[]> samp(new uint8_t[head.sampLen]);
-                memcpy(samp.get(), audData.get() + head.sampOff, head.sampLen);
+                memmove(samp.get(), audData.get() + head.sampOff, head.sampLen);
 
                 if (head.projLen && head.poolLen && head.sdirLen && head.sampLen)
                 {

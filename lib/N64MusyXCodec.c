@@ -92,7 +92,7 @@ unsigned N64MusyXDecompressFrame(int16_t* out, const uint8_t* in,
     adpcm_get_predicted_frame(frame, &in[0x0], &in[0x8], rshift);
 
     procSamples = (remSamples < 2) ? remSamples : 2;
-    memcpy(out, frame, 2 * procSamples);
+    memmove(out, frame, 2 * procSamples);
     samples += procSamples;
     remSamples -= procSamples;
     if (samples == lastSample)
@@ -124,7 +124,7 @@ unsigned N64MusyXDecompressFrame(int16_t* out, const uint8_t* in,
     adpcm_get_predicted_frame(frame, &in[0x4], &in[0x18], rshift);
 
     procSamples = (remSamples < 2) ? remSamples : 2;
-    memcpy(out, frame, 2 * procSamples);
+    memmove(out, frame, 2 * procSamples);
     samples += procSamples;
     remSamples -= procSamples;
     if (samples == lastSample)
@@ -145,7 +145,7 @@ unsigned N64MusyXDecompressFrameRanged(int16_t* out, const uint8_t* in,
     int16_t final[64];
     unsigned procSamples = N64MusyXDecompressFrame(final, in, coefs, firstSample + lastSample);
     unsigned samples = procSamples - firstSample;
-    memcpy(out, final + firstSample, samples * 2);
+    memmove(out, final + firstSample, samples * 2);
     return samples;
 }
 
