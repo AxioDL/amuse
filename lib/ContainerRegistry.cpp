@@ -1692,7 +1692,7 @@ ContainerRegistry::LoadContainer(const char* path, Type& typeOut)
 
         fp = fopen(sampPath, "rb");
         size_t sampLen = FileLength(fp);
-        if (!sampPath)
+        if (!sampLen)
             return ret;
         std::unique_ptr<uint8_t[]> samp(new uint8_t[sampLen]);
         fread(samp.get(), 1, sampLen, fp);
