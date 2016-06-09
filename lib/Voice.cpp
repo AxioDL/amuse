@@ -100,14 +100,14 @@ void Voice::_doKeyOff()
 {
     if (m_state.m_inWait && m_state.m_keyoffWait)
     {
-        if (m_volAdsr.isAdsrSet())
-            m_volAdsr.keyOff();
+        if (m_volAdsr.isAdsrSet() || m_state.m_useAdsrControllers)
+            m_volAdsr.keyOff(*this);
         if (m_pitchAdsr.isAdsrSet())
             m_pitchAdsr.keyOff();
     }
     else
     {
-        m_volAdsr.keyOff();
+        m_volAdsr.keyOff(*this);
         m_pitchAdsr.keyOff();
     }
     m_state.keyoffNotify(*this);
@@ -289,10 +289,39 @@ bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
     if (m_state.m_pitchWheelSel)
         setPitchWheel(m_state.m_pitchWheelSel.evaluate(*this, m_state) / 127.f);
 
+    /* Process user volume slew */
+    if (m_engine.m_ampMode == AmplitudeMode::PerSample)
+    {
+        if (m_targetUserVol != m_curUserVol)
+        {
+            float samplesPer5Ms = m_sampleRate * 5.f / 1000.f;
+            if (samplesPer5Ms > 1.f)
+            {
+                float adjRate = 1.f / samplesPer5Ms;
+                if (m_targetUserVol < m_curUserVol)
+                {
+                    m_curUserVol -= adjRate;
+                    if (m_targetUserVol > m_curUserVol)
+                        m_curUserVol = m_targetUserVol;
+                }
+                else
+                {
+                    m_curUserVol += adjRate;
+                    if (m_targetUserVol < m_curUserVol)
+                        m_curUserVol = m_targetUserVol;
+                }
+            }
+            else
+                m_curUserVol = m_targetUserVol;
+        }
+    }
+    else
+        m_curUserVol = m_targetUserVol;
+
     /* Factor in ADSR envelope state */
-    float adsr = m_volAdsr.advance(dt);
+    float adsr = m_volAdsr.advance(dt, *this);
     m_lastLevel = m_nextLevel;
-    m_nextLevel = m_userVol * evalVol * adsr * (m_state.m_curVel / 127.f);
+    m_nextLevel = m_curUserVol * evalVol * adsr * (m_state.m_curVel / 127.f);
 
     /* Apply tremolo */
     if (m_state.m_tremoloSel && (m_tremoloScale || m_tremoloModScale))
@@ -585,6 +614,7 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
         m_voxState = VoiceState::Dead;
         m_backendVoice->stop();
     }
+
     return samples;
 }
 
@@ -606,7 +636,7 @@ std::shared_ptr<Voice> Voice::_startChildMacro(ObjectId macroId, int macroStep, 
         _destroyVoice(vox);
         return {};
     }
-    (*vox)->setVolume(m_userVol);
+    (*vox)->setVolume(m_targetUserVol);
     (*vox)->setPan(m_userPan);
     (*vox)->setSurroundPan(m_userSpan);
     return *vox;
@@ -821,7 +851,7 @@ void Voice::stopSample()
 
 void Voice::setVolume(float vol)
 {
-    m_userVol = clamp(0.f, vol, 1.f);
+    m_targetUserVol = clamp(0.f, vol, 1.f);
     for (std::shared_ptr<Voice>& vox : m_childVoices)
         vox->setVolume(vol);
 }
@@ -1000,7 +1030,7 @@ void Voice::setAdsr(ObjectId adsrId, bool dls)
         {
             m_volAdsr.reset(adsr, m_state.m_initKey, m_state.m_initVel);
             if (m_voxState == VoiceState::KeyOff)
-                m_volAdsr.keyOff();
+                m_volAdsr.keyOff(*this);
         }
     }
     else
@@ -1010,7 +1040,7 @@ void Voice::setAdsr(ObjectId adsrId, bool dls)
         {
             m_volAdsr.reset(adsr);
             if (m_voxState == VoiceState::KeyOff)
-                m_volAdsr.keyOff();
+                m_volAdsr.keyOff(*this);
         }
     }
 }

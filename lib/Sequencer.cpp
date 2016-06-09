@@ -96,6 +96,8 @@ Sequencer::ChannelState::ChannelState(Sequencer& parent, uint8_t chanId)
 
     m_curVol = m_setup.volume / 127.f;
     m_curPan = m_setup.panning / 64.f - 1.f;
+    m_ctrlVals[7] = 127;
+    m_ctrlVals[10] = 64;
     m_ctrlVals[0x5b] = m_setup.reverb;
     m_ctrlVals[0x5d] = m_setup.chorus;
 }

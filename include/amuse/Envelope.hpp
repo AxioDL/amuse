@@ -5,6 +5,7 @@
 
 namespace amuse
 {
+class Voice;
 
 /** Per-sample state tracker for ADSR envelope data */
 class Envelope
@@ -30,7 +31,9 @@ private:
 public:
     void reset(const ADSR* adsr);
     void reset(const ADSRDLS* adsr, int8_t note, int8_t vel);
+    void keyOff(const Voice& vox);
     void keyOff();
+    float advance(double dt, const Voice& vox);
     float advance(double dt);
     bool isComplete() const {return m_phase == State::Complete;}
     bool isAdsrSet() const {return m_adsrSet;}

@@ -14,6 +14,7 @@ class Voice;
 class SoundMacroState
 {
     friend class Voice;
+    friend class Envelope;
 
     /** SoundMacro header */
     struct Header

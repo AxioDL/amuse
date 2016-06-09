@@ -32,6 +32,7 @@ class Voice : public Entity
     friend class Engine;
     friend class Sequencer;
     friend class SoundMacroState;
+    friend class Envelope;
     int m_vid; /**< VoiceID of this voice instance */
     bool m_emitter; /**< Voice is part of an Emitter */
     Submix* m_submix = nullptr; /**< Submix this voice outputs to (or NULL for the main output mix) */
@@ -71,7 +72,8 @@ class Voice : public Entity
     bool m_sustainKeyOff = false; /**< Keyoff event occured while sustained */
     uint8_t m_curAftertouch = 0; /**< Aftertouch value (key pressure when 'bottoming out') */
 
-    float m_userVol = 1.f; /**< User volume of voice */
+    float m_targetUserVol = 1.f; /**< Target user volume of voice (slewed to prevent audible aliasing) */
+    float m_curUserVol = 1.f; /**< Current user volume of voice */
     float m_curVol = 1.f; /**< Current volume of voice */
     float m_curReverbVol = 0.f; /**< Current reverb volume of voice */
     float m_userPan = 0.f; /**< User pan of voice */
