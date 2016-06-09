@@ -10,7 +10,6 @@
 #include "IBackendVoiceAllocator.hpp"
 #include <mutex>
 #include <list>
-#include <chrono>
 
 namespace amuse
 {
@@ -76,13 +75,14 @@ class BooBackendMIDIReader : public IMIDIReader, public boo::IMIDIReader
     std::unique_ptr<boo::IMIDIIn> m_midiIn;
     boo::MIDIDecoder m_decoder;
 
-    std::list<std::pair<std::chrono::steady_clock::time_point, std::vector<uint8_t>>> m_queue;
+    bool m_useLock;
+    std::list<std::pair<double, std::vector<uint8_t>>> m_queue;
     std::mutex m_midiMutex;
-    void _MIDIReceive(std::vector<uint8_t>&& bytes);
+    void _MIDIReceive(std::vector<uint8_t>&& bytes, double time);
 
 public:
     ~BooBackendMIDIReader();
-    BooBackendMIDIReader(Engine& engine, const char* name);
+    BooBackendMIDIReader(Engine& engine, const char* name, bool useLock);
 
     std::string description();
     void pumpReader(double dt);

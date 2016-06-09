@@ -503,7 +503,7 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
                 {
                     const int16_t* pcm = reinterpret_cast<const int16_t*>(m_curSampleData);
                     remCount = std::min(samplesRem, m_lastSamplePos - m_curSamplePos);
-                    memcpy(data, pcm + m_curSamplePos, remCount * sizeof(int16_t));
+                    memmove(data, pcm + m_curSamplePos, remCount * sizeof(int16_t));
                     decSamples = remCount;
                     break;
                 }
@@ -568,7 +568,7 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
                     {
                         const int16_t* pcm = reinterpret_cast<const int16_t*>(m_curSampleData);
                         remCount = std::min(samplesRem, m_lastSamplePos - m_curSamplePos);
-                        memcpy(data, pcm + m_curSamplePos, remCount * sizeof(int16_t));
+                        memmove(data, pcm + m_curSamplePos, remCount * sizeof(int16_t));
                         decSamples = remCount;
                         break;
                     }

@@ -28,7 +28,7 @@ class Sequencer : public Entity
 {
     friend class Engine;
     const SongGroupIndex& m_songGroup; /**< Quick access to song group project index */
-    const SongGroupIndex::MIDISetup* m_midiSetup = nullptr; /**< Selected MIDI setup */
+    const SongGroupIndex::MIDISetup* m_midiSetup = nullptr; /**< Selected MIDI setup (may be null) */
     Submix* m_submix = nullptr; /**< Submix this sequencer outputs to (or NULL for the main output mix) */
 
     const unsigned char* m_arrData = nullptr; /**< Current playing arrangement data */
@@ -44,7 +44,7 @@ class Sequencer : public Entity
     {
         Sequencer& m_parent;
         uint8_t m_chanId;
-        const SongGroupIndex::MIDISetup& m_setup;
+        const SongGroupIndex::MIDISetup* m_setup = nullptr; /* Channel defaults to program 0 if null */
         const SongGroupIndex::PageEntry* m_page = nullptr;
         ~ChannelState();
         ChannelState(Sequencer& parent, uint8_t chanId);
@@ -79,6 +79,7 @@ class Sequencer : public Entity
 
     void _bringOutYourDead();
     void _destroy();
+    
 public:
     ~Sequencer();
     Sequencer(Engine& engine, const AudioGroup& group, int groupId,

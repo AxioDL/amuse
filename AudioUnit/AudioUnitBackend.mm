@@ -12,13 +12,17 @@
 
 #include "logvisor/logvisor.hpp"
 #include "audiodev/AudioVoiceEngine.hpp"
+#import "AudioUnitViewController.hpp"
 
 static logvisor::Module Log("amuse::AudioUnitBackend");
 
 struct AudioUnitVoiceEngine : boo::BaseAudioVoiceEngine
 {
+    AudioGroupToken* m_reqGroup = nullptr;
+    AudioGroupToken* m_curGroup = nullptr;
+    std::vector<float> m_interleavedBuf;
     std::vector<std::unique_ptr<float[]>> m_renderBufs;
-    size_t m_frameBytes;
+    size_t m_renderFrames = 0;
     AudioBufferList* m_outputData = nullptr;
 
     boo::AudioChannelSet _getAvailableSet()
@@ -31,12 +35,24 @@ struct AudioUnitVoiceEngine : boo::BaseAudioVoiceEngine
         return {};
     }
 
-    boo::ReceiveFunctor m_midiReceiver = nullptr;
+    boo::ReceiveFunctor* m_midiReceiver = nullptr;
 
+    struct MIDIIn : public boo::IMIDIIn
+    {
+        MIDIIn(bool virt, boo::ReceiveFunctor&& receiver)
+        : IMIDIIn(virt, std::move(receiver)) {}
+        
+        std::string description() const
+        {
+            return "AudioUnit MIDI";
+        }
+    };
+    
     std::unique_ptr<boo::IMIDIIn> newVirtualMIDIIn(boo::ReceiveFunctor&& receiver)
     {
-        m_midiReceiver = std::move(receiver);
-        return {};
+        std::unique_ptr<boo::IMIDIIn> ret = std::make_unique<MIDIIn>(true, std::move(receiver));
+        m_midiReceiver = &ret->m_receiver;
+        return ret;
     }
 
     std::unique_ptr<boo::IMIDIOut> newVirtualMIDIOut()
@@ -63,106 +79,150 @@ struct AudioUnitVoiceEngine : boo::BaseAudioVoiceEngine
     {
         return {};
     }
+    
+    bool useMIDILock() const {return false;}
 
     AudioUnitVoiceEngine()
     {
-        m_mixInfo.m_channels = _getAvailableSet();
-        unsigned chCount = ChannelCount(m_mixInfo.m_channels);
-
+        m_mixInfo.m_periodFrames = 512;
         m_mixInfo.m_sampleRate = 96000.0;
         m_mixInfo.m_sampleFormat = SOXR_FLOAT32_I;
         m_mixInfo.m_bitsPerSample = 32;
-        m_5msFrames = 96000 * 5 / 1000;
-
+        _buildAudioRenderClient();
+    }
+    
+    void _buildAudioRenderClient()
+    {
+        m_mixInfo.m_channels = _getAvailableSet();
+        unsigned chCount = ChannelCount(m_mixInfo.m_channels);
+        
+        m_5msFrames = m_mixInfo.m_sampleRate * 5 / 1000;
+        
         boo::ChannelMap& chMapOut = m_mixInfo.m_channelMap;
         chMapOut.m_channelCount = 2;
         chMapOut.m_channels[0] = boo::AudioChannel::FrontLeft;
         chMapOut.m_channels[1] = boo::AudioChannel::FrontRight;
-
+        
         while (chMapOut.m_channelCount < chCount)
             chMapOut.m_channels[chMapOut.m_channelCount++] = boo::AudioChannel::Unknown;
-
-        m_mixInfo.m_periodFrames = 2400;
-
-        m_frameBytes = m_mixInfo.m_periodFrames * m_mixInfo.m_channelMap.m_channelCount * 4;
+    }
+    
+    void _rebuildAudioRenderClient(double sampleRate, size_t periodFrames)
+    {
+        m_mixInfo.m_periodFrames = periodFrames;
+        m_mixInfo.m_sampleRate = sampleRate;
+        _buildAudioRenderClient();
+        
+        for (boo::AudioVoice* vox : m_activeVoices)
+            vox->_resetSampleRate(vox->m_sampleRateIn);
+        for (boo::AudioSubmix* smx : m_activeSubmixes)
+            smx->_resetOutputSampleRate();
     }
 
     void pumpAndMixVoices()
     {
-        if (m_renderBufs.size() < m_outputData->mNumberBuffers)
-            m_renderBufs.resize(m_outputData->mNumberBuffers);
+        _pumpAndMixVoices(m_renderFrames, m_interleavedBuf.data());
 
-        for (int i=0 ; i<m_outputData->mNumberBuffers ; ++i)
+        for (size_t i=0 ; i<m_renderBufs.size() ; ++i)
         {
             std::unique_ptr<float[]>& buf = m_renderBufs[i];
             AudioBuffer& auBuf = m_outputData->mBuffers[i];
             if (!auBuf.mData)
             {
-                buf.reset(new float[auBuf.mDataByteSize]);
+                buf.reset(new float[auBuf.mDataByteSize / 4]);
                 auBuf.mData = buf.get();
             }
-
-            _pumpAndMixVoices(auBuf.mDataByteSize / 2 / 4, reinterpret_cast<float*>(auBuf.mData));
+            for (size_t f=0 ; f<m_renderFrames ; ++f)
+            {
+                float* bufOut = reinterpret_cast<float*>(auBuf.mData);
+                bufOut[f] = m_interleavedBuf[f*2+i];
+            }
         }
     }
+    
+    double getCurrentSampleRate() const {return m_mixInfo.m_sampleRate;}
 };
 
 @implementation AmuseAudioUnit
 - (id)initWithComponentDescription:(AudioComponentDescription)componentDescription
+                             error:(NSError * _Nullable *)outError
+                    viewController:(AudioUnitViewController*)vc
+{
+    m_viewController = vc;
+    vc->m_audioUnit = self;
+    self = [super initWithComponentDescription:componentDescription error:outError];
+    return self;
+}
+
+- (id)initWithComponentDescription:(AudioComponentDescription)componentDescription
                            options:(AudioComponentInstantiationOptions)options
-                             error:(NSError * _Nullable *)outError;
+                             error:(NSError * _Nullable *)outError
 {
     self = [super initWithComponentDescription:componentDescription options:options error:outError];
     if (!self)
         return nil;
-
-    AUAudioUnitBus* outBus = [[AUAudioUnitBus alloc] initWithFormat:
-                              [[AVAudioFormat alloc] initWithCommonFormat:AVAudioPCMFormatFloat32
-                                                               sampleRate:96000.0
-                                                                 channels:2
-                                                              interleaved:TRUE]
-                                error:outError];
-    if (!outBus)
+    
+    AVAudioFormat* format = [[AVAudioFormat alloc] initStandardFormatWithSampleRate:96000.0 channels:2];
+    m_outBus = [[AUAudioUnitBus alloc] initWithFormat:format error:outError];
+    if (!m_outBus)
         return nil;
-
-    m_outs = [[AUAudioUnitBusArray alloc] initWithAudioUnit:self busType:AUAudioUnitBusTypeOutput busses:@[outBus]];
-
-    self.maximumFramesToRender = 2400;
-    return self;
-}
-
-- (BOOL)allocateRenderResourcesAndReturnError:(NSError * _Nullable *)outError
-{
-    if (![super allocateRenderResourcesAndReturnError:outError])
-        return FALSE;
+    //m_outBus.supportedChannelCounts = @[@1,@2];
+    m_outBus.maximumChannelCount = 2;
+    
+    m_outs = [[AUAudioUnitBusArray alloc] initWithAudioUnit:self
+                                                    busType:AUAudioUnitBusTypeOutput
+                                                     busses:@[m_outBus]];
 
     m_booBackend = std::make_unique<AudioUnitVoiceEngine>();
     if (!m_booBackend)
     {
         *outError = [NSError errorWithDomain:@"amuse" code:-1
-                     userInfo:@{NSLocalizedDescriptionKey:@"Unable to construct boo mixer"}];
+                                    userInfo:@{NSLocalizedDescriptionKey:@"Unable to construct boo mixer"}];
         return FALSE;
     }
-
+    
     m_voxAlloc.emplace(*m_booBackend);
     m_engine.emplace(*m_voxAlloc);
+    dispatch_sync(dispatch_get_main_queue(),
+    ^{
+        m_filePresenter = [[AudioGroupFilePresenter alloc] initWithAudioGroupClient:self];
+    });
+    
+    self.maximumFramesToRender = 512;
+    return self;
+}
+
+- (void)requestAudioGroup:(AudioGroupToken*)group
+{
+    AudioUnitVoiceEngine& voxEngine = static_cast<AudioUnitVoiceEngine&>(*m_booBackend);
+    voxEngine.m_reqGroup = group;
+}
+
+- (BOOL)allocateRenderResourcesAndReturnError:(NSError **)outError
+{
+    if (![super allocateRenderResourcesAndReturnError:outError])
+        return FALSE;
+    
+    size_t chanCount = m_outBus.format.channelCount;
+    size_t renderFrames = self.maximumFramesToRender;
+    
+    NSLog(@"Alloc Chans: %zu Frames: %zu SampRate: %f", chanCount, renderFrames, m_outBus.format.sampleRate);
+    
+    AudioUnitVoiceEngine& voxEngine = static_cast<AudioUnitVoiceEngine&>(*m_booBackend);
+    voxEngine.m_renderFrames = renderFrames;
+    voxEngine.m_interleavedBuf.resize(renderFrames * std::max(2ul, chanCount));
+    voxEngine.m_renderBufs.resize(chanCount);
+    voxEngine._rebuildAudioRenderClient(m_outBus.format.sampleRate, renderFrames);
+    
     *outError = nil;
     return TRUE;
 }
 
 - (void)deallocateRenderResources
 {
-    m_engine = std::experimental::nullopt;
-    m_voxAlloc = std::experimental::nullopt;
-    m_booBackend.reset();
     [super deallocateRenderResources];
-}
-
-- (BOOL)renderResourcesAllocated
-{
-    if (m_engine)
-        return TRUE;
-    return FALSE;
+    AudioUnitVoiceEngine& voxEngine = static_cast<AudioUnitVoiceEngine&>(*m_booBackend);
+    voxEngine.m_renderBufs.clear();
 }
 
 - (AUAudioUnitBusArray*)outputBusses
@@ -184,11 +244,25 @@ struct AudioUnitVoiceEngine : boo::BaseAudioVoiceEngine
 {
     __block AudioUnitVoiceEngine& voxEngine = static_cast<AudioUnitVoiceEngine&>(*m_booBackend);
     __block amuse::Engine& amuseEngine = *m_engine;
+    __block std::shared_ptr<amuse::Sequencer> curSeq;
 
     return ^AUAudioUnitStatus(AudioUnitRenderActionFlags* actionFlags, const AudioTimeStamp* timestamp,
              AUAudioFrameCount frameCount, NSInteger outputBusNumber, AudioBufferList* outputData,
              const AURenderEvent* realtimeEventListHead, AURenderPullInputBlock pullInputBlock)
     {
+        /* Handle group load request */
+        AudioGroupToken* reqGroup = voxEngine.m_reqGroup;
+        if (voxEngine.m_curGroup != reqGroup)
+        {
+            voxEngine.m_curGroup = reqGroup;
+            if (reqGroup->m_song)
+            {
+                if (curSeq)
+                    curSeq->kill();
+                curSeq = amuseEngine.seqPlay(reqGroup->m_id, -1, nullptr);
+            }
+        }
+        
         /* Process MIDI events first */
         if (voxEngine.m_midiReceiver)
         {
@@ -197,17 +271,24 @@ struct AudioUnitVoiceEngine : boo::BaseAudioVoiceEngine
             {
                 if (event->eventType == AURenderEventMIDI)
                 {
-                    voxEngine.m_midiReceiver(std::vector<uint8_t>(std::cbegin(event->data),
-                                                                  std::cbegin(event->data) + event->length));
+                    (*voxEngine.m_midiReceiver)(std::vector<uint8_t>(std::cbegin(event->data),
+                                                                     std::cbegin(event->data) + event->length),
+                                                event->eventSampleTime / voxEngine.getCurrentSampleRate());
                 }
             }
         }
 
         /* Output buffers */
+        voxEngine.m_renderFrames = frameCount;
         voxEngine.m_outputData = outputData;
         amuseEngine.pumpEngine();
         return noErr;
     };
+}
+
+- (amuse::Engine&)getAmuseEngine
+{
+    return *m_engine;
 }
 @end
 

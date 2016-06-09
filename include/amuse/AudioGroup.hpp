@@ -31,6 +31,7 @@ public:
     const unsigned char* getSampleData(uint32_t offset) const;
     const AudioGroupProject& getProj() const {return m_proj;}
     const AudioGroupPool& getPool() const {return m_pool;}
+    const AudioGroupSampleDirectory& getSdir() const {return m_sdir;}
     DataFormat getDataFormat() const {return m_fmt;}
 };
 
