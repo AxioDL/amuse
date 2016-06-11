@@ -2,7 +2,6 @@
 #include "amuse/Voice.hpp"
 #include "amuse/Submix.hpp"
 #include "amuse/Engine.hpp"
-#include <syslog.h>
 
 namespace amuse
 {

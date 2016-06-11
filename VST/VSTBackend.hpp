@@ -1,7 +1,7 @@
 #ifndef __AMUSE_VSTBACKEND_HPP__
 #define __AMUSE_VSTBACKEND_HPP__
 
-#include <vst36/audioeffectx.h>
+#include "audioeffectx.h"
 #include "VSTEditor.hpp"
 #include <memory>
 #include "optional.hpp"
@@ -34,13 +34,16 @@ class VSTBackend : public AudioEffectX
     VSTEditor m_editor;
 public:
     VSTBackend(audioMasterCallback cb);
+    ~VSTBackend();
     AEffEditor* getEditor();
     VstInt32 processEvents(VstEvents* events);
     void processReplacing(float** inputs, float** outputs, VstInt32 sampleFrames);
     VstInt32 canDo(char* text);
     VstPlugCategory getPlugCategory();
+    bool getEffectName(char* text);
     bool getProductString(char* text);
     bool getVendorString(char* text);
+    bool getProgramNameIndexed(VstInt32 category, VstInt32 index, char* text);
     bool getOutputProperties(VstInt32 index, VstPinProperties* properties);
     VstInt32 getNumMidiInputChannels();
     void setSampleRate(float sampleRate);
