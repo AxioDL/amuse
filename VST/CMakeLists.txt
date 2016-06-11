@@ -10,6 +10,7 @@ if (WIN32 AND (EXISTS ${VST3_SDK_ROOT}))
               ${VST2_DIR}/vstplugmain.cpp
               ${VST2_DIR}/audioeffect.cpp
               ${VST2_DIR}/audioeffectx.cpp)
-  target_link_libraries(amuse-vst amuse boo soxr ${ZLIB_LIBRARIES} ${BOO_SYS_LIBS} Msimg32 logvisor athena-core)
+  target_link_libraries(amuse-vst amuse boo soxr ${ZLIB_LIBRARIES} ${BOO_SYS_LIBS}
+                                  Msimg32 logvisor athena-core)
   set_target_properties(amuse-vst PROPERTIES LINK_FLAGS "/EXPORT:VSTPluginMain")
 endif()

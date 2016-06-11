@@ -15,11 +15,11 @@ class VSTBackend;
 class VSTEditor : public AEffEditor
 {
     VSTBackend& m_backend;
-    ERect m_windowRect = {0, 0, 520, 800};
+    ERect m_windowRect = {0, 0, 420, 600};
 
     HWND m_rootView;
-    HWND m_collectionListView;
-    HWND m_groupFileListView;
+    HWND m_collectionHeader;
+    HWND m_collectionTree;
     HWND m_groupListView;
     HWND m_pageListView;
 
@@ -44,7 +44,6 @@ public:
     void update();
 
     void selectCollection(int idx);
-    void selectGroupFile(int idx);
     void selectGroup(int idx);
     void selectPage(int idx);
 };

@@ -136,7 +136,7 @@ VSTBackend::VSTBackend(audioMasterCallback cb)
     setNumInputs(0);
     setNumOutputs(2);
     setEditor(&m_editor);
-    sizeWindow(800, 520);
+    sizeWindow(600, 420);
 
     m_booBackend = std::make_unique<VSTVoiceEngine>();
     m_voxAlloc.emplace(*m_booBackend);

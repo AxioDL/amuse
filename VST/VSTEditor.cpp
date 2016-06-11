@@ -3,6 +3,7 @@
 
 extern void* hInstance;
 static WNDPROC OriginalListViewProc = 0;
+static HBRUSH gGreyBorderBrush;
 
 namespace amuse
 {
@@ -36,10 +37,8 @@ LRESULT CALLBACK VSTEditor::WindowProc(HWND hwnd,
         case NM_CLICK:
         {
             NMITEMACTIVATE& itemAct = *reinterpret_cast<LPNMITEMACTIVATE>(lParam);
-            if (itemAct.hdr.hwndFrom == editor.m_collectionListView)
+            if (itemAct.hdr.hwndFrom == editor.m_collectionTree)
                 editor.selectCollection(itemAct.iItem);
-            else if (itemAct.hdr.hwndFrom == editor.m_groupFileListView)
-                editor.selectGroupFile(itemAct.iItem);
             else if (itemAct.hdr.hwndFrom == editor.m_groupListView)
                 editor.selectGroup(itemAct.iItem);
             else if (itemAct.hdr.hwndFrom == editor.m_pageListView)
@@ -49,6 +48,13 @@ LRESULT CALLBACK VSTEditor::WindowProc(HWND hwnd,
         default:
             return DefWindowProc(hwnd, uMsg, wParam, lParam);
         }
+    }
+    case WM_ERASEBKGND:
+    {
+        RECT rect;
+        GetClientRect(hwnd, &rect);
+        FillRect(HDC(wParam), &rect, gGreyBorderBrush);
+        return 1;
     }
     default:
         return DefWindowProc(hwnd, uMsg, wParam, lParam);
@@ -101,6 +107,7 @@ bool VSTEditor::open(void* ptr)
 {
     AEffEditor::open(ptr);
     HWND hostView = HWND(ptr);
+    gGreyBorderBrush = CreateSolidBrush(RGB(100,100,100));
 
     WNDCLASSW notifyCls =
     {
@@ -111,7 +118,7 @@ bool VSTEditor::open(void* ptr)
         HINSTANCE(hInstance),
         nullptr,
         nullptr,
-        HBRUSH(COLOR_BACKGROUND),
+        nullptr,
         nullptr,
         L"VSTNotify"
     };
@@ -130,51 +137,47 @@ bool VSTEditor::open(void* ptr)
     SetWindowLongPtrW(m_rootView, 0, LONG_PTR(this));
     ShowWindow(m_rootView, SW_SHOW);
 
-    LV_COLUMN column = {};
+    LVCOLUMN column = {};
     column.mask = LVCF_FMT | LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
     column.fmt = LVCFMT_LEFT | LVCFMT_FIXED_WIDTH;
     column.cx = 200;
 
-    m_collectionListView = CreateWindowW(WC_LISTVIEW,
-                                         L"",
-                                         WS_CHILD | WS_BORDER | LVS_REPORT | LVS_SINGLESEL | LVS_NOSORTHEADER,
-                                         0, 0,
-                                         201,
-                                         m_windowRect.bottom - m_windowRect.top,
-                                         m_rootView,
-                                         nullptr,
-                                         nullptr,
-                                         nullptr);
-    column.pszText = L"Collection";
-    HWND header = ListView_GetHeader(m_collectionListView);
-    SetWindowLongPtrW(header, GWLP_USERDATA, LONG_PTR(column.pszText));
-    OriginalListViewProc = WNDPROC(SetWindowLongPtr(header, GWLP_WNDPROC, LONG_PTR(ColHeaderWindowProc)));
-    ListView_SetBkColor(m_collectionListView, RGB(64,64,64));
-    ListView_InsertColumn(m_collectionListView, 0, &column);
-    ShowWindow(m_collectionListView, SW_SHOW);
+    LVITEM item = {};
+    item.mask = LVIF_TEXT | LVIF_GROUPID;
+    item.pszText = L"Test";
+    item.iGroupId = 1;
 
-    m_groupFileListView = CreateWindowW(WC_LISTVIEW,
-                                        L"",
-                                        WS_CHILD | WS_BORDER | LVS_REPORT | LVS_SINGLESEL | LVS_NOSORTHEADER,
-                                        200, 0,
-                                        201,
-                                        m_windowRect.bottom - m_windowRect.top,
-                                        m_rootView,
-                                        nullptr,
-                                        nullptr,
-                                        nullptr);
-    column.pszText = L"File";
-    header = ListView_GetHeader(m_groupFileListView);
-    SetWindowLongPtrW(header, GWLP_USERDATA, LONG_PTR(column.pszText));
-    SetWindowLongPtr(header, GWLP_WNDPROC, LONG_PTR(ColHeaderWindowProc));
-    ListView_SetBkColor(m_groupFileListView, RGB(64,64,64));
-    ListView_InsertColumn(m_groupFileListView, 0, &column);
-    ShowWindow(m_groupFileListView, SW_SHOW);
+    m_collectionTree = CreateWindowW(WC_TREEVIEW,
+                                     L"",
+                                     WS_CHILD | WS_BORDER | TVS_HASLINES,
+                                     0, 24,
+                                     201,
+                                     m_windowRect.bottom - m_windowRect.top - 24,
+                                     m_rootView,
+                                     nullptr,
+                                     nullptr,
+                                     nullptr);
+    TreeView_SetBkColor(m_collectionTree, RGB(64,64,64));
+    ShowWindow(m_collectionTree, SW_SHOW);
+
+    m_collectionHeader = CreateWindowW(WC_HEADER,
+                                       L"",
+                                       WS_CHILD,
+                                       1, 1,
+                                       200,
+                                       24,
+                                       m_rootView,
+                                       nullptr,
+                                       nullptr,
+                                       nullptr);
+    SetWindowLongPtrW(m_collectionHeader, GWLP_USERDATA, LONG_PTR(L"Collection"));
+    OriginalListViewProc = WNDPROC(SetWindowLongPtr(m_collectionHeader, GWLP_WNDPROC, LONG_PTR(ColHeaderWindowProc)));
+    ShowWindow(m_collectionHeader, SW_SHOW);
 
     m_groupListView = CreateWindowW(WC_LISTVIEW,
                                     L"",
                                     WS_CHILD | WS_BORDER | LVS_REPORT | LVS_SINGLESEL | LVS_NOSORTHEADER,
-                                    400, 0,
+                                    200, 0,
                                     201,
                                     m_windowRect.bottom - m_windowRect.top,
                                     m_rootView,
@@ -182,7 +185,7 @@ bool VSTEditor::open(void* ptr)
                                     nullptr,
                                     nullptr);
     column.pszText = L"Group";
-    header = ListView_GetHeader(m_groupListView);
+    HWND header = ListView_GetHeader(m_groupListView);
     SetWindowLongPtrW(header, GWLP_USERDATA, LONG_PTR(column.pszText));
     SetWindowLongPtr(header, GWLP_WNDPROC, LONG_PTR(ColHeaderWindowProc));
     ListView_SetBkColor(m_groupListView, RGB(64,64,64));
@@ -192,7 +195,7 @@ bool VSTEditor::open(void* ptr)
     m_pageListView = CreateWindowW(WC_LISTVIEW,
                                    L"",
                                    WS_CHILD | WS_BORDER | LVS_REPORT | LVS_SINGLESEL | LVS_NOSORTHEADER,
-                                   600, 0,
+                                   400, 0,
                                    200,
                                    m_windowRect.bottom - m_windowRect.top,
                                    m_rootView,
@@ -222,11 +225,6 @@ void VSTEditor::update()
 }
 
 void VSTEditor::selectCollection(int idx)
-{
-
-}
-
-void VSTEditor::selectGroupFile(int idx)
 {
 
 }
