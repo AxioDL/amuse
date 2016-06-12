@@ -1,5 +1,6 @@
 #include "VSTBackend.hpp"
 #include "audiodev/AudioVoiceEngine.hpp"
+#include <Shlobj.h>
 #include <logvisor/logvisor.hpp>
 
 struct VSTVoiceEngine : boo::BaseAudioVoiceEngine
@@ -141,6 +142,13 @@ VSTBackend::VSTBackend(audioMasterCallback cb)
     m_booBackend = std::make_unique<VSTVoiceEngine>();
     m_voxAlloc.emplace(*m_booBackend);
     m_engine.emplace(*m_voxAlloc);
+
+    WCHAR path[MAX_PATH];
+    if (SUCCEEDED(SHGetFolderPathW(NULL, CSIDL_APPDATA, NULL, 0, path)))
+    {
+        m_userDir = std::wstring(path) + L"\\Amuse";
+        CreateDirectory(m_userDir.c_str(), nullptr);
+    }
 }
 
 VSTBackend::~VSTBackend()

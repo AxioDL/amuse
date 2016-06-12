@@ -31,6 +31,7 @@ class VSTBackend : public AudioEffectX
     std::experimental::optional<amuse::VSTBackendVoiceAllocator> m_voxAlloc;
     std::experimental::optional<amuse::Engine> m_engine;
     size_t m_curFrame = 0;
+    std::wstring m_userDir;
     VSTEditor m_editor;
 public:
     VSTBackend(audioMasterCallback cb);
@@ -48,6 +49,9 @@ public:
     VstInt32 getNumMidiInputChannels();
     void setSampleRate(float sampleRate);
     void setBlockSize(VstInt32 blockSize);
+
+    amuse::Engine& getAmuseEngine() {return *m_engine;}
+    const std::wstring& getUserDir() const {return m_userDir;}
 };
 
 }

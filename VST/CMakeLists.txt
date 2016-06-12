@@ -7,10 +7,12 @@ if (WIN32 AND (EXISTS ${VST3_SDK_ROOT}))
   add_library(amuse-vst SHARED
               VSTBackend.hpp VSTBackend.cpp
               VSTEditor.hpp VSTEditor.cpp
+              AudioGroupFilePresenter.hpp AudioGroupFilePresenter.cpp
               ${VST2_DIR}/vstplugmain.cpp
               ${VST2_DIR}/audioeffect.cpp
-              ${VST2_DIR}/audioeffectx.cpp)
+              ${VST2_DIR}/audioeffectx.cpp
+              FileOpenDialog.hpp FileOpenDialog.cpp)
   target_link_libraries(amuse-vst amuse boo soxr ${ZLIB_LIBRARIES} ${BOO_SYS_LIBS}
-                                  Msimg32 logvisor athena-core)
+                                  Msimg32 Shlwapi logvisor athena-core)
   set_target_properties(amuse-vst PROPERTIES LINK_FLAGS "/EXPORT:VSTPluginMain")
 endif()

@@ -14,12 +14,16 @@ class VSTBackend;
 /** Editor UI class */
 class VSTEditor : public AEffEditor
 {
+    friend class AudioGroupFilePresenter;
+
     VSTBackend& m_backend;
     ERect m_windowRect = {0, 0, 420, 600};
 
     HWND m_rootView;
     HWND m_collectionHeader;
     HWND m_collectionTree;
+    HWND m_collectionAdd;
+    HWND m_collectionRemove;
     HWND m_groupListView;
     HWND m_pageListView;
 
@@ -42,6 +46,9 @@ public:
     bool open(void* ptr);
     void close();
     void update();
+
+    void addAction();
+    void removeAction();
 
     void selectCollection(int idx);
     void selectGroup(int idx);
