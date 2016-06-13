@@ -7,6 +7,10 @@
 #include <amuse/amuse.hpp>
 #include <athena/FileReader.hpp>
 
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <CommCtrl.h>
+
 namespace amuse
 {
 class VSTBackend;
@@ -70,8 +74,7 @@ struct AudioGroupCollection
     void addCollection(AudioGroupFilePresenter& presenter,
                        std::vector<std::pair<std::wstring, amuse::IntrusiveAudioGroupData>>&& collection);
     void update(AudioGroupFilePresenter& presenter);
-
-    //void populate
+    void populateFiles(VSTEditor& editor, HTREEITEM colHandle);
 };
 
 class AudioGroupFilePresenter

@@ -2,6 +2,7 @@
 #define __AMUSE_CONTAINERREGISTRY_HPP__
 
 #include "AudioGroupData.hpp"
+#include "Common.hpp"
 #include <string>
 #include <vector>
 #include <memory>
@@ -34,11 +35,11 @@ public:
         SongData(std::unique_ptr<uint8_t[]>&& data, size_t size, int16_t groupId, int16_t setupId)
         : m_data(std::move(data)), m_size(size), m_groupId(groupId), m_setupId(setupId) {}
     };
-    static const char* TypeToName(Type tp);
-    static Type DetectContainerType(const char* path);
-    static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadContainer(const char* path);
-    static std::vector<std::pair<std::string, IntrusiveAudioGroupData>> LoadContainer(const char* path, Type& typeOut);
-    static std::vector<std::pair<std::string, SongData>> LoadSongs(const char* path);
+    static const SystemChar* TypeToName(Type tp);
+    static Type DetectContainerType(const SystemChar* path);
+    static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadContainer(const SystemChar* path);
+    static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadContainer(const SystemChar* path, Type& typeOut);
+    static std::vector<std::pair<SystemString, SongData>> LoadSongs(const SystemChar* path);
 };
 
 }

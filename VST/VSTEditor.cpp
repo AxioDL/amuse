@@ -3,6 +3,10 @@
 #include "FileOpenDialog.hpp"
 #include <Windowsx.h>
 #include <shellapi.h>
+#include <algorithm>
+
+#undef min
+#undef max
 
 extern void* hInstance;
 static WNDPROC OriginalListViewProc = 0;
@@ -294,6 +298,7 @@ bool VSTEditor::open(void* ptr)
     ListView_InsertItem(m_pageListView, &item);
     ShowWindow(m_pageListView, SW_SHOW);
 
+    m_backend.getFilePresenter().populateEditor(*this);
     return true;
 }
 
@@ -310,21 +315,38 @@ void VSTEditor::update()
 
 void VSTEditor::addAction()
 {
-    VstFileSelect fSelect = {};
-    fSelect.command = kVstFileLoad;
-    fSelect.type = kVstFileType;
-    strcpy(fSelect.title, "Select Audio Group Archive");
-    if (m_backend.openFileSelector(&fSelect))
+    std::wstring path = openDB();
+    if (path.size())
     {
-        m_backend.closeFileSelector(&fSelect);
-    }
-    else
-    {
-        std::wstring path = openDB();
-        if (path.size())
+        amuse::ContainerRegistry::Type containerType;
+        std::vector<std::pair<std::wstring, amuse::IntrusiveAudioGroupData>> data =
+            amuse::ContainerRegistry::LoadContainer(path.c_str(), containerType);
+        if (data.empty())
         {
-
+            wchar_t msg[512];
+            SNPrintf(msg, 512, L"Unable to load Audio Groups from %s", path.c_str());
+            MessageBoxW(nullptr, msg, L"Invalid Data File", MB_OK | MB_ICONERROR);
+            return;
         }
+
+        SystemString name(amuse::ContainerRegistry::TypeToName(containerType));
+        if (containerType == amuse::ContainerRegistry::Type::Raw4)
+        {
+            size_t dotpos = path.rfind(L'.');
+            if (dotpos != std::string::npos)
+                name.assign(path.cbegin(), path.cbegin() + dotpos);
+            size_t slashpos = name.rfind(L'\\');
+            size_t fslashpos = name.rfind(L"/");
+            if (slashpos == std::string::npos)
+                slashpos = fslashpos;
+            else if (fslashpos != std::string::npos)
+                slashpos = std::max(slashpos, fslashpos);
+            if (slashpos != std::string::npos)
+                name.assign(name.cbegin() + slashpos + 1, name.cend());
+        }
+
+        m_backend.getFilePresenter().addCollection(name, std::move(data));
+        m_backend.getFilePresenter().populateEditor(*this);
     }
 }
 

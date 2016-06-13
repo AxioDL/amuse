@@ -15,6 +15,7 @@ class VSTBackend;
 class VSTEditor : public AEffEditor
 {
     friend class AudioGroupFilePresenter;
+    friend struct AudioGroupCollection;
 
     VSTBackend& m_backend;
     ERect m_windowRect = {0, 0, 420, 600};

@@ -11,6 +11,7 @@
 #include "amuse/IBackendVoice.hpp"
 #include "amuse/IBackendSubmix.hpp"
 #include "amuse/IBackendVoiceAllocator.hpp"
+#include "AudioGroupFilePresenter.hpp"
 
 namespace amuse
 {
@@ -32,6 +33,7 @@ class VSTBackend : public AudioEffectX
     std::experimental::optional<amuse::Engine> m_engine;
     size_t m_curFrame = 0;
     std::wstring m_userDir;
+    AudioGroupFilePresenter m_filePresenter;
     VSTEditor m_editor;
 public:
     VSTBackend(audioMasterCallback cb);
@@ -52,6 +54,7 @@ public:
 
     amuse::Engine& getAmuseEngine() {return *m_engine;}
     const std::wstring& getUserDir() const {return m_userDir;}
+    AudioGroupFilePresenter& getFilePresenter() {return m_filePresenter;}
 };
 
 }

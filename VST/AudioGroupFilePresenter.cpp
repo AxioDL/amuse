@@ -255,6 +255,7 @@ void AudioGroupFilePresenter::addCollection(const std::wstring& name,
 {
     std::wstring path = m_backend.getUserDir() + L'\\' + name;
     AudioGroupCollection& insert = *m_audioGroupCollections.emplace(name, std::make_unique<AudioGroupCollection>(path, name)).first->second;
+    CreateDirectory(insert.m_path.c_str(), nullptr);
     insert.addCollection(*this, std::move(collection));
 
     for (std::pair<const std::wstring, std::unique_ptr<AudioGroupDataCollection>>& pair : insert.m_groups)
@@ -299,11 +300,34 @@ void AudioGroupFilePresenter::addCollection(const std::wstring& name,
     }
 }
 
+void AudioGroupCollection::populateFiles(VSTEditor& editor, HTREEITEM colHandle)
+{
+    TVINSERTSTRUCT ins = {};
+    ins.item.mask = TVIF_TEXT;
+    ins.hParent = colHandle;
+    ins.hInsertAfter = TVI_LAST;
+
+    for (const auto& group : m_groups)
+    {
+        ins.item.pszText = LPWSTR(group.first.c_str());
+        TreeView_InsertItem(editor.m_collectionTree, &ins);
+    }
+}
+
 void AudioGroupFilePresenter::populateEditor(VSTEditor& editor)
 {
-    for (const auto& cgollection : m_audioGroupCollections)
-    {
+    TreeView_DeleteAllItems(editor.m_collectionTree);
+    TVINSERTSTRUCT ins = {};
+    ins.hParent = TVI_ROOT;
+    ins.hInsertAfter = TVI_LAST;
+    ins.item.mask = TVIF_CHILDREN | TVIF_TEXT;
 
+    for (const auto& collection : m_audioGroupCollections)
+    {
+        ins.item.cChildren = collection.second->m_groups.size() ? 1 : 0;
+        ins.item.pszText = LPWSTR(collection.first.c_str());
+        HTREEITEM item = TreeView_InsertItem(editor.m_collectionTree, &ins);
+        collection.second->populateFiles(editor, item);
     }
 }
 

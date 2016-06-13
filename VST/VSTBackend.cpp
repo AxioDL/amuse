@@ -130,7 +130,7 @@ namespace amuse
 static logvisor::Module Log("amuse::AudioUnitBackend");
 
 VSTBackend::VSTBackend(audioMasterCallback cb)
-: AudioEffectX(cb, 0, 0), m_editor(*this)
+: AudioEffectX(cb, 0, 0), m_filePresenter(*this), m_editor(*this)
 {
     isSynth();
     setUniqueID(kBackendID);
@@ -149,6 +149,8 @@ VSTBackend::VSTBackend(audioMasterCallback cb)
         m_userDir = std::wstring(path) + L"\\Amuse";
         CreateDirectory(m_userDir.c_str(), nullptr);
     }
+
+    m_filePresenter.update();
 }
 
 VSTBackend::~VSTBackend()

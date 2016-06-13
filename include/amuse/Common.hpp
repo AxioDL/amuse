@@ -5,6 +5,8 @@
 #include <limits.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdarg.h>
+#include <string>
 
 #ifndef _MSC_VER
 #include <strings.h>
@@ -21,10 +23,33 @@ namespace amuse
 #endif
 #endif
 
+#ifdef _WIN32
+    using SystemString = std::wstring;
+    using SystemChar = wchar_t;
+#   ifndef _S
+#   define _S(val) L ## val
+#   endif
+#else
+    using SystemString = std::string;
+    using SystemChar = char;
+#   ifndef _S
+#   define _S(val) val
+#   endif
+#endif
+
 static inline int CompareCaseInsensitive(const char* a, const char* b)
 {
 #if _WIN32
     return _stricmp(a, b);
+#else
+    return strcasecmp(a, b);
+#endif
+}
+
+static inline int CompareCaseInsensitive(const SystemChar* a, const SystemChar* b)
+{
+#if _WIN32
+    return _wcsicmp(a, b);
 #else
     return strcasecmp(a, b);
 #endif
@@ -70,6 +95,54 @@ inline float ClampFull<float>(float in)
 #define M_PIF 3.14159265358979323846f /* pi */
 #endif
 
+#if __GNUC__
+__attribute__((__format__ (__printf__, 1, 2)))
+#endif
+static inline void Printf(const SystemChar* fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+#if _WIN32
+    vwprintf(fmt, args);
+#else
+    vprintf(fmt, args);
+#endif
+    va_end(args);
+}
+
+#if __GNUC__
+__attribute__((__format__ (__printf__, 3, 4)))
+#endif
+static inline void SNPrintf(SystemChar* str, size_t maxlen, const SystemChar* format, ...)
+{
+    va_list va;
+    va_start(va, format);
+#if _WIN32
+    _vsnwprintf(str, maxlen, format, va);
+#else
+    vsnprintf(str, maxlen, format, va);
+#endif
+    va_end(va);
+}
+
+static inline const SystemChar* StrRChr(const SystemChar* str, SystemChar ch)
+{
+#if _WIN32
+    return wcsrchr(str, ch);
+#else
+    return strrchr(str, ch);
+#endif
+}
+
+static inline SystemChar* StrRChr(SystemChar* str, SystemChar ch)
+{
+#if _WIN32
+    return wcsrchr(str, ch);
+#else
+    return strrchr(str, ch);
+#endif
+}
+
 static inline int FSeek(FILE* fp, int64_t offset, int whence)
 {
 #if _WIN32
@@ -90,6 +163,20 @@ static inline int64_t FTell(FILE* fp)
 #else
     return ftello64(fp);
 #endif
+}
+
+static inline FILE* FOpen(const SystemChar* path, const SystemChar* mode)
+{
+#if _WIN32
+    FILE* fp = _wfopen(path, mode);
+    if (!fp)
+        return nullptr;
+#else
+    FILE* fp = fopen(path, mode);
+    if (!fp)
+        return nullptr;
+#endif
+    return fp;
 }
 
 #undef bswap16

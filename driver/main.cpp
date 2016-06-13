@@ -639,23 +639,16 @@ struct AppCallback : boo::IApplicationCallback
             exit(1);
         }
 
-#if _WIN32
-        char utf8Path[1024];
-        WideCharToMultiByte(CP_UTF8, 0, m_argv[1], -1, utf8Path, 1024, nullptr, nullptr);
-#else
-        const char* utf8Path = m_argv[1];
-#endif
-
-        amuse::ContainerRegistry::Type cType = amuse::ContainerRegistry::DetectContainerType(utf8Path);
+        amuse::ContainerRegistry::Type cType = amuse::ContainerRegistry::DetectContainerType(m_argv[1]);
         if (cType == amuse::ContainerRegistry::Type::Invalid)
         {
             Log.report(logvisor::Error, "invalid/no data at path argument");
             exit(1);
         }
-        Log.report(logvisor::Info, "Found '%s' Audio Group data", amuse::ContainerRegistry::TypeToName(cType));
+        Log.report(logvisor::Info, _S("Found '%s' Audio Group data"), amuse::ContainerRegistry::TypeToName(cType));
 
-        std::vector<std::pair<std::string, amuse::IntrusiveAudioGroupData>> data =
-            amuse::ContainerRegistry::LoadContainer(utf8Path);
+        std::vector<std::pair<amuse::SystemString, amuse::IntrusiveAudioGroupData>> data =
+            amuse::ContainerRegistry::LoadContainer(m_argv[1]);
         if (data.empty())
         {
             Log.report(logvisor::Error, "invalid/no data at path argument");
@@ -663,8 +656,8 @@ struct AppCallback : boo::IApplicationCallback
         }
 
         std::list<amuse::AudioGroupProject> m_projs;
-        std::map<int, std::pair<std::pair<std::string, amuse::IntrusiveAudioGroupData>*, const amuse::SongGroupIndex*>> allSongGroups;
-        std::map<int, std::pair<std::pair<std::string, amuse::IntrusiveAudioGroupData>*, const amuse::SFXGroupIndex*>> allSFXGroups;
+        std::map<int, std::pair<std::pair<amuse::SystemString, amuse::IntrusiveAudioGroupData>*, const amuse::SongGroupIndex*>> allSongGroups;
+        std::map<int, std::pair<std::pair<amuse::SystemString, amuse::IntrusiveAudioGroupData>*, const amuse::SFXGroupIndex*>> allSFXGroups;
         size_t totalGroups = 0;
 
         for (auto& grp : data)
@@ -687,19 +680,11 @@ struct AppCallback : boo::IApplicationCallback
             m_setupId = -1;
 
             /* Attempt loading song */
-            std::vector<std::pair<std::string, amuse::ContainerRegistry::SongData>> songs;
+            std::vector<std::pair<amuse::SystemString, amuse::ContainerRegistry::SongData>> songs;
             if (m_argc > 2)
-            {
-#if _WIN32
-                char utf8Path[1024];
-                WideCharToMultiByte(CP_UTF8, 0, m_argv[2], -1, utf8Path, 1024, nullptr, nullptr);
-#else
-                const char* utf8Path = m_argv[2];
-#endif
-                songs = amuse::ContainerRegistry::LoadSongs(utf8Path);
-            }
+                songs = amuse::ContainerRegistry::LoadSongs(m_argv[2]);
             else
-                songs = amuse::ContainerRegistry::LoadSongs(utf8Path);
+                songs = amuse::ContainerRegistry::LoadSongs(m_argv[1]);
 
             if (songs.size())
             {
@@ -739,8 +724,8 @@ struct AppCallback : boo::IApplicationCallback
                         int idx = 0;
                         for (const auto& pair : songs)
                         {
-                            printf("    %d %s (Group %d, Setup %d)\n", idx++,
-                                   pair.first.c_str(), pair.second.m_groupId, pair.second.m_setupId);
+                            amuse::Printf(_S("    %d %s (Group %d, Setup %d)\n"), idx++,
+                                          pair.first.c_str(), pair.second.m_groupId, pair.second.m_setupId);
                         }
 
                         int userSel = 0;
@@ -791,15 +776,15 @@ struct AppCallback : boo::IApplicationCallback
                 printf("Multiple Audio Groups discovered:\n");
                 for (const auto& pair : allSFXGroups)
                 {
-                    printf("    %d %s (SFXGroup)  %" PRISize " sfx-entries\n",
-                           pair.first, pair.second.first->first.c_str(),
-                           pair.second.second->m_sfxEntries.size());
+                    amuse::Printf(_S("    %d %s (SFXGroup)  %" PRISize " sfx-entries\n"),
+                                  pair.first, pair.second.first->first.c_str(),
+                                  pair.second.second->m_sfxEntries.size());
                 }
                 for (const auto& pair : allSongGroups)
                 {
-                    printf("    %d %s (SongGroup)  %" PRISize " normal-pages, %" PRISize " drum-pages\n",
-                           pair.first, pair.second.first->first.c_str(),
-                           pair.second.second->m_normPages.size(), pair.second.second->m_drumPages.size());
+                    amuse::Printf(_S("    %d %s (SongGroup)  %" PRISize " normal-pages, %" PRISize " drum-pages\n"),
+                                  pair.first, pair.second.first->first.c_str(),
+                                  pair.second.second->m_normPages.size(), pair.second.second->m_drumPages.size());
                 }
 
                 int userSel = 0;
