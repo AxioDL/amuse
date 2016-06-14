@@ -1,8 +1,47 @@
 #include "AudioGroupFilePresenter.hpp"
 #include "VSTBackend.hpp"
+#include <Shellapi.h>
+#include <Shlwapi.h>
 
 namespace amuse
 {
+
+static const wchar_t *const GMNames[128] =
+{
+    L"Acoustic Grand Piano", L"Bright Acoustic Piano", L"Electric Grand Piano", L"Honky-tonk Piano", L"Rhodes Piano", L"Chorused Piano",
+    L"Harpsichord", L"Clavinet", L"Celesta", L"Glockenspiel", L"Music Box", L"Vibraphone", L"Marimba", L"Xylophone", L"Tubular Bells", L"Dulcimer",
+    L"Drawbar Organ", L"Percussive Organ", L"Rock Organ", L"Church Organ", L"Reed Organ", L"Accordion", L"Harmonica", L"Tango Accordion",
+    L"Acoustic Guitar (nylon)", L"Acoustic Guitar (steel)", L"Electric Guitar (jazz)", L"Electric Guitar (clean)", L"Electric Guitar (muted)",
+    L"Overdriven Guitar", L"Distortion Guitar", L"Guitar Harmonics", L"Acoustic Bass", L"Electric Bass (finger)", L"Electric Bass (pick)",
+    L"Fretless Bass", L"Slap Bass 1", L"Slap Bass 2", L"Synth Bass 1", L"Synth Bass 2", L"Violin", L"Viola", L"Cello", L"Contrabass",
+    L"Tremelo Strings", L"Pizzicato Strings", L"Orchestral Harp", L"Timpani", L"String Ensemble 1", L"String Ensemble 2", L"SynthStrings 1",
+    L"SynthStrings 2", L"Choir Aahs", L"Voice Oohs", L"Synth Voice", L"Orchestra Hit", L"Trumpet", L"Trombone", L"Tuba", L"Muted Trumpet",
+    L"French Horn", L"Brass Section", L"Synth Brass 1", L"Synth Brass 2", L"Soprano Sax", L"Alto Sax", L"Tenor Sax", L"Baritone Sax",
+    L"Oboe", L"English Horn", L"Bassoon", L"Clarinet", L"Piccolo", L"Flute", L"Recorder", L"Pan Flute", L"Bottle Blow", L"Shakuhachi", L"Whistle",
+    L"Ocarina", L"Lead 1 (square)", L"Lead 2 (sawtooth)", L"Lead 3 (calliope lead)", L"Lead 4 (chiff lead)", L"Lead 5 (charang)",
+    L"Lead 6 (voice)", L"Lead 7 (fifths)", L"Lead 8 (bass + lead)", L"Pad 1 (new age)", L"Pad 2 (warm)", L"Pad 3 (polysynth)", L"Pad 4 (choir)",
+    L"Pad 5 (bowed)", L"Pad 6 (metallic)", L"Pad 7 (halo)", L"Pad 8 (sweep)", L"FX 1 (rain)", L"FX 2 (soundtrack)", L"FX 3 (crystal)",
+    L"FX 4 (atmosphere)", L"FX 5 (brightness)", L"FX 6 (goblins)", L"FX 7 (echoes)", L"FX 8 (sci-fi)", L"Sitar", L"Banjo", L"Shamisen", L"Koto",
+    L"Kalimba", L"Bagpipe", L"Fiddle", L"Shanai", L"Tinkle Bell", L"Agogo", L"Steel Drums", L"Woodblock", L"Taiko Drum", L"Melodic Tom",
+    L"Synth Drum", L"Reverse Cymbal", L"Guitar Fret Noise", L"Breath Noise", L"Seashore", L"Bird Tweet", L"Telephone Ring", L"Helicopter",
+    L"Applause", L"Gunshot"
+};
+
+static const wchar_t *const GMPercNames[128] =
+{
+    nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
+    nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
+    nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
+    nullptr, nullptr, nullptr, nullptr, L"Acoustic Bass Drum", L"Bass Drum 1", L"Side Stick",
+    L"Acoustic Snare", L"Hand Clap", L"Electric Snare", L"Low Floor Tom", L"Closed Hi-Hat",
+    L"High Floor Tom", L"Pedal Hi-Hat", L"Low Tom", L"Open Hi-Hat", L"Low-Mid Tom", L"Hi-Mid Tom",
+    L"Crash Cymbal 1", L"High Tom", L"Ride Cymbal 1", L"Chinese Cymbal", L"Ride Bell", L"Tambourine",
+    L"Splash Cymbal", L"Cowbell", L"Crash Cymbal 2", L"Vibraslap", L"Ride Cymbal 2", L"Hi Bongo",
+    L"Low Bongo", L"Mute Hi Conga", L"Open Hi Conga", L"Low Conga", L"High Timbale", L"Low Timbale",
+    L"High Agogo", L"Low Agogo", L"Cabasa", L"Maracas", L"Short Whistle", L"Long Whistle", L"Short Guiro",
+    L"Long Guiro", L"Claves", L"Hi Wood Block", L"Low Wood Block", L"Mute Cuica", L"Open Cuica",
+    L"Mute Triangle", L"Open Triangle"
+};
 
 bool AudioGroupDataCollection::loadProj()
 {
@@ -73,7 +112,7 @@ AudioGroupDataCollection::AudioGroupDataCollection(const std::wstring& path, con
 
 }
 
-bool AudioGroupDataCollection::_attemptLoad(AudioGroupFilePresenter& presenter)
+bool AudioGroupDataCollection::_attemptLoad()
 {
     if (m_metaData && m_loadedData && m_loadedGroup)
         return true;
@@ -88,13 +127,11 @@ bool AudioGroupDataCollection::_attemptLoad(AudioGroupFilePresenter& presenter)
     if (!loadMeta())
         return false;
 
-    return _indexData(presenter);
+    return _indexData();
 }
 
-bool AudioGroupDataCollection::_indexData(AudioGroupFilePresenter& presenter)
+bool AudioGroupDataCollection::_indexData()
 {
-    amuse::Engine& engine = presenter.getBackend().getAmuseEngine();
-
     switch (m_metaData->fmt)
     {
         case amuse::DataFormat::GCN:
@@ -121,6 +158,11 @@ bool AudioGroupDataCollection::_indexData(AudioGroupFilePresenter& presenter)
             break;
     }
 
+    return m_loadedData.operator bool();
+}
+
+void AudioGroupDataCollection::addToEngine(amuse::Engine& engine)
+{
     m_loadedGroup = engine.addAudioGroup(*m_loadedData);
     m_groupTokens.clear();
     if (m_loadedGroup)
@@ -145,8 +187,11 @@ bool AudioGroupDataCollection::_indexData(AudioGroupFilePresenter& presenter)
                 m_groupTokens.emplace_back(pair.first, pair.second);
         }
     }
+}
 
-    return m_loadedData && m_loadedGroup;
+void AudioGroupDataCollection::removeFromEngine(amuse::Engine& engine) const
+{
+    engine.removeAudioGroup(*m_loadedData);
 }
 
 AudioGroupCollection::AudioGroupCollection(const std::wstring& path, const std::wstring& name)
@@ -155,8 +200,7 @@ AudioGroupCollection::AudioGroupCollection(const std::wstring& path, const std::
 
 }
 
-void AudioGroupCollection::addCollection(AudioGroupFilePresenter& presenter,
-                                         std::vector<std::pair<std::wstring, amuse::IntrusiveAudioGroupData>>&& collection)
+void AudioGroupCollection::addCollection(std::vector<std::pair<std::wstring, amuse::IntrusiveAudioGroupData>>&& collection)
 {
     for (std::pair<std::wstring, amuse::IntrusiveAudioGroupData>& pair : collection)
     {
@@ -185,7 +229,7 @@ void AudioGroupCollection::addCollection(AudioGroupFilePresenter& presenter,
         memmove(dataCollection.m_sampData.data(), dataIn.getSamp(), dataIn.getSampSize());
 
         dataCollection.m_metaData.emplace(dataIn.getDataFormat(), dataIn.getAbsoluteProjOffsets(), true);
-        dataCollection._indexData(presenter);
+        dataCollection._indexData();
     }
 }
 
@@ -212,7 +256,7 @@ void AudioGroupCollection::update(AudioGroupFilePresenter& presenter)
                 m_groups.emplace(nameStr,
                                  std::make_unique<AudioGroupDataCollection>(m_path + L'\\' + nameStr,
                                                                             nameStr)).first;
-                search->second->_attemptLoad(presenter);
+                search->second->_attemptLoad();
             }
         }
     } while (FindNextFileW(dir, &d));
@@ -256,7 +300,7 @@ void AudioGroupFilePresenter::addCollection(const std::wstring& name,
     std::wstring path = m_backend.getUserDir() + L'\\' + name;
     AudioGroupCollection& insert = *m_audioGroupCollections.emplace(name, std::make_unique<AudioGroupCollection>(path, name)).first->second;
     CreateDirectory(insert.m_path.c_str(), nullptr);
-    insert.addCollection(*this, std::move(collection));
+    insert.addCollection(std::move(collection));
 
     for (std::pair<const std::wstring, std::unique_ptr<AudioGroupDataCollection>>& pair : insert.m_groups)
     {
@@ -300,34 +344,130 @@ void AudioGroupFilePresenter::addCollection(const std::wstring& name,
     }
 }
 
-void AudioGroupCollection::populateFiles(VSTEditor& editor, HTREEITEM colHandle)
+void AudioGroupFilePresenter::removeCollection(unsigned idx)
 {
-    TVINSERTSTRUCT ins = {};
-    ins.item.mask = TVIF_TEXT;
-    ins.hParent = colHandle;
-    ins.hInsertAfter = TVI_LAST;
-
-    for (const auto& group : m_groups)
+    if (idx < m_iteratorVec.size())
     {
-        ins.item.pszText = LPWSTR(group.first.c_str());
-        TreeView_InsertItem(editor.m_collectionTree, &ins);
+        CollectionIterator& it = m_iteratorVec[idx];
+        std::wstring collectionPath = it->second->m_path + L'\0';
+        SHFILEOPSTRUCT op = {};
+        op.wFunc = FO_DELETE;
+        op.pFrom = collectionPath.c_str();
+        op.fFlags = FOF_NO_UI;
+        SHFileOperation(&op);
+        m_audioGroupCollections.erase(it);
     }
 }
 
-void AudioGroupFilePresenter::populateEditor(VSTEditor& editor)
+void AudioGroupCollection::populateFiles(VSTEditor& editor, HTREEITEM colHandle, size_t parentIdx)
+{
+    TVINSERTSTRUCT ins = {};
+    ins.item.mask = TVIF_TEXT | TVIF_PARAM;
+    ins.hParent = colHandle;
+    ins.hInsertAfter = TVI_LAST;
+
+    m_iteratorVec.clear();
+    m_iteratorVec.reserve(m_groups.size());
+    for (auto it = m_groups.begin() ; it != m_groups.end() ; ++it)
+    {
+        ins.item.pszText = LPWSTR(it->first.c_str());
+        ins.item.lParam = LPARAM(0x80000000 | (parentIdx << 16) | m_iteratorVec.size());
+        HTREEITEM item = TreeView_InsertItem(editor.m_collectionTree, &ins);
+        if (editor.m_selCollectionIdx == parentIdx && editor.m_selFileIdx == m_iteratorVec.size())
+            editor.m_deferredCollectionSel = item;
+        m_iteratorVec.push_back(it);
+    }
+}
+
+void AudioGroupFilePresenter::populateCollectionColumn(VSTEditor& editor)
 {
     TreeView_DeleteAllItems(editor.m_collectionTree);
     TVINSERTSTRUCT ins = {};
     ins.hParent = TVI_ROOT;
     ins.hInsertAfter = TVI_LAST;
-    ins.item.mask = TVIF_CHILDREN | TVIF_TEXT;
+    ins.item.mask = TVIF_CHILDREN | TVIF_TEXT | TVIF_PARAM;
 
-    for (const auto& collection : m_audioGroupCollections)
+    m_iteratorVec.clear();
+    m_iteratorVec.reserve(m_audioGroupCollections.size());
+    for (auto it = m_audioGroupCollections.begin() ; it != m_audioGroupCollections.end() ; ++it)
     {
-        ins.item.cChildren = collection.second->m_groups.size() ? 1 : 0;
-        ins.item.pszText = LPWSTR(collection.first.c_str());
+        ins.item.cChildren = it->second->m_groups.size() ? 1 : 0;
+        ins.item.pszText = LPWSTR(it->first.c_str());
+        ins.item.lParam = LPARAM(m_iteratorVec.size() << 16);
         HTREEITEM item = TreeView_InsertItem(editor.m_collectionTree, &ins);
-        collection.second->populateFiles(editor, item);
+        it->second->populateFiles(editor, item, m_iteratorVec.size());
+        if (editor.m_selCollectionIdx == m_iteratorVec.size() && editor.m_selFileIdx == -1)
+            editor.m_deferredCollectionSel = item;
+        m_iteratorVec.push_back(it);
+    }
+}
+
+void AudioGroupFilePresenter::populateGroupColumn(VSTEditor& editor, int collectionIdx, int fileIdx)
+{
+    LVITEM item = {};
+    item.mask = LVIF_TEXT;
+
+    ListView_DeleteAllItems(editor.m_groupListView);
+    if (collectionIdx < m_iteratorVec.size())
+    {
+        CollectionIterator& it = m_iteratorVec[collectionIdx];
+        if (fileIdx < it->second->m_iteratorVec.size())
+        {
+            AudioGroupCollection::GroupIterator& git = it->second->m_iteratorVec[fileIdx];
+            item.pszText = LPWSTR(git->first.c_str());
+            ListView_InsertItem(editor.m_groupListView, &item);
+        }
+    }
+}
+
+void AudioGroupFilePresenter::populatePageColumn(VSTEditor& editor, int collectionIdx, int fileIdx, int groupIdx)
+{
+    LVITEM item = {};
+    item.mask = LVIF_TEXT | LVIF_PARAM;
+
+    ListView_DeleteAllItems(editor.m_pageListView);
+    if (collectionIdx < m_iteratorVec.size())
+    {
+        CollectionIterator& it = m_iteratorVec[collectionIdx];
+        if (fileIdx < it->second->m_iteratorVec.size())
+        {
+            AudioGroupCollection::GroupIterator& git = it->second->m_iteratorVec[fileIdx];
+            if (groupIdx < git->second->m_groupTokens.size())
+            {
+                AudioGroupDataCollection::GroupToken& groupTok = git->second->m_groupTokens[groupIdx];
+                if (groupTok.m_song)
+                {
+                    std::map<uint8_t, const amuse::SongGroupIndex::PageEntry*> sortPages;
+                    for (auto& pair : groupTok.m_song->m_normPages)
+                        sortPages[pair.first] = pair.second;
+
+                    size_t idx = 0;
+                    for (auto& pair : sortPages)
+                    {
+                        wchar_t name[256];
+                        wnsprintf(name, 256, L"%d (%s)", pair.first, GMNames[pair.first] ? GMNames[pair.first] : L"???");
+                        item.pszText = name;
+                        item.iItem = idx++;
+                        item.lParam = pair.first;
+                        ListView_InsertItem(editor.m_pageListView, &item);
+                    }
+
+                    sortPages.clear();
+                    for (auto& pair : groupTok.m_song->m_drumPages)
+                        sortPages[pair.first] = pair.second;
+
+                    for (auto& pair : sortPages)
+                    {
+                        wchar_t name[256];
+                        wnsprintf(name, 256, L"%d (%s)", pair.first, GMPercNames[pair.first] ? GMPercNames[pair.first] : L"???");
+                        item.pszText = name;
+                        item.iItem = idx++;
+                        item.lParam = 0x80000000 | pair.first;
+                        ListView_InsertItem(editor.m_pageListView, &item);
+                    }
+                }
+            }
+        }
     }
 }
 

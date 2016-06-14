@@ -44,12 +44,22 @@ LRESULT CALLBACK VSTEditor::WindowProc(HWND hwnd,
         case NM_CLICK:
         {
             NMITEMACTIVATE& itemAct = *reinterpret_cast<LPNMITEMACTIVATE>(lParam);
-            if (itemAct.hdr.hwndFrom == editor.m_collectionTree)
-                editor.selectCollection(itemAct.iItem);
-            else if (itemAct.hdr.hwndFrom == editor.m_groupListView)
+            if (itemAct.hdr.hwndFrom == editor.m_groupListView)
                 editor.selectGroup(itemAct.iItem);
             else if (itemAct.hdr.hwndFrom == editor.m_pageListView)
-                editor.selectPage(itemAct.iItem);
+            {
+                if (itemAct.lParam & 0x80000000)
+                    editor.selectDrumPage(itemAct.lParam & 0x7fffffff);
+                else
+                    editor.selectNormalPage(itemAct.lParam & 0x7fffffff);
+            }
+            return 0;
+        }
+        case TVN_SELCHANGED:
+        {
+            NMTREEVIEW& itemAct = *reinterpret_cast<LPNMTREEVIEW>(lParam);
+            if (itemAct.hdr.hwndFrom == editor.m_collectionTree)
+                editor.selectCollection(itemAct.itemNew.lParam);
             return 0;
         }
         case TVN_GETDISPINFO:
@@ -135,6 +145,19 @@ LRESULT CALLBACK VSTEditor::ColHeaderWindowProc(HWND hwnd,
     return CallWindowProc(OriginalListViewProc, hwnd, uMsg, wParam, lParam);
 }
 
+void VSTEditor::_reselectColumns()
+{
+    if (m_deferredCollectionSel)
+    {
+        TreeView_SelectItem(m_collectionTree, m_deferredCollectionSel);
+        m_deferredCollectionSel = 0;
+    }
+    if (m_selGroupIdx != -1)
+        ListView_SetItemState(m_groupListView, m_selGroupIdx, LVIS_FOCUSED | LVIS_SELECTED, 0xf);
+    if (m_selPageIdx != -1)
+        ListView_SetItemState(m_pageListView, m_selPageIdx, LVIS_FOCUSED | LVIS_SELECTED, 0xf);
+}
+
 bool VSTEditor::open(void* ptr)
 {
     AEffEditor::open(ptr);
@@ -182,13 +205,9 @@ bool VSTEditor::open(void* ptr)
     column.fmt = LVCFMT_LEFT | LVCFMT_FIXED_WIDTH;
     column.cx = 199;
 
-    LVITEM item = {};
-    item.mask = LVIF_TEXT;
-    item.pszText = L"Test";
-
     m_collectionTree = CreateWindowW(WC_TREEVIEW,
                                      L"",
-                                     WS_CHILD | WS_CLIPSIBLINGS | TVS_HASLINES | TVS_LINESATROOT | TVS_HASBUTTONS,
+                                     WS_CHILD | WS_CLIPSIBLINGS | TVS_SHOWSELALWAYS | TVS_HASLINES | TVS_LINESATROOT | TVS_HASBUTTONS,
                                      1, 25,
                                      199,
                                      m_windowRect.bottom - m_windowRect.top - 26,
@@ -251,13 +270,13 @@ bool VSTEditor::open(void* ptr)
                                        nullptr,
                                        nullptr);
     SetWindowFont(m_collectionRemove, GetStockObject(ANSI_FIXED_FONT), FALSE);
-    Button_Enable(m_collectionRemove, TRUE);
+    Button_Enable(m_collectionRemove, FALSE);
     SetWindowPos(m_collectionRemove, HWND_TOP, 26, m_windowRect.bottom - m_windowRect.top - 26, 25, 24, SWP_SHOWWINDOW);
 
 
     m_groupListView = CreateWindowW(WC_LISTVIEW,
                                     L"",
-                                    WS_CHILD | LVS_REPORT | LVS_SINGLESEL | LVS_NOSORTHEADER,
+                                    WS_CHILD | LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_NOSORTHEADER,
                                     201, 1,
                                     199,
                                     m_windowRect.bottom - m_windowRect.top - 2,
@@ -273,12 +292,11 @@ bool VSTEditor::open(void* ptr)
     ListView_SetTextBkColor(m_groupListView, CLR_NONE);
     ListView_SetTextColor(m_groupListView, RGB(255,255,255));
     ListView_InsertColumn(m_groupListView, 0, &column);
-    ListView_InsertItem(m_groupListView, &item);
     ShowWindow(m_groupListView, SW_SHOW);
 
     m_pageListView = CreateWindowW(WC_LISTVIEW,
                                    L"",
-                                   WS_CHILD | LVS_REPORT | LVS_SINGLESEL | LVS_NOSORTHEADER,
+                                   WS_CHILD | LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_NOSORTHEADER,
                                    401, 1,
                                    198,
                                    m_windowRect.bottom - m_windowRect.top - 2,
@@ -295,10 +313,12 @@ bool VSTEditor::open(void* ptr)
     ListView_SetTextBkColor(m_pageListView, CLR_NONE);
     ListView_SetTextColor(m_pageListView, RGB(255,255,255));
     ListView_InsertColumn(m_pageListView, 0, &column);
-    ListView_InsertItem(m_pageListView, &item);
     ShowWindow(m_pageListView, SW_SHOW);
 
-    m_backend.getFilePresenter().populateEditor(*this);
+    m_backend.getFilePresenter().populateCollectionColumn(*this);
+    m_backend.getFilePresenter().populateGroupColumn(*this, m_selCollectionIdx, m_selFileIdx);
+    m_backend.getFilePresenter().populatePageColumn(*this, m_selCollectionIdx, m_selFileIdx, m_selGroupIdx);
+    _reselectColumns();
     return true;
 }
 
@@ -346,28 +366,62 @@ void VSTEditor::addAction()
         }
 
         m_backend.getFilePresenter().addCollection(name, std::move(data));
-        m_backend.getFilePresenter().populateEditor(*this);
+        m_backend.getFilePresenter().populateCollectionColumn(*this);
+        m_backend.getFilePresenter().populateGroupColumn(*this, m_selCollectionIdx, m_selFileIdx);
+        m_backend.getFilePresenter().populatePageColumn(*this, m_selCollectionIdx, m_selFileIdx, m_selGroupIdx);
     }
 }
 
 void VSTEditor::removeAction()
 {
-
+    if (m_selCollectionIdx == -1)
+        return;
+    m_backend.getFilePresenter().removeCollection(m_selCollectionIdx);
+    m_backend.getFilePresenter().populateCollectionColumn(*this);
+    m_selCollectionIdx = -1;
+    m_selFileIdx = -1;
+    m_selGroupIdx = -1;
+    m_backend.getFilePresenter().populateGroupColumn(*this, m_selCollectionIdx, m_selFileIdx);
+    m_backend.getFilePresenter().populatePageColumn(*this, m_selCollectionIdx, m_selFileIdx, m_selGroupIdx);
+    Button_Enable(m_collectionRemove, FALSE);
 }
 
-void VSTEditor::selectCollection(int idx)
+void VSTEditor::selectCollection(LPARAM idx)
 {
-
+    if (0x80000000 & idx)
+    {
+        /* Sub-item */
+        int rootIdx = (idx >> 16) & 0x7fff;
+        int subIdx = idx & 0xffff;
+        Button_Enable(m_collectionRemove, FALSE);
+        m_selCollectionIdx = rootIdx;
+        m_selFileIdx = subIdx;
+        m_backend.getFilePresenter().populateGroupColumn(*this, rootIdx, subIdx);
+    }
+    else
+    {
+        /* Root-item */
+        int rootIdx = (idx >> 16) & 0x7fff;
+        m_selCollectionIdx = rootIdx;
+        Button_Enable(m_collectionRemove, TRUE);
+    }
 }
 
 void VSTEditor::selectGroup(int idx)
 {
-
+    m_selGroupIdx = idx;
+    m_backend.loadGroupSequencer(m_selCollectionIdx, m_selFileIdx, m_selGroupIdx);
+    m_backend.getFilePresenter().populatePageColumn(*this, m_selCollectionIdx, m_selFileIdx, m_selGroupIdx);
 }
 
-void VSTEditor::selectPage(int idx)
+void VSTEditor::selectNormalPage(int idx)
 {
+    m_backend.setNormalProgram(idx);
+}
 
+void VSTEditor::selectDrumPage(int idx)
+{
+    m_backend.setDrumProgram(idx);
 }
 
 }

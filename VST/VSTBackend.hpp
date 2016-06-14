@@ -31,6 +31,8 @@ class VSTBackend : public AudioEffectX
     std::unique_ptr<boo::IAudioVoiceEngine> m_booBackend;
     std::experimental::optional<amuse::VSTBackendVoiceAllocator> m_voxAlloc;
     std::experimental::optional<amuse::Engine> m_engine;
+    std::shared_ptr<amuse::Sequencer> m_curSeq;
+    const AudioGroupDataCollection* m_curData = nullptr;
     size_t m_curFrame = 0;
     std::wstring m_userDir;
     AudioGroupFilePresenter m_filePresenter;
@@ -55,6 +57,10 @@ public:
     amuse::Engine& getAmuseEngine() {return *m_engine;}
     const std::wstring& getUserDir() const {return m_userDir;}
     AudioGroupFilePresenter& getFilePresenter() {return m_filePresenter;}
+
+    void loadGroupSequencer(int collectionIdx, int fileIdx, int groupIdx);
+    void setNormalProgram(int programNo);
+    void setDrumProgram(int programNo);
 };
 
 }

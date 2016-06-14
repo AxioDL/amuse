@@ -59,34 +59,46 @@ struct AudioGroupDataCollection
 
     AudioGroupDataCollection(const std::wstring& path, const std::wstring& name);
     bool isDataComplete() const {return m_projData.size() && m_poolData.size() && m_sdirData.size() && m_sampData.size() && m_metaData;}
-    bool _attemptLoad(AudioGroupFilePresenter& presenter);
-    bool _indexData(AudioGroupFilePresenter& presenter);
+    bool _attemptLoad();
+    bool _indexData();
+
+    void addToEngine(amuse::Engine& engine);
+    void removeFromEngine(amuse::Engine& engine) const;
 };
 
 struct AudioGroupCollection
 {
+    using GroupIterator = std::map<std::wstring, std::unique_ptr<AudioGroupDataCollection>>::iterator;
     std::wstring m_path;
     std::wstring m_name;
 
     std::map<std::wstring, std::unique_ptr<AudioGroupDataCollection>> m_groups;
+    std::vector<GroupIterator> m_iteratorVec;
 
     AudioGroupCollection(const std::wstring& path, const std::wstring& name);
-    void addCollection(AudioGroupFilePresenter& presenter,
-                       std::vector<std::pair<std::wstring, amuse::IntrusiveAudioGroupData>>&& collection);
+    void addCollection(std::vector<std::pair<std::wstring, amuse::IntrusiveAudioGroupData>>&& collection);
     void update(AudioGroupFilePresenter& presenter);
-    void populateFiles(VSTEditor& editor, HTREEITEM colHandle);
+    void populateFiles(VSTEditor& editor, HTREEITEM colHandle, size_t parentIdx);
 };
 
 class AudioGroupFilePresenter
 {
+    friend class VSTBackend;
+public:
+    using CollectionIterator = std::map<std::wstring, std::unique_ptr<AudioGroupCollection>>::iterator;
+private:
     VSTBackend& m_backend;
     std::map<std::wstring, std::unique_ptr<AudioGroupCollection>> m_audioGroupCollections;
+    std::vector<CollectionIterator> m_iteratorVec;
 public:
     AudioGroupFilePresenter(VSTBackend& backend) : m_backend(backend) {}
     void update();
-    void populateEditor(VSTEditor& editor);
+    void populateCollectionColumn(VSTEditor& editor);
+    void populateGroupColumn(VSTEditor& editor, int collectionIdx, int fileIdx);
+    void populatePageColumn(VSTEditor& editor, int collectionIdx, int fileIdx, int groupIdx);
     void addCollection(const std::wstring& name,
                        std::vector<std::pair<std::wstring, amuse::IntrusiveAudioGroupData>>&& collection);
+    void removeCollection(unsigned idx);
     VSTBackend& getBackend() {return m_backend;}
 };
 

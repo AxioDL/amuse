@@ -280,6 +280,49 @@ void VSTBackend::setBlockSize(VstInt32 blockSize)
     engine._rebuildAudioRenderClient(engine.mixInfo().m_sampleRate, blockSize);
 }
 
+void VSTBackend::loadGroupSequencer(int collectionIdx, int fileIdx, int groupIdx)
+{
+    if (m_curSeq)
+    {
+        m_curSeq->kill();
+        m_curSeq.reset();
+    }
+
+    if (collectionIdx < m_filePresenter.m_iteratorVec.size())
+    {
+        AudioGroupFilePresenter::CollectionIterator& it = m_filePresenter.m_iteratorVec[collectionIdx];
+        if (fileIdx < it->second->m_iteratorVec.size())
+        {
+            AudioGroupCollection::GroupIterator& git = it->second->m_iteratorVec[fileIdx];
+            if (m_curData)
+                m_curData->removeFromEngine(*m_engine);
+            git->second->addToEngine(*m_engine);
+            m_curData = git->second.get();
+
+            if (groupIdx < git->second->m_groupTokens.size())
+            {
+                AudioGroupDataCollection::GroupToken& groupTok = git->second->m_groupTokens[groupIdx];
+                if (groupTok.m_song)
+                    m_curSeq = m_engine->seqPlay(groupTok.m_groupId, -1, nullptr);
+            }
+        }
+    }
+}
+
+void VSTBackend::setNormalProgram(int programNo)
+{
+    if (!m_curSeq)
+        return;
+    m_curSeq->setChanProgram(0, programNo);
+}
+
+void VSTBackend::setDrumProgram(int programNo)
+{
+    if (!m_curSeq)
+        return;
+    m_curSeq->setChanProgram(9, programNo);
+}
+
 }
 
 AudioEffect* createEffectInstance(audioMasterCallback audioMaster)

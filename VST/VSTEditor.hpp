@@ -28,6 +28,13 @@ class VSTEditor : public AEffEditor
     HWND m_groupListView;
     HWND m_pageListView;
 
+    int m_selCollectionIdx = -1;
+    int m_selFileIdx = -1;
+    int m_selGroupIdx = -1;
+    int m_selPageIdx = -1;
+
+    HTREEITEM m_deferredCollectionSel = 0;
+
     static LRESULT CALLBACK WindowProc(
       _In_ HWND   hwnd,
       _In_ UINT   uMsg,
@@ -40,6 +47,8 @@ class VSTEditor : public AEffEditor
       _In_ WPARAM wParam,
       _In_ LPARAM lParam
     );
+
+    void _reselectColumns();
 public:
     VSTEditor(VSTBackend& backend);
 
@@ -51,9 +60,10 @@ public:
     void addAction();
     void removeAction();
 
-    void selectCollection(int idx);
+    void selectCollection(LPARAM idx);
     void selectGroup(int idx);
-    void selectPage(int idx);
+    void selectNormalPage(int idx);
+    void selectDrumPage(int idx);
 };
 
 }
