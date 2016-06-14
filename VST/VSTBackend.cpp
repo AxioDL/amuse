@@ -138,6 +138,7 @@ VSTBackend::VSTBackend(audioMasterCallback cb)
     setNumOutputs(2);
     setEditor(&m_editor);
     sizeWindow(600, 420);
+    programsAreChunks();
 
     m_booBackend = std::make_unique<VSTVoiceEngine>();
     m_voxAlloc.emplace(*m_booBackend);
@@ -321,6 +322,58 @@ void VSTBackend::setDrumProgram(int programNo)
     if (!m_curSeq)
         return;
     m_curSeq->setChanProgram(9, programNo);
+}
+
+VstInt32 VSTBackend::getChunk(void** data, bool)
+{
+    size_t allocSz = 14;
+    if (m_curData)
+        allocSz += (m_curData->m_path.size() - m_userDir.size() - 1) * 2;
+
+    uint8_t* buf = new uint8_t[allocSz];
+    if (m_curData)
+        memmove(buf, m_curData->m_path.data() + m_userDir.size() + 1, allocSz - 12);
+    else
+        *reinterpret_cast<wchar_t*>(buf) = L'\0';
+    uint32_t* intVals = reinterpret_cast<uint32_t*>(buf + allocSz - 12);
+    intVals[0] = m_listenProg;
+    intVals[1] = m_editor.m_selGroupIdx;
+    intVals[2] = m_editor.m_selPageIdx;
+    *data = buf;
+    return allocSz;
+}
+
+VstInt32 VSTBackend::setChunk(void* data, VstInt32 byteSize, bool)
+{
+    if (byteSize < 14)
+        return 0;
+
+    wchar_t* path = reinterpret_cast<wchar_t*>(data);
+    uint32_t* intVals = reinterpret_cast<uint32_t*>(path + wcslen(path) + 1);
+    std::wstring targetPath = m_userDir + L'\\' + path;
+    m_listenProg = intVals[0];
+    uint32_t groupIdx = intVals[1];
+    uint32_t pageIdx = intVals[2];
+
+    size_t colIdx = 0;
+    for (auto& collection : m_filePresenter.m_audioGroupCollections)
+    {
+        size_t fileIdx = 0;
+        for (auto& file : collection.second->m_groups)
+        {
+            if (!file.second->m_path.compare(targetPath))
+            {
+                m_editor.selectCollection(LPARAM(0x80000000 | (colIdx << 16) | fileIdx));
+                m_editor.selectGroup(groupIdx);
+                m_editor.selectPage(pageIdx);
+                m_editor._reselectColumns();
+            }
+            ++fileIdx;
+        }
+        ++colIdx;
+    }
+
+    return 1;
 }
 
 }

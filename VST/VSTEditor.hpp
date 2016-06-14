@@ -14,19 +14,20 @@ class VSTBackend;
 /** Editor UI class */
 class VSTEditor : public AEffEditor
 {
+    friend class VSTBackend;
     friend class AudioGroupFilePresenter;
     friend struct AudioGroupCollection;
 
     VSTBackend& m_backend;
     ERect m_windowRect = {0, 0, 420, 600};
 
-    HWND m_rootView;
-    HWND m_collectionHeader;
-    HWND m_collectionTree;
-    HWND m_collectionAdd;
-    HWND m_collectionRemove;
-    HWND m_groupListView;
-    HWND m_pageListView;
+    HWND m_rootView = 0;
+    HWND m_collectionHeader = 0;
+    HWND m_collectionTree = 0;
+    HWND m_collectionAdd = 0;
+    HWND m_collectionRemove = 0;
+    HWND m_groupListView = 0;
+    HWND m_pageListView = 0;
 
     int m_selCollectionIdx = -1;
     int m_selFileIdx = -1;
@@ -62,6 +63,7 @@ public:
 
     void selectCollection(LPARAM idx);
     void selectGroup(int idx);
+    void selectPage(int idx);
     void selectNormalPage(int idx);
     void selectDrumPage(int idx);
 };

@@ -4,6 +4,7 @@
 #include <Windowsx.h>
 #include <shellapi.h>
 #include <algorithm>
+#include <Shlwapi.h>
 
 #undef min
 #undef max
@@ -47,12 +48,7 @@ LRESULT CALLBACK VSTEditor::WindowProc(HWND hwnd,
             if (itemAct.hdr.hwndFrom == editor.m_groupListView)
                 editor.selectGroup(itemAct.iItem);
             else if (itemAct.hdr.hwndFrom == editor.m_pageListView)
-            {
-                if (itemAct.lParam & 0x80000000)
-                    editor.selectDrumPage(itemAct.lParam & 0x7fffffff);
-                else
-                    editor.selectNormalPage(itemAct.lParam & 0x7fffffff);
-            }
+                editor.selectPage(itemAct.iItem);
             return 0;
         }
         case TVN_SELCHANGED:
@@ -201,7 +197,7 @@ bool VSTEditor::open(void* ptr)
     treeItem.item.pszText = L"Root A";
 
     LVCOLUMN column = {};
-    column.mask = LVCF_FMT | LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
+    column.mask = LVCF_FMT | LVCF_TEXT | LVCF_WIDTH;
     column.fmt = LVCFMT_LEFT | LVCFMT_FIXED_WIDTH;
     column.cx = 199;
 
@@ -250,7 +246,7 @@ bool VSTEditor::open(void* ptr)
     m_collectionAdd = CreateWindowW(WC_BUTTON,
                                     L"+",
                                     WS_CHILD | WS_CLIPSIBLINGS | BS_PUSHBUTTON,
-                                    1, m_windowRect.bottom - m_windowRect.top - 26,
+                                    1, m_windowRect.bottom - m_windowRect.top - 25,
                                     25, 24,
                                     m_rootView,
                                     nullptr,
@@ -258,12 +254,12 @@ bool VSTEditor::open(void* ptr)
                                     nullptr);
     SetWindowFont(m_collectionAdd, GetStockObject(ANSI_FIXED_FONT), FALSE);
     Button_Enable(m_collectionAdd, TRUE);
-    SetWindowPos(m_collectionAdd, HWND_TOP, 1, m_windowRect.bottom - m_windowRect.top - 26, 25, 24, SWP_SHOWWINDOW);
+    SetWindowPos(m_collectionAdd, HWND_TOP, 1, m_windowRect.bottom - m_windowRect.top - 25, 25, 24, SWP_SHOWWINDOW);
 
     m_collectionRemove = CreateWindowW(WC_BUTTON,
                                        L"-",
                                        WS_CHILD | WS_CLIPSIBLINGS | BS_PUSHBUTTON,
-                                       26, m_windowRect.bottom - m_windowRect.top - 26,
+                                       26, m_windowRect.bottom - m_windowRect.top - 25,
                                        25, 24,
                                        m_rootView,
                                        nullptr,
@@ -271,7 +267,7 @@ bool VSTEditor::open(void* ptr)
                                        nullptr);
     SetWindowFont(m_collectionRemove, GetStockObject(ANSI_FIXED_FONT), FALSE);
     Button_Enable(m_collectionRemove, FALSE);
-    SetWindowPos(m_collectionRemove, HWND_TOP, 26, m_windowRect.bottom - m_windowRect.top - 26, 25, 24, SWP_SHOWWINDOW);
+    SetWindowPos(m_collectionRemove, HWND_TOP, 26, m_windowRect.bottom - m_windowRect.top - 25, 25, 24, SWP_SHOWWINDOW);
 
 
     m_groupListView = CreateWindowW(WC_LISTVIEW,
@@ -305,7 +301,7 @@ bool VSTEditor::open(void* ptr)
                                    nullptr,
                                    nullptr);
     column.pszText = L"Page";
-    column.cx = 198;
+    column.cx = 198 - GetSystemMetrics(SM_CXVSCROLL);
     header = ListView_GetHeader(m_pageListView);
     SetWindowLongPtrW(header, GWLP_USERDATA, LONG_PTR(column.pszText));
     SetWindowLongPtr(header, GWLP_WNDPROC, LONG_PTR(ColHeaderWindowProc));
@@ -315,10 +311,7 @@ bool VSTEditor::open(void* ptr)
     ListView_InsertColumn(m_pageListView, 0, &column);
     ShowWindow(m_pageListView, SW_SHOW);
 
-    m_backend.getFilePresenter().populateCollectionColumn(*this);
-    m_backend.getFilePresenter().populateGroupColumn(*this, m_selCollectionIdx, m_selFileIdx);
-    m_backend.getFilePresenter().populatePageColumn(*this, m_selCollectionIdx, m_selFileIdx, m_selGroupIdx);
-    _reselectColumns();
+    update();
     return true;
 }
 
@@ -330,7 +323,12 @@ void VSTEditor::close()
 
 void VSTEditor::update()
 {
-
+    m_backend.getFilePresenter().populateCollectionColumn(*this);
+    m_backend.getFilePresenter().populateGroupColumn(*this, m_selCollectionIdx, m_selFileIdx);
+    m_backend.loadGroupSequencer(m_selCollectionIdx, m_selFileIdx, m_selGroupIdx);
+    m_backend.getFilePresenter().populatePageColumn(*this, m_selCollectionIdx, m_selFileIdx, m_selGroupIdx);
+    selectPage(m_selPageIdx);
+    _reselectColumns();
 }
 
 void VSTEditor::addAction()
@@ -412,6 +410,19 @@ void VSTEditor::selectGroup(int idx)
     m_selGroupIdx = idx;
     m_backend.loadGroupSequencer(m_selCollectionIdx, m_selFileIdx, m_selGroupIdx);
     m_backend.getFilePresenter().populatePageColumn(*this, m_selCollectionIdx, m_selFileIdx, m_selGroupIdx);
+}
+
+void VSTEditor::selectPage(int idx)
+{
+    m_selPageIdx = idx;
+    LV_ITEM item = {};
+    item.mask = LVIF_PARAM;
+    item.iItem = idx;
+    ListView_GetItem(m_pageListView, &item);
+    if (item.lParam & 0x80000000)
+        selectDrumPage(item.lParam & 0x7fffffff);
+    else
+        selectNormalPage(item.lParam & 0x7fffffff);
 }
 
 void VSTEditor::selectNormalPage(int idx)
