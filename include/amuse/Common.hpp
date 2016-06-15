@@ -84,10 +84,6 @@ inline int32_t ClampFull<int32_t>(float in)
 template <>
 inline float ClampFull<float>(float in)
 {
-    if (in < -1.f)
-        return -1.f;
-    else if (in > 1.f)
-        return 1.f;
     return in;
 }
 

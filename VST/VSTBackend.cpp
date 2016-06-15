@@ -114,28 +114,22 @@ struct VSTVoiceEngine : boo::BaseAudioVoiceEngine
     {
         for (size_t f=0 ; f<m_renderFrames ;)
         {
-            size_t remRenderFrames = std::min(m_renderFrames - f, m_5msFrames - m_curBufFrame);
-            for (size_t i=0 ; i<2 ; ++i)
-            {
-                float* bufOut = m_outputData[i];
-                for (size_t lf=0 ; lf<remRenderFrames ; ++lf)
-                    bufOut[f+lf] = m_interleavedBuf[(m_curBufFrame+lf)*2+i];
-            }
-            m_curBufFrame += remRenderFrames;
-            f += remRenderFrames;
-
             if (m_curBufFrame == m_5msFrames)
             {
                 _pumpAndMixVoices(m_5msFrames, m_interleavedBuf.data());
                 m_curBufFrame = 0;
+            }
 
-                remRenderFrames = std::min(m_renderFrames - f, m_5msFrames);
+            size_t remRenderFrames = std::min(m_renderFrames - f, m_5msFrames - m_curBufFrame);
+            if (remRenderFrames)
+            {
                 for (size_t i=0 ; i<2 ; ++i)
                 {
                     float* bufOut = m_outputData[i];
                     for (size_t lf=0 ; lf<remRenderFrames ; ++lf)
-                        bufOut[f+lf] = m_interleavedBuf[lf*2+i];
+                        bufOut[f+lf] = m_interleavedBuf[(m_curBufFrame+lf)*2+i];
                 }
+                m_curBufFrame += remRenderFrames;
                 f += remRenderFrames;
             }
         }
