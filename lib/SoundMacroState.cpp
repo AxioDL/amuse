@@ -6,6 +6,9 @@
 #include "amuse/AudioGroupPool.hpp"
 #include <string.h>
 
+#undef SendMessage
+#undef GetMessage
+
 namespace amuse
 {
 
@@ -346,7 +349,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
             int16_t macroStep = *reinterpret_cast<int16_t*>(&cmd.m_data[3]);
             //int8_t priority = cmd.m_data[5];
             //int8_t maxVoices = cmd.m_data[6];
-            
+
             std::shared_ptr<Voice> sibVox = vox.startChildMacro(addNote, macroId, macroStep);
             if (sibVox)
                 m_lastPlayMacroVid = sibVox->vid();

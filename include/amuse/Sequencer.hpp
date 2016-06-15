@@ -27,8 +27,10 @@ enum class SequencerState
 class Sequencer : public Entity
 {
     friend class Engine;
-    const SongGroupIndex& m_songGroup; /**< Quick access to song group project index */
+    const SongGroupIndex* m_songGroup = nullptr; /**< Quick access to song group project index */
     const SongGroupIndex::MIDISetup* m_midiSetup = nullptr; /**< Selected MIDI setup (may be null) */
+    const SFXGroupIndex* m_sfxGroup = nullptr; /**< SFX Groups are alternatively referenced here */
+    std::vector<const SFXGroupIndex::SFXEntry*> m_sfxMappings; /**< SFX entries are mapped to MIDI keys this via this */
     Submix* m_submix = nullptr; /**< Submix this sequencer outputs to (or NULL for the main output mix) */
 
     const unsigned char* m_arrData = nullptr; /**< Current playing arrangement data */
@@ -79,11 +81,13 @@ class Sequencer : public Entity
 
     void _bringOutYourDead();
     void _destroy();
-    
+
 public:
     ~Sequencer();
     Sequencer(Engine& engine, const AudioGroup& group, int groupId,
-              const SongGroupIndex& songGroup, int setupId, Submix* smx);
+              const SongGroupIndex* songGroup, int setupId, Submix* smx);
+    Sequencer(Engine& engine, const AudioGroup& group, int groupId,
+              const SFXGroupIndex* sfxGroup, Submix* smx);
 
     /** Advance current song data (if any) */
     void advance(double dt);

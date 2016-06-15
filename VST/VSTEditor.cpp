@@ -53,6 +53,8 @@ LRESULT CALLBACK VSTEditor::WindowProc(HWND hwnd,
         }
         case TVN_SELCHANGED:
         {
+            if (editor.m_deferredCollectionSel)
+                return 0;
             NMTREEVIEW& itemAct = *reinterpret_cast<LPNMTREEVIEW>(lParam);
             if (itemAct.hdr.hwndFrom == editor.m_collectionTree)
                 editor.selectCollection(itemAct.itemNew.lParam);
@@ -324,8 +326,9 @@ void VSTEditor::close()
 void VSTEditor::update()
 {
     m_backend.getFilePresenter().populateCollectionColumn(*this);
+    m_backend.loadGroupFile(m_selCollectionIdx, m_selFileIdx);
     m_backend.getFilePresenter().populateGroupColumn(*this, m_selCollectionIdx, m_selFileIdx);
-    m_backend.loadGroupSequencer(m_selCollectionIdx, m_selFileIdx, m_selGroupIdx);
+    m_backend.setGroup(m_selGroupIdx, true);
     m_backend.getFilePresenter().populatePageColumn(*this, m_selCollectionIdx, m_selFileIdx, m_selGroupIdx);
     selectPage(m_selPageIdx);
     _reselectColumns();
@@ -394,6 +397,7 @@ void VSTEditor::selectCollection(LPARAM idx)
         Button_Enable(m_collectionRemove, FALSE);
         m_selCollectionIdx = rootIdx;
         m_selFileIdx = subIdx;
+        m_backend.loadGroupFile(m_selCollectionIdx, m_selFileIdx);
         m_backend.getFilePresenter().populateGroupColumn(*this, rootIdx, subIdx);
     }
     else
@@ -408,7 +412,7 @@ void VSTEditor::selectCollection(LPARAM idx)
 void VSTEditor::selectGroup(int idx)
 {
     m_selGroupIdx = idx;
-    m_backend.loadGroupSequencer(m_selCollectionIdx, m_selFileIdx, m_selGroupIdx);
+    m_backend.setGroup(m_selGroupIdx, false);
     m_backend.getFilePresenter().populatePageColumn(*this, m_selCollectionIdx, m_selFileIdx, m_selGroupIdx);
 }
 

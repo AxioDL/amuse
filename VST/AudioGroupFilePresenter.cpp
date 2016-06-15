@@ -413,9 +413,16 @@ void AudioGroupFilePresenter::populateGroupColumn(VSTEditor& editor, int collect
         CollectionIterator& it = m_iteratorVec[collectionIdx];
         if (fileIdx < it->second->m_iteratorVec.size())
         {
+            size_t idx = 0;
             AudioGroupCollection::GroupIterator& git = it->second->m_iteratorVec[fileIdx];
-            item.pszText = LPWSTR(git->first.c_str());
-            ListView_InsertItem(editor.m_groupListView, &item);
+            for (AudioGroupDataCollection::GroupToken& gtok : git->second->m_groupTokens)
+            {
+                wchar_t name[256];
+                wnsprintf(name, 256, L"%d (%s)", gtok.m_groupId, gtok.m_song ? L"Song" : L"SFX");
+                item.pszText = name;
+                item.iItem = idx++;
+                ListView_InsertItem(editor.m_groupListView, &item);
+            }
         }
     }
 }

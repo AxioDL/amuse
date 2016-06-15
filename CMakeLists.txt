@@ -83,5 +83,5 @@ if(TARGET boo)
 
   # Multi-platform CLI tool
   add_executable(amuseplay WIN32 driver/main.cpp)
-  target_link_libraries(amuseplay amuse boo ${BOO_SYS_LIBS} logvisor athena-core ${ZLIB_LIBRARIES})
+  target_link_libraries(amuseplay amuse boo ${BOO_SYS_LIBS} Shlwapi logvisor athena-core ${ZLIB_LIBRARIES})
 endif()

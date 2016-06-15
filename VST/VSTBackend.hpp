@@ -28,10 +28,13 @@ public:
 /** Actual plugin implementation class */
 class VSTBackend : public AudioEffectX
 {
+    std::mutex m_lock;
     std::unique_ptr<boo::IAudioVoiceEngine> m_booBackend;
     std::experimental::optional<amuse::VSTBackendVoiceAllocator> m_voxAlloc;
     std::experimental::optional<amuse::Engine> m_engine;
     std::shared_ptr<amuse::Sequencer> m_curSeq;
+    int m_reqGroup = -1;
+    int m_curGroup = -1;
     const AudioGroupDataCollection* m_curData = nullptr;
     size_t m_curFrame = 0;
     std::wstring m_userDir;
@@ -59,7 +62,8 @@ public:
     const std::wstring& getUserDir() const {return m_userDir;}
     AudioGroupFilePresenter& getFilePresenter() {return m_filePresenter;}
 
-    void loadGroupSequencer(int collectionIdx, int fileIdx, int groupIdx);
+    void loadGroupFile(int collectionIdx, int fileIdx);
+    void setGroup(int groupIdx, bool immediate);
     void setNormalProgram(int programNo);
     void setDrumProgram(int programNo);
 

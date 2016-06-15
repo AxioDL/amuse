@@ -73,11 +73,20 @@ Engine::_allocateSequencer(const AudioGroup& group, int groupId,
                            int setupId, Submix* smx)
 {
     const SongGroupIndex* songGroup = group.getProj().getSongGroupIndex(groupId);
-    if (!songGroup)
-        return {};
-    auto it = m_activeSequencers.emplace(m_activeSequencers.end(),
-        new Sequencer(*this, group, groupId, *songGroup, setupId, smx));
-    return it;
+    if (songGroup)
+    {
+        auto it = m_activeSequencers.emplace(m_activeSequencers.end(),
+            new Sequencer(*this, group, groupId, songGroup, setupId, smx));
+        return it;
+    }
+    const SFXGroupIndex* sfxGroup = group.getProj().getSFXGroupIndex(groupId);
+    if (sfxGroup)
+    {
+        auto it = m_activeSequencers.emplace(m_activeSequencers.end(),
+            new Sequencer(*this, group, groupId, sfxGroup, smx));
+        return it;
+    }
+    return {};
 }
 
 std::list<Submix>::iterator Engine::_allocateSubmix(Submix* smx)
@@ -407,16 +416,27 @@ std::shared_ptr<Sequencer> Engine::seqPlay(int groupId, int songId,
                                            const unsigned char* arrData, Submix* smx)
 {
     std::pair<AudioGroup*, const SongGroupIndex*> songGrp = _findSongGroup(groupId);
-    if (!songGrp.second)
-        return {};
+    if (songGrp.second)
+    {
+        std::list<std::shared_ptr<Sequencer>>::iterator ret = _allocateSequencer(*songGrp.first, groupId, songId, smx);
+        if (!*ret)
+            return {};
 
-    std::list<std::shared_ptr<Sequencer>>::iterator ret = _allocateSequencer(*songGrp.first, groupId, songId, smx);
-    if (!*ret)
-        return {};
+        if (arrData)
+            (*ret)->playSong(arrData);
+        return *ret;
+    }
 
-    if (arrData)
-        (*ret)->playSong(arrData);
-    return *ret;
+    std::pair<AudioGroup*, const SFXGroupIndex*> sfxGrp = _findSFXGroup(groupId);
+    if (sfxGrp.second)
+    {
+        std::list<std::shared_ptr<Sequencer>>::iterator ret = _allocateSequencer(*sfxGrp.first, groupId, songId, smx);
+        if (!*ret)
+            return {};
+        return *ret;
+    }
+
+    return {};
 }
 
 /** Find voice from VoiceId */

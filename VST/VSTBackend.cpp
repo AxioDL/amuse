@@ -3,15 +3,15 @@
 #include <Shlobj.h>
 #include <logvisor/logvisor.hpp>
 
+#undef min
+#undef max
+
 struct VSTVoiceEngine : boo::BaseAudioVoiceEngine
 {
     std::vector<float> m_interleavedBuf;
     float** m_outputData = nullptr;
     size_t m_renderFrames = 0;
-
-    int m_reqGroup = 0;
-    int m_curGroup = 0;
-    std::shared_ptr<amuse::Sequencer> m_curSeq;
+    size_t m_curBufFrame = 0;
 
     boo::AudioChannelSet _getAvailableSet()
     {
@@ -85,6 +85,9 @@ struct VSTVoiceEngine : boo::BaseAudioVoiceEngine
         unsigned chCount = ChannelCount(m_mixInfo.m_channels);
 
         m_5msFrames = m_mixInfo.m_sampleRate * 5 / 1000;
+        m_curBufFrame = m_5msFrames;
+        m_mixInfo.m_periodFrames = m_5msFrames;
+        m_interleavedBuf.resize(m_5msFrames * 2);
 
         boo::ChannelMap& chMapOut = m_mixInfo.m_channelMap;
         chMapOut.m_channelCount = 2;
@@ -109,13 +112,32 @@ struct VSTVoiceEngine : boo::BaseAudioVoiceEngine
 
     void pumpAndMixVoices()
     {
-        _pumpAndMixVoices(m_renderFrames, m_interleavedBuf.data());
-
-        for (size_t i=0 ; i<2 ; ++i)
+        for (size_t f=0 ; f<m_renderFrames ;)
         {
-            float* bufOut = m_outputData[i];
-            for (size_t f=0 ; f<m_renderFrames ; ++f)
-                bufOut[f] = m_interleavedBuf[f*2+i];
+            size_t remRenderFrames = std::min(m_renderFrames - f, m_5msFrames - m_curBufFrame);
+            for (size_t i=0 ; i<2 ; ++i)
+            {
+                float* bufOut = m_outputData[i];
+                for (size_t lf=0 ; lf<remRenderFrames ; ++lf)
+                    bufOut[f+lf] = m_interleavedBuf[(m_curBufFrame+lf)*2+i];
+            }
+            m_curBufFrame += remRenderFrames;
+            f += remRenderFrames;
+
+            if (m_curBufFrame == m_5msFrames)
+            {
+                _pumpAndMixVoices(m_5msFrames, m_interleavedBuf.data());
+                m_curBufFrame = 0;
+
+                remRenderFrames = std::min(m_renderFrames - f, m_5msFrames);
+                for (size_t i=0 ; i<2 ; ++i)
+                {
+                    float* bufOut = m_outputData[i];
+                    for (size_t lf=0 ; lf<remRenderFrames ; ++lf)
+                        bufOut[f+lf] = m_interleavedBuf[lf*2+i];
+                }
+                f += remRenderFrames;
+            }
         }
     }
 
@@ -166,16 +188,16 @@ AEffEditor* VSTBackend::getEditor()
 
 VstInt32 VSTBackend::processEvents(VstEvents* events)
 {
+    std::unique_lock<std::mutex> lk(m_lock);
     VSTVoiceEngine& engine = static_cast<VSTVoiceEngine&>(*m_booBackend);
 
     /* Handle group load request */
-    int reqGroup = engine.m_reqGroup;
-    if (engine.m_curGroup != reqGroup)
+    if (m_curGroup != m_reqGroup)
     {
-        engine.m_curGroup = reqGroup;
-        if (engine.m_curSeq)
-            engine.m_curSeq->kill();
-        engine.m_curSeq = m_engine->seqPlay(reqGroup, -1, nullptr);
+        m_curGroup = m_reqGroup;
+        if (m_curSeq)
+            m_curSeq->kill();
+        m_curSeq = m_engine->seqPlay(m_reqGroup, -1, nullptr);
     }
 
     if (engine.m_midiReceiver)
@@ -197,6 +219,7 @@ VstInt32 VSTBackend::processEvents(VstEvents* events)
 
 void VSTBackend::processReplacing(float**, float** outputs, VstInt32 sampleFrames)
 {
+    std::unique_lock<std::mutex> lk(m_lock);
     VSTVoiceEngine& engine = static_cast<VSTVoiceEngine&>(*m_booBackend);
 
     /* Output buffers */
@@ -277,16 +300,19 @@ void VSTBackend::setBlockSize(VstInt32 blockSize)
 {
     AudioEffectX::setBlockSize(blockSize);
     VSTVoiceEngine& engine = static_cast<VSTVoiceEngine&>(*m_booBackend);
-    engine.m_interleavedBuf.resize(blockSize * 2);
     engine._rebuildAudioRenderClient(engine.mixInfo().m_sampleRate, blockSize);
 }
 
-void VSTBackend::loadGroupSequencer(int collectionIdx, int fileIdx, int groupIdx)
+void VSTBackend::loadGroupFile(int collectionIdx, int fileIdx)
 {
+    std::unique_lock<std::mutex> lk(m_lock);
+
     if (m_curSeq)
     {
         m_curSeq->kill();
         m_curSeq.reset();
+        m_curGroup = -1;
+        m_reqGroup = -1;
     }
 
     if (collectionIdx < m_filePresenter.m_iteratorVec.size())
@@ -299,19 +325,34 @@ void VSTBackend::loadGroupSequencer(int collectionIdx, int fileIdx, int groupIdx
                 m_curData->removeFromEngine(*m_engine);
             git->second->addToEngine(*m_engine);
             m_curData = git->second.get();
+        }
+    }
+}
 
-            if (groupIdx < git->second->m_groupTokens.size())
-            {
-                AudioGroupDataCollection::GroupToken& groupTok = git->second->m_groupTokens[groupIdx];
-                if (groupTok.m_song)
-                    m_curSeq = m_engine->seqPlay(groupTok.m_groupId, -1, nullptr);
-            }
+void VSTBackend::setGroup(int groupIdx, bool immediate)
+{
+    std::unique_lock<std::mutex> lk(m_lock);
+
+    if (!m_curData)
+        return;
+
+    if (groupIdx < m_curData->m_groupTokens.size())
+    {
+        const AudioGroupDataCollection::GroupToken& groupTok = m_curData->m_groupTokens[groupIdx];
+        m_reqGroup = groupTok.m_groupId;
+        if (immediate)
+        {
+            if (m_curSeq)
+                m_curSeq->kill();
+            m_curSeq = m_engine->seqPlay(groupTok.m_groupId, -1, nullptr);
         }
     }
 }
 
 void VSTBackend::setNormalProgram(int programNo)
 {
+    std::unique_lock<std::mutex> lk(m_lock);
+
     if (!m_curSeq)
         return;
     m_curSeq->setChanProgram(0, programNo);
@@ -319,6 +360,8 @@ void VSTBackend::setNormalProgram(int programNo)
 
 void VSTBackend::setDrumProgram(int programNo)
 {
+    std::unique_lock<std::mutex> lk(m_lock);
+
     if (!m_curSeq)
         return;
     m_curSeq->setChanProgram(9, programNo);

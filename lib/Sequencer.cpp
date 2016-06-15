@@ -2,6 +2,7 @@
 #include "amuse/Submix.hpp"
 #include "amuse/Voice.hpp"
 #include "amuse/Engine.hpp"
+#include <map>
 
 namespace amuse
 {
@@ -50,7 +51,7 @@ void Sequencer::_destroy()
     {
         m_engine.removeSubmix(m_submix);
         m_submix = nullptr;
-    }        
+    }
 }
 
 Sequencer::~Sequencer()
@@ -63,15 +64,31 @@ Sequencer::~Sequencer()
 }
 
 Sequencer::Sequencer(Engine& engine, const AudioGroup& group, int groupId,
-                     const SongGroupIndex& songGroup, int setupId, Submix* smx)
+                     const SongGroupIndex* songGroup, int setupId, Submix* smx)
 : Entity(engine, group, groupId), m_songGroup(songGroup)
 {
-    auto it = m_songGroup.m_midiSetups.find(setupId);
-    if (it != m_songGroup.m_midiSetups.cend())
+    auto it = m_songGroup->m_midiSetups.find(setupId);
+    if (it != m_songGroup->m_midiSetups.cend())
         m_midiSetup = it->second->data();
 
     m_submix = m_engine.addSubmix(smx);
     m_submix->makeReverbHi(0.2f, 0.65f, 1.f, 0.5f, 0.f, 0.f);
+}
+
+Sequencer::Sequencer(Engine& engine, const AudioGroup& group, int groupId,
+                     const SFXGroupIndex* sfxGroup, Submix* smx)
+: Entity(engine, group, groupId), m_sfxGroup(sfxGroup)
+{
+    m_submix = m_engine.addSubmix(smx);
+    m_submix->makeReverbHi(0.2f, 0.65f, 1.f, 0.5f, 0.f, 0.f);
+
+    std::map<uint16_t, const SFXGroupIndex::SFXEntry*> sortSFX;
+    for (const auto& sfx : sfxGroup->m_sfxEntries)
+        sortSFX[sfx.first] = sfx.second;
+
+    m_sfxMappings.reserve(sortSFX.size());
+    for (const auto& sfx : sortSFX)
+        m_sfxMappings.push_back(sfx.second);
 }
 
 Sequencer::ChannelState::~ChannelState()
@@ -81,43 +98,53 @@ Sequencer::ChannelState::~ChannelState()
 Sequencer::ChannelState::ChannelState(Sequencer& parent, uint8_t chanId)
 : m_parent(parent), m_chanId(chanId)
 {
-    if (m_parent.m_midiSetup)
+    if (m_parent.m_songGroup)
     {
-        m_setup = &m_parent.m_midiSetup[chanId];
-
-        if (chanId == 9)
+        if (m_parent.m_midiSetup)
         {
-            auto it = m_parent.m_songGroup.m_drumPages.find(m_setup->programNo);
-            if (it != m_parent.m_songGroup.m_drumPages.cend())
-                m_page = it->second;
+            m_setup = &m_parent.m_midiSetup[chanId];
+
+            if (chanId == 9)
+            {
+                auto it = m_parent.m_songGroup->m_drumPages.find(m_setup->programNo);
+                if (it != m_parent.m_songGroup->m_drumPages.cend())
+                    m_page = it->second;
+            }
+            else
+            {
+                auto it = m_parent.m_songGroup->m_normPages.find(m_setup->programNo);
+                if (it != m_parent.m_songGroup->m_normPages.cend())
+                    m_page = it->second;
+            }
+
+            m_curVol = m_setup->volume / 127.f;
+            m_curPan = m_setup->panning / 64.f - 1.f;
+            m_ctrlVals[0x5b] = m_setup->reverb;
+            m_ctrlVals[0x5d] = m_setup->chorus;
         }
         else
         {
-            auto it = m_parent.m_songGroup.m_normPages.find(m_setup->programNo);
-            if (it != m_parent.m_songGroup.m_normPages.cend())
-                m_page = it->second;
-        }
+            if (chanId == 9)
+            {
+                auto it = m_parent.m_songGroup->m_drumPages.find(0);
+                if (it != m_parent.m_songGroup->m_drumPages.cend())
+                    m_page = it->second;
+            }
+            else
+            {
+                auto it = m_parent.m_songGroup->m_normPages.find(0);
+                if (it != m_parent.m_songGroup->m_normPages.cend())
+                    m_page = it->second;
+            }
 
-        m_curVol = m_setup->volume / 127.f;
-        m_curPan = m_setup->panning / 64.f - 1.f;
-        m_ctrlVals[0x5b] = m_setup->reverb;
-        m_ctrlVals[0x5d] = m_setup->chorus;
+            m_curVol = 1.f;
+            m_curPan = 0.f;
+            m_ctrlVals[0x5b] = 0;
+            m_ctrlVals[0x5d] = 0;
+        }
     }
-    else
+    else if (m_parent.m_sfxGroup)
     {
-        if (chanId == 9)
-        {
-            auto it = m_parent.m_songGroup.m_drumPages.find(0);
-            if (it != m_parent.m_songGroup.m_drumPages.cend())
-                m_page = it->second;
-        }
-        else
-        {
-            auto it = m_parent.m_songGroup.m_normPages.find(0);
-            if (it != m_parent.m_songGroup.m_normPages.cend())
-                m_page = it->second;
-        }
-        
         m_curVol = 1.f;
         m_curPan = 0.f;
         m_ctrlVals[0x5b] = 0;
@@ -160,7 +187,7 @@ size_t Sequencer::getVoiceCount() const
 
 std::shared_ptr<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velocity)
 {
-    if (!m_page)
+    if (m_parent.m_songGroup && !m_page)
         return {};
 
     /* If portamento is enabled for voice, pre-empt spawning new voices */
@@ -196,7 +223,19 @@ std::shared_ptr<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velo
         m_chanVoxs[note] = *ret;
         (*ret)->installCtrlValues(m_ctrlVals);
 
-        ObjectId oid = (m_parent.m_audioGroup.getDataFormat() == DataFormat::PC) ? m_page->objId : SBig(m_page->objId);
+        ObjectId oid;
+        if (m_parent.m_songGroup)
+            oid = (m_parent.m_audioGroup.getDataFormat() == DataFormat::PC) ? m_page->objId : SBig(m_page->objId);
+        else if (m_parent.m_sfxMappings.size())
+        {
+            size_t lookupIdx = note % m_parent.m_sfxMappings.size();
+            const SFXGroupIndex::SFXEntry* sfxEntry = m_parent.m_sfxMappings[lookupIdx];
+            oid = (m_parent.m_audioGroup.getDataFormat() == DataFormat::PC) ? sfxEntry->objId : SBig(sfxEntry->objId);
+            note = sfxEntry->defKey;
+        }
+        else
+            return {};
+
         if (!(*ret)->loadSoundObject(oid, 0, m_parent.m_ticksPerSec, note, velocity, m_ctrlVals[1]))
         {
             m_parent.m_engine._destroyVoice(ret);
@@ -270,24 +309,27 @@ void Sequencer::ChannelState::setCtrlValue(uint8_t ctrl, int8_t val)
 
 bool Sequencer::ChannelState::programChange(int8_t prog)
 {
-    if (m_chanId == 9)
+    if (m_parent.m_songGroup)
     {
-        auto it = m_parent.m_songGroup.m_drumPages.find(prog);
-        if (it != m_parent.m_songGroup.m_drumPages.cend())
+        if (m_chanId == 9)
         {
-            m_page = it->second;
-            m_curProgram = prog;
-            return true;
+            auto it = m_parent.m_songGroup->m_drumPages.find(prog);
+            if (it != m_parent.m_songGroup->m_drumPages.cend())
+            {
+                m_page = it->second;
+                m_curProgram = prog;
+                return true;
+            }
         }
-    }
-    else
-    {
-        auto it = m_parent.m_songGroup.m_normPages.find(prog);
-        if (it != m_parent.m_songGroup.m_normPages.cend())
+        else
         {
-            m_page = it->second;
-            m_curProgram = prog;
-            return true;
+            auto it = m_parent.m_songGroup->m_normPages.find(prog);
+            if (it != m_parent.m_songGroup->m_normPages.cend())
+            {
+                m_page = it->second;
+                m_curProgram = prog;
+                return true;
+            }
         }
     }
     return false;
