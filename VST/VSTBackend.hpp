@@ -38,7 +38,7 @@ class VSTBackend : public AudioEffectX
     const AudioGroupDataCollection* m_curData = nullptr;
     size_t m_curFrame = 0;
     std::wstring m_userDir;
-    int m_listenProg = 0;
+    int m_routeChannel = -1;
     AudioGroupFilePresenter m_filePresenter;
     VSTEditor m_editor;
 public:
@@ -64,7 +64,9 @@ public:
 
     void loadGroupFile(int collectionIdx, int fileIdx);
     void setGroup(int groupIdx, bool immediate);
+    void _setNormalProgram(int programNo);
     void setNormalProgram(int programNo);
+    void _setDrumProgram(int programNo);
     void setDrumProgram(int programNo);
 
     VstInt32 getChunk(void** data, bool isPreset);

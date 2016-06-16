@@ -367,9 +367,7 @@ void VSTEditor::addAction()
         }
 
         m_backend.getFilePresenter().addCollection(name, std::move(data));
-        m_backend.getFilePresenter().populateCollectionColumn(*this);
-        m_backend.getFilePresenter().populateGroupColumn(*this, m_selCollectionIdx, m_selFileIdx);
-        m_backend.getFilePresenter().populatePageColumn(*this, m_selCollectionIdx, m_selFileIdx, m_selGroupIdx);
+        update();
     }
 }
 
@@ -414,6 +412,7 @@ void VSTEditor::selectGroup(int idx)
     m_selGroupIdx = idx;
     m_backend.setGroup(m_selGroupIdx, false);
     m_backend.getFilePresenter().populatePageColumn(*this, m_selCollectionIdx, m_selFileIdx, m_selGroupIdx);
+    m_lastLParam = -1;
 }
 
 void VSTEditor::selectPage(int idx)
@@ -423,10 +422,22 @@ void VSTEditor::selectPage(int idx)
     item.mask = LVIF_PARAM;
     item.iItem = idx;
     ListView_GetItem(m_pageListView, &item);
+    m_lastLParam = item.lParam;
     if (item.lParam & 0x80000000)
         selectDrumPage(item.lParam & 0x7fffffff);
     else
         selectNormalPage(item.lParam & 0x7fffffff);
+}
+
+void VSTEditor::reselectPage()
+{
+    if (m_lastLParam != -1)
+    {
+        if (m_lastLParam & 0x80000000)
+            m_backend._setDrumProgram(m_lastLParam & 0x7fffffff);
+        else
+            m_backend._setNormalProgram(m_lastLParam & 0x7fffffff);
+    }
 }
 
 void VSTEditor::selectNormalPage(int idx)

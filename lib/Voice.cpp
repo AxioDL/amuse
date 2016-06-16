@@ -219,7 +219,7 @@ bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
         {
             /* Lerp within 160-sample block */
             float t = rem / 160.f;
-            float l = m_lastLevel * (1.f - t) + m_nextLevel * t;
+            float l = clamp(0.f, m_lastLevel * (1.f - t) + m_nextLevel * t, 1.f);
 
             /* Apply total volume to sample using decibel scale */
             ApplyVolume(l, samp);
@@ -244,7 +244,7 @@ bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
         if (m_envelopeCurve)
             t = (*m_envelopeCurve)[int(t*127.f)] / 127.f;
         m_curVol = clamp(0.f, (start * (1.0f - t)) + (end * t), 1.f);
-        
+
         //printf("%d %f\n", m_vid, m_curVol);
 
         /* Done with envelope */
@@ -347,7 +347,7 @@ bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
         }
     }
 
-    m_nextLevel = ClampFull<float>(m_nextLevel);
+    m_nextLevel = clamp(0.f, m_nextLevel, 1.f);
 
     /* Apply total volume to sample using decibel scale */
     ApplyVolume(m_nextLevel, samp);

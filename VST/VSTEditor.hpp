@@ -33,6 +33,7 @@ class VSTEditor : public AEffEditor
     int m_selFileIdx = -1;
     int m_selGroupIdx = -1;
     int m_selPageIdx = -1;
+    int m_lastLParam = -1;
 
     HTREEITEM m_deferredCollectionSel = 0;
 
@@ -64,6 +65,7 @@ public:
     void selectCollection(LPARAM idx);
     void selectGroup(int idx);
     void selectPage(int idx);
+    void reselectPage();
     void selectNormalPage(int idx);
     void selectDrumPage(int idx);
 };

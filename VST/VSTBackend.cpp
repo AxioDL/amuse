@@ -192,6 +192,7 @@ VstInt32 VSTBackend::processEvents(VstEvents* events)
         if (m_curSeq)
             m_curSeq->kill();
         m_curSeq = m_engine->seqPlay(m_reqGroup, -1, nullptr);
+        m_editor.reselectPage();
     }
 
     if (engine.m_midiReceiver)
@@ -201,6 +202,11 @@ VstInt32 VSTBackend::processEvents(VstEvents* events)
             VstMidiEvent* evt = reinterpret_cast<VstMidiEvent*>(events->events[i]);
             if (evt->type == kVstMidiType)
             {
+                if (m_routeChannel != -1)
+                {
+                    evt->midiData[0] &= ~0xf;
+                    evt->midiData[0] |= m_routeChannel & 0xf;
+                }
                 (*engine.m_midiReceiver)(std::vector<uint8_t>(std::cbegin(evt->midiData),
                                                               std::cbegin(evt->midiData) + evt->byteSize),
                                          (m_curFrame + evt->deltaFrames) / sampleRate);
@@ -343,22 +349,32 @@ void VSTBackend::setGroup(int groupIdx, bool immediate)
     }
 }
 
-void VSTBackend::setNormalProgram(int programNo)
+void VSTBackend::_setNormalProgram(int programNo)
 {
-    std::unique_lock<std::mutex> lk(m_lock);
-
     if (!m_curSeq)
         return;
     m_curSeq->setChanProgram(0, programNo);
+    m_routeChannel = 0;
+}
+
+void VSTBackend::setNormalProgram(int programNo)
+{
+    std::unique_lock<std::mutex> lk(m_lock);
+    _setNormalProgram(programNo);
+}
+
+void VSTBackend::_setDrumProgram(int programNo)
+{
+    if (!m_curSeq)
+        return;
+    m_curSeq->setChanProgram(9, programNo);
+    m_routeChannel = 9;
 }
 
 void VSTBackend::setDrumProgram(int programNo)
 {
     std::unique_lock<std::mutex> lk(m_lock);
-
-    if (!m_curSeq)
-        return;
-    m_curSeq->setChanProgram(9, programNo);
+    _setDrumProgram(programNo);
 }
 
 VstInt32 VSTBackend::getChunk(void** data, bool)
@@ -373,7 +389,7 @@ VstInt32 VSTBackend::getChunk(void** data, bool)
     else
         *reinterpret_cast<wchar_t*>(buf) = L'\0';
     uint32_t* intVals = reinterpret_cast<uint32_t*>(buf + allocSz - 12);
-    intVals[0] = m_listenProg;
+    intVals[0] = 0;
     intVals[1] = m_editor.m_selGroupIdx;
     intVals[2] = m_editor.m_selPageIdx;
     *data = buf;
@@ -388,7 +404,6 @@ VstInt32 VSTBackend::setChunk(void* data, VstInt32 byteSize, bool)
     wchar_t* path = reinterpret_cast<wchar_t*>(data);
     uint32_t* intVals = reinterpret_cast<uint32_t*>(path + wcslen(path) + 1);
     std::wstring targetPath = m_userDir + L'\\' + path;
-    m_listenProg = intVals[0];
     uint32_t groupIdx = intVals[1];
     uint32_t pageIdx = intVals[2];
 

@@ -408,6 +408,7 @@ void AudioGroupFilePresenter::populateGroupColumn(VSTEditor& editor, int collect
     item.mask = LVIF_TEXT;
 
     ListView_DeleteAllItems(editor.m_groupListView);
+    ListView_DeleteAllItems(editor.m_pageListView);
     if (collectionIdx < m_iteratorVec.size())
     {
         CollectionIterator& it = m_iteratorVec[collectionIdx];
