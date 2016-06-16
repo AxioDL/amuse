@@ -37,14 +37,12 @@ namespace amuse
 #   endif
 #endif
 
+#if _WIN32
 static inline int CompareCaseInsensitive(const char* a, const char* b)
 {
-#if _WIN32
     return _stricmp(a, b);
-#else
-    return strcasecmp(a, b);
-#endif
 }
+#endif
 
 static inline int CompareCaseInsensitive(const SystemChar* a, const SystemChar* b)
 {
