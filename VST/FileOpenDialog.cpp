@@ -88,7 +88,7 @@ HRESULT CDialogEventHandler_CreateInstance(REFIID riid, void **ppv);
 std::wstring openDB()
 {
     std::wstring ret;
-    CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+    CoInitializeEx(NULL, COINIT_MULTITHREADED | COINIT_DISABLE_OLE1DDE);
 
     //Cocreate the file open dialog object
     IFileDialog *pfd = NULL;
