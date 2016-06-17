@@ -22,7 +22,6 @@ class VSTEditor : public AEffEditor
     ERect m_windowRect = {0, 0, 420, 600};
 
     HWND m_rootView = 0;
-    HWND m_collectionHeader = 0;
     HWND m_collectionTree = 0;
     HWND m_collectionAdd = 0;
     HWND m_collectionRemove = 0;

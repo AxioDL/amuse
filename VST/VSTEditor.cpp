@@ -231,19 +231,47 @@ bool VSTEditor::open(void* ptr)
     TreeView_InsertItem(m_collectionTree, &treeItem);
     ShowWindow(m_collectionTree, SW_SHOW);
 
-    m_collectionHeader = CreateWindowW(WC_HEADER,
-                                       L"",
-                                       WS_CHILD,
-                                       1, 1,
-                                       199,
-                                       24,
-                                       m_rootView,
-                                       nullptr,
-                                       nullptr,
-                                       nullptr);
-    SetWindowLongPtrW(m_collectionHeader, GWLP_USERDATA, LONG_PTR(L"Collection"));
-    OriginalListViewProc = WNDPROC(SetWindowLongPtr(m_collectionHeader, GWLP_WNDPROC, LONG_PTR(ColHeaderWindowProc)));
-    ShowWindow(m_collectionHeader, SW_SHOW);
+    HWND cHeader = CreateWindowW(WC_HEADER,
+                                 L"",
+                                 WS_CHILD,
+                                 1, 1,
+                                 199,
+                                 24,
+                                 m_rootView,
+                                 nullptr,
+                                 nullptr,
+                                 nullptr);
+    SetWindowLongPtrW(cHeader, GWLP_USERDATA, LONG_PTR(L"Collection"));
+    OriginalListViewProc = WNDPROC(SetWindowLongPtr(cHeader, GWLP_WNDPROC, LONG_PTR(ColHeaderWindowProc)));
+    ShowWindow(cHeader, SW_SHOW);
+
+    HWND gHeader = CreateWindowW(WC_HEADER,
+                                 L"",
+                                 WS_CHILD,
+                                 201, 1,
+                                 199,
+                                 24,
+                                 m_rootView,
+                                 nullptr,
+                                 nullptr,
+                                 nullptr);
+    SetWindowLongPtrW(gHeader, GWLP_USERDATA, LONG_PTR(L"Group"));
+    OriginalListViewProc = WNDPROC(SetWindowLongPtr(gHeader, GWLP_WNDPROC, LONG_PTR(ColHeaderWindowProc)));
+    ShowWindow(gHeader, SW_SHOW);
+
+    HWND pHeader = CreateWindowW(WC_HEADER,
+                                 L"",
+                                 WS_CHILD,
+                                 401, 1,
+                                 198,
+                                 24,
+                                 m_rootView,
+                                 nullptr,
+                                 nullptr,
+                                 nullptr);
+    SetWindowLongPtrW(pHeader, GWLP_USERDATA, LONG_PTR(L"Page"));
+    OriginalListViewProc = WNDPROC(SetWindowLongPtr(pHeader, GWLP_WNDPROC, LONG_PTR(ColHeaderWindowProc)));
+    ShowWindow(pHeader, SW_SHOW);
 
     m_collectionAdd = CreateWindowW(WC_BUTTON,
                                     L"+",
@@ -274,10 +302,10 @@ bool VSTEditor::open(void* ptr)
 
     m_groupListView = CreateWindowW(WC_LISTVIEW,
                                     L"",
-                                    WS_CHILD | LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_NOSORTHEADER,
-                                    201, 1,
+                                    WS_CHILD | LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_NOCOLUMNHEADER | LVS_NOSORTHEADER,
+                                    201, 25,
                                     199,
-                                    m_windowRect.bottom - m_windowRect.top - 2,
+                                    m_windowRect.bottom - m_windowRect.top - 26,
                                     m_rootView,
                                     nullptr,
                                     nullptr,
@@ -294,10 +322,10 @@ bool VSTEditor::open(void* ptr)
 
     m_pageListView = CreateWindowW(WC_LISTVIEW,
                                    L"",
-                                   WS_CHILD | LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_NOSORTHEADER,
-                                   401, 1,
+                                   WS_CHILD | LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_NOCOLUMNHEADER | LVS_NOSORTHEADER,
+                                   401, 25,
                                    198,
-                                   m_windowRect.bottom - m_windowRect.top - 2,
+                                   m_windowRect.bottom - m_windowRect.top - 26,
                                    m_rootView,
                                    nullptr,
                                    nullptr,
