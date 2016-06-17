@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include <string>
+#include <cstring>
 
 #ifndef _MSC_VER
 #include <strings.h>
