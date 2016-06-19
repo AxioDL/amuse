@@ -35,7 +35,7 @@ static void *memmem(const void *haystack, size_t hlen, const void *needle, size_
     return NULL;
 }
 
-amuse::SystemString StrToSys(const std::string& str)
+static amuse::SystemString StrToSys(const std::string& str)
 {
     std::wstring ret;
     int len = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), str.size(), nullptr, 0);
@@ -45,7 +45,7 @@ amuse::SystemString StrToSys(const std::string& str)
 }
 
 #else
-amuse::SystemString StrToSys(const std::string& str)
+static amuse::SystemString StrToSys(const std::string& str)
 {
     return str;
 }
