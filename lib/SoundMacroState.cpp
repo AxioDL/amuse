@@ -57,12 +57,12 @@ float SoundMacroState::Evaluator::evaluate(const Voice& vox, const SoundMacroSta
             case 130:
                 /* LFO1 */
                 if (vox.m_lfoPeriods[0])
-                    thisValue = (std::sin(vox.m_voiceTime / vox.m_lfoPeriods[0] * 2.f * M_PIF) / 2.f + 1.f) * 127.f;
+                    thisValue = (std::sin(vox.m_voiceTime / vox.m_lfoPeriods[0] * 2.f * M_PIF) / 2.f + 0.5f) * 127.f;
                 break;
             case 131:
                 /* LFO2 */
                 if (vox.m_lfoPeriods[1])
-                    thisValue = (std::sin(vox.m_voiceTime / vox.m_lfoPeriods[1] * 2.f * M_PIF) / 2.f + 1.f) * 127.f;
+                    thisValue = (std::sin(vox.m_voiceTime / vox.m_lfoPeriods[1] * 2.f * M_PIF) / 2.f + 0.5f) * 127.f;
                 break;
             case 132:
                 /* Surround panning */

@@ -159,6 +159,7 @@ class Voice : public Entity
 
     void _setPan(float pan);
     void _setSurroundPan(float span);
+    void _setPitchWheel(float pitchWheel);
     void _notifyCtrlChange(uint8_t ctrl, int8_t val);
 public:
     ~Voice();
@@ -321,7 +322,7 @@ public:
     }
 
     /** Get MIDI pitch wheel value on voice */
-    int8_t getPitchWheel() const {return m_curPitchWheel * 127;}
+    int8_t getPitchWheel() const {return m_curPitchWheel * 127 / 2 + 64;}
 
     /** Get MIDI aftertouch value on voice */
     int8_t getAftertouch() const {return m_curAftertouch;}

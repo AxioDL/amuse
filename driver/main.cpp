@@ -782,9 +782,11 @@ struct AppCallback : boo::IApplicationCallback
                 }
                 for (const auto& pair : allSongGroups)
                 {
-                    amuse::Printf(_S("    %d %s (SongGroup)  %" PRISize " normal-pages, %" PRISize " drum-pages\n"),
+                    amuse::Printf(_S("    %d %s (SongGroup)  %" PRISize " normal-pages, %" PRISize " drum-pages, %" PRISize " MIDI-setups\n"),
                                   pair.first, pair.second.first->first.c_str(),
-                                  pair.second.second->m_normPages.size(), pair.second.second->m_drumPages.size());
+                                  pair.second.second->m_normPages.size(),
+                                  pair.second.second->m_drumPages.size(),
+                                  pair.second.second->m_midiSetups.size());
                 }
 
                 int userSel = 0;

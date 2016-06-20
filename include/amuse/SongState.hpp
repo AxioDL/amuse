@@ -26,29 +26,23 @@ class SongState
     /** Song header */
     struct Header
     {
-        uint32_t m_version;
-        uint32_t m_chanIdxOff;
+        uint32_t m_trackIdxOff;
+        uint32_t m_regionIdxOff;
         uint32_t m_chanMapOff;
         uint32_t m_tempoTableOff;
         uint32_t m_initialTempo;
         uint32_t m_unkOff;
-        uint32_t m_chanOffs[64];
         void swapBig();
     } m_header;
 
-    /** Channel header */
-    struct ChanHeader
+    /** Track region ('clip' in an NLA representation) */
+    struct TrackRegion
     {
         uint32_t m_startTick;
         uint16_t m_unk1;
         uint16_t m_unk2;
-        uint16_t m_dataIndex;
-        uint16_t m_unk3;
-        uint32_t m_startTick2;
-        uint16_t m_unk4;
-        uint16_t m_unk5;
-        uint16_t m_unk6;
-        uint16_t m_unk7;
+        uint16_t m_regionIndex;
+        int16_t m_initialPitch;
         void swapBig();
     };
 
@@ -59,6 +53,8 @@ class SongState
         uint32_t m_tempo; /**< Tempo value in beats-per-minute (at 384 ticks per quarter-note) */
         void swapBig();
     };
+
+    const unsigned char* m_songData = nullptr; /**< Base pointer to active song */
 
     /** State of a single channel within arrangement */
     struct Channel
@@ -73,10 +69,10 @@ class SongState
 
         SongState& m_parent;
         uint8_t m_midiChan; /**< MIDI channel number of song channel */
-        uint32_t m_startTick; /**< Tick to start execution of channel commands */
+        const TrackRegion* m_curRegion; /**< Pointer to currently-playing track region */
+        const TrackRegion* m_nextRegion; /**< Pointer to next-queued track region */
 
-        const unsigned char* m_dataBase; /**< Base pointer to command data */
-        const unsigned char* m_data; /**< Pointer to upcoming command data */
+        const unsigned char* m_data = nullptr; /**< Pointer to upcoming command data */
         const unsigned char* m_pitchWheelData = nullptr; /**< Pointer to upcoming pitch data */
         const unsigned char* m_modWheelData = nullptr; /**< Pointer to upcoming modulation data */
         uint32_t m_lastPitchTick = 0; /**< Last position of pitch wheel change */
@@ -85,13 +81,16 @@ class SongState
         int32_t m_lastModVal = 0; /**< Last value of mod */
         std::array<uint16_t, 128> m_remNoteLengths = {}; /**< Remaining ticks per note */
 
-        int32_t m_waitCountdown = 0; /**< Current wait in ticks */
+        int32_t m_eventWaitCountdown = 0; /**< Current wait in ticks */
+        int32_t m_lastN64EventTick = 0; /**< Last command time on this channel (for computing delta times from absolute times in N64 songs) */
 
-        Channel(SongState& parent, uint8_t midiChan, uint32_t startTick,
-                const unsigned char* song, const unsigned char* chan);
+        Channel(SongState& parent, uint8_t midiChan, const TrackRegion* regions);
+        void setRegion(Sequencer& seq, const TrackRegion* region);
+        void advanceRegion(Sequencer& seq);
         bool advance(Sequencer& seq, int32_t ticks);
     };
     std::array<std::experimental::optional<Channel>, 64> m_channels;
+    const uint32_t* m_regionIdx; /**< Table of offsets to song-region data */
 
     /** Current pointer to tempo control, iterated over playback */
     const TempoChange* m_tempoPtr = nullptr;

@@ -68,28 +68,21 @@ static uint32_t DecodeTimeRLE(const unsigned char*& data)
 
 void SongState::Header::swapBig()
 {
-    m_version = SBig(m_version);
-    m_chanIdxOff = SBig(m_chanIdxOff);
+    m_trackIdxOff = SBig(m_trackIdxOff);
+    m_regionIdxOff = SBig(m_regionIdxOff);
     m_chanMapOff = SBig(m_chanMapOff);
     m_tempoTableOff = SBig(m_tempoTableOff);
     m_initialTempo = SBig(m_initialTempo);
     m_unkOff = SBig(m_unkOff);
-    for (int i=0 ; i<64 ; ++i)
-        m_chanOffs[i] = SBig(m_chanOffs[i]);
 }
 
-void SongState::ChanHeader::swapBig()
+void SongState::TrackRegion::swapBig()
 {
     m_startTick = SBig(m_startTick);
     m_unk1 = SBig(m_unk1);
     m_unk2 = SBig(m_unk2);
-    m_dataIndex = SBig(m_dataIndex);
-    m_unk3 = SBig(m_unk3);
-    m_startTick2 = SBig(m_startTick2);
-    m_unk4 = SBig(m_unk4);
-    m_unk5 = SBig(m_unk5);
-    m_unk6 = SBig(m_unk6);
-    m_unk7 = SBig(m_unk7);
+    m_regionIndex = SBig(m_regionIndex);
+    m_initialPitch = SBig(m_initialPitch);
 }
 
 void SongState::TempoChange::swapBig()
@@ -105,47 +98,69 @@ void SongState::Channel::Header::swapBig()
     m_modOff = SBig(m_modOff);
 }
 
-SongState::Channel::Channel(SongState& parent, uint8_t midiChan, uint32_t startTick,
-                            const unsigned char* song, const unsigned char* chan)
-: m_parent(parent), m_midiChan(midiChan), m_startTick(startTick), m_dataBase(chan + 12)
-{
-    m_data = m_dataBase;
+SongState::Channel::Channel(SongState& parent, uint8_t midiChan, const TrackRegion* regions)
+: m_parent(parent), m_midiChan(midiChan), m_curRegion(nullptr), m_nextRegion(regions)
+{}
 
-    Header header = *reinterpret_cast<const Header*>(chan);
+void SongState::Channel::setRegion(Sequencer& seq, const TrackRegion* region)
+{
+    assert(region->m_regionIndex != 0xffff);
+    m_curRegion = region;
+    uint32_t regionIdx = SBig(m_curRegion->m_regionIndex);
+    m_nextRegion = &m_curRegion[1];
+
+    m_data = m_parent.m_songData + SBig(m_parent.m_regionIdx[regionIdx]);
+
+    Header header = *reinterpret_cast<const Header*>(m_data);
     header.swapBig();
-    if (header.m_type != 8)
-    {
-        m_data = nullptr;
-        return;
-    }
+    assert(header.m_type == 8);
+    m_data += 12;
 
     if (header.m_pitchOff)
-        m_pitchWheelData = song + header.m_pitchOff;
+        m_pitchWheelData = m_parent.m_songData + header.m_pitchOff;
     if (header.m_modOff)
-        m_modWheelData = song + header.m_modOff;
+        m_modWheelData = m_parent.m_songData + header.m_modOff;
 
-    m_waitCountdown = startTick;
-    m_lastPitchTick = startTick;
-    m_lastModTick = startTick;
-    m_waitCountdown += int32_t(DecodeTimeRLE(m_data));
+    m_eventWaitCountdown = 0;
+    m_lastPitchTick = m_parent.m_curTick;
+    //m_lastPitchVal = SBig(m_curRegion->m_initialPitch);
+    m_lastPitchVal = 0;
+    seq.setPitchWheel(m_midiChan, clamp(-1.f, m_lastPitchVal / 32768.f, 1.f));
+    m_lastModTick = m_parent.m_curTick;
+    m_lastModVal = 0;
+    seq.setCtrlValue(m_midiChan, 1, clamp(0, m_lastModVal * 128 / 16384, 127));
+    if (m_parent.m_header.m_trackIdxOff == 0x18 || m_parent.m_header.m_trackIdxOff == 0x58)
+        m_eventWaitCountdown = int32_t(DecodeTimeRLE(m_data));
+    else
+    {
+        int32_t absTick = SBig(*reinterpret_cast<const int32_t*>(m_data));
+        m_eventWaitCountdown = absTick;
+        m_lastN64EventTick = absTick;
+        m_data += 4;
+    }
+}
+
+void SongState::Channel::advanceRegion(Sequencer& seq)
+{
+    setRegion(seq, m_nextRegion);
 }
 
 void SongState::initialize(const unsigned char* ptr)
 {
+    m_songData = ptr;
     m_header = *reinterpret_cast<const Header*>(ptr);
     m_header.swapBig();
+    const uint32_t* trackIdx = reinterpret_cast<const uint32_t*>(ptr + m_header.m_trackIdxOff);
+    m_regionIdx = reinterpret_cast<const uint32_t*>(ptr + m_header.m_regionIdxOff);
+    const uint8_t* chanMap = reinterpret_cast<const uint8_t*>(ptr + m_header.m_chanMapOff);
 
     /* Initialize all channels */
     for (int i=0 ; i<64 ; ++i)
     {
-        if (m_header.m_chanOffs[i])
+        if (trackIdx[i])
         {
-            ChanHeader cHeader = *reinterpret_cast<const ChanHeader*>(ptr + m_header.m_chanOffs[i]);
-            cHeader.swapBig();
-            const uint32_t* chanIdx = reinterpret_cast<const uint32_t*>(ptr + m_header.m_chanIdxOff);
-            const uint8_t* chanMap = reinterpret_cast<const uint8_t*>(ptr + m_header.m_chanMapOff);
-            m_channels[i].emplace(*this, chanMap[i], cHeader.m_startTick, ptr,
-                                  ptr + SBig(chanIdx[cHeader.m_dataIndex]));
+            const TrackRegion* region = reinterpret_cast<const TrackRegion*>(ptr + SBig(trackIdx[i]));
+            m_channels[i].emplace(*this, chanMap[i], region);
         }
         else
             m_channels[i] = std::experimental::nullopt;
@@ -164,10 +179,20 @@ void SongState::initialize(const unsigned char* ptr)
 
 bool SongState::Channel::advance(Sequencer& seq, int32_t ticks)
 {
-    if (!m_data)
-        return true;
-
     int32_t endTick = m_parent.m_curTick + ticks;
+
+    /* Advance region if needed */
+    while (m_nextRegion->m_regionIndex != 0xffff)
+    {
+        uint32_t nextRegTick = SBig(m_nextRegion->m_startTick);
+        if (endTick > nextRegTick)
+            advanceRegion(seq);
+        else
+            break;
+    }
+
+    if (!m_data)
+        return m_nextRegion->m_regionIndex == 0xffff;
 
     /* Update continuous pitch data */
     if (m_pitchWheelData)
@@ -224,7 +249,7 @@ bool SongState::Channel::advance(Sequencer& seq, int32_t ticks)
                     m_lastModTick = nextTick;
                     remModTicks -= (nextTick - modTick);
                     modTick = nextTick;
-                    seq.setCtrlValue(m_midiChan, 1, clamp(0, (m_lastModVal + 8192) * 128 / 16384, 127));
+                    seq.setCtrlValue(m_midiChan, 1, clamp(0, m_lastModVal * 128 / 16384, 127));
                     continue;
                 }
                 remModTicks -= (nextTick - modTick);
@@ -251,45 +276,100 @@ bool SongState::Channel::advance(Sequencer& seq, int32_t ticks)
     }
 
     /* Loop through as many commands as we can for this time period */
-    while (true)
+    if (m_parent.m_header.m_trackIdxOff == 0x18 || m_parent.m_header.m_trackIdxOff == 0x58)
     {
-        /* Advance wait timer if active, returning if waiting */
-        if (m_waitCountdown)
+        /* GameCube */
+        while (true)
         {
-            m_waitCountdown -= ticks;
-            ticks = 0;
-            if (m_waitCountdown > 0)
-                return false;
-        }
+            /* Advance wait timer if active, returning if waiting */
+            if (m_eventWaitCountdown)
+            {
+                m_eventWaitCountdown -= ticks;
+                ticks = 0;
+                if (m_eventWaitCountdown > 0)
+                    return false;
+            }
 
-        /* Load next command */
-        if (*reinterpret_cast<const uint16_t*>(m_data) == 0xffff)
-        {
-            /* End of channel */
-            m_data = nullptr;
-            return true;
+            /* Load next command */
+            if (*reinterpret_cast<const uint16_t*>(m_data) == 0xffff)
+            {
+                /* End of channel */
+                m_data = nullptr;
+                return m_nextRegion->m_regionIndex == 0xffff;
+            }
+            else if (m_data[0] & 0x80)
+            {
+                /* Control change */
+                uint8_t val = m_data[0] & 0x7f;
+                uint8_t ctrl = m_data[1] & 0x7f;
+                seq.setCtrlValue(m_midiChan, ctrl, val);
+                m_data += 2;
+            }
+            else
+            {
+                /* Note */
+                uint8_t note = m_data[0] & 0x7f;
+                uint8_t vel = m_data[1] & 0x7f;
+                uint16_t length = SBig(*reinterpret_cast<const uint16_t*>(m_data + 2));
+                seq.keyOn(m_midiChan, note, vel);
+                m_remNoteLengths[note] = length;
+                m_data += 4;
+            }
+
+            /* Set next delta-time */
+            m_eventWaitCountdown += int32_t(DecodeTimeRLE(m_data));
         }
-        else if (m_data[0] & 0x80)
+    }
+    else
+    {
+        /* N64 */
+        while (true)
         {
-            /* Control change */
-            uint8_t val = m_data[0] & 0x7f;
-            uint8_t ctrl = m_data[1] & 0x7f;
-            seq.setCtrlValue(m_midiChan, ctrl, val);
-            m_data += 2;
-        }
-        else
-        {
-            /* Note */
-            uint8_t note = m_data[0] & 0x7f;
-            uint8_t vel = m_data[1] & 0x7f;
-            uint16_t length = SBig(*reinterpret_cast<const uint16_t*>(m_data + 2));
-            seq.keyOn(m_midiChan, note, vel);
-            m_remNoteLengths[note] = length;
+            /* Advance wait timer if active, returning if waiting */
+            if (m_eventWaitCountdown)
+            {
+                m_eventWaitCountdown -= ticks;
+                ticks = 0;
+                if (m_eventWaitCountdown > 0)
+                    return false;
+            }
+
+            /* Load next command */
+            if (*reinterpret_cast<const uint32_t*>(m_data) == 0xffff0000)
+            {
+                /* End of channel */
+                m_data = nullptr;
+                return m_nextRegion->m_regionIndex == 0xffff;
+            }
+            else if (m_data[0] & 0x80)
+            {
+                /* Control change */
+                uint8_t val = m_data[0] & 0x7f;
+                uint8_t ctrl = m_data[1] & 0x7f;
+                seq.setCtrlValue(m_midiChan, ctrl, val);
+                m_data += 2;
+            }
+            else
+            {
+                if ((m_data[2] & 0x80) != 0x80)
+                {
+                    /* Note */
+                    uint16_t length = SBig(*reinterpret_cast<const uint16_t*>(m_data));
+                    uint8_t note = m_data[2] & 0x7f;
+                    uint8_t vel = m_data[3] & 0x7f;
+                    seq.keyOn(m_midiChan, note, vel);
+                    m_remNoteLengths[note] = length;
+                }
+                m_data += 4;
+            }
+
+            /* Set next delta-time */
+            int32_t absTick = SBig(*reinterpret_cast<const int32_t*>(m_data));
+            assert(absTick >= m_lastN64EventTick);
+            m_eventWaitCountdown += absTick - m_lastN64EventTick;
+            m_lastN64EventTick = absTick;
             m_data += 4;
         }
-
-        /* Set next delta-time */
-        m_waitCountdown += int32_t(DecodeTimeRLE(m_data));
     }
 
     return false;

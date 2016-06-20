@@ -890,6 +890,61 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadRS1N64(
     return ret;
 }
 
+static std::vector<std::pair<SystemString, ContainerRegistry::SongData>> LoadRS1N64Songs(FILE* fp)
+{
+    std::vector<std::pair<SystemString, ContainerRegistry::SongData>> ret;
+    size_t endPos = FileLength(fp);
+
+    std::unique_ptr<uint8_t[]> data(new uint8_t[endPos]);
+    fread(data.get(), 1, endPos, fp);
+
+    if ((data[0] & 0x80) != 0x80 && (data[3] & 0x80) == 0x80)
+        SwapN64Rom32(data.get(), endPos);
+    else if ((data[0] & 0x80) != 0x80 && (data[1] & 0x80) == 0x80)
+        SwapN64Rom16(data.get(), endPos);
+
+    const uint8_t* dataSeg = reinterpret_cast<const uint8_t*>(memmem(data.get(), endPos,
+                                                                     "dbg_data\0\0\0\0\0\0\0\0", 16));
+    if (dataSeg)
+    {
+        dataSeg += 28;
+        size_t fstEnd = SBig(*reinterpret_cast<const uint32_t*>(dataSeg));
+        dataSeg += 4;
+        size_t fstOff = SBig(*reinterpret_cast<const uint32_t*>(dataSeg));
+        if (endPos <= size_t(dataSeg - data.get()) + fstOff || endPos <= size_t(dataSeg - data.get()) + fstEnd)
+            return ret;
+
+        const RS1FSTEntry* entry = reinterpret_cast<const RS1FSTEntry*>(dataSeg + fstOff);
+        const RS1FSTEntry* lastEnt = reinterpret_cast<const RS1FSTEntry*>(dataSeg + fstEnd);
+
+        for (; entry != lastEnt ; ++entry)
+        {
+            RS1FSTEntry ent = *entry;
+            ent.swapBig();
+
+            if (strstr(ent.name, "SNG"))
+            {
+                std::unique_ptr<uint8_t[]> song(new uint8_t[ent.decompSz]);
+
+                if (ent.compSz == 0xffffffff)
+                {
+                    memmove(song.get(), dataSeg + ent.offset, ent.decompSz);
+                }
+                else
+                {
+                    uLongf outSz = ent.decompSz;
+                    uncompress(song.get(), &outSz, dataSeg + ent.offset, ent.compSz);
+                }
+
+                SystemString name = StrToSys(ent.name);
+                ret.emplace_back(name, ContainerRegistry::SongData(std::move(song), ent.decompSz, -1, -1));
+            }
+        }
+    }
+
+    return ret;
+}
+
 static bool ValidateBFNPC(FILE* fp)
 {
     size_t endPos = FileLength(fp);
@@ -1847,17 +1902,17 @@ ContainerRegistry::LoadSongs(const SystemChar* path)
             return ret;
         }
 
-#if 0
-        if (ValidateRS1PCSongs(fp))
+        if (ValidateRS1N64(fp))
         {
-            auto ret = LoadRS1PCSongs(fp);
+            auto ret = LoadRS1N64Songs(fp);
             fclose(fp);
             return ret;
         }
 
-        if (ValidateRS1N64Songs(fp))
+#if 0
+        if (ValidateRS1PCSongs(fp))
         {
-            auto ret = LoadRS1N64Songs(fp);
+            auto ret = LoadRS1PCSongs(fp);
             fclose(fp);
             return ret;
         }

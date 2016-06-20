@@ -287,7 +287,7 @@ bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
         _setPan(m_curPan);
 
     if (m_state.m_pitchWheelSel)
-        setPitchWheel(m_state.m_pitchWheelSel.evaluate(*this, m_state) / 127.f);
+        _setPitchWheel((m_state.m_pitchWheelSel.evaluate(*this, m_state) - 64.f) / 64.f);
 
     /* Process user volume slew */
     if (m_engine.m_ampMode == AmplitudeMode::PerSample)
@@ -793,7 +793,7 @@ void Voice::startSample(int16_t sampId, int32_t offset)
         m_sampleRate = m_curSample->first.m_sampleRate;
         m_curPitch = m_curSample->first.m_pitch;
         m_pitchDirty = true;
-        setPitchWheel(m_curPitchWheel);
+        _setPitchWheel(m_curPitchWheel);
         m_backendVoice->resetSampleRate(m_curSample->first.m_sampleRate);
 
         int32_t numSamples = m_curSample->first.m_numSamples & 0xffffff;
@@ -1063,9 +1063,8 @@ void Voice::setPitchAdsr(ObjectId adsrId, int32_t cents)
     }
 }
 
-void Voice::setPitchWheel(float pitchWheel)
+void Voice::_setPitchWheel(float pitchWheel)
 {
-    m_curPitchWheel = amuse::clamp(-1.f, pitchWheel, 1.f);
     if (pitchWheel > 0.f)
         m_pitchWheelVal = m_pitchWheelUp * m_curPitchWheel;
     else if (pitchWheel < 0.f)
@@ -1073,6 +1072,12 @@ void Voice::setPitchWheel(float pitchWheel)
     else
         m_pitchWheelVal = 0;
     m_pitchDirty = true;
+}
+
+void Voice::setPitchWheel(float pitchWheel)
+{
+    m_curPitchWheel = amuse::clamp(-1.f, pitchWheel, 1.f);
+    _setPitchWheel(m_curPitchWheel);
 
     for (std::shared_ptr<Voice>& vox : m_childVoices)
         vox->setPitchWheel(pitchWheel);
@@ -1082,7 +1087,7 @@ void Voice::setPitchWheelRange(int8_t up, int8_t down)
 {
     m_pitchWheelUp = up * 100;
     m_pitchWheelDown = down * 100;
-    setPitchWheel(m_curPitchWheel);
+    _setPitchWheel(m_curPitchWheel);
 }
 
 void Voice::setAftertouch(uint8_t aftertouch)
