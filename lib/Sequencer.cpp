@@ -72,15 +72,15 @@ Sequencer::Sequencer(Engine& engine, const AudioGroup& group, int groupId,
         m_midiSetup = it->second->data();
 
     m_submix = m_engine.addSubmix(smx);
-    m_submix->makeReverbHi(0.2f, 0.65f, 1.f, 0.5f, 0.f, 0.f);
+    m_submix->makeReverbHi(0.2f, 0.3f, 1.f, 0.5f, 0.f, 0.f);
 }
 
 Sequencer::Sequencer(Engine& engine, const AudioGroup& group, int groupId,
                      const SFXGroupIndex* sfxGroup, Submix* smx)
 : Entity(engine, group, groupId), m_sfxGroup(sfxGroup)
 {
-    m_submix = m_engine.addSubmix(smx);
-    m_submix->makeReverbHi(0.2f, 0.65f, 1.f, 0.5f, 0.f, 0.f);
+    //m_submix = m_engine.addSubmix(smx);
+    //m_submix->makeReverbHi(0.2f, 0.3f, 1.f, 0.5f, 0.f, 0.f);
 
     std::map<uint16_t, const SFXGroupIndex::SFXEntry*> sortSFX;
     for (const auto& sfx : sfxGroup->m_sfxEntries)

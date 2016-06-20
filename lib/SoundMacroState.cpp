@@ -52,21 +52,21 @@ float SoundMacroState::Evaluator::evaluate(const Voice& vox, const SoundMacroSta
                 break;
             case 129:
                 /* Aftertouch */
-                thisValue = vox.getAftertouch();
+                thisValue = vox.getAftertouch() * (2.f / 127.f);
                 break;
             case 130:
                 /* LFO1 */
                 if (vox.m_lfoPeriods[0])
-                    thisValue = (std::sin(vox.m_voiceTime / vox.m_lfoPeriods[0] * 2.f * M_PIF) / 2.f + 0.5f) * 127.f;
+                    thisValue = std::sin(vox.m_voiceTime / vox.m_lfoPeriods[0] * 2.f * M_PIF);
                 break;
             case 131:
                 /* LFO2 */
                 if (vox.m_lfoPeriods[1])
-                    thisValue = (std::sin(vox.m_voiceTime / vox.m_lfoPeriods[1] * 2.f * M_PIF) / 2.f + 0.5f) * 127.f;
+                    thisValue = std::sin(vox.m_voiceTime / vox.m_lfoPeriods[1] * 2.f * M_PIF);
                 break;
             case 132:
                 /* Surround panning */
-                thisValue = vox.m_curSpan * 64.f + 64.f;
+                thisValue = vox.m_curSpan;
                 break;
             case 133:
                 /* Macro-starting key */
@@ -78,10 +78,13 @@ float SoundMacroState::Evaluator::evaluate(const Voice& vox, const SoundMacroSta
                 break;
             case 135:
                 /* Time since macro-start (ms) */
-                thisValue = st.m_execTime * 1000.f;
+                thisValue = clamp(0.f, float(st.m_execTime * 1000.f), 16383.f);
                 break;
             default:
-                thisValue = vox.getCtrlValue(comp.m_midiCtrl);
+                if (comp.m_midiCtrl == 10) /* Centered pan computation */
+                    thisValue = vox.getCtrlValue(comp.m_midiCtrl) * (2.f / 127.f) - 1.f;
+                else
+                    thisValue = vox.getCtrlValue(comp.m_midiCtrl) * (2.f / 127.f);
                 break;
             }
         }

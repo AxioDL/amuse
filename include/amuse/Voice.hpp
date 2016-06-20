@@ -308,12 +308,6 @@ public:
         _notifyCtrlChange(ctrl, val);
     }
 
-    /** Get ModWheel value on voice */
-    int8_t getModWheel() const
-    {
-        return m_state.m_modWheelSel ? m_state.m_modWheelSel.evaluate(*this, m_state) : getCtrlValue(1);
-    }
-
     /** 'install' external MIDI controller storage */
     void installCtrlValues(int8_t* cvs)
     {
@@ -322,7 +316,7 @@ public:
     }
 
     /** Get MIDI pitch wheel value on voice */
-    int8_t getPitchWheel() const {return m_curPitchWheel * 127 / 2 + 64;}
+    float getPitchWheel() const {return m_curPitchWheel;}
 
     /** Get MIDI aftertouch value on voice */
     int8_t getAftertouch() const {return m_curAftertouch;}

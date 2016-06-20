@@ -41,9 +41,9 @@ class SongState
         uint32_t m_startTick;
         uint16_t m_unk1;
         uint16_t m_unk2;
-        uint16_t m_regionIndex;
-        int16_t m_initialPitch;
-        void swapBig();
+        int16_t m_regionIndex;
+        int16_t m_unk3;
+        bool indexValid() const;
     };
 
     /** Tempo change entry */
@@ -56,8 +56,8 @@ class SongState
 
     const unsigned char* m_songData = nullptr; /**< Base pointer to active song */
 
-    /** State of a single channel within arrangement */
-    struct Channel
+    /** State of a single track within arrangement */
+    struct Track
     {
         struct Header
         {
@@ -79,17 +79,17 @@ class SongState
         int32_t m_lastPitchVal = 0; /**< Last value of pitch */
         uint32_t m_lastModTick = 0; /**< Last position of mod wheel change */
         int32_t m_lastModVal = 0; /**< Last value of mod */
-        std::array<uint16_t, 128> m_remNoteLengths = {}; /**< Remaining ticks per note */
+        std::array<int, 128> m_remNoteLengths; /**< Remaining ticks per note */
 
         int32_t m_eventWaitCountdown = 0; /**< Current wait in ticks */
         int32_t m_lastN64EventTick = 0; /**< Last command time on this channel (for computing delta times from absolute times in N64 songs) */
 
-        Channel(SongState& parent, uint8_t midiChan, const TrackRegion* regions);
+        Track(SongState& parent, uint8_t midiChan, const TrackRegion* regions);
         void setRegion(Sequencer& seq, const TrackRegion* region);
         void advanceRegion(Sequencer& seq);
         bool advance(Sequencer& seq, int32_t ticks);
     };
-    std::array<std::experimental::optional<Channel>, 64> m_channels;
+    std::array<std::experimental::optional<Track>, 64> m_tracks;
     const uint32_t* m_regionIdx; /**< Table of offsets to song-region data */
 
     /** Current pointer to tempo control, iterated over playback */

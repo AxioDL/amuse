@@ -76,13 +76,9 @@ void SongState::Header::swapBig()
     m_unkOff = SBig(m_unkOff);
 }
 
-void SongState::TrackRegion::swapBig()
+bool SongState::TrackRegion::indexValid() const
 {
-    m_startTick = SBig(m_startTick);
-    m_unk1 = SBig(m_unk1);
-    m_unk2 = SBig(m_unk2);
-    m_regionIndex = SBig(m_regionIndex);
-    m_initialPitch = SBig(m_initialPitch);
+    return SBig(m_regionIndex) >= 0;
 }
 
 void SongState::TempoChange::swapBig()
@@ -91,20 +87,22 @@ void SongState::TempoChange::swapBig()
     m_tempo = SBig(m_tempo);
 }
 
-void SongState::Channel::Header::swapBig()
+void SongState::Track::Header::swapBig()
 {
     m_type = SBig(m_type);
     m_pitchOff = SBig(m_pitchOff);
     m_modOff = SBig(m_modOff);
 }
 
-SongState::Channel::Channel(SongState& parent, uint8_t midiChan, const TrackRegion* regions)
+SongState::Track::Track(SongState& parent, uint8_t midiChan, const TrackRegion* regions)
 : m_parent(parent), m_midiChan(midiChan), m_curRegion(nullptr), m_nextRegion(regions)
-{}
-
-void SongState::Channel::setRegion(Sequencer& seq, const TrackRegion* region)
 {
-    assert(region->m_regionIndex != 0xffff);
+    for (int i=0 ; i<128 ; ++i)
+        m_remNoteLengths[i] = INT_MIN;
+}
+
+void SongState::Track::setRegion(Sequencer& seq, const TrackRegion* region)
+{
     m_curRegion = region;
     uint32_t regionIdx = SBig(m_curRegion->m_regionIndex);
     m_nextRegion = &m_curRegion[1];
@@ -113,7 +111,6 @@ void SongState::Channel::setRegion(Sequencer& seq, const TrackRegion* region)
 
     Header header = *reinterpret_cast<const Header*>(m_data);
     header.swapBig();
-    assert(header.m_type == 8);
     m_data += 12;
 
     if (header.m_pitchOff)
@@ -123,7 +120,6 @@ void SongState::Channel::setRegion(Sequencer& seq, const TrackRegion* region)
 
     m_eventWaitCountdown = 0;
     m_lastPitchTick = m_parent.m_curTick;
-    //m_lastPitchVal = SBig(m_curRegion->m_initialPitch);
     m_lastPitchVal = 0;
     seq.setPitchWheel(m_midiChan, clamp(-1.f, m_lastPitchVal / 32768.f, 1.f));
     m_lastModTick = m_parent.m_curTick;
@@ -140,7 +136,7 @@ void SongState::Channel::setRegion(Sequencer& seq, const TrackRegion* region)
     }
 }
 
-void SongState::Channel::advanceRegion(Sequencer& seq)
+void SongState::Track::advanceRegion(Sequencer& seq)
 {
     setRegion(seq, m_nextRegion);
 }
@@ -154,16 +150,16 @@ void SongState::initialize(const unsigned char* ptr)
     m_regionIdx = reinterpret_cast<const uint32_t*>(ptr + m_header.m_regionIdxOff);
     const uint8_t* chanMap = reinterpret_cast<const uint8_t*>(ptr + m_header.m_chanMapOff);
 
-    /* Initialize all channels */
+    /* Initialize all tracks */
     for (int i=0 ; i<64 ; ++i)
     {
         if (trackIdx[i])
         {
             const TrackRegion* region = reinterpret_cast<const TrackRegion*>(ptr + SBig(trackIdx[i]));
-            m_channels[i].emplace(*this, chanMap[i], region);
+            m_tracks[i].emplace(*this, chanMap[i], region);
         }
         else
-            m_channels[i] = std::experimental::nullopt;
+            m_tracks[i] = std::experimental::nullopt;
     }
 
     /* Initialize tempo */
@@ -177,12 +173,12 @@ void SongState::initialize(const unsigned char* ptr)
     m_songState = SongPlayState::Playing;
 }
 
-bool SongState::Channel::advance(Sequencer& seq, int32_t ticks)
+bool SongState::Track::advance(Sequencer& seq, int32_t ticks)
 {
     int32_t endTick = m_parent.m_curTick + ticks;
 
     /* Advance region if needed */
-    while (m_nextRegion->m_regionIndex != 0xffff)
+    while (m_nextRegion->indexValid())
     {
         uint32_t nextRegTick = SBig(m_nextRegion->m_startTick);
         if (endTick > nextRegTick)
@@ -191,8 +187,22 @@ bool SongState::Channel::advance(Sequencer& seq, int32_t ticks)
             break;
     }
 
+    /* Stop finished notes */
+    for (int i=0 ; i<128 ; ++i)
+    {
+        if (m_remNoteLengths[i] != INT_MIN)
+        {
+            m_remNoteLengths[i] -= ticks;
+            if (m_remNoteLengths[i] <= 0)
+            {
+                seq.keyOff(m_midiChan, i, 0);
+                m_remNoteLengths[i] = INT_MIN;
+            }
+        }
+    }
+
     if (!m_data)
-        return m_nextRegion->m_regionIndex == 0xffff;
+        return !m_nextRegion->indexValid();
 
     /* Update continuous pitch data */
     if (m_pitchWheelData)
@@ -260,21 +270,6 @@ bool SongState::Channel::advance(Sequencer& seq, int32_t ticks)
         }
     }
 
-    /* Stop finished notes */
-    for (int i=0 ; i<128 ; ++i)
-    {
-        if (m_remNoteLengths[i])
-        {
-            if (m_remNoteLengths[i] <= ticks)
-            {
-                seq.keyOff(m_midiChan, i, 0);
-                m_remNoteLengths[i] = 0;
-            }
-            else
-                m_remNoteLengths[i] -= ticks;
-        }
-    }
-
     /* Loop through as many commands as we can for this time period */
     if (m_parent.m_header.m_trackIdxOff == 0x18 || m_parent.m_header.m_trackIdxOff == 0x58)
     {
@@ -295,7 +290,7 @@ bool SongState::Channel::advance(Sequencer& seq, int32_t ticks)
             {
                 /* End of channel */
                 m_data = nullptr;
-                return m_nextRegion->m_regionIndex == 0xffff;
+                return !m_nextRegion->indexValid();
             }
             else if (m_data[0] & 0x80)
             {
@@ -339,7 +334,7 @@ bool SongState::Channel::advance(Sequencer& seq, int32_t ticks)
             {
                 /* End of channel */
                 m_data = nullptr;
-                return m_nextRegion->m_regionIndex == 0xffff;
+                return !m_nextRegion->indexValid();
             }
             else if (m_data[0] & 0x80)
             {
@@ -365,7 +360,6 @@ bool SongState::Channel::advance(Sequencer& seq, int32_t ticks)
 
             /* Set next delta-time */
             int32_t absTick = SBig(*reinterpret_cast<const int32_t*>(m_data));
-            assert(absTick >= m_lastN64EventTick);
             m_eventWaitCountdown += absTick - m_lastN64EventTick;
             m_lastN64EventTick = absTick;
             m_data += 4;
@@ -412,10 +406,10 @@ bool SongState::advance(Sequencer& seq, double dt)
             }
         }
 
-        /* Advance all channels */
-        for (std::experimental::optional<Channel>& chan : m_channels)
-            if (chan)
-                done &= chan->advance(seq, remTicks);
+        /* Advance all tracks */
+        for (std::experimental::optional<Track>& trk : m_tracks)
+            if (trk)
+                done &= trk->advance(seq, remTicks);
 
         m_curTick += remTicks;
 

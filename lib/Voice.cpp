@@ -253,12 +253,12 @@ bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
     }
 
     /* Dynamically evaluate per-sample SoundMacro parameters */
-    float evalVol = m_state.m_volumeSel ? ((m_state.m_volumeSel.evaluate(*this, m_state) / 127.f) * m_curVol) : m_curVol;
+    float evalVol = m_state.m_volumeSel ? (m_state.m_volumeSel.evaluate(*this, m_state) / 2.f * m_curVol) : m_curVol;
 
     bool panDirty = false;
     if (m_state.m_panSel)
     {
-        float evalPan = (m_state.m_panSel.evaluate(*this, m_state) - 64.f) / 64.f;
+        float evalPan = m_state.m_panSel.evaluate(*this, m_state);
         if (evalPan != m_curPan)
         {
             m_curPan = evalPan;
@@ -267,7 +267,7 @@ bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
     }
     if (m_state.m_spanSel)
     {
-        float evalSpan = (m_state.m_spanSel.evaluate(*this, m_state) - 64.f) / 64.f;
+        float evalSpan = m_state.m_spanSel.evaluate(*this, m_state);
         if (evalSpan != m_curSpan)
         {
             m_curSpan = evalSpan;
@@ -276,7 +276,7 @@ bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
     }
     if (m_state.m_reverbSel)
     {
-        float evalRev = m_state.m_reverbSel.evaluate(*this, m_state) / 127.f;
+        float evalRev = m_state.m_reverbSel.evaluate(*this, m_state) / 2.f;
         if (evalRev != m_curReverbVol)
         {
             m_curReverbVol = evalRev;
@@ -287,7 +287,7 @@ bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
         _setPan(m_curPan);
 
     if (m_state.m_pitchWheelSel)
-        _setPitchWheel((m_state.m_pitchWheelSel.evaluate(*this, m_state) - 64.f) / 64.f);
+        _setPitchWheel(m_state.m_pitchWheelSel.evaluate(*this, m_state));
 
     /* Process user volume slew */
     if (m_engine.m_ampMode == AmplitudeMode::PerSample)
@@ -326,11 +326,11 @@ bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
     /* Apply tremolo */
     if (m_state.m_tremoloSel && (m_tremoloScale || m_tremoloModScale))
     {
-        float t = m_state.m_tremoloSel.evaluate(*this, m_state);
+        float t = m_state.m_tremoloSel.evaluate(*this, m_state) / 2.f;
         if (m_tremoloScale && m_tremoloModScale)
         {
             float fac = (1.0f - t) + (m_tremoloScale * t);
-            float modT = getModWheel() / 127.f;
+            float modT = m_state.m_modWheelSel ? (m_state.m_modWheelSel.evaluate(*this, m_state) / 2.f) : (getCtrlValue(1) / 127.f);
             float modFac = (1.0f - modT) + (m_tremoloModScale * modT);
             m_nextLevel *= fac * modFac;
         }
@@ -341,7 +341,7 @@ bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
         }
         else if (m_tremoloModScale)
         {
-            float modT = getModWheel() / 127.f;
+            float modT = m_state.m_modWheelSel ? (m_state.m_modWheelSel.evaluate(*this, m_state) / 2.f) : (getCtrlValue(1) / 127.f);
             float modFac = (1.0f - modT) + (m_tremoloModScale * modT);
             m_nextLevel *= modFac;
         }
@@ -451,7 +451,7 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
     /* Process per-block evaluators here */
     if (m_state.m_pedalSel)
     {
-        bool pedal = m_state.m_pedalSel.evaluate(*this, m_state) >= 64;
+        bool pedal = m_state.m_pedalSel.evaluate(*this, m_state) >= 1.f;
         if (pedal != m_sustained)
             setPedal(pedal);
     }
@@ -1110,7 +1110,7 @@ bool Voice::doPortamento(uint8_t newNote)
         pState = true;
         break;
     case 2:
-        pState = (m_state.m_portamentoSel ? m_state.m_portamentoSel.evaluate(*this, m_state) : getCtrlValue(65)) >= 64;
+        pState = m_state.m_portamentoSel ? (m_state.m_portamentoSel.evaluate(*this, m_state) >= 1.f) : (getCtrlValue(65) >= 64);
         break;
     }
 
