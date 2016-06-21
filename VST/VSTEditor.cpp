@@ -385,7 +385,7 @@ void VSTEditor::addAction()
             if (dotpos != std::string::npos)
                 name.assign(path.cbegin(), path.cbegin() + dotpos);
             size_t slashpos = name.rfind(L'\\');
-            size_t fslashpos = name.rfind(L"/");
+            size_t fslashpos = name.rfind(L'/');
             if (slashpos == std::string::npos)
                 slashpos = fslashpos;
             else if (fslashpos != std::string::npos)

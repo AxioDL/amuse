@@ -10,12 +10,14 @@ set(SOURCES
     lib/AudioGroupPool.cpp
     lib/AudioGroupProject.cpp
     lib/AudioGroupSampleDirectory.cpp
+    lib/DirectoryEnumerator.cpp
     lib/Emitter.cpp
     lib/Engine.cpp
     lib/Envelope.cpp
     lib/Listener.cpp
     lib/Sequencer.cpp
     lib/SoundMacroState.cpp
+    lib/SongConverter.cpp
     lib/SongState.cpp
     lib/Voice.cpp
     lib/VolumeLUT.cpp
@@ -35,6 +37,7 @@ set(HEADERS
     include/amuse/AudioGroupPool.hpp
     include/amuse/AudioGroupProject.hpp
     include/amuse/AudioGroupSampleDirectory.hpp
+    include/amuse/DirectoryEnumerator.hpp
     include/amuse/Emitter.hpp
     include/amuse/Engine.hpp
     include/amuse/Entity.hpp
@@ -42,6 +45,7 @@ set(HEADERS
     include/amuse/Listener.hpp
     include/amuse/Sequencer.hpp
     include/amuse/SoundMacroState.hpp
+    include/amuse/SongConverter.hpp
     include/amuse/SongState.hpp
     include/amuse/Voice.hpp
     include/amuse/Submix.hpp
@@ -81,7 +85,13 @@ if(TARGET boo)
   # VST Target
   add_subdirectory(VST)
 
-  # Multi-platform CLI tool
-  add_executable(amuseplay WIN32 driver/main.cpp)
+  # Multi-platform CLI tools
+
+  # Player
+  add_executable(amuseplay WIN32 driver/amuseplay.cpp)
   target_link_libraries(amuseplay amuse boo ${BOO_SYS_LIBS} logvisor athena-core ${ZLIB_LIBRARIES})
+
+  # Converter
+  add_executable(amuseconv driver/amuseconv.cpp)
+  target_link_libraries(amuseconv amuse ${BOO_SYS_LIBS} logvisor athena-core ${ZLIB_LIBRARIES})
 endif()

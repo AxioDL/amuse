@@ -22,6 +22,7 @@ enum class SongPlayState
 class SongState
 {
     friend class Voice;
+    friend class SongConverter;
 
     /** Song header */
     struct Header
@@ -55,6 +56,7 @@ class SongState
     };
 
     const unsigned char* m_songData = nullptr; /**< Base pointer to active song */
+    bool m_bigEndian; /**< True if loaded song is big-endian data */
 
     /** State of a single track within arrangement */
     struct Track
@@ -85,8 +87,8 @@ class SongState
         int32_t m_lastN64EventTick = 0; /**< Last command time on this channel (for computing delta times from absolute times in N64 songs) */
 
         Track(SongState& parent, uint8_t midiChan, const TrackRegion* regions);
-        void setRegion(Sequencer& seq, const TrackRegion* region);
-        void advanceRegion(Sequencer& seq);
+        void setRegion(Sequencer* seq, const TrackRegion* region);
+        void advanceRegion(Sequencer* seq);
         bool advance(Sequencer& seq, int32_t ticks);
     };
     std::array<std::experimental::optional<Track>, 64> m_tracks;

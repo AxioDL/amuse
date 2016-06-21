@@ -16,6 +16,8 @@
 #include "Listener.hpp"
 #include "Sequencer.hpp"
 #include "SoundMacroState.hpp"
+#include "SongConverter.hpp"
+#include "SongState.hpp"
 #include "Submix.hpp"
 #include "Voice.hpp"
 

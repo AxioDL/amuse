@@ -11,6 +11,7 @@
 
 #ifndef _MSC_VER
 #include <strings.h>
+#include <sys/stat.h>
 #endif
 
 namespace amuse
@@ -30,12 +31,18 @@ namespace amuse
 #   ifndef _S
 #   define _S(val) L ## val
 #   endif
+    typedef struct _stat Sstat;
+    static inline int Mkdir(const wchar_t* path, int) {return _wmkdir(path);}
+    static inline int Stat(const wchar_t* path, Sstat* statout) {return _wstat(path, statout);}
 #else
     using SystemString = std::string;
     using SystemChar = char;
 #   ifndef _S
 #   define _S(val) val
 #   endif
+    typedef struct stat Sstat;
+    static inline int Mkdir(const char* path, mode_t mode) {return mkdir(path, mode);}
+    static inline int Stat(const char* path, Sstat* statout) {return stat(path, statout);}
 #endif
 
 #if _WIN32

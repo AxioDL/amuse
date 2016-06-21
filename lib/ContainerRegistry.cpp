@@ -725,6 +725,41 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadRS1PC(F
     return ret;
 }
 
+static std::vector<std::pair<SystemString, ContainerRegistry::SongData>> LoadRS1PCSongs(FILE* fp)
+{
+    std::vector<std::pair<SystemString, ContainerRegistry::SongData>> ret;
+    size_t endPos = FileLength(fp);
+
+    uint32_t fstOff;
+    uint32_t fstSz;
+    if (fread(&fstOff, 1, 4, fp) == 4 && fread(&fstSz, 1, 4, fp) == 4)
+    {
+        if (fstOff + fstSz <= endPos)
+        {
+            FSeek(fp, fstOff, SEEK_SET);
+            uint32_t elemCount = fstSz / 32;
+            std::unique_ptr<RS1FSTEntry[]> entries(new RS1FSTEntry[elemCount]);
+            fread(entries.get(), fstSz, 1, fp);
+
+            for (uint32_t i=0 ; i<elemCount ; ++i)
+            {
+                RS1FSTEntry& entry = entries[i];
+                if (strstr(entry.name, "SNG"))
+                {
+                    std::unique_ptr<uint8_t[]> song(new uint8_t[entry.decompSz]);
+                    FSeek(fp, entry.offset, SEEK_SET);
+                    fread(song.get(), 1, entry.decompSz, fp);
+
+                    SystemString name = StrToSys(entry.name);
+                    ret.emplace_back(name, ContainerRegistry::SongData(std::move(song), entry.decompSz, -1, -1));
+                }
+            }
+        }
+    }
+
+    return ret;
+}
+
 static bool ValidateRS1N64(FILE* fp)
 {
     size_t endPos = FileLength(fp);
@@ -1051,6 +1086,41 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadBFNPC(F
     return ret;
 }
 
+static std::vector<std::pair<SystemString, ContainerRegistry::SongData>> LoadBFNPCSongs(FILE* fp)
+{
+    std::vector<std::pair<SystemString, ContainerRegistry::SongData>> ret;
+    size_t endPos = FileLength(fp);
+
+    uint32_t fstOff;
+    uint32_t fstSz;
+    if (fread(&fstOff, 1, 4, fp) == 4 && fread(&fstSz, 1, 4, fp) == 4)
+    {
+        if (fstOff + fstSz <= endPos)
+        {
+            FSeek(fp, fstOff, SEEK_SET);
+            uint32_t elemCount = fstSz / 32;
+            std::unique_ptr<RS1FSTEntry[]> entries(new RS1FSTEntry[elemCount]);
+            fread(entries.get(), fstSz, 1, fp);
+
+            for (uint32_t i=0 ; i<elemCount ; ++i)
+            {
+                RS1FSTEntry& entry = entries[i];
+                if (!strncmp(entry.name, "s_", 2))
+                {
+                    std::unique_ptr<uint8_t[]> song(new uint8_t[entry.decompSz]);
+                    FSeek(fp, entry.offset, SEEK_SET);
+                    fread(song.get(), 1, entry.decompSz, fp);
+
+                    SystemString name = StrToSys(entry.name);
+                    ret.emplace_back(name, ContainerRegistry::SongData(std::move(song), entry.decompSz, -1, -1));
+                }
+            }
+        }
+    }
+
+    return ret;
+}
+
 static bool ValidateBFNN64(FILE* fp)
 {
     size_t endPos = FileLength(fp);
@@ -1211,6 +1281,61 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadBFNN64(
         ret.emplace_back(_S("Group"), IntrusiveAudioGroupData{proj.release(), projSz, pool.release(), poolSz,
                                                               sdir.release(), sdirSz, samp.release(), sampSz,
                                                               true, N64DataTag{}});
+    }
+
+    return ret;
+}
+
+static std::vector<std::pair<SystemString, ContainerRegistry::SongData>> LoadBFNN64Songs(FILE* fp)
+{
+    std::vector<std::pair<SystemString, ContainerRegistry::SongData>> ret;
+    size_t endPos = FileLength(fp);
+
+    std::unique_ptr<uint8_t[]> data(new uint8_t[endPos]);
+    fread(data.get(), 1, endPos, fp);
+
+    if ((data[0] & 0x80) != 0x80 && (data[3] & 0x80) == 0x80)
+        SwapN64Rom32(data.get(), endPos);
+    else if ((data[0] & 0x80) != 0x80 && (data[1] & 0x80) == 0x80)
+        SwapN64Rom16(data.get(), endPos);
+
+    const uint8_t* dataSeg = reinterpret_cast<const uint8_t*>(memmem(data.get(), endPos,
+                                                                     "dbg_data\0\0\0\0\0\0\0\0", 16));
+    if (dataSeg)
+    {
+        dataSeg += 28;
+        size_t fstEnd = SBig(*reinterpret_cast<const uint32_t*>(dataSeg));
+        dataSeg += 4;
+        size_t fstOff = SBig(*reinterpret_cast<const uint32_t*>(dataSeg));
+        if (endPos <= size_t(dataSeg - data.get()) + fstOff || endPos <= size_t(dataSeg - data.get()) + fstEnd)
+            return ret;
+
+        const RS1FSTEntry* entry = reinterpret_cast<const RS1FSTEntry*>(dataSeg + fstOff);
+        const RS1FSTEntry* lastEnt = reinterpret_cast<const RS1FSTEntry*>(dataSeg + fstEnd);
+
+        for (; entry != lastEnt ; ++entry)
+        {
+            RS1FSTEntry ent = *entry;
+            ent.swapBig();
+
+            if (!strncmp(ent.name, "s_", 2))
+            {
+                std::unique_ptr<uint8_t[]> song(new uint8_t[ent.decompSz]);
+
+                if (ent.compSz == 0xffffffff)
+                {
+                    memmove(song.get(), dataSeg + ent.offset, ent.decompSz);
+                }
+                else
+                {
+                    uLongf outSz = ent.decompSz;
+                    uncompress(song.get(), &outSz, dataSeg + ent.offset, ent.compSz);
+                }
+
+                SystemString name = StrToSys(ent.name);
+                ret.emplace_back(name, ContainerRegistry::SongData(std::move(song), ent.decompSz, -1, -1));
+            }
+        }
     }
 
     return ret;
@@ -1902,6 +2027,13 @@ ContainerRegistry::LoadSongs(const SystemChar* path)
             return ret;
         }
 
+        if (ValidateRS1PC(fp))
+        {
+            auto ret = LoadRS1PCSongs(fp);
+            fclose(fp);
+            return ret;
+        }
+
         if (ValidateRS1N64(fp))
         {
             auto ret = LoadRS1N64Songs(fp);
@@ -1909,28 +2041,19 @@ ContainerRegistry::LoadSongs(const SystemChar* path)
             return ret;
         }
 
-#if 0
-        if (ValidateRS1PCSongs(fp))
-        {
-            auto ret = LoadRS1PCSongs(fp);
-            fclose(fp);
-            return ret;
-        }
-
-        if (ValidateBFNPCSongs(fp))
+        if (ValidateBFNPC(fp))
         {
             auto ret = LoadBFNPCSongs(fp);
             fclose(fp);
             return ret;
         }
 
-        if (ValidateBFNN64Songs(fp))
+        if (ValidateBFNN64(fp))
         {
             auto ret = LoadBFNN64Songs(fp);
             fclose(fp);
             return ret;
         }
-#endif
 
         if (ValidateRS2(fp))
         {

@@ -101,16 +101,19 @@ SongState::Track::Track(SongState& parent, uint8_t midiChan, const TrackRegion* 
         m_remNoteLengths[i] = INT_MIN;
 }
 
-void SongState::Track::setRegion(Sequencer& seq, const TrackRegion* region)
+void SongState::Track::setRegion(Sequencer* seq, const TrackRegion* region)
 {
     m_curRegion = region;
-    uint32_t regionIdx = SBig(m_curRegion->m_regionIndex);
+    uint32_t regionIdx = (m_parent.m_bigEndian ? SBig(m_curRegion->m_regionIndex) :
+                                                      m_curRegion->m_regionIndex);
     m_nextRegion = &m_curRegion[1];
 
-    m_data = m_parent.m_songData + SBig(m_parent.m_regionIdx[regionIdx]);
+    m_data = m_parent.m_songData + (m_parent.m_bigEndian ? SBig(m_parent.m_regionIdx[regionIdx]) :
+                                                                m_parent.m_regionIdx[regionIdx]);
 
     Header header = *reinterpret_cast<const Header*>(m_data);
-    header.swapBig();
+    if (m_parent.m_bigEndian)
+        header.swapBig();
     m_data += 12;
 
     if (header.m_pitchOff)
@@ -121,31 +124,37 @@ void SongState::Track::setRegion(Sequencer& seq, const TrackRegion* region)
     m_eventWaitCountdown = 0;
     m_lastPitchTick = m_parent.m_curTick;
     m_lastPitchVal = 0;
-    seq.setPitchWheel(m_midiChan, clamp(-1.f, m_lastPitchVal / 32768.f, 1.f));
     m_lastModTick = m_parent.m_curTick;
     m_lastModVal = 0;
-    seq.setCtrlValue(m_midiChan, 1, clamp(0, m_lastModVal * 128 / 16384, 127));
+    if (seq)
+    {
+        seq->setPitchWheel(m_midiChan, clamp(-1.f, m_lastPitchVal / 32768.f, 1.f));
+        seq->setCtrlValue(m_midiChan, 1, clamp(0, m_lastModVal * 128 / 16384, 127));
+    }
     if (m_parent.m_header.m_trackIdxOff == 0x18 || m_parent.m_header.m_trackIdxOff == 0x58)
         m_eventWaitCountdown = int32_t(DecodeTimeRLE(m_data));
     else
     {
-        int32_t absTick = SBig(*reinterpret_cast<const int32_t*>(m_data));
+        int32_t absTick = (m_parent.m_bigEndian ? SBig(*reinterpret_cast<const int32_t*>(m_data)) :
+                                                       *reinterpret_cast<const int32_t*>(m_data));
         m_eventWaitCountdown = absTick;
         m_lastN64EventTick = absTick;
         m_data += 4;
     }
 }
 
-void SongState::Track::advanceRegion(Sequencer& seq)
+void SongState::Track::advanceRegion(Sequencer* seq)
 {
     setRegion(seq, m_nextRegion);
 }
 
 void SongState::initialize(const unsigned char* ptr)
 {
+    m_bigEndian = ptr[0] == 0;
     m_songData = ptr;
     m_header = *reinterpret_cast<const Header*>(ptr);
-    m_header.swapBig();
+    if (m_bigEndian)
+        m_header.swapBig();
     const uint32_t* trackIdx = reinterpret_cast<const uint32_t*>(ptr + m_header.m_trackIdxOff);
     m_regionIdx = reinterpret_cast<const uint32_t*>(ptr + m_header.m_regionIdxOff);
     const uint8_t* chanMap = reinterpret_cast<const uint8_t*>(ptr + m_header.m_chanMapOff);
@@ -155,7 +164,7 @@ void SongState::initialize(const unsigned char* ptr)
     {
         if (trackIdx[i])
         {
-            const TrackRegion* region = reinterpret_cast<const TrackRegion*>(ptr + SBig(trackIdx[i]));
+            const TrackRegion* region = reinterpret_cast<const TrackRegion*>(ptr + (m_bigEndian ? SBig(trackIdx[i]) : trackIdx[i]));
             m_tracks[i].emplace(*this, chanMap[i], region);
         }
         else
@@ -180,9 +189,10 @@ bool SongState::Track::advance(Sequencer& seq, int32_t ticks)
     /* Advance region if needed */
     while (m_nextRegion->indexValid())
     {
-        uint32_t nextRegTick = SBig(m_nextRegion->m_startTick);
+        uint32_t nextRegTick = (m_parent.m_bigEndian ? SBig(m_nextRegion->m_startTick) :
+                                                            m_nextRegion->m_startTick);
         if (endTick > nextRegTick)
-            advanceRegion(seq);
+            advanceRegion(&seq);
         else
             break;
     }
@@ -305,7 +315,8 @@ bool SongState::Track::advance(Sequencer& seq, int32_t ticks)
                 /* Note */
                 uint8_t note = m_data[0] & 0x7f;
                 uint8_t vel = m_data[1] & 0x7f;
-                uint16_t length = SBig(*reinterpret_cast<const uint16_t*>(m_data + 2));
+                uint16_t length = (m_parent.m_bigEndian ? SBig(*reinterpret_cast<const uint16_t*>(m_data + 2)) :
+                                                               *reinterpret_cast<const uint16_t*>(m_data + 2));
                 seq.keyOn(m_midiChan, note, vel);
                 m_remNoteLengths[note] = length;
                 m_data += 4;
@@ -349,7 +360,8 @@ bool SongState::Track::advance(Sequencer& seq, int32_t ticks)
                 if ((m_data[2] & 0x80) != 0x80)
                 {
                     /* Note */
-                    uint16_t length = SBig(*reinterpret_cast<const uint16_t*>(m_data));
+                    uint16_t length = (m_parent.m_bigEndian ? SBig(*reinterpret_cast<const uint16_t*>(m_data)) :
+                                                                   *reinterpret_cast<const uint16_t*>(m_data));
                     uint8_t note = m_data[2] & 0x7f;
                     uint8_t vel = m_data[3] & 0x7f;
                     seq.keyOn(m_midiChan, note, vel);
@@ -359,7 +371,8 @@ bool SongState::Track::advance(Sequencer& seq, int32_t ticks)
             }
 
             /* Set next delta-time */
-            int32_t absTick = SBig(*reinterpret_cast<const int32_t*>(m_data));
+            int32_t absTick = (m_parent.m_bigEndian ? SBig(*reinterpret_cast<const int32_t*>(m_data)) :
+                                                           *reinterpret_cast<const int32_t*>(m_data));
             m_eventWaitCountdown += absTick - m_lastN64EventTick;
             m_lastN64EventTick = absTick;
             m_data += 4;
@@ -391,7 +404,8 @@ bool SongState::advance(Sequencer& seq, double dt)
         if (m_tempoPtr && m_tempoPtr->m_tick != 0xffffffff)
         {
             TempoChange change = *m_tempoPtr;
-            change.swapBig();
+            if (m_bigEndian)
+                change.swapBig();
 
             if (m_curTick + remTicks > change.m_tick)
                 remTicks = change.m_tick - m_curTick;
