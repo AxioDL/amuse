@@ -7,6 +7,30 @@
 
 static logvisor::Module Log(_S("amuseconv"));
 
+enum ConvType
+{
+    ConvN64,
+    ConvGCN,
+    ConvPC
+};
+
+static void ReportConvType(ConvType tp)
+{
+    switch (tp)
+    {
+    case ConvN64:
+        Log.report(logvisor::Info, _S("using N64 format"));
+        break;
+    case ConvPC:
+        Log.report(logvisor::Info, _S("using PC format"));
+        break;
+    case ConvGCN:
+    default:
+        Log.report(logvisor::Info, _S("using GameCube format"));
+        break;
+    }
+}
+
 static bool BuildAudioGroup(const amuse::SystemString& groupBase, const amuse::SystemString& targetPath)
 {
     return true;
@@ -38,6 +62,7 @@ static bool ExtractAudioGroup(const amuse::SystemString& inPath, const amuse::Sy
     {
         if (!madeDir)
         {
+            amuse::Mkdir(targetPath.c_str(), 0755);
             amuse::Mkdir(songsDir.c_str(), 0755);
             madeDir = true;
         }
@@ -57,43 +82,55 @@ static bool ExtractAudioGroup(const amuse::SystemString& inPath, const amuse::Sy
     return true;
 }
 
-static bool BuildN64SNG(const amuse::SystemString& inPath, const amuse::SystemString& targetPath, bool bigEndian)
+static bool BuildSNG(const amuse::SystemString& inPath, const amuse::SystemString& targetPath, amuse::SongConverter::Target target)
 {
-    return true;
-}
+    FILE* fp = amuse::FOpen(inPath.c_str(), _S("rb"));
+    if (!fp)
+        return false;
 
-static bool BuildGCNSNG(const amuse::SystemString& inPath, const amuse::SystemString& targetPath)
-{
+    fseek(fp, 0, SEEK_END);
+    long sz = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+    std::vector<uint8_t> data(sz, 0);
+    fread(&data[0], 1, sz, fp);
+    fclose(fp);
+
+    std::vector<uint8_t> out = amuse::SongConverter::MIDIToSong(data, target);
+    if (out.empty())
+        return false;
+
+    fp = amuse::FOpen(targetPath.c_str(), _S("wb"));
+    fwrite(out.data(), 1, out.size(), fp);
+    fclose(fp);
+
     return true;
 }
 
 static bool ExtractSNG(const amuse::SystemString& inPath, const amuse::SystemString& targetPath)
 {
+    FILE* fp = amuse::FOpen(inPath.c_str(), _S("rb"));
+    if (!fp)
+        return false;
+
+    fseek(fp, 0, SEEK_END);
+    long sz = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+    std::vector<uint8_t> data(sz, 0);
+    fread(&data[0], 1, sz, fp);
+    fclose(fp);
+
+    amuse::SongConverter::Target target;
+    std::vector<uint8_t> out = amuse::SongConverter::SongToMIDI(data.data(), target);
+    if (out.empty())
+        return false;
+
+    ReportConvType(ConvType(target));
+
+    fp = amuse::FOpen(targetPath.c_str(), _S("wb"));
+    fwrite(out.data(), 1, out.size(), fp);
+    fclose(fp);
+
     return true;
-}
-
-enum ConvType
-{
-    ConvN64,
-    ConvGCN,
-    ConvPC
-};
-
-static void ReportConvType(ConvType tp)
-{
-    switch (tp)
-    {
-    case ConvN64:
-        Log.report(logvisor::Info, _S("using N64 format"));
-        break;
-    case ConvPC:
-        Log.report(logvisor::Info, _S("using PC format"));
-        break;
-    case ConvGCN:
-    default:
-        Log.report(logvisor::Info, _S("using GameCube format"));
-        break;
-    }
 }
 
 #if _WIN32
@@ -140,19 +177,7 @@ int main(int argc, const amuse::SystemChar** argv)
                 !amuse::CompareCaseInsensitive(dot, _S(".midi")))
             {
                 ReportConvType(type);
-                switch (type)
-                {
-                case ConvN64:
-                    good = BuildN64SNG(amuse::SystemString(barePath.begin(), barePath.begin() + dotPos), argv[2], true);
-                    break;
-                case ConvPC:
-                    good = BuildN64SNG(amuse::SystemString(barePath.begin(), barePath.begin() + dotPos), argv[2], false);
-                    break;
-                case ConvGCN:
-                default:
-                    good = BuildGCNSNG(amuse::SystemString(barePath.begin(), barePath.begin() + dotPos), argv[2]);
-                    break;
-                }
+                good = BuildSNG(barePath, argv[2], amuse::SongConverter::Target(type));
             }
             else if (!amuse::CompareCaseInsensitive(dot, _S(".son")) ||
                      !amuse::CompareCaseInsensitive(dot, _S(".sng")))

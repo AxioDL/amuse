@@ -40,7 +40,8 @@ class SongState
     struct TrackRegion
     {
         uint32_t m_startTick;
-        uint16_t m_unk1;
+        uint8_t m_progNum;
+        uint8_t m_unk1;
         uint16_t m_unk2;
         int16_t m_regionIndex;
         int16_t m_unk3;
