@@ -302,12 +302,19 @@ bool SongState::Track::advance(Sequencer& seq, int32_t ticks)
                 m_data = nullptr;
                 return !m_nextRegion->indexValid();
             }
-            else if (m_data[0] & 0x80)
+            else if (m_data[0] & 0x80 && m_data[1] & 0x80)
             {
                 /* Control change */
                 uint8_t val = m_data[0] & 0x7f;
                 uint8_t ctrl = m_data[1] & 0x7f;
                 seq.setCtrlValue(m_midiChan, ctrl, val);
+                m_data += 2;
+            }
+            else if (m_data[0] & 0x80)
+            {
+                /* Program change */
+                uint8_t prog = m_data[0] & 0x7f;
+                seq.setChanProgram(m_midiChan, prog);
                 m_data += 2;
             }
             else
@@ -347,12 +354,19 @@ bool SongState::Track::advance(Sequencer& seq, int32_t ticks)
                 m_data = nullptr;
                 return !m_nextRegion->indexValid();
             }
-            else if (m_data[0] & 0x80)
+            else if (m_data[0] & 0x80 && m_data[1] & 0x80)
             {
                 /* Control change */
                 uint8_t val = m_data[0] & 0x7f;
                 uint8_t ctrl = m_data[1] & 0x7f;
                 seq.setCtrlValue(m_midiChan, ctrl, val);
+                m_data += 2;
+            }
+            else if (m_data[0] & 0x80)
+            {
+                /* Program change */
+                uint8_t prog = m_data[0] & 0x7f;
+                seq.setChanProgram(m_midiChan, prog);
                 m_data += 2;
             }
             else

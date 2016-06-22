@@ -17,7 +17,7 @@ public:
         PC
     };
     static std::vector<uint8_t> SongToMIDI(const unsigned char* data, Target& targetOut);
-    static std::vector<uint8_t> MIDIToSong(const unsigned char* data, Target target);
+    static std::vector<uint8_t> MIDIToSong(const std::vector<uint8_t>& data, Target target);
 };
 
 }
