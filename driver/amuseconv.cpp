@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 
-static logvisor::Module Log(_S("amuseconv"));
+static logvisor::Module Log("amuseconv");
 
 enum ConvType
 {
