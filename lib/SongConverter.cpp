@@ -846,6 +846,19 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, Target
                                 uint8_t vel = trk->m_data[3] & 0x7f;
                                 events.emplace(regStart + trk->m_eventWaitCountdown, Event{NoteEvent{}, trk->m_midiChan, note, vel, length});
                             }
+                            else if (trk->m_data[2] & 0x80 && trk->m_data[3] & 0x80)
+                            {
+                                /* Control change */
+                                uint8_t val = trk->m_data[2] & 0x7f;
+                                uint8_t ctrl = trk->m_data[3] & 0x7f;
+                                events.emplace(regStart + trk->m_eventWaitCountdown, Event{CtrlEvent{}, trk->m_midiChan, ctrl, val, 0});
+                            }
+                            else if (trk->m_data[2] & 0x80)
+                            {
+                                /* Program change */
+                                uint8_t prog = trk->m_data[2] & 0x7f;
+                                events.emplace(regStart + trk->m_eventWaitCountdown, Event{ProgEvent{}, trk->m_midiChan, prog});
+                            }
                             trk->m_data += 4;
                         }
 
