@@ -348,12 +348,14 @@ bool SongState::Track::advance(Sequencer& seq, int32_t ticks)
             }
 
             /* Load next command */
-            if (*reinterpret_cast<const uint32_t*>(m_data) == 0xffff0000)
+            if ((m_parent.m_bigEndian && *reinterpret_cast<const uint32_t*>(m_data) == 0xffff0000) ||
+                (!m_parent.m_bigEndian && *reinterpret_cast<const uint32_t*>(m_data) == 0xffff))
             {
                 /* End of channel */
                 m_data = nullptr;
                 return !m_nextRegion->indexValid();
             }
+# if 0
             else if (m_data[0] & 0x80 && m_data[1] & 0x80)
             {
                 /* Control change */
@@ -369,6 +371,7 @@ bool SongState::Track::advance(Sequencer& seq, int32_t ticks)
                 seq.setChanProgram(m_midiChan, prog);
                 m_data += 2;
             }
+#endif
             else
             {
                 if ((m_data[2] & 0x80) != 0x80)

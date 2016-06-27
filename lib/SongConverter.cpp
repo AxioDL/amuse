@@ -814,12 +814,14 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, Target
                     while (true)
                     {
                         /* Load next command */
-                        if (*reinterpret_cast<const uint32_t*>(trk->m_data) == 0xffff0000)
+                        if ((song.m_bigEndian && *reinterpret_cast<const uint32_t*>(trk->m_data) == 0xffff0000) ||
+                            (!song.m_bigEndian && *reinterpret_cast<const uint32_t*>(trk->m_data) == 0xffff))
                         {
                             /* End of channel */
                             trk->m_data = nullptr;
                             break;
                         }
+#if 0
                         else if (trk->m_data[0] & 0x80 && trk->m_data[1] & 0x80)
                         {
                             /* Control change */
@@ -835,6 +837,7 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, Target
                             events.emplace(regStart + trk->m_eventWaitCountdown, Event{ProgEvent{}, trk->m_midiChan, prog});
                             trk->m_data += 2;
                         }
+#endif
                         else
                         {
                             if ((trk->m_data[2] & 0x80) != 0x80)
