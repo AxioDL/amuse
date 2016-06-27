@@ -711,7 +711,7 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, Target
             std::multimap<int, Event> allEvents;
 
             /* Iterate all regions */
-            while (trk->m_nextRegion->indexValid())
+            while (trk->m_nextRegion->indexValid(song.m_bigEndian))
             {
                 std::multimap<int, Event> events;
                 trk->advanceRegion(nullptr);
@@ -814,30 +814,12 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, Target
                     while (true)
                     {
                         /* Load next command */
-                        if ((song.m_bigEndian && *reinterpret_cast<const uint32_t*>(trk->m_data) == 0xffff0000) ||
-                            (!song.m_bigEndian && *reinterpret_cast<const uint32_t*>(trk->m_data) == 0xffff))
+                        if (*reinterpret_cast<const uint16_t*>(&trk->m_data[2]) == 0xffff)
                         {
                             /* End of channel */
                             trk->m_data = nullptr;
                             break;
                         }
-#if 0
-                        else if (trk->m_data[0] & 0x80 && trk->m_data[1] & 0x80)
-                        {
-                            /* Control change */
-                            uint8_t val = trk->m_data[0] & 0x7f;
-                            uint8_t ctrl = trk->m_data[1] & 0x7f;
-                            events.emplace(regStart + trk->m_eventWaitCountdown, Event{CtrlEvent{}, trk->m_midiChan, ctrl, val, 0});
-                            trk->m_data += 2;
-                        }
-                        else if (trk->m_data[0] & 0x80)
-                        {
-                            /* Program change */
-                            uint8_t prog = trk->m_data[0] & 0x7f;
-                            events.emplace(regStart + trk->m_eventWaitCountdown, Event{ProgEvent{}, trk->m_midiChan, prog});
-                            trk->m_data += 2;
-                        }
-#endif
                         else
                         {
                             if ((trk->m_data[2] & 0x80) != 0x80)

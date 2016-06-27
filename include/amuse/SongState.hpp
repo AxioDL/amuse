@@ -45,7 +45,7 @@ class SongState
         uint16_t m_unk2;
         int16_t m_regionIndex;
         int16_t m_unk3;
-        bool indexValid() const;
+        bool indexValid(bool bigEndian) const;
     };
 
     /** Tempo change entry */

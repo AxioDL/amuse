@@ -76,9 +76,9 @@ void SongState::Header::swapBig()
     m_unkOff = SBig(m_unkOff);
 }
 
-bool SongState::TrackRegion::indexValid() const
+bool SongState::TrackRegion::indexValid(bool bigEndian) const
 {
-    return SBig(m_regionIndex) >= 0;
+    return (bigEndian ? SBig(m_regionIndex) : m_regionIndex) >= 0;
 }
 
 void SongState::TempoChange::swapBig()
@@ -187,7 +187,7 @@ bool SongState::Track::advance(Sequencer& seq, int32_t ticks)
     int32_t endTick = m_parent.m_curTick + ticks;
 
     /* Advance region if needed */
-    while (m_nextRegion->indexValid())
+    while (m_nextRegion->indexValid(m_parent.m_bigEndian))
     {
         uint32_t nextRegTick = (m_parent.m_bigEndian ? SBig(m_nextRegion->m_startTick) :
                                                             m_nextRegion->m_startTick);
@@ -212,7 +212,7 @@ bool SongState::Track::advance(Sequencer& seq, int32_t ticks)
     }
 
     if (!m_data)
-        return !m_nextRegion->indexValid();
+        return !m_nextRegion->indexValid(m_parent.m_bigEndian);
 
     /* Update continuous pitch data */
     if (m_pitchWheelData)
@@ -300,7 +300,7 @@ bool SongState::Track::advance(Sequencer& seq, int32_t ticks)
             {
                 /* End of channel */
                 m_data = nullptr;
-                return !m_nextRegion->indexValid();
+                return !m_nextRegion->indexValid(m_parent.m_bigEndian);
             }
             else if (m_data[0] & 0x80 && m_data[1] & 0x80)
             {
@@ -348,30 +348,12 @@ bool SongState::Track::advance(Sequencer& seq, int32_t ticks)
             }
 
             /* Load next command */
-            if ((m_parent.m_bigEndian && *reinterpret_cast<const uint32_t*>(m_data) == 0xffff0000) ||
-                (!m_parent.m_bigEndian && *reinterpret_cast<const uint32_t*>(m_data) == 0xffff))
+            if (*reinterpret_cast<const uint16_t*>(&m_data[2]) == 0xffff)
             {
                 /* End of channel */
                 m_data = nullptr;
-                return !m_nextRegion->indexValid();
+                return !m_nextRegion->indexValid(m_parent.m_bigEndian);
             }
-# if 0
-            else if (m_data[0] & 0x80 && m_data[1] & 0x80)
-            {
-                /* Control change */
-                uint8_t val = m_data[0] & 0x7f;
-                uint8_t ctrl = m_data[1] & 0x7f;
-                seq.setCtrlValue(m_midiChan, ctrl, val);
-                m_data += 2;
-            }
-            else if (m_data[0] & 0x80)
-            {
-                /* Program change */
-                uint8_t prog = m_data[0] & 0x7f;
-                seq.setChanProgram(m_midiChan, prog);
-                m_data += 2;
-            }
-#endif
             else
             {
                 if ((m_data[2] & 0x80) != 0x80)
