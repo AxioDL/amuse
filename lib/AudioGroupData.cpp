@@ -7,10 +7,10 @@ IntrusiveAudioGroupData::~IntrusiveAudioGroupData()
 {
     if (m_owns)
     {
-        delete m_pool;
-        delete m_proj;
-        delete m_sdir;
-        delete m_samp;
+        delete[] m_pool;
+        delete[] m_proj;
+        delete[] m_sdir;
+        delete[] m_samp;
     }
 }
 
@@ -27,10 +27,10 @@ IntrusiveAudioGroupData& IntrusiveAudioGroupData::operator=(IntrusiveAudioGroupD
 {
     if (m_owns)
     {
-        delete m_pool;
-        delete m_proj;
-        delete m_sdir;
-        delete m_samp;
+        delete[] m_pool;
+        delete[] m_proj;
+        delete[] m_sdir;
+        delete[] m_samp;
     }
 
     m_owns = other.m_owns;

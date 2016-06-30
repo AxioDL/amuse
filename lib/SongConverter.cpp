@@ -42,8 +42,9 @@ struct PitchEvent {};
 struct Event
 {
     bool endEvent = false;
-    bool controlChange = false;
-    bool progChange = false;
+    bool isNote = false;
+    bool isControlChange = false;
+    bool isProgChange = false;
     uint8_t channel;
     uint8_t noteOrCtrl;
     uint8_t velOrVal;
@@ -54,15 +55,16 @@ struct Event
     int pitchBend;
 
     Event(NoteEvent, uint8_t chan, uint8_t note, uint8_t vel, uint16_t len)
-    : controlChange(false), channel(chan), noteOrCtrl(note), velOrVal(vel), length(len) {}
+    : isNote(true), channel(chan), noteOrCtrl(note), velOrVal(vel), length(len) {}
 
     Event(CtrlEvent, uint8_t chan, uint8_t note, uint8_t vel, uint16_t len)
-    : controlChange(true), channel(chan), noteOrCtrl(note), velOrVal(vel), length(len) {}
+    : isControlChange(true), channel(chan), noteOrCtrl(note), velOrVal(vel), length(len) {}
 
     Event(ProgEvent, uint8_t chan, uint8_t prog)
-    : progChange(true), channel(chan), program(prog) {}
+    : isProgChange(true), channel(chan), program(prog) {}
 
-    Event(PitchEvent, uint8_t chan, int pBend) : isPitchBend(true), channel(chan), pitchBend(pBend) {}
+    Event(PitchEvent, uint8_t chan, int pBend)
+    : isPitchBend(true), channel(chan), pitchBend(pBend) {}
 };
 
 class MIDIDecoder
@@ -862,7 +864,7 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, Target
                 /* Resolve key-off events */
                 for (auto& pair : events)
                 {
-                    if (!pair.second.controlChange)
+                    if (pair.second.isNote)
                     {
                         auto it = allEvents.emplace(pair.first + pair.second.length, pair.second);
                         it->second.endEvent = true;
@@ -877,11 +879,11 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, Target
                 encoder._sendContinuedValue(pair.first - lastTime);
                 lastTime = pair.first;
 
-                if (pair.second.controlChange)
+                if (pair.second.isControlChange)
                 {
                     encoder.controlChange(pair.second.channel, pair.second.noteOrCtrl, pair.second.velOrVal);
                 }
-                else if (pair.second.progChange)
+                else if (pair.second.isProgChange)
                 {
                     encoder.programChange(trk->m_midiChan, pair.second.program);
                 }
@@ -889,7 +891,7 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, Target
                 {
                     encoder.pitchBend(trk->m_midiChan, pair.second.pitchBend);
                 }
-                else
+                else if (pair.second.isNote)
                 {
                     if (pair.second.endEvent)
                         encoder.noteOff(pair.second.channel, pair.second.noteOrCtrl, pair.second.velOrVal);
@@ -1077,7 +1079,7 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
                             lastModVal = 0;
                         }
 
-                        if (event.second.controlChange)
+                        if (event.second.isControlChange)
                         {
                             if (event.second.noteOrCtrl == 1)
                             {
@@ -1114,7 +1116,7 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
                                 }
                             }
                         }
-                        else if (event.second.progChange)
+                        else if (event.second.isProgChange)
                         {
                             if (target == Target::GCN)
                             {
@@ -1148,7 +1150,7 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
                             EncodeContinuousRLE(region.pitchBuf, newPitch - lastPitchVal);
                             lastPitchVal = newPitch;
                         }
-                        else
+                        else if (event.second.isNote)
                         {
                             if (target == Target::GCN)
                             {
