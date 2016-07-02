@@ -10,14 +10,8 @@ namespace amuse
 class SongConverter
 {
 public:
-    enum class Target
-    {
-        N64,
-        GCN,
-        PC
-    };
-    static std::vector<uint8_t> SongToMIDI(const unsigned char* data, Target& targetOut);
-    static std::vector<uint8_t> MIDIToSong(const std::vector<uint8_t>& data, Target target);
+    static std::vector<uint8_t> SongToMIDI(const unsigned char* data, int& versionOut, bool& isBig);
+    static std::vector<uint8_t> MIDIToSong(const std::vector<uint8_t>& data, int version, bool big);
 };
 
 }

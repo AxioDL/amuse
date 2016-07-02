@@ -72,8 +72,9 @@ static bool ExtractAudioGroup(const amuse::SystemString& inPath, const amuse::Sy
         if (fp)
         {
             Log.report(logvisor::Info, _S("Extracting %s"), pair.first.c_str());
-            amuse::SongConverter::Target extractedTarget;
-            std::vector<uint8_t> mid = amuse::SongConverter::SongToMIDI(pair.second.m_data.get(), extractedTarget);
+            int extractedVersion;
+            bool isBig;
+            std::vector<uint8_t> mid = amuse::SongConverter::SongToMIDI(pair.second.m_data.get(), extractedVersion, isBig);
             fwrite(mid.data(), 1, mid.size(), fp);
             fclose(fp);
         }
@@ -82,7 +83,7 @@ static bool ExtractAudioGroup(const amuse::SystemString& inPath, const amuse::Sy
     return true;
 }
 
-static bool BuildSNG(const amuse::SystemString& inPath, const amuse::SystemString& targetPath, amuse::SongConverter::Target target)
+static bool BuildSNG(const amuse::SystemString& inPath, const amuse::SystemString& targetPath, int version, bool big)
 {
     FILE* fp = amuse::FOpen(inPath.c_str(), _S("rb"));
     if (!fp)
@@ -95,7 +96,7 @@ static bool BuildSNG(const amuse::SystemString& inPath, const amuse::SystemStrin
     fread(&data[0], 1, sz, fp);
     fclose(fp);
 
-    std::vector<uint8_t> out = amuse::SongConverter::MIDIToSong(data, target);
+    std::vector<uint8_t> out = amuse::SongConverter::MIDIToSong(data, version, big);
     if (out.empty())
         return false;
 
@@ -119,12 +120,11 @@ static bool ExtractSNG(const amuse::SystemString& inPath, const amuse::SystemStr
     fread(&data[0], 1, sz, fp);
     fclose(fp);
 
-    amuse::SongConverter::Target target;
-    std::vector<uint8_t> out = amuse::SongConverter::SongToMIDI(data.data(), target);
+    int extractedVersion;
+    bool isBig;
+    std::vector<uint8_t> out = amuse::SongConverter::SongToMIDI(data.data(), extractedVersion, isBig);
     if (out.empty())
         return false;
-
-    ReportConvType(ConvType(target));
 
     fp = amuse::FOpen(targetPath.c_str(), _S("wb"));
     fwrite(out.data(), 1, out.size(), fp);
@@ -177,7 +177,7 @@ int main(int argc, const amuse::SystemChar** argv)
                 !amuse::CompareCaseInsensitive(dot, _S(".midi")))
             {
                 ReportConvType(type);
-                good = BuildSNG(barePath, argv[2], amuse::SongConverter::Target(type));
+                good = BuildSNG(barePath, argv[2], 1, true);
             }
             else if (!amuse::CompareCaseInsensitive(dot, _S(".son")) ||
                      !amuse::CompareCaseInsensitive(dot, _S(".sng")))

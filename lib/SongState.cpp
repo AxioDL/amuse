@@ -18,7 +18,10 @@ static uint32_t DecodeRLE(const unsigned char*& data)
             ++data;
             thisPart = thisPart * 256 + *data;
             if (thisPart == 0)
+            {
+                ++data;
                 return -1;
+            }
         }
 
         if (thisPart == 32767)
@@ -131,7 +134,7 @@ void SongState::Track::setRegion(Sequencer* seq, const TrackRegion* region)
         seq->setPitchWheel(m_midiChan, clamp(-1.f, m_lastPitchVal / 32768.f, 1.f));
         seq->setCtrlValue(m_midiChan, 1, clamp(0, m_lastModVal * 128 / 16384, 127));
     }
-    if (m_parent.m_header.m_trackIdxOff == 0x18 || m_parent.m_header.m_trackIdxOff == 0x58)
+    if (m_parent.m_sngVersion == 1)
         m_eventWaitCountdown = int32_t(DecodeTimeRLE(m_data));
     else
     {
@@ -148,9 +151,183 @@ void SongState::Track::advanceRegion(Sequencer* seq)
     setRegion(seq, m_nextRegion);
 }
 
-void SongState::initialize(const unsigned char* ptr)
+int SongState::DetectVersion(const unsigned char* ptr, bool& isBig)
 {
-    m_bigEndian = ptr[0] == 0;
+    isBig = ptr[0] == 0;
+    Header header = *reinterpret_cast<const Header*>(ptr);
+    if (isBig)
+        header.swapBig();
+    const uint32_t* trackIdx = reinterpret_cast<const uint32_t*>(ptr + header.m_trackIdxOff);
+    const uint32_t* regionIdxTable = reinterpret_cast<const uint32_t*>(ptr + header.m_regionIdxOff);
+
+    /* First determine maximum index of MIDI regions across all tracks */
+    uint32_t maxRegionIdx = 0;
+    for (int i=0 ; i<64 ; ++i)
+    {
+        if (trackIdx[i])
+        {
+            const TrackRegion* region = nullptr;
+            const TrackRegion* nextRegion = reinterpret_cast<const TrackRegion*>(ptr + (isBig ? SBig(trackIdx[i]) : trackIdx[i]));
+
+            /* Iterate all regions */
+            while (nextRegion->indexValid(isBig))
+            {
+                region = nextRegion;
+                uint32_t regionIdx = (isBig ? SBig(region->m_regionIndex) :
+                                                   region->m_regionIndex);
+                maxRegionIdx = std::max(maxRegionIdx, regionIdx);
+                nextRegion = &region[1];
+            }
+        }
+    }
+
+    /* Perform 2 trials, first assuming revised format (more likely) */
+    int v=1;
+    for (; v>=0 ; --v)
+    {
+        bool bad = false;
+
+        /* Validate all tracks */
+        for (int i=0 ; i<64 ; ++i)
+        {
+            if (trackIdx[i])
+            {
+                const TrackRegion* region = nullptr;
+                const TrackRegion* nextRegion = reinterpret_cast<const TrackRegion*>(ptr + (isBig ? SBig(trackIdx[i]) : trackIdx[i]));
+
+                /* Iterate all regions */
+                while (nextRegion->indexValid(isBig))
+                {
+                    region = nextRegion;
+                    uint32_t regionIdx = (isBig ? SBig(region->m_regionIndex) :
+                                                       region->m_regionIndex);
+                    nextRegion = &region[1];
+
+                    const unsigned char* data = ptr + (isBig ? SBig(regionIdxTable[regionIdx]) :
+                                                                    regionIdxTable[regionIdx]);
+
+                    /* Can't reliably validate final region */
+                    if (regionIdx == maxRegionIdx)
+                        continue;
+
+                    /* Expected end pointer (next region) */
+                    const unsigned char* expectedEnd = ptr + (isBig ? SBig(regionIdxTable[regionIdx+1]) :
+                                                                           regionIdxTable[regionIdx+1]);
+
+                    Track::Header header = *reinterpret_cast<const Track::Header*>(data);
+                    if (isBig)
+                        header.swapBig();
+                    data += 12;
+
+                    /* continuous pitch data */
+                    if (header.m_pitchOff)
+                    {
+                        const unsigned char* dptr = ptr + header.m_pitchOff;
+                        while (DecodeRLE(dptr) != 0xffffffff) {DecodeContinuousRLE(dptr);}
+                        if (dptr >= (expectedEnd - 4) && (dptr <= expectedEnd))
+                            continue;
+                    }
+
+                    /* continuous modulation data */
+                    if (header.m_modOff)
+                    {
+                        const unsigned char* dptr = ptr + header.m_modOff;
+                        while (DecodeRLE(dptr) != 0xffffffff) {DecodeContinuousRLE(dptr);}
+                        if (dptr >= (expectedEnd - 4) && (dptr <= expectedEnd))
+                            continue;
+                    }
+
+                    /* Loop through as many commands as we can for this time period */
+                    if (v == 1)
+                    {
+                        /* Revised */
+                        while (true)
+                        {
+                            /* Delta time */
+                            DecodeTimeRLE(data);
+
+                            /* Load next command */
+                            if (*reinterpret_cast<const uint16_t*>(data) == 0xffff)
+                            {
+                                /* End of channel */
+                                data += 2;
+                                break;
+                            }
+                            else if (data[0] & 0x80 && data[1] & 0x80)
+                            {
+                                /* Control change */
+                                data += 2;
+                            }
+                            else if (data[0] & 0x80)
+                            {
+                                /* Program change */
+                                data += 2;
+                            }
+                            else
+                            {
+                                /* Note */
+                                data += 4;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        /* Legacy */
+                        while (true)
+                        {
+                            /* Delta-time */
+                            data += 4;
+
+                            /* Load next command */
+                            if (*reinterpret_cast<const uint16_t*>(&data[2]) == 0xffff)
+                            {
+                                /* End of channel */
+                                data += 4;
+                                break;
+                            }
+                            else
+                            {
+                                if ((data[2] & 0x80) != 0x80)
+                                {
+                                    /* Note */
+                                }
+                                else if (data[2] & 0x80 && data[3] & 0x80)
+                                {
+                                    /* Control change */
+                                }
+                                else if (data[2] & 0x80)
+                                {
+                                    /* Program change */
+                                }
+                                data += 4;
+                            }
+                        }
+                    }
+
+                    if (data < (expectedEnd - 4) || (data > expectedEnd))
+                    {
+                        bad = true;
+                        break;
+                    }
+                }
+                if (bad)
+                    break;
+            }
+        }
+        if (bad)
+            continue;
+        break;
+    }
+
+    return v;
+}
+
+bool SongState::initialize(const unsigned char* ptr)
+{
+    m_sngVersion = DetectVersion(ptr, m_bigEndian);
+    if (m_sngVersion < 0)
+        return false;
+
     m_songData = ptr;
     m_header = *reinterpret_cast<const Header*>(ptr);
     if (m_bigEndian)
@@ -180,6 +357,8 @@ void SongState::initialize(const unsigned char* ptr)
     m_tempo = m_header.m_initialTempo;
     m_curTick = 0;
     m_songState = SongPlayState::Playing;
+
+    return true;
 }
 
 bool SongState::Track::advance(Sequencer& seq, int32_t ticks)
@@ -281,9 +460,9 @@ bool SongState::Track::advance(Sequencer& seq, int32_t ticks)
     }
 
     /* Loop through as many commands as we can for this time period */
-    if (m_parent.m_header.m_trackIdxOff == 0x18 || m_parent.m_header.m_trackIdxOff == 0x58)
+    if (m_parent.m_sngVersion == 1)
     {
-        /* GameCube */
+        /* Revision */
         while (true)
         {
             /* Advance wait timer if active, returning if waiting */
@@ -335,7 +514,7 @@ bool SongState::Track::advance(Sequencer& seq, int32_t ticks)
     }
     else
     {
-        /* N64 */
+        /* Legacy */
         while (true)
         {
             /* Advance wait timer if active, returning if waiting */

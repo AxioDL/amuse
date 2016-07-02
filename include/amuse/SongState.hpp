@@ -57,6 +57,7 @@ class SongState
     };
 
     const unsigned char* m_songData = nullptr; /**< Base pointer to active song */
+    int m_sngVersion; /**< Detected song revision, 1 has RLE-compressed delta-times */
     bool m_bigEndian; /**< True if loaded song is big-endian data */
 
     /** State of a single track within arrangement */
@@ -104,8 +105,13 @@ class SongState
     double m_curDt = 0.f; /**< Cumulative dt value for time-remainder tracking */
 
 public:
+    /** Determine SNG version
+     *  @param isBig returns true if big-endian SNG
+     *  @return 0 for initial version, 1 for delta-time revision, -1 for non-SNG */
+    static int DetectVersion(const unsigned char* ptr, bool& isBig);
+
     /** initialize state for Song data at `ptr` */
-    void initialize(const unsigned char* ptr);
+    bool initialize(const unsigned char* ptr);
 
     /** advances `dt` seconds worth of commands in the Song
      *  @return `true` if END reached
