@@ -724,8 +724,27 @@ struct AppCallback : boo::IApplicationCallback
                         int idx = 0;
                         for (const auto& pair : songs)
                         {
+                            const amuse::ContainerRegistry::SongData& sngData = pair.second;
+                            int16_t grpId = sngData.m_groupId;
+                            int16_t setupId = sngData.m_setupId;
+                            if (sngData.m_groupId == -1 && sngData.m_setupId != -1)
+                            {
+                                for (const auto& pair : allSongGroups)
+                                {
+                                    for (const auto& setup : pair.second.second->m_midiSetups)
+                                    {
+                                        if (setup.first == sngData.m_setupId)
+                                        {
+                                            grpId = pair.first;
+                                            break;
+                                        }
+                                    }
+                                    if (grpId != -1)
+                                        break;
+                                }
+                            }
                             amuse::Printf(_S("    %d %s (Group %d, Setup %d)\n"), idx++,
-                                          pair.first.c_str(), pair.second.m_groupId, pair.second.m_setupId);
+                                          pair.first.c_str(), grpId, setupId);
                         }
 
                         int userSel = 0;
@@ -757,7 +776,25 @@ struct AppCallback : boo::IApplicationCallback
                 }
             }
 
-            /* Get group selection from user */
+            /* Get group selection via setup search */
+            if (m_groupId == -1 && m_setupId != -1)
+            {
+                for (const auto& pair : allSongGroups)
+                {
+                    for (const auto& setup : pair.second.second->m_midiSetups)
+                    {
+                        if (setup.first == m_setupId)
+                        {
+                            m_groupId = pair.first;
+                            break;
+                        }
+                    }
+                    if (m_groupId != -1)
+                        break;
+                }
+            }
+
+            /* Get group selection via user */
             if (m_groupId != -1)
             {
                 if (allSongGroups.find(m_groupId) != allSongGroups.end())

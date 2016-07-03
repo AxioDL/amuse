@@ -1679,6 +1679,72 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadRS3(FIL
     return ret;
 }
 
+static bool ValidateStarFoxAdvSongs(FILE* fp)
+{
+    size_t endPos = FileLength(fp);
+    if (endPos > 2 * 1024 * 1024)
+        return false;
+
+    std::unique_ptr<uint8_t[]> data(new uint8_t[endPos]);
+    fread(data.get(), 1, endPos, fp);
+
+    const uint32_t* lengths = reinterpret_cast<const uint32_t*>(data.get());
+    size_t totalLen = 0;
+    int i=0;
+    for (; i<128 ; ++i)
+    {
+        uint32_t len = SBig(lengths[i]);
+        if (len == 0)
+            break;
+        totalLen += len;
+        totalLen = ((totalLen + 31) & ~31);
+    }
+    totalLen += (((i*4) + 31) & ~31);
+
+    return totalLen == endPos;
+}
+
+static std::vector<std::pair<SystemString, ContainerRegistry::SongData>> LoadStarFoxAdvSongs(FILE* midifp)
+{
+    std::vector<std::pair<SystemString, ContainerRegistry::SongData>> ret;
+
+    size_t endPos = FileLength(midifp);
+    if (endPos > 2 * 1024 * 1024)
+        return {};
+
+    std::unique_ptr<uint8_t[]> data(new uint8_t[endPos]);
+    fread(data.get(), 1, endPos, midifp);
+
+    const uint32_t* lengths = reinterpret_cast<const uint32_t*>(data.get());
+    int i=0;
+    for (; i<128 ; ++i)
+    {
+        uint32_t len = SBig(lengths[i]);
+        if (len == 0)
+            break;
+    }
+
+    size_t sngCount = i;
+    size_t cur = (((sngCount*4) + 31) & ~31);
+    for (i=0; i<sngCount ; ++i)
+    {
+        uint32_t len = SBig(lengths[i]);
+        if (len == 0)
+            break;
+
+        SystemChar name[128];
+        SNPrintf(name, 128, _S("Song%u"), i);
+        std::unique_ptr<uint8_t[]> song(new uint8_t[len]);
+        memmove(song.get(), data.get() + cur, len);
+        ret.emplace_back(name, ContainerRegistry::SongData(std::move(song), len, -1, i));
+
+        cur += len;
+        cur = ((cur + 31) & ~31);
+    }
+
+    return ret;
+}
+
 ContainerRegistry::Type ContainerRegistry::DetectContainerType(const SystemChar* path)
 {
     FILE* fp;
@@ -2058,6 +2124,13 @@ ContainerRegistry::LoadSongs(const SystemChar* path)
         if (ValidateRS2(fp))
         {
             auto ret = LoadRS2Songs(fp);
+            fclose(fp);
+            return ret;
+        }
+
+        if (ValidateStarFoxAdvSongs(fp))
+        {
+            auto ret = LoadStarFoxAdvSongs(fp);
             fclose(fp);
             return ret;
         }
