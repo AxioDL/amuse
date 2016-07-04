@@ -356,6 +356,15 @@ void Sequencer::setCtrlValue(uint8_t chan, uint8_t ctrl, int8_t val)
     if (chan > 15)
         return;
 
+    if (ctrl == 0x66)
+    {
+        printf("Loop Start\n");
+    }
+    else if (ctrl == 0x67)
+    {
+        printf("Loop End\n");
+    }
+
     if (!m_chanStates[chan])
         m_chanStates[chan].emplace(*this, chan);
 

@@ -132,7 +132,7 @@ struct AppCallback : boo::IApplicationCallback
     int8_t m_lastChanProg = -1;
 
     /* Control state */
-    float m_volume = 0.5f;
+    float m_volume = 0.8f;
     float m_modulation = 0.f;
     float m_pitchBend = 0.f;
     bool m_updateDisp = false;
