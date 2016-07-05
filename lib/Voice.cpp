@@ -115,7 +115,7 @@ void Voice::_doKeyOff()
 
 void Voice::_setTotalPitch(int32_t cents, bool slew)
 {
-    //fprintf(stderr, "PITCH %d\n", cents);
+    //fprintf(stderr, "PITCH %d %d  \n", cents, slew);
     int32_t interval = cents - m_curSample->first.m_pitch * 100;
     double ratio = std::exp2(interval / 1200.0);
     m_sampleRate = m_curSample->first.m_sampleRate * ratio;
@@ -199,7 +199,7 @@ static void ApplyVolume(float vol, int16_t& samp)
     samp *= VolumeLUT[int(vol * 65536)];
 }
 
-bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
+void Voice::_advanceSample(int16_t& samp)
 {
     double dt;
 
@@ -223,7 +223,7 @@ bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
 
             /* Apply total volume to sample using decibel scale */
             ApplyVolume(l, samp);
-            return false;
+            return;
         }
 
         dt = 160.0 / m_sampleRate;
@@ -232,7 +232,6 @@ bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
     }
 
     m_voiceTime += dt;
-    bool refresh = false;
 
     /* Process active envelope */
     if (m_envelopeTime >= 0.0)
@@ -254,40 +253,6 @@ bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
 
     /* Dynamically evaluate per-sample SoundMacro parameters */
     float evalVol = m_state.m_volumeSel ? (m_state.m_volumeSel.evaluate(*this, m_state) / 2.f * m_curVol) : m_curVol;
-
-    bool panDirty = false;
-    if (m_state.m_panSel)
-    {
-        float evalPan = m_state.m_panSel.evaluate(*this, m_state);
-        if (evalPan != m_curPan)
-        {
-            m_curPan = evalPan;
-            panDirty = true;
-        }
-    }
-    if (m_state.m_spanSel)
-    {
-        float evalSpan = m_state.m_spanSel.evaluate(*this, m_state);
-        if (evalSpan != m_curSpan)
-        {
-            m_curSpan = evalSpan;
-            panDirty = true;
-        }
-    }
-    if (m_state.m_reverbSel)
-    {
-        float evalRev = m_state.m_reverbSel.evaluate(*this, m_state) / 2.f;
-        if (evalRev != m_curReverbVol)
-        {
-            m_curReverbVol = evalRev;
-            panDirty = true;
-        }
-    }
-    if (panDirty)
-        _setPan(m_curPan);
-
-    if (m_state.m_pitchWheelSel)
-        _setPitchWheel(m_state.m_pitchWheelSel.evaluate(*this, m_state));
 
     /* Process user volume slew */
     if (m_engine.m_ampMode == AmplitudeMode::PerSample)
@@ -351,8 +316,70 @@ bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
 
     /* Apply total volume to sample using decibel scale */
     ApplyVolume(m_nextLevel, samp);
+}
+
+uint32_t Voice::_GetBlockSampleCount(SampleFormat fmt)
+{
+    switch (fmt)
+    {
+    default:
+        return 1;
+    case Voice::SampleFormat::DSP:
+        return 14;
+    case Voice::SampleFormat::N64:
+        return 64;
+    }
+}
+
+void Voice::preSupplyAudio(double dt)
+{
+    /* Process SoundMacro; bootstrapping sample if needed */
+    bool dead = m_state.advance(*this, dt);
+
+    /* Process per-block evaluators here */
+    if (m_state.m_pedalSel)
+    {
+        bool pedal = m_state.m_pedalSel.evaluate(*this, m_state) >= 1.f;
+        if (pedal != m_sustained)
+            setPedal(pedal);
+    }
+
+    bool panDirty = false;
+    if (m_state.m_panSel)
+    {
+        float evalPan = m_state.m_panSel.evaluate(*this, m_state);
+        if (evalPan != m_curPan)
+        {
+            m_curPan = evalPan;
+            panDirty = true;
+        }
+    }
+    if (m_state.m_spanSel)
+    {
+        float evalSpan = m_state.m_spanSel.evaluate(*this, m_state);
+        if (evalSpan != m_curSpan)
+        {
+            m_curSpan = evalSpan;
+            panDirty = true;
+        }
+    }
+    if (m_state.m_reverbSel)
+    {
+        float evalRev = m_state.m_reverbSel.evaluate(*this, m_state) / 2.f;
+        if (evalRev != m_curReverbVol)
+        {
+            m_curReverbVol = evalRev;
+            panDirty = true;
+        }
+    }
+    if (panDirty)
+        _setPan(m_curPan);
+
+    if (m_state.m_pitchWheelSel)
+        _setPitchWheel(m_state.m_pitchWheelSel.evaluate(*this, m_state));
 
     /* Process active pan-sweep */
+    bool refresh = false;
     if (m_panningTime >= 0.f)
     {
         m_panningTime += dt;
@@ -383,7 +410,7 @@ bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
     }
 
     /* Calculate total pitch */
-    newPitch = m_curPitch;
+    int32_t newPitch = m_curPitch;
     refresh |= m_pitchDirty;
     m_pitchDirty = false;
     if (m_portamentoTime >= 0.f)
@@ -423,20 +450,19 @@ bool Voice::_advanceSample(int16_t& samp, int32_t& newPitch)
         refresh = true;
     }
 
-    /* True if backend voice needs reconfiguration before next sample */
-    return refresh;
-}
-
-uint32_t Voice::_GetBlockSampleCount(SampleFormat fmt)
-{
-    switch (fmt)
+    if (m_curSample && refresh)
     {
-    default:
-        return 1;
-    case Voice::SampleFormat::DSP:
-        return 14;
-    case Voice::SampleFormat::N64:
-        return 64;
+        _setTotalPitch(newPitch + m_pitchSweep1 + m_pitchSweep2 + m_pitchWheelVal, m_needsSlew);
+        m_needsSlew = true;
+    }
+
+    if (dead && (!m_curSample || m_voxState == VoiceState::KeyOff) &&
+        m_sampleEndTrap.macroId == 0xffff &&
+        m_messageTrap.macroId == 0xffff &&
+        (!m_curSample || (m_curSample && m_volAdsr.isComplete())))
+    {
+        m_voxState = VoiceState::Dead;
+        m_backendVoice->stop();
     }
 }
 
@@ -445,23 +471,10 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
     uint32_t samplesRem = samples;
     size_t samplesProc = 0;
 
-    /* Process SoundMacro; bootstrapping sample if needed */
-    bool dead = m_state.advance(*this, samples / m_sampleRate);
-
-    /* Process per-block evaluators here */
-    if (m_state.m_pedalSel)
-    {
-        bool pedal = m_state.m_pedalSel.evaluate(*this, m_state) >= 1.f;
-        if (pedal != m_sustained)
-            setPedal(pedal);
-    }
-
     if (m_curSample)
     {
         uint32_t blockSampleCount = _GetBlockSampleCount(m_curFormat);
         uint32_t block;
-        int32_t curPitch = m_curPitch;
-        bool refresh = false;
 
         bool looped = true;
         while (looped && samplesRem)
@@ -517,7 +530,7 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
                 {
                     ++samplesProc;
                     ++m_curSamplePos;
-                    refresh |= _advanceSample(data[i], curPitch);
+                    _advanceSample(data[i]);
                 }
 
                 samplesRem -= decSamples;
@@ -582,7 +595,7 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
                 {
                     ++samplesProc;
                     ++m_curSamplePos;
-                    refresh |= _advanceSample(data[i], curPitch);
+                    _advanceSample(data[i]);
                 }
 
                 samplesRem -= decSamples;
@@ -598,22 +611,12 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
                     break;
             }
         }
-
-        if (refresh)
-            _setTotalPitch(curPitch + m_pitchSweep1 + m_pitchSweep2 + m_pitchWheelVal, true);
     }
     else
         memset(data, 0, sizeof(int16_t) * samples);
 
-    if (dead && (!m_curSample || m_voxState == VoiceState::KeyOff) &&
-        m_sampleEndTrap.macroId == 0xffff &&
-        m_messageTrap.macroId == 0xffff &&
-        (!m_curSample || (m_curSample && m_volAdsr.isComplete())))
-    {
+    if (m_voxState == VoiceState::Dead)
         m_curSample = nullptr;
-        m_voxState = VoiceState::Dead;
-        m_backendVoice->stop();
-    }
 
     return samples;
 }
@@ -795,6 +798,7 @@ void Voice::startSample(int16_t sampId, int32_t offset)
         m_pitchDirty = true;
         _setPitchWheel(m_curPitchWheel);
         m_backendVoice->resetSampleRate(m_curSample->first.m_sampleRate);
+        m_needsSlew = false;
 
         int32_t numSamples = m_curSample->first.m_numSamples & 0xffffff;
         if (offset)
@@ -1001,7 +1005,7 @@ void Voice::setPitchSweep1(uint8_t times, int16_t add)
 {
     m_pitchSweep1 = 0;
     m_pitchSweep1It = 0;
-    m_pitchSweep1Times = times * 160;
+    m_pitchSweep1Times = times;
     m_pitchSweep1Add = add;
 }
 
@@ -1009,7 +1013,7 @@ void Voice::setPitchSweep2(uint8_t times, int16_t add)
 {
     m_pitchSweep2 = 0;
     m_pitchSweep2It = 0;
-    m_pitchSweep2Times = times * 160;
+    m_pitchSweep2Times = times;
     m_pitchSweep2Add = add;
 }
 

@@ -6,6 +6,12 @@
 namespace amuse
 {
 
+void BooBackendVoice::VoiceCallback::preSupplyAudio(boo::IAudioVoice&,
+                                                    double dt)
+{
+    m_parent.m_clientVox.preSupplyAudio(dt);
+}
+
 size_t BooBackendVoice::VoiceCallback::supplyAudio(boo::IAudioVoice&,
                                                    size_t frames, int16_t* data)
 {

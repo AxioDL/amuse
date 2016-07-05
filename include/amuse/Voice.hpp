@@ -86,6 +86,7 @@ class Voice : public Entity
     int32_t m_pitchWheelVal = 0; /**< Current resolved pitchwheel delta for control */
     int32_t m_curPitch; /**< Current base pitch in cents */
     bool m_pitchDirty = true; /**< m_curPitch has been updated and needs sending to voice */
+    bool m_needsSlew = false; /**< next _setTotalPitch will be slewed */
 
     Envelope m_volAdsr; /**< Volume envelope */
     double m_envelopeTime = -1.f; /**< time since last ENVELOPE command, -1 for no active volume-sweep */
@@ -137,7 +138,7 @@ class Voice : public Entity
     void _doKeyOff();
     void _macroKeyOff();
     void _macroSampleEnd();
-    bool _advanceSample(int16_t& samp, int32_t& curPitch);
+    void _advanceSample(int16_t& samp);
     void _setTotalPitch(int32_t cents, bool slew);
     bool _isRecursivelyDead();
     void _bringOutYourDead();
@@ -165,6 +166,10 @@ public:
     ~Voice();
     Voice(Engine& engine, const AudioGroup& group, int groupId, int vid, bool emitter, Submix* smx);
     Voice(Engine& engine, const AudioGroup& group, int groupId, ObjectId oid, int vid, bool emitter, Submix* smx);
+
+    /** Called before each supplyAudio invocation to prepare voice
+     *  backend for possible parameter updates */
+    void preSupplyAudio(double dt);
 
     /** Request specified count of audio frames (samples) from voice,
      *  internally advancing the voice stream */

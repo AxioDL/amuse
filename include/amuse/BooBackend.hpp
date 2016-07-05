@@ -22,6 +22,7 @@ class BooBackendVoice : public IBackendVoice
     struct VoiceCallback : boo::IAudioVoiceCallback
     {
         BooBackendVoice& m_parent;
+        void preSupplyAudio(boo::IAudioVoice& voice, double dt);
         size_t supplyAudio(boo::IAudioVoice& voice, size_t frames, int16_t* data);
         VoiceCallback(BooBackendVoice& parent) : m_parent(parent) {}
     } m_cb;
