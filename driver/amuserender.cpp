@@ -103,6 +103,20 @@ int main(int argc, const boo::SystemChar** argv)
     double rate = 32000.0;
     for (int i=1 ; i<argc ; ++i)
     {
+#if _WIN32
+        if (!wcsncmp(argv[i], L"-r", 2))
+        {
+            if (argv[i][2])
+                rate = wcstod(&argv[i][2], nullptr);
+            else if (argc > (i+1))
+            {
+                rate = wcstod(argv[i+1], nullptr);
+                ++i;
+            }
+        }
+        else
+            m_args.push_back(argv[i]);
+#else
         if (!strncmp(argv[i], "-r", 2))
         {
             if (argv[i][2])
@@ -115,6 +129,7 @@ int main(int argc, const boo::SystemChar** argv)
         }
         else
             m_args.push_back(argv[i]);
+#endif
     }
 
     /* Load data */
@@ -402,7 +417,7 @@ int main(int argc, const boo::SystemChar** argv)
 
     /* WAV out path */
     amuse::SystemChar pathOut[1024];
-    snprintf(pathOut, 1024, _S("%s-%s.wav"), m_groupName->c_str(), m_songName->c_str());
+    SNPrintf(pathOut, 1024, _S("%s-%s.wav"), m_groupName->c_str(), m_songName->c_str());
     Log.report(logvisor::Info, _S("Writing to %s"), pathOut);
 
     /* Build voice engine */
