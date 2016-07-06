@@ -94,4 +94,8 @@ if(TARGET boo)
   # Converter
   add_executable(amuseconv driver/amuseconv.cpp)
   target_link_libraries(amuseconv amuse ${BOO_SYS_LIBS} logvisor athena-core ${ZLIB_LIBRARIES})
+
+  # Renderer
+  add_executable(amuserender driver/amuserender.cpp)
+  target_link_libraries(amuserender amuse boo ${BOO_SYS_LIBS} logvisor athena-core ${ZLIB_LIBRARIES})
 endif()
