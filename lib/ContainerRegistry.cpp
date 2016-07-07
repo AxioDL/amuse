@@ -1802,7 +1802,9 @@ static std::vector<std::pair<SystemString, ContainerRegistry::SongData>> LoadPap
 
         std::unique_ptr<uint8_t[]> songData(new uint8_t[len - 32]);
         memcpy(songData.get(), (data.get() + off + 32), len - 32);
-        ret.emplace_back(SystemString(songDescs[song].name, 30), ContainerRegistry::SongData(std::move(songData), len - 32, songDescs[song].group, songDescs[song].setup));
+        ret.emplace_back(StrToSys(std::string(songDescs[song].name, 30)),
+                         ContainerRegistry::SongData(std::move(songData), len - 32,
+                             songDescs[song].group, songDescs[song].setup));
         off += len;
         song++;
     }
