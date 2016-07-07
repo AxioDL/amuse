@@ -9,6 +9,7 @@
 #include <string.h>
 #include <thread>
 #include <map>
+#include <set>
 #include <vector>
 #include <unordered_map>
 #include <stdarg.h>
@@ -95,7 +96,6 @@ int wmain(int argc, const boo::SystemChar** argv)
 int main(int argc, const boo::SystemChar** argv)
 #endif
 {
-    signal(SIGINT, SIGINTHandler);
     logvisor::RegisterConsoleLogger();
 
     std::vector<boo::SystemString> m_args;
@@ -392,6 +392,29 @@ int main(int argc, const boo::SystemChar** argv)
     {
         selData = &songSearch->second.first->second;
         songIndex = songSearch->second.second;
+        std::set<int> sortSetups;
+        for (auto& pair : songIndex->m_midiSetups)
+            sortSetups.insert(pair.first);
+        if (m_setupId == -1)
+        {
+            /* Ask user to specify which group in project */
+            printf("Multiple MIDI Setups:\n");
+            for (int setup : sortSetups)
+                printf("    %d\n", setup);
+            int userSel = 0;
+            printf("Enter Setup Number: ");
+            if (scanf("%d", &userSel) <= 0)
+            {
+                Log.report(logvisor::Error, "unable to parse prompt");
+                exit(1);
+            }
+            m_setupId = userSel;
+        }
+        if (sortSetups.find(m_setupId) == sortSetups.cend())
+        {
+            Log.report(logvisor::Error, "unable to find setup %d", m_setupId);
+            exit(1);
+        }
     }
     else
     {
@@ -436,6 +459,7 @@ int main(int argc, const boo::SystemChar** argv)
     /* Enter playback loop */
     std::shared_ptr<amuse::Sequencer> seq = engine.seqPlay(m_groupId, m_setupId, m_arrData->m_data.get());
     size_t wroteFrames = 0;
+    signal(SIGINT, SIGINTHandler);
     do
     {
         engine.pumpEngine();
