@@ -7,6 +7,7 @@
 #include "optional.hpp"
 #include <stdio.h>
 #include <string.h>
+#include <signal.h>
 #include <thread>
 #include <map>
 #include <set>
