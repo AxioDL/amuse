@@ -1745,6 +1745,71 @@ static std::vector<std::pair<SystemString, ContainerRegistry::SongData>> LoadSta
     return ret;
 }
 
+static bool ValidatePaperMarioTTYDSongs(FILE* fp)
+{
+    size_t endPos = FileLength(fp);
+    std::unique_ptr<uint8_t[]> data(new uint8_t[endPos]);
+    fread(data.get(), 1, endPos, fp);
+    uint32_t off = 0;
+    while (off < endPos)
+    {
+        int32_t len = SBig(*(reinterpret_cast<int32_t*>(data.get() + off)));
+        if (len == -1)
+            break;
+        off += len;
+    }
+    return (off + 4) == endPos;
+}
+
+struct TTYDSongDesc
+{
+    char name[30];
+    uint8_t group;
+    uint8_t setup;
+};
+
+static std::vector<std::pair<SystemString, ContainerRegistry::SongData>> LoadPaperMarioTTYDSongs(FILE* midifp, FILE* descFp)
+{
+    if (!descFp)
+        return {};
+
+    std::vector<TTYDSongDesc> songDescs;
+    /* We need at least 143 for the default song table */
+    songDescs.reserve(143);
+
+    while (true)
+    {
+        TTYDSongDesc songDesc;
+        fread(&songDesc, sizeof(TTYDSongDesc), 1, descFp);
+        if (songDesc.name[0] == 0)
+            break;
+
+        uint32_t i = 0;
+        songDescs.push_back(songDesc);
+    }
+    size_t endPos = FileLength(midifp);
+    std::unique_ptr<uint8_t[]> data(new uint8_t[endPos]);
+    fread(data.get(), 1, endPos, midifp);
+    uint32_t off = 0;
+    uint32_t song = 0;
+    std::vector<std::pair<SystemString, ContainerRegistry::SongData>> ret;
+
+    while (off < endPos)
+    {
+        int32_t len = SBig(*(reinterpret_cast<int32_t*>(data.get() + off)));
+        if (len == -1)
+            break;
+
+        std::unique_ptr<uint8_t[]> songData(new uint8_t[len - 32]);
+        memcpy(songData.get(), (data.get() + off + 32), len - 32);
+        ret.emplace_back(SystemString(songDescs[song].name, 30), ContainerRegistry::SongData(std::move(songData), len - 32, songDescs[song].group, songDescs[song].setup));
+        off += len;
+        song++;
+    }
+
+    return ret;
+}
+
 ContainerRegistry::Type ContainerRegistry::DetectContainerType(const SystemChar* path)
 {
     FILE* fp;
@@ -2133,6 +2198,22 @@ ContainerRegistry::LoadSongs(const SystemChar* path)
             auto ret = LoadStarFoxAdvSongs(fp);
             fclose(fp);
             return ret;
+        }
+
+        if (ValidatePaperMarioTTYDSongs(fp))
+        {
+            /* Song Description */
+            SystemChar newpath[1024];
+            dot = StrRChr(path, _S('.'));
+            SNPrintf(newpath, 1024, _S("%.*s.stbl"), int(dot - path), path);
+            FILE* descFp = FOpen(newpath, _S("rb"));
+            if (descFp)
+            {
+                auto ret = LoadPaperMarioTTYDSongs(fp, descFp);
+                fclose(fp);
+                fclose(descFp);
+                return ret;
+            }
         }
 
         fclose(fp);
