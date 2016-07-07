@@ -675,7 +675,7 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
             encoder.getResult().push_back(0x51);
             encoder.getResult().push_back(3);
 
-            uint32_t tempo24 = SBig(60000000 / change.m_tempo);
+            uint32_t tempo24 = SBig(60000000 / (change.m_tempo & 0x7fffffff));
             for (int i=1 ; i<4 ; ++i)
                 encoder.getResult().push_back(reinterpret_cast<uint8_t*>(&tempo24)[i]);
 

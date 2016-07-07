@@ -354,7 +354,7 @@ bool SongState::initialize(const unsigned char* ptr)
     else
         m_tempoPtr = nullptr;
 
-    m_tempo = m_header.m_initialTempo;
+    m_tempo = m_header.m_initialTempo & 0x7fffffff;
     m_curTick = 0;
     m_songState = SongPlayState::Playing;
 
@@ -604,7 +604,7 @@ bool SongState::advance(Sequencer& seq, double dt)
             if (remTicks <= 0)
             {
                 /* Turn over tempo */
-                m_tempo = change.m_tempo;
+                m_tempo = change.m_tempo & 0x7fffffff;
                 seq.setTempo(m_tempo * 384 / 60);
                 ++m_tempoPtr;
                 continue;
