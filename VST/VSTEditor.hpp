@@ -36,20 +36,11 @@ class VSTEditor : public AEffEditor
 
     HTREEITEM m_deferredCollectionSel = 0;
 
-    static LRESULT CALLBACK WindowProc(
-      _In_ HWND   hwnd,
-      _In_ UINT   uMsg,
-      _In_ WPARAM wParam,
-      _In_ LPARAM lParam
-    );
-    static LRESULT CALLBACK ColHeaderWindowProc(
-      _In_ HWND   hwnd,
-      _In_ UINT   uMsg,
-      _In_ WPARAM wParam,
-      _In_ LPARAM lParam
-    );
+    static LRESULT CALLBACK WindowProc(_In_ HWND hwnd, _In_ UINT uMsg, _In_ WPARAM wParam, _In_ LPARAM lParam);
+    static LRESULT CALLBACK ColHeaderWindowProc(_In_ HWND hwnd, _In_ UINT uMsg, _In_ WPARAM wParam, _In_ LPARAM lParam);
 
     void _reselectColumns();
+
 public:
     VSTEditor(VSTBackend& backend);
 
@@ -68,7 +59,6 @@ public:
     void selectNormalPage(int idx);
     void selectDrumPage(int idx);
 };
-
 }
 
 #endif // __AMUSE_VSTEDITOR_HPP__

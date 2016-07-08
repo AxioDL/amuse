@@ -10,7 +10,7 @@ AlignAfterOpenBracket: Align
 AlignConsecutiveAssignments: false
 BreakBeforeBraces: Allman
 IndentCaseLabels: false
-AllowShortBlocksOnASingleLine: false
+AllowShortBlocksOnASingleLine: true
 AlignOperands: true
 AlignTrailingComments: true
 AlwaysBreakBeforeMultilineStrings: true
@@ -23,7 +23,9 @@ AllowShortFunctionsOnASingleLine: All
 Cpp11BracedListStyle: true
 NamespaceIndentation: None
 ReflowComments: true
-BinPackArguments: false
-BinPackParameters: false
+BinPackArguments: true
+BinPackParameters: true
 SortIncludes: false
 AccessModifierOffset: -4
+ConstructorInitializerIndentWidth: 0
+ConstructorInitializerAllOnOneLineOrOnePerLine: true

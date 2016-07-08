@@ -6,16 +6,11 @@
 namespace amuse
 {
 
-static float Dot(const Vector3f& a, const Vector3f& b)
-{
-    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-}
+static float Dot(const Vector3f& a, const Vector3f& b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
 
 static float Length(const Vector3f& a)
 {
-    if (std::fabs(a[0]) <= FLT_EPSILON &&
-        std::fabs(a[1]) <= FLT_EPSILON &&
-        std::fabs(a[2]) <= FLT_EPSILON)
+    if (std::fabs(a[0]) <= FLT_EPSILON && std::fabs(a[1]) <= FLT_EPSILON && std::fabs(a[2]) <= FLT_EPSILON)
         return 0.f;
     return std::sqrt(Dot(a, a));
 }
@@ -42,6 +37,7 @@ static void Cross(Vector3f& out, const Vector3f& a, const Vector3f& b)
 class SimpleMatrix
 {
     Vector3f m_mat[3];
+
 public:
     SimpleMatrix(const Vector3f& dir, const Vector3f& up)
     {
@@ -86,46 +82,32 @@ struct ReferenceVector
     }
 };
 
-static const ReferenceVector StereoVectors[8] =
-{
-    {-0.80901f, 0.58778f, 0.f, 0.3f},
-    { 0.80901f, 0.58778f, 0.f, 0.3f},
+static const ReferenceVector StereoVectors[8] = {
+    {-0.80901f, 0.58778f, 0.f, 0.3f}, {0.80901f, 0.58778f, 0.f, 0.3f},
 };
 
-static const ReferenceVector QuadVectors[8] =
-{
-    {-0.70710f,  0.70710f, 0.f, 0.1f},
-    { 0.70710f,  0.70710f, 0.f, 0.1f},
+static const ReferenceVector QuadVectors[8] = {
+    {-0.70710f, 0.70710f, 0.f, 0.1f},
+    {0.70710f, 0.70710f, 0.f, 0.1f},
     {-0.70710f, -0.70710f, 0.f, 0.1f},
-    { 0.70710f, -0.70710f, 0.f, 0.1f},
+    {0.70710f, -0.70710f, 0.f, 0.1f},
 };
 
-static const ReferenceVector Sur51Vectors[8] =
-{
-    {-0.70710f,  0.70710f, 0.f, 0.1f},
-    { 0.70710f,  0.70710f, 0.f, 0.1f},
-    {-0.70710f, -0.70710f, 0.f, 0.1f},
-    { 0.70710f, -0.70710f, 0.f, 0.1f},
-    { 0.0f,      1.0f,     0.f, 0.1f},
-    { 0.0f,      1.0f,     0.f, 1.0f},
+static const ReferenceVector Sur51Vectors[8] = {
+    {-0.70710f, 0.70710f, 0.f, 0.1f}, {0.70710f, 0.70710f, 0.f, 0.1f}, {-0.70710f, -0.70710f, 0.f, 0.1f},
+    {0.70710f, -0.70710f, 0.f, 0.1f}, {0.0f, 1.0f, 0.f, 0.1f},         {0.0f, 1.0f, 0.f, 1.0f},
 };
 
-static const ReferenceVector Sur71Vectors[8] =
-{
-    {-0.70710f,  0.70710f, 0.f, 0.1f},
-    { 0.70710f,  0.70710f, 0.f, 0.1f},
-    {-0.70710f, -0.70710f, 0.f, 0.1f},
-    { 0.70710f, -0.70710f, 0.f, 0.1f},
-    { 0.0f,      1.0f,     0.f, 0.1f},
-    { 0.0f,      1.0f,     0.f, 1.0f},
-    {-1.f,       0.0f,     0.f, 0.1f},
-    { 1.f,       0.0f,     0.f, 0.1f},
+static const ReferenceVector Sur71Vectors[8] = {
+    {-0.70710f, 0.70710f, 0.f, 0.1f}, {0.70710f, 0.70710f, 0.f, 0.1f}, {-0.70710f, -0.70710f, 0.f, 0.1f},
+    {0.70710f, -0.70710f, 0.f, 0.1f}, {0.0f, 1.0f, 0.f, 0.1f},         {0.0f, 1.0f, 0.f, 1.0f},
+    {-1.f, 0.0f, 0.f, 0.1f},          {1.f, 0.0f, 0.f, 0.1f},
 };
 
-void SurroundProfiles::SetupRefs(float matOut[8], const ChannelMap& map,
-                                 const Vector3f& listenEmit, const ReferenceVector refs[])
+void SurroundProfiles::SetupRefs(float matOut[8], const ChannelMap& map, const Vector3f& listenEmit,
+                                 const ReferenceVector refs[])
 {
-    for (unsigned i=0 ; i<map.m_channelCount && i<8 ; ++i)
+    for (unsigned i = 0; i < map.m_channelCount && i < 8; ++i)
     {
         matOut[i] = 0.f;
         if (map.m_channels[i] == AudioChannel::Unknown)
@@ -137,9 +119,8 @@ void SurroundProfiles::SetupRefs(float matOut[8], const ChannelMap& map,
     }
 }
 
-void SurroundProfiles::SetupMatrix(float matOut[8], const ChannelMap& map, AudioChannelSet set,
-                                   const Vector3f& emitPos, const Vector3f& listenPos,
-                                   const Vector3f& listenHeading, const Vector3f& listenUp)
+void SurroundProfiles::SetupMatrix(float matOut[8], const ChannelMap& map, AudioChannelSet set, const Vector3f& emitPos,
+                                   const Vector3f& listenPos, const Vector3f& listenHeading, const Vector3f& listenUp)
 {
     Vector3f listenDelta;
     listenDelta[0] = emitPos[0] - listenPos[0];
@@ -171,5 +152,4 @@ void SurroundProfiles::SetupMatrix(float matOut[8], const ChannelMap& map, Audio
         break;
     }
 }
-
 }

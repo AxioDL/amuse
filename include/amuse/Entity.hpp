@@ -21,6 +21,7 @@ class Entity
      * but shared_ptrs are issued to the client so it can safely track state */
     friend class Engine;
     friend class SoundMacroState;
+
 protected:
     bool m_destroyed = false;
     void _destroy()
@@ -35,8 +36,10 @@ protected:
     int m_groupId;
     ObjectId m_objectId = 0xffff; /* if applicable */
 public:
-    Entity(Engine& engine, const AudioGroup& group, int groupId, ObjectId oid=ObjectId())
-    : m_engine(engine), m_audioGroup(group), m_groupId(groupId), m_objectId(oid) {}
+    Entity(Engine& engine, const AudioGroup& group, int groupId, ObjectId oid = ObjectId())
+    : m_engine(engine), m_audioGroup(group), m_groupId(groupId), m_objectId(oid)
+    {
+    }
     ~Entity()
     {
 #ifndef NDEBUG
@@ -45,16 +48,15 @@ public:
 #endif
     }
 
-    Engine& getEngine() {return m_engine;}
-    const AudioGroup& getAudioGroup() const {return m_audioGroup;}
-    int getGroupId() const {return m_groupId;}
-    ObjectId getObjectId() const {return m_objectId;}
+    Engine& getEngine() { return m_engine; }
+    const AudioGroup& getAudioGroup() const { return m_audioGroup; }
+    int getGroupId() const { return m_groupId; }
+    ObjectId getObjectId() const { return m_objectId; }
 };
 
 /** Curves for mapping velocity to volume and other functional mappings
  *  (defined here for visibility)*/
 using Curve = uint8_t[128];
-
 }
 
 #endif // __AMUSE_ENTITY_HPP__

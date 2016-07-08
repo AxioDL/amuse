@@ -70,10 +70,10 @@ AudioGroupPool::AudioGroupPool(const unsigned char* data)
             ObjectId id = SBig(*reinterpret_cast<const ObjectId*>(cur + 4));
             std::vector<const LayerMapping*>& mappingsOut = m_layers[id];
 
-            uint32_t count = SBig(*reinterpret_cast<const uint32_t*>(cur+8));
+            uint32_t count = SBig(*reinterpret_cast<const uint32_t*>(cur + 8));
             mappingsOut.reserve(count);
             const unsigned char* subcur = cur + 12;
-            for (int i=0 ; i<count ; ++i)
+            for (int i = 0; i < count; ++i)
                 mappingsOut.push_back(reinterpret_cast<const LayerMapping*>(subcur + i * 12));
 
             cur += size;
@@ -130,10 +130,10 @@ AudioGroupPool::AudioGroupPool(const unsigned char* data, PCDataTag)
             ObjectId id = *reinterpret_cast<const ObjectId*>(cur + 4);
             std::vector<const LayerMapping*>& mappingsOut = m_layers[id];
 
-            uint32_t count = *reinterpret_cast<const uint32_t*>(cur+8);
+            uint32_t count = *reinterpret_cast<const uint32_t*>(cur + 8);
             mappingsOut.reserve(count);
             const unsigned char* subcur = cur + 12;
-            for (int i=0 ; i<count ; ++i)
+            for (int i = 0; i < count; ++i)
                 mappingsOut.push_back(reinterpret_cast<const LayerMapping*>(subcur + i * 12));
 
             cur += size;
@@ -172,5 +172,4 @@ const ADSR* AudioGroupPool::tableAsAdsr(ObjectId id) const
         return nullptr;
     return reinterpret_cast<const ADSR*>(search->second);
 }
-
 }

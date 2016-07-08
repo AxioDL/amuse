@@ -26,30 +26,27 @@ namespace amuse
 #endif
 
 #ifdef _WIN32
-    using SystemString = std::wstring;
-    using SystemChar = wchar_t;
-#   ifndef _S
-#   define _S(val) L ## val
-#   endif
-    typedef struct _stat Sstat;
-    static inline int Mkdir(const wchar_t* path, int) {return _wmkdir(path);}
-    static inline int Stat(const wchar_t* path, Sstat* statout) {return _wstat(path, statout);}
+using SystemString = std::wstring;
+using SystemChar = wchar_t;
+#ifndef _S
+#define _S(val) L##val
+#endif
+typedef struct _stat Sstat;
+static inline int Mkdir(const wchar_t* path, int) { return _wmkdir(path); }
+static inline int Stat(const wchar_t* path, Sstat* statout) { return _wstat(path, statout); }
 #else
-    using SystemString = std::string;
-    using SystemChar = char;
-#   ifndef _S
-#   define _S(val) val
-#   endif
-    typedef struct stat Sstat;
-    static inline int Mkdir(const char* path, mode_t mode) {return mkdir(path, mode);}
-    static inline int Stat(const char* path, Sstat* statout) {return stat(path, statout);}
+using SystemString = std::string;
+using SystemChar = char;
+#ifndef _S
+#define _S(val) val
+#endif
+typedef struct stat Sstat;
+static inline int Mkdir(const char* path, mode_t mode) { return mkdir(path, mode); }
+static inline int Stat(const char* path, Sstat* statout) { return stat(path, statout); }
 #endif
 
 #if _WIN32
-static inline int CompareCaseInsensitive(const char* a, const char* b)
-{
-    return _stricmp(a, b);
-}
+static inline int CompareCaseInsensitive(const char* a, const char* b) { return _stricmp(a, b); }
 #endif
 
 static inline int CompareCaseInsensitive(const SystemChar* a, const SystemChar* b)
@@ -62,10 +59,16 @@ static inline int CompareCaseInsensitive(const SystemChar* a, const SystemChar* 
 }
 
 template <typename T>
-static inline T clamp(T a, T val, T b) {return std::max<T>(a, std::min<T>(b, val));}
+static inline T clamp(T a, T val, T b)
+{
+    return std::max<T>(a, std::min<T>(b, val));
+}
 
 template <typename T>
-static inline T ClampFull(float in) {return in;}
+static inline T ClampFull(float in)
+{
+    return in;
+}
 
 template <>
 inline int16_t ClampFull<int16_t>(float in)
@@ -98,9 +101,10 @@ inline float ClampFull<float>(float in)
 #endif
 
 #if __GNUC__
-__attribute__((__format__ (__printf__, 1, 2)))
+__attribute__((__format__(__printf__, 1, 2)))
 #endif
-static inline void Printf(const SystemChar* fmt, ...)
+static inline void
+Printf(const SystemChar* fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
@@ -113,9 +117,10 @@ static inline void Printf(const SystemChar* fmt, ...)
 }
 
 #if __GNUC__
-__attribute__((__format__ (__printf__, 3, 4)))
+__attribute__((__format__(__printf__, 3, 4)))
 #endif
-static inline void SNPrintf(SystemChar* str, size_t maxlen, const SystemChar* format, ...)
+static inline void
+SNPrintf(SystemChar* str, size_t maxlen, const SystemChar* format, ...)
 {
     va_list va;
     va_start(va, format);
@@ -220,24 +225,20 @@ static inline T bswap64(T val)
 #elif _WIN32
     return _byteswap_uint64(val);
 #else
-    return ((val & 0xFF00000000000000ULL) >> 56) |
-           ((val & 0x00FF000000000000ULL) >> 40) |
-           ((val & 0x0000FF0000000000ULL) >> 24) |
-           ((val & 0x000000FF00000000ULL) >>  8) |
-           ((val & 0x00000000FF000000ULL) <<  8) |
-           ((val & 0x0000000000FF0000ULL) << 24) |
-           ((val & 0x000000000000FF00ULL) << 40) |
+    return ((val & 0xFF00000000000000ULL) >> 56) | ((val & 0x00FF000000000000ULL) >> 40) |
+           ((val & 0x0000FF0000000000ULL) >> 24) | ((val & 0x000000FF00000000ULL) >> 8) | ((val & 0x00000000FF000000ULL) << 8) |
+           ((val & 0x0000000000FF0000ULL) << 24) | ((val & 0x000000000000FF00ULL) << 40) |
            ((val & 0x00000000000000FFULL) << 56);
 #endif
 }
 
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-static inline int16_t SBig(int16_t val) {return bswap16(val);}
-static inline uint16_t SBig(uint16_t val) {return bswap16(val);}
-static inline int32_t SBig(int32_t val) {return bswap32(val);}
-static inline uint32_t SBig(uint32_t val) {return bswap32(val);}
-static inline int64_t SBig(int64_t val) {return bswap64(val);}
-static inline uint64_t SBig(uint64_t val) {return bswap64(val);}
+static inline int16_t SBig(int16_t val) { return bswap16(val); }
+static inline uint16_t SBig(uint16_t val) { return bswap16(val); }
+static inline int32_t SBig(int32_t val) { return bswap32(val); }
+static inline uint32_t SBig(uint32_t val) { return bswap32(val); }
+static inline int64_t SBig(int64_t val) { return bswap64(val); }
+static inline uint64_t SBig(uint64_t val) { return bswap64(val); }
 static inline float SBig(float val)
 {
     int32_t ival = bswap32(*((int32_t*)(&val)));
@@ -249,28 +250,27 @@ static inline double SBig(double val)
     return *((double*)(&ival));
 }
 #ifndef SBIG
-#define SBIG(q) ( ( (q) & 0x000000FF ) << 24 | ( (q) & 0x0000FF00 ) <<  8 \
-                | ( (q) & 0x00FF0000 ) >>  8 | ( (q) & 0xFF000000 ) >> 24 )
+#define SBIG(q) (((q)&0x000000FF) << 24 | ((q)&0x0000FF00) << 8 | ((q)&0x00FF0000) >> 8 | ((q)&0xFF000000) >> 24)
 #endif
 
-static inline int16_t SLittle(int16_t val) {return val;}
-static inline uint16_t SLittle(uint16_t val) {return val;}
-static inline int32_t SLittle(int32_t val) {return val;}
-static inline uint32_t SLittle(uint32_t val) {return val;}
-static inline int64_t SLittle(int64_t val) {return val;}
-static inline uint64_t SLittle(uint64_t val) {return val;}
-static inline float SLittle(float val) {return val;}
-static inline double SLittle(double val) {return val;}
+static inline int16_t SLittle(int16_t val) { return val; }
+static inline uint16_t SLittle(uint16_t val) { return val; }
+static inline int32_t SLittle(int32_t val) { return val; }
+static inline uint32_t SLittle(uint32_t val) { return val; }
+static inline int64_t SLittle(int64_t val) { return val; }
+static inline uint64_t SLittle(uint64_t val) { return val; }
+static inline float SLittle(float val) { return val; }
+static inline double SLittle(double val) { return val; }
 #ifndef SLITTLE
 #define SLITTLE(q) (q)
 #endif
 #else
-static inline int16_t SLittle(int16_t val) {return bswap16(val);}
-static inline uint16_t SLittle(uint16_t val) {return bswap16(val);}
-static inline int32_t SLittle(int32_t val) {return bswap32(val);}
-static inline uint32_t SLittle(uint32_t val) {return bswap32(val);}
-static inline int64_t SLittle(int64_t val) {return bswap64(val);}
-static inline uint64_t SLittle(uint64_t val) {return bswap64(val);}
+static inline int16_t SLittle(int16_t val) { return bswap16(val); }
+static inline uint16_t SLittle(uint16_t val) { return bswap16(val); }
+static inline int32_t SLittle(int32_t val) { return bswap32(val); }
+static inline uint32_t SLittle(uint32_t val) { return bswap32(val); }
+static inline int64_t SLittle(int64_t val) { return bswap64(val); }
+static inline uint64_t SLittle(uint64_t val) { return bswap64(val); }
 static inline float SLittle(float val)
 {
     int32_t ival = bswap32(*((int32_t*)(&val)));
@@ -282,18 +282,17 @@ static inline double SLittle(double val)
     return *((double*)(&ival));
 }
 #ifndef SLITTLE
-#define SLITTLE(q) ( ( (q) & 0x000000FF ) << 24 | ( (q) & 0x0000FF00 ) <<  8 \
-                   | ( (q) & 0x00FF0000 ) >>  8 | ( (q) & 0xFF000000 ) >> 24 )
+#define SLITTLE(q) (((q)&0x000000FF) << 24 | ((q)&0x0000FF00) << 8 | ((q)&0x00FF0000) >> 8 | ((q)&0xFF000000) >> 24)
 #endif
 
-static inline int16_t SBig(int16_t val) {return val;}
-static inline uint16_t SBig(uint16_t val) {return val;}
-static inline int32_t SBig(int32_t val) {return val;}
-static inline uint32_t SBig(uint32_t val) {return val;}
-static inline int64_t SBig(int64_t val) {return val;}
-static inline uint64_t SBig(uint64_t val) {return val;}
-static inline float SBig(float val) {return val;}
-static inline double SBig(double val) {return val;}
+static inline int16_t SBig(int16_t val) { return val; }
+static inline uint16_t SBig(uint16_t val) { return val; }
+static inline int32_t SBig(int32_t val) { return val; }
+static inline uint32_t SBig(uint32_t val) { return val; }
+static inline int64_t SBig(int64_t val) { return val; }
+static inline uint64_t SBig(uint64_t val) { return val; }
+static inline float SBig(float val) { return val; }
+static inline double SBig(double val) { return val; }
 #ifndef SBIG
 #define SBIG(q) (q)
 #endif
@@ -308,14 +307,19 @@ enum class DataFormat
 };
 
 /** Meta-type for selecting GameCube (MusyX 2.0) data formats */
-struct GCNDataTag {};
+struct GCNDataTag
+{
+};
 
 /** Meta-type for selecting N64 (MusyX 1.0) data formats */
-struct N64DataTag {};
+struct N64DataTag
+{
+};
 
 /** Meta-type for selecting PC (MusyX 1.0) data formats */
-struct PCDataTag {};
-
+struct PCDataTag
+{
+};
 }
 
 #endif // __AMUSE_COMMON_HPP__

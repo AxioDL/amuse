@@ -88,10 +88,9 @@ public:
     const SongGroupIndex* getSongGroupIndex(int groupId) const;
     const SFXGroupIndex* getSFXGroupIndex(int groupId) const;
 
-    const std::unordered_map<int, SongGroupIndex>& songGroups() const {return m_songGroups;}
-    const std::unordered_map<int, SFXGroupIndex>& sfxGroups() const {return m_sfxGroups;}
+    const std::unordered_map<int, SongGroupIndex>& songGroups() const { return m_songGroups; }
+    const std::unordered_map<int, SFXGroupIndex>& sfxGroups() const { return m_sfxGroups; }
 };
-
 }
 
 #endif // __AMUSE_AUDIOGROUPPROJECT_HPP__

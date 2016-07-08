@@ -12,16 +12,15 @@ class EffectBaseTypeless
 {
 public:
     virtual ~EffectBaseTypeless() = default;
-    virtual void resetOutputSampleRate(double sampleRate)=0;
+    virtual void resetOutputSampleRate(double sampleRate) = 0;
 };
 
 template <typename T>
 class EffectBase : public EffectBaseTypeless
 {
 public:
-    virtual void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap)=0;
+    virtual void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap) = 0;
 };
-
 }
 
 #endif // __AMUSE_EFFECTBASE_HPP__

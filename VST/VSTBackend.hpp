@@ -21,8 +21,7 @@ class VSTBackend;
 class VSTBackendVoiceAllocator : public BooBackendVoiceAllocator
 {
 public:
-    VSTBackendVoiceAllocator(boo::IAudioVoiceEngine& booEngine)
-    : BooBackendVoiceAllocator(booEngine) {}
+    VSTBackendVoiceAllocator(boo::IAudioVoiceEngine& booEngine) : BooBackendVoiceAllocator(booEngine) {}
 };
 
 /** Actual plugin implementation class */
@@ -41,6 +40,7 @@ class VSTBackend : public AudioEffectX
     int m_routeChannel = -1;
     AudioGroupFilePresenter m_filePresenter;
     VSTEditor m_editor;
+
 public:
     VSTBackend(audioMasterCallback cb);
     ~VSTBackend();
@@ -58,9 +58,9 @@ public:
     void setSampleRate(float sampleRate);
     void setBlockSize(VstInt32 blockSize);
 
-    amuse::Engine& getAmuseEngine() {return *m_engine;}
-    const std::wstring& getUserDir() const {return m_userDir;}
-    AudioGroupFilePresenter& getFilePresenter() {return m_filePresenter;}
+    amuse::Engine& getAmuseEngine() { return *m_engine; }
+    const std::wstring& getUserDir() const { return m_userDir; }
+    AudioGroupFilePresenter& getFilePresenter() { return m_filePresenter; }
 
     void loadGroupFile(int collectionIdx, int fileIdx);
     void setGroup(int groupIdx, bool immediate);
@@ -72,7 +72,6 @@ public:
     VstInt32 getChunk(void** data, bool isPreset);
     VstInt32 setChunk(void* data, VstInt32 byteSize, bool isPreset);
 };
-
 }
 
 #endif // __AMUSE_VSTBACKEND_HPP__

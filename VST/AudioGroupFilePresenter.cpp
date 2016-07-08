@@ -110,7 +110,6 @@ bool AudioGroupDataCollection::loadMeta()
 AudioGroupDataCollection::AudioGroupDataCollection(const std::wstring& path, const std::wstring& name)
 : m_path(path), m_name(name)
 {
-
 }
 
 bool AudioGroupDataCollection::_attemptLoad()
@@ -135,28 +134,19 @@ bool AudioGroupDataCollection::_indexData()
 {
     switch (m_metaData->fmt)
     {
-        case amuse::DataFormat::GCN:
-        default:
-            m_loadedData.emplace(m_projData.data(), m_projData.size(),
-                                 m_poolData.data(), m_poolData.size(),
-                                 m_sdirData.data(), m_sdirData.size(),
-                                 m_sampData.data(), m_sampData.size(),
-                                 amuse::GCNDataTag{});
-            break;
-        case amuse::DataFormat::N64:
-            m_loadedData.emplace(m_projData.data(), m_projData.size(),
-                                 m_poolData.data(), m_poolData.size(),
-                                 m_sdirData.data(), m_sdirData.size(),
-                                 m_sampData.data(), m_sampData.size(),
-                                 m_metaData->absOffs, amuse::N64DataTag{});
-            break;
-        case amuse::DataFormat::PC:
-            m_loadedData.emplace(m_projData.data(), m_projData.size(),
-                                 m_poolData.data(), m_poolData.size(),
-                                 m_sdirData.data(), m_sdirData.size(),
-                                 m_sampData.data(), m_sampData.size(),
-                                 m_metaData->absOffs, amuse::PCDataTag{});
-            break;
+    case amuse::DataFormat::GCN:
+    default:
+        m_loadedData.emplace(m_projData.data(), m_projData.size(), m_poolData.data(), m_poolData.size(), m_sdirData.data(),
+                             m_sdirData.size(), m_sampData.data(), m_sampData.size(), amuse::GCNDataTag{});
+        break;
+    case amuse::DataFormat::N64:
+        m_loadedData.emplace(m_projData.data(), m_projData.size(), m_poolData.data(), m_poolData.size(), m_sdirData.data(),
+                             m_sdirData.size(), m_sampData.data(), m_sampData.size(), m_metaData->absOffs, amuse::N64DataTag{});
+        break;
+    case amuse::DataFormat::PC:
+        m_loadedData.emplace(m_projData.data(), m_projData.size(), m_poolData.data(), m_poolData.size(), m_sdirData.data(),
+                             m_sdirData.size(), m_sampData.data(), m_sampData.size(), m_metaData->absOffs, amuse::PCDataTag{});
+        break;
     }
 
     return m_loadedData.operator bool();
@@ -168,8 +158,7 @@ void AudioGroupDataCollection::addToEngine(amuse::Engine& engine)
     m_groupTokens.clear();
     if (m_loadedGroup)
     {
-        m_groupTokens.reserve(m_loadedGroup->getProj().songGroups().size() +
-                              m_loadedGroup->getProj().sfxGroups().size());
+        m_groupTokens.reserve(m_loadedGroup->getProj().songGroups().size() + m_loadedGroup->getProj().sfxGroups().size());
 
         {
             const auto& songGroups = m_loadedGroup->getProj().songGroups();
@@ -190,16 +179,9 @@ void AudioGroupDataCollection::addToEngine(amuse::Engine& engine)
     }
 }
 
-void AudioGroupDataCollection::removeFromEngine(amuse::Engine& engine) const
-{
-    engine.removeAudioGroup(*m_loadedData);
-}
+void AudioGroupDataCollection::removeFromEngine(amuse::Engine& engine) const { engine.removeAudioGroup(*m_loadedData); }
 
-AudioGroupCollection::AudioGroupCollection(const std::wstring& path, const std::wstring& name)
-: m_path(path), m_name(name)
-{
-
-}
+AudioGroupCollection::AudioGroupCollection(const std::wstring& path, const std::wstring& name) : m_path(path), m_name(name) {}
 
 void AudioGroupCollection::addCollection(std::vector<std::pair<std::wstring, amuse::IntrusiveAudioGroupData>>&& collection)
 {
@@ -211,9 +193,7 @@ void AudioGroupCollection::addCollection(std::vector<std::pair<std::wstring, amu
         auto search = m_groups.find(pair.first);
         if (search == m_groups.end())
         {
-            search = m_groups.emplace(pair.first,
-                                      std::make_unique<AudioGroupDataCollection>(collectionPath,
-                                                                                 pair.first)).first;
+            search = m_groups.emplace(pair.first, std::make_unique<AudioGroupDataCollection>(collectionPath, pair.first)).first;
         }
 
         AudioGroupDataCollection& dataCollection = *search->second;
@@ -254,9 +234,8 @@ void AudioGroupCollection::update(AudioGroupFilePresenter& presenter)
             if (search == m_groups.end())
             {
                 search =
-                m_groups.emplace(nameStr,
-                                 std::make_unique<AudioGroupDataCollection>(m_path + L'\\' + nameStr,
-                                                                            nameStr)).first;
+                    m_groups.emplace(nameStr, std::make_unique<AudioGroupDataCollection>(m_path + L'\\' + nameStr, nameStr))
+                        .first;
                 search->second->_attemptLoad();
             }
         }
@@ -285,8 +264,10 @@ void AudioGroupFilePresenter::update()
             auto search = theMap.find(nameStr);
             if (search == theMap.end())
             {
-                search = theMap.emplace(nameStr,
-                    std::make_unique<AudioGroupCollection>(m_backend.getUserDir() + L'\\' + nameStr, nameStr)).first;
+                search = theMap
+                             .emplace(nameStr,
+                                      std::make_unique<AudioGroupCollection>(m_backend.getUserDir() + L'\\' + nameStr, nameStr))
+                             .first;
                 search->second->update(*this);
             }
         }
@@ -296,10 +277,11 @@ void AudioGroupFilePresenter::update()
 }
 
 void AudioGroupFilePresenter::addCollection(const std::wstring& name,
-     std::vector<std::pair<std::wstring, amuse::IntrusiveAudioGroupData>>&& collection)
+                                            std::vector<std::pair<std::wstring, amuse::IntrusiveAudioGroupData>>&& collection)
 {
     std::wstring path = m_backend.getUserDir() + L'\\' + name;
-    AudioGroupCollection& insert = *m_audioGroupCollections.emplace(name, std::make_unique<AudioGroupCollection>(path, name)).first->second;
+    AudioGroupCollection& insert =
+        *m_audioGroupCollections.emplace(name, std::make_unique<AudioGroupCollection>(path, name)).first->second;
     CreateDirectory(insert.m_path.c_str(), nullptr);
     insert.addCollection(std::move(collection));
 
@@ -369,7 +351,7 @@ void AudioGroupCollection::populateFiles(VSTEditor& editor, HTREEITEM colHandle,
 
     m_iteratorVec.clear();
     m_iteratorVec.reserve(m_groups.size());
-    for (auto it = m_groups.begin() ; it != m_groups.end() ; ++it)
+    for (auto it = m_groups.begin(); it != m_groups.end(); ++it)
     {
         ins.item.pszText = LPWSTR(it->first.c_str());
         ins.item.lParam = LPARAM(0x80000000 | (parentIdx << 16) | m_iteratorVec.size());
@@ -390,7 +372,7 @@ void AudioGroupFilePresenter::populateCollectionColumn(VSTEditor& editor)
 
     m_iteratorVec.clear();
     m_iteratorVec.reserve(m_audioGroupCollections.size());
-    for (auto it = m_audioGroupCollections.begin() ; it != m_audioGroupCollections.end() ; ++it)
+    for (auto it = m_audioGroupCollections.begin(); it != m_audioGroupCollections.end(); ++it)
     {
         ins.item.cChildren = it->second->m_groups.size() ? 1 : 0;
         ins.item.pszText = LPWSTR(it->first.c_str());
@@ -468,7 +450,8 @@ void AudioGroupFilePresenter::populatePageColumn(VSTEditor& editor, int collecti
                     for (auto& pair : sortPages)
                     {
                         wchar_t name[256];
-                        wnsprintf(name, 256, L"%d (%s)", pair.first, GMPercNames[pair.first] ? GMPercNames[pair.first] : L"???");
+                        wnsprintf(name, 256, L"%d (%s)", pair.first,
+                                  GMPercNames[pair.first] ? GMPercNames[pair.first] : L"???");
                         item.pszText = name;
                         item.iItem = idx++;
                         item.lParam = 0x80000000 | pair.first;
@@ -479,5 +462,4 @@ void AudioGroupFilePresenter::populatePageColumn(VSTEditor& editor, int collecti
         }
     }
 }
-
 }

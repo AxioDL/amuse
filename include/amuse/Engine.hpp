@@ -22,7 +22,7 @@ class IMIDIReader;
 
 enum class AmplitudeMode
 {
-    PerSample, /**< Per-sample amplitude evaluation (dt = 1.0 / sampleRate, rather CPU demanding) */
+    PerSample,      /**< Per-sample amplitude evaluation (dt = 1.0 / sampleRate, rather CPU demanding) */
     BlockLinearized /**< Per-block lerp amplitude evaluation (dt = 160.0 / sampleRate) */
 };
 
@@ -50,12 +50,10 @@ class Engine
     std::pair<AudioGroup*, const SongGroupIndex*> _findSongGroup(int groupId) const;
     std::pair<AudioGroup*, const SFXGroupIndex*> _findSFXGroup(int groupId) const;
 
-    std::list<std::shared_ptr<Voice>>::iterator
-    _allocateVoice(const AudioGroup& group, int groupId, double sampleRate,
-                   bool dynamicPitch, bool emitter, Submix* smx);
-    std::list<std::shared_ptr<Sequencer>>::iterator
-    _allocateSequencer(const AudioGroup& group, int groupId,
-                       int setupId, Submix* smx);
+    std::list<std::shared_ptr<Voice>>::iterator _allocateVoice(const AudioGroup& group, int groupId, double sampleRate,
+                                                               bool dynamicPitch, bool emitter, Submix* smx);
+    std::list<std::shared_ptr<Sequencer>>::iterator _allocateSequencer(const AudioGroup& group, int groupId, int setupId,
+                                                                       Submix* smx);
     std::list<Submix>::iterator _allocateSubmix(Submix* smx);
     std::list<std::shared_ptr<Voice>>::iterator _destroyVoice(std::list<std::shared_ptr<Voice>>::iterator it);
     std::list<std::shared_ptr<Sequencer>>::iterator _destroySequencer(std::list<std::shared_ptr<Sequencer>>::iterator it);
@@ -63,12 +61,13 @@ class Engine
     std::list<Submix>::iterator _removeSubmix(std::list<Submix>::iterator it);
     void _bringOutYourDead();
     void _5MsCallback(double dt);
+
 public:
     ~Engine();
-    Engine(IBackendVoiceAllocator& backend, AmplitudeMode ampMode=AmplitudeMode::PerSample);
+    Engine(IBackendVoiceAllocator& backend, AmplitudeMode ampMode = AmplitudeMode::PerSample);
 
     /** Access voice backend of engine */
-    IBackendVoiceAllocator& getBackend() {return m_backend;}
+    IBackendVoiceAllocator& getBackend() { return m_backend; }
 
     /** Update all active audio entities and fill OS audio buffers as needed */
     void pumpEngine();
@@ -80,22 +79,20 @@ public:
     void removeAudioGroup(const AudioGroupData& data);
 
     /** Create new Submix (a.k.a 'Studio') within root mix engine */
-    Submix* addSubmix(Submix* parent=nullptr);
+    Submix* addSubmix(Submix* parent = nullptr);
 
     /** Remove Submix and deallocate */
     void removeSubmix(Submix* smx);
 
     /** Start soundFX playing from loaded audio groups */
-    std::shared_ptr<Voice> fxStart(int sfxId, float vol, float pan, Submix* smx=nullptr);
+    std::shared_ptr<Voice> fxStart(int sfxId, float vol, float pan, Submix* smx = nullptr);
 
     /** Start soundFX playing from loaded audio groups, attach to positional emitter */
-    std::shared_ptr<Emitter> addEmitter(const Vector3f& pos, const Vector3f& dir, float maxDist,
-                                        float falloff, int sfxId, float minVol, float maxVol,
-                                        Submix* smx=nullptr);
+    std::shared_ptr<Emitter> addEmitter(const Vector3f& pos, const Vector3f& dir, float maxDist, float falloff, int sfxId,
+                                        float minVol, float maxVol, Submix* smx = nullptr);
 
     /** Start song playing from loaded audio groups */
-    std::shared_ptr<Sequencer> seqPlay(int groupId, int songId, const unsigned char* arrData,
-                                       Submix* smx=nullptr);
+    std::shared_ptr<Sequencer> seqPlay(int groupId, int songId, const unsigned char* arrData, Submix* smx = nullptr);
 
     /** Find voice from VoiceId */
     std::shared_ptr<Voice> findVoice(int vid);
@@ -107,12 +104,11 @@ public:
     void sendMacroMessage(ObjectId macroId, int32_t val);
 
     /** Obtain next random number from engine's PRNG */
-    uint32_t nextRandom() {return m_random();}
+    uint32_t nextRandom() { return m_random(); }
 
     /** Obtain list of active sequencers */
-    std::list<std::shared_ptr<Sequencer>>& getActiveSequencers() {return m_activeSequencers;}
+    std::list<std::shared_ptr<Sequencer>>& getActiveSequencers() { return m_activeSequencers; }
 };
-
 }
 
 #endif // __AMUSE_ENGINE_HPP__

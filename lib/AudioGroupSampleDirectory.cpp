@@ -22,7 +22,7 @@ void AudioGroupSampleDirectory::ADPCMParms::swapBigDSP()
     dsp.m_bytesPerFrame = SBig(dsp.m_bytesPerFrame);
     dsp.m_hist2 = SBig(dsp.m_hist2);
     dsp.m_hist1 = SBig(dsp.m_hist1);
-    for (int i=0 ; i<8 ; ++i)
+    for (int i = 0; i < 8; ++i)
     {
         dsp.m_coefs[i][0] = SBig(dsp.m_coefs[i][0]);
         dsp.m_coefs[i][1] = SBig(dsp.m_coefs[i][1]);
@@ -32,7 +32,7 @@ void AudioGroupSampleDirectory::ADPCMParms::swapBigDSP()
 void AudioGroupSampleDirectory::ADPCMParms::swapBigVADPCM()
 {
     int16_t* allCoefs = reinterpret_cast<int16_t*>(vadpcm.m_coefs[0][0]);
-    for (int i=0 ; i<128 ; ++i)
+    for (int i = 0; i < 128; ++i)
         allCoefs[i] = SBig(allCoefs[i]);
 }
 
@@ -41,8 +41,7 @@ AudioGroupSampleDirectory::AudioGroupSampleDirectory(const unsigned char* data, 
     const unsigned char* cur = data;
     while (*reinterpret_cast<const uint32_t*>(cur) != 0xffffffff)
     {
-        const AudioGroupSampleDirectory::Entry* ent =
-            reinterpret_cast<const AudioGroupSampleDirectory::Entry*>(cur);
+        const AudioGroupSampleDirectory::Entry* ent = reinterpret_cast<const AudioGroupSampleDirectory::Entry*>(cur);
 
         std::pair<Entry, ADPCMParms>& store = m_entries[SBig(ent->m_sfxId)];
         store.first = *ent;
@@ -51,8 +50,7 @@ AudioGroupSampleDirectory::AudioGroupSampleDirectory(const unsigned char* data, 
         if (store.first.m_adpcmParmOffset)
         {
             const AudioGroupSampleDirectory::ADPCMParms* adpcm =
-                reinterpret_cast<const AudioGroupSampleDirectory::ADPCMParms*>(data +
-                    store.first.m_adpcmParmOffset);
+                reinterpret_cast<const AudioGroupSampleDirectory::ADPCMParms*>(data + store.first.m_adpcmParmOffset);
             store.second.dsp = adpcm->dsp;
             store.second.swapBigDSP();
         }
@@ -129,9 +127,8 @@ struct MusyX1AbsSdirEntry
     }
 };
 
-AudioGroupSampleDirectory::AudioGroupSampleDirectory(const unsigned char* data,
-                                                     const unsigned char* sampData,
-                                                     bool absOffs, N64DataTag)
+AudioGroupSampleDirectory::AudioGroupSampleDirectory(const unsigned char* data, const unsigned char* sampData, bool absOffs,
+                                                     N64DataTag)
 {
     const unsigned char* cur = data;
 
@@ -169,8 +166,7 @@ AudioGroupSampleDirectory::AudioGroupSampleDirectory(const unsigned char* data,
     }
 }
 
-AudioGroupSampleDirectory::AudioGroupSampleDirectory(const unsigned char* data,
-                                                     bool absOffs, PCDataTag)
+AudioGroupSampleDirectory::AudioGroupSampleDirectory(const unsigned char* data, bool absOffs, PCDataTag)
 {
     const unsigned char* cur = data;
 
@@ -199,5 +195,4 @@ AudioGroupSampleDirectory::AudioGroupSampleDirectory(const unsigned char* data,
         }
     }
 }
-
 }

@@ -18,26 +18,26 @@ class Voice;
 /** State of sequencer over lifetime */
 enum class SequencerState
 {
-    Playing, /**< Sequencer actively playing arrangement */
+    Playing,     /**< Sequencer actively playing arrangement */
     Interactive, /**< Interactive sequencer for live MIDI message processing, will not automatically die */
-    Dead /**< Set when arrangement complete and `dieOnEnd` was set, or manually with die() */
+    Dead         /**< Set when arrangement complete and `dieOnEnd` was set, or manually with die() */
 };
 
 /** Multi-voice lifetime manager and polyphonic parameter tracking */
 class Sequencer : public Entity
 {
     friend class Engine;
-    const SongGroupIndex* m_songGroup = nullptr; /**< Quick access to song group project index */
-    const SongGroupIndex::MIDISetup* m_midiSetup = nullptr; /**< Selected MIDI setup (may be null) */
-    const SFXGroupIndex* m_sfxGroup = nullptr; /**< SFX Groups are alternatively referenced here */
+    const SongGroupIndex* m_songGroup = nullptr;               /**< Quick access to song group project index */
+    const SongGroupIndex::MIDISetup* m_midiSetup = nullptr;    /**< Selected MIDI setup (may be null) */
+    const SFXGroupIndex* m_sfxGroup = nullptr;                 /**< SFX Groups are alternatively referenced here */
     std::vector<const SFXGroupIndex::SFXEntry*> m_sfxMappings; /**< SFX entries are mapped to MIDI keys this via this */
     Submix* m_submix = nullptr; /**< Submix this sequencer outputs to (or NULL for the main output mix) */
 
-    const unsigned char* m_arrData = nullptr; /**< Current playing arrangement data */
-    SongState m_songState; /**< State of current arrangement playback */
-    double m_ticksPerSec = 1000.0; /**< Current ticks per second (tempo) for arrangement data */
+    const unsigned char* m_arrData = nullptr;             /**< Current playing arrangement data */
+    SongState m_songState;                                /**< State of current arrangement playback */
+    double m_ticksPerSec = 1000.0;                        /**< Current ticks per second (tempo) for arrangement data */
     SequencerState m_state = SequencerState::Interactive; /**< Current high-level state of sequencer */
-    bool m_dieOnEnd = false; /**< Sequencer will be killed when current arrangement completes */
+    bool m_dieOnEnd = false;                              /**< Sequencer will be killed when current arrangement completes */
 
     float m_curVol = 1.f; /**< Current volume of sequencer */
 
@@ -57,9 +57,9 @@ class Sequencer : public Entity
         std::weak_ptr<Voice> m_lastVoice;
         int8_t m_ctrlVals[128] = {}; /**< MIDI controller values */
         float m_curPitchWheel = 0.f; /**< MIDI pitch-wheel */
-        int8_t m_curProgram = 0; /**< MIDI program number */
-        float m_curVol = 1.f; /**< Current volume of channel */
-        float m_curPan = 0.f; /**< Current panning of channel */
+        int8_t m_curProgram = 0;     /**< MIDI program number */
+        float m_curVol = 1.f;        /**< Current volume of channel */
+        float m_curPan = 0.f;        /**< Current panning of channel */
 
         void _bringOutYourDead();
         size_t getVoiceCount() const;
@@ -84,19 +84,17 @@ class Sequencer : public Entity
 
 public:
     ~Sequencer();
-    Sequencer(Engine& engine, const AudioGroup& group, int groupId,
-              const SongGroupIndex* songGroup, int setupId, Submix* smx);
-    Sequencer(Engine& engine, const AudioGroup& group, int groupId,
-              const SFXGroupIndex* sfxGroup, Submix* smx);
+    Sequencer(Engine& engine, const AudioGroup& group, int groupId, const SongGroupIndex* songGroup, int setupId, Submix* smx);
+    Sequencer(Engine& engine, const AudioGroup& group, int groupId, const SFXGroupIndex* sfxGroup, Submix* smx);
 
     /** Advance current song data (if any) */
     void advance(double dt);
 
     /** Obtain pointer to Sequencer's Submix */
-    Submix* getSubmix() {return m_submix;}
+    Submix* getSubmix() { return m_submix; }
 
     /** Get current state of sequencer */
-    SequencerState state() const {return m_state;}
+    SequencerState state() const { return m_state; }
 
     /** Get number of active voices */
     size_t getVoiceCount() const;
@@ -114,10 +112,10 @@ public:
     void setPitchWheel(uint8_t chan, float pitchWheel);
 
     /** Send keyoffs to all active notes, silence immediately if `now` set */
-    void allOff(bool now=false);
+    void allOff(bool now = false);
 
     /** Send keyoffs to all active notes on specified channel, silence immediately if `now` set */
-    void allOff(uint8_t chan, bool now=false);
+    void allOff(uint8_t chan, bool now = false);
 
     /** Stop all voices in `kg`, stops immediately (no KeyOff) when `now` set */
     void killKeygroup(uint8_t kg, bool now);
@@ -132,10 +130,10 @@ public:
     void setTempo(double ticksPerSec);
 
     /** Play MIDI arrangement */
-    void playSong(const unsigned char* arrData, bool dieOnEnd=true);
+    void playSong(const unsigned char* arrData, bool dieOnEnd = true);
 
     /** Stop current MIDI arrangement */
-    void stopSong(bool now=false);
+    void stopSong(bool now = false);
 
     /** Set total volume of sequencer */
     void setVolume(float vol);
@@ -153,9 +151,8 @@ public:
     void prevChanProgram(int8_t chanId);
 
     /** Manually kill sequencer for deferred release from engine */
-    void kill() {m_state = SequencerState::Dead;}
+    void kill() { m_state = SequencerState::Dead; }
 };
-
 }
 
 #endif // __AMUSE_SEQUENCER_HPP__

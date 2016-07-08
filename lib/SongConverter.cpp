@@ -7,7 +7,7 @@
 namespace amuse
 {
 
-static inline uint8_t clamp7(uint8_t val) {return std::max(0, std::min(127, int(val)));}
+static inline uint8_t clamp7(uint8_t val) { return std::max(0, std::min(127, int(val))); }
 
 enum class Status
 {
@@ -33,10 +33,18 @@ enum class Status
 };
 
 /* Event tags */
-struct NoteEvent {};
-struct CtrlEvent {};
-struct ProgEvent {};
-struct PitchEvent {};
+struct NoteEvent
+{
+};
+struct CtrlEvent
+{
+};
+struct ProgEvent
+{
+};
+struct PitchEvent
+{
+};
 
 /* Intermediate event */
 struct Event
@@ -55,16 +63,18 @@ struct Event
     int pitchBend;
 
     Event(NoteEvent, uint8_t chan, uint8_t note, uint8_t vel, uint16_t len)
-    : isNote(true), channel(chan), noteOrCtrl(note), velOrVal(vel), length(len) {}
+    : isNote(true), channel(chan), noteOrCtrl(note), velOrVal(vel), length(len)
+    {
+    }
 
     Event(CtrlEvent, uint8_t chan, uint8_t note, uint8_t vel, uint16_t len)
-    : isControlChange(true), channel(chan), noteOrCtrl(note), velOrVal(vel), length(len) {}
+    : isControlChange(true), channel(chan), noteOrCtrl(note), velOrVal(vel), length(len)
+    {
+    }
 
-    Event(ProgEvent, uint8_t chan, uint8_t prog)
-    : isProgChange(true), channel(chan), program(prog) {}
+    Event(ProgEvent, uint8_t chan, uint8_t prog) : isProgChange(true), channel(chan), program(prog) {}
 
-    Event(PitchEvent, uint8_t chan, int pBend)
-    : isPitchBend(true), channel(chan), pitchBend(pBend) {}
+    Event(PitchEvent, uint8_t chan, int pBend) : isPitchBend(true), channel(chan), pitchBend(pBend) {}
 };
 
 class MIDIDecoder
@@ -78,13 +88,12 @@ class MIDIDecoder
     {
         m_results.emplace_back();
         m_results.back().first = prog;
-        for (size_t i=0 ; i<128 ; ++i)
+        for (size_t i = 0; i < 128; ++i)
             m_notes[i] = m_results.back().second.end();
     }
 
     uint8_t m_status = 0;
-    bool _readContinuedValue(std::vector<uint8_t>::const_iterator& it,
-                             std::vector<uint8_t>::const_iterator end,
+    bool _readContinuedValue(std::vector<uint8_t>::const_iterator& it, std::vector<uint8_t>::const_iterator end,
                              uint32_t& valOut)
     {
         uint8_t a = *it++;
@@ -112,9 +121,8 @@ class MIDIDecoder
     }
 
 public:
-    std::vector<uint8_t>::const_iterator
-    receiveBytes(std::vector<uint8_t>::const_iterator begin,
-                 std::vector<uint8_t>::const_iterator end)
+    std::vector<uint8_t>::const_iterator receiveBytes(std::vector<uint8_t>::const_iterator begin,
+                                                      std::vector<uint8_t>::const_iterator end)
     {
         std::vector<uint8_t>::const_iterator it = begin;
         if (it == end)
@@ -289,19 +297,21 @@ public:
                 case Status::SysExTerm:
                 case Status::TimingClock:
                 case Status::ActiveSensing:
-                default: break;
+                default:
+                    break;
                 }
                 break;
             }
-            default: break;
+            default:
+                break;
             }
         }
 
         return it;
     }
 
-    std::vector<std::pair<int, std::multimap<int, Event>>>& getResults() {return m_results;}
-    std::multimap<int, int>& getTempos() {return m_tempos;}
+    std::vector<std::pair<int, std::multimap<int, Event>>>& getResults() { return m_results; }
+    std::multimap<int, int>& getTempos() { return m_tempos; }
 };
 
 class MIDIEncoder
@@ -314,14 +324,14 @@ class MIDIEncoder
     {
         if (data[0] == m_status)
         {
-            for (size_t i=1 ; i<len ; ++i)
+            for (size_t i = 1; i < len; ++i)
                 m_result.push_back(data[i]);
         }
         else
         {
             if (data[0] & 0x80)
                 m_status = data[0];
-            for (size_t i=0 ; i<len ; ++i)
+            for (size_t i = 0; i < len; ++i)
                 m_result.push_back(data[i]);
         }
     }
@@ -350,110 +360,96 @@ class MIDIEncoder
         send[2] = val & 0x7f;
 
         size_t len = 3 - (ptr - send);
-        for (size_t i=0 ; i<len ; ++i)
+        for (size_t i = 0; i < len; ++i)
             m_result.push_back(ptr[i]);
     }
 
 public:
     void noteOff(uint8_t chan, uint8_t key, uint8_t velocity)
     {
-        uint8_t cmd[3] = {uint8_t(int(Status::NoteOff) | (chan & 0xf)),
-                          uint8_t(key & 0x7f), uint8_t(velocity & 0x7f)};
+        uint8_t cmd[3] = {uint8_t(int(Status::NoteOff) | (chan & 0xf)), uint8_t(key & 0x7f), uint8_t(velocity & 0x7f)};
         _sendMessage(cmd, 3);
     }
 
     void noteOn(uint8_t chan, uint8_t key, uint8_t velocity)
     {
-        uint8_t cmd[3] = {uint8_t(int(Status::NoteOn) | (chan & 0xf)),
-                          uint8_t(key & 0x7f), uint8_t(velocity & 0x7f)};
+        uint8_t cmd[3] = {uint8_t(int(Status::NoteOn) | (chan & 0xf)), uint8_t(key & 0x7f), uint8_t(velocity & 0x7f)};
         _sendMessage(cmd, 3);
     }
 
     void notePressure(uint8_t chan, uint8_t key, uint8_t pressure)
     {
-        uint8_t cmd[3] = {uint8_t(int(Status::NotePressure) | (chan & 0xf)),
-                          uint8_t(key & 0x7f), uint8_t(pressure & 0x7f)};
+        uint8_t cmd[3] = {uint8_t(int(Status::NotePressure) | (chan & 0xf)), uint8_t(key & 0x7f), uint8_t(pressure & 0x7f)};
         _sendMessage(cmd, 3);
     }
 
     void controlChange(uint8_t chan, uint8_t control, uint8_t value)
     {
-        uint8_t cmd[3] = {uint8_t(int(Status::ControlChange) | (chan & 0xf)),
-                          uint8_t(control & 0x7f), uint8_t(value & 0x7f)};
+        uint8_t cmd[3] = {uint8_t(int(Status::ControlChange) | (chan & 0xf)), uint8_t(control & 0x7f), uint8_t(value & 0x7f)};
         _sendMessage(cmd, 3);
     }
 
     void programChange(uint8_t chan, uint8_t program)
     {
-        uint8_t cmd[2] = {uint8_t(int(Status::ProgramChange) | (chan & 0xf)),
-                          uint8_t(program & 0x7f)};
+        uint8_t cmd[2] = {uint8_t(int(Status::ProgramChange) | (chan & 0xf)), uint8_t(program & 0x7f)};
         _sendMessage(cmd, 2);
     }
 
     void channelPressure(uint8_t chan, uint8_t pressure)
     {
-        uint8_t cmd[2] = {uint8_t(int(Status::ChannelPressure) | (chan & 0xf)),
-                          uint8_t(pressure & 0x7f)};
+        uint8_t cmd[2] = {uint8_t(int(Status::ChannelPressure) | (chan & 0xf)), uint8_t(pressure & 0x7f)};
         _sendMessage(cmd, 2);
     }
 
     void pitchBend(uint8_t chan, int16_t pitch)
     {
-        uint8_t cmd[3] = {uint8_t(int(Status::PitchBend) | (chan & 0xf)),
-                          uint8_t((pitch % 128) & 0x7f), uint8_t((pitch / 128) & 0x7f)};
+        uint8_t cmd[3] = {uint8_t(int(Status::PitchBend) | (chan & 0xf)), uint8_t((pitch % 128) & 0x7f),
+                          uint8_t((pitch / 128) & 0x7f)};
         _sendMessage(cmd, 3);
     }
 
-
     void allSoundOff(uint8_t chan)
     {
-        uint8_t cmd[3] = {uint8_t(int(Status::ControlChange) | (chan & 0xf)),
-                          120, 0};
+        uint8_t cmd[3] = {uint8_t(int(Status::ControlChange) | (chan & 0xf)), 120, 0};
         _sendMessage(cmd, 3);
     }
 
     void resetAllControllers(uint8_t chan)
     {
-        uint8_t cmd[3] = {uint8_t(int(Status::ControlChange) | (chan & 0xf)),
-                          121, 0};
+        uint8_t cmd[3] = {uint8_t(int(Status::ControlChange) | (chan & 0xf)), 121, 0};
         _sendMessage(cmd, 3);
     }
 
     void localControl(uint8_t chan, bool on)
     {
-        uint8_t cmd[3] = {uint8_t(int(Status::ControlChange) | (chan & 0xf)),
-                          122, uint8_t(on ? 127 : 0)};
+        uint8_t cmd[3] = {uint8_t(int(Status::ControlChange) | (chan & 0xf)), 122, uint8_t(on ? 127 : 0)};
         _sendMessage(cmd, 3);
     }
 
     void allNotesOff(uint8_t chan)
     {
-        uint8_t cmd[3] = {uint8_t(int(Status::ControlChange) | (chan & 0xf)),
-                          123, 0};
+        uint8_t cmd[3] = {uint8_t(int(Status::ControlChange) | (chan & 0xf)), 123, 0};
         _sendMessage(cmd, 3);
     }
 
     void omniMode(uint8_t chan, bool on)
     {
-        uint8_t cmd[3] = {uint8_t(int(Status::ControlChange) | (chan & 0xf)),
-                          uint8_t(on ? 125 : 124), 0};
+        uint8_t cmd[3] = {uint8_t(int(Status::ControlChange) | (chan & 0xf)), uint8_t(on ? 125 : 124), 0};
         _sendMessage(cmd, 3);
     }
 
     void polyMode(uint8_t chan, bool on)
     {
-        uint8_t cmd[3] = {uint8_t(int(Status::ControlChange) | (chan & 0xf)),
-                          uint8_t(on ? 127 : 126), 0};
+        uint8_t cmd[3] = {uint8_t(int(Status::ControlChange) | (chan & 0xf)), uint8_t(on ? 127 : 126), 0};
         _sendMessage(cmd, 3);
     }
-
 
     void sysex(const void* data, size_t len)
     {
         uint8_t cmd = uint8_t(Status::SysEx);
         _sendMessage(&cmd, 1);
         _sendContinuedValue(len);
-        for (size_t i=0 ; i<len ; ++i)
+        for (size_t i = 0; i < len; ++i)
             m_result.push_back(reinterpret_cast<const uint8_t*>(data)[i]);
         cmd = uint8_t(Status::SysExTerm);
         _sendMessage(&cmd, 1);
@@ -461,22 +457,20 @@ public:
 
     void timeCodeQuarterFrame(uint8_t message, uint8_t value)
     {
-        uint8_t cmd[2] = {uint8_t(int(Status::TimecodeQuarterFrame)),
-                          uint8_t((message & 0x7 << 4) | (value & 0xf))};
+        uint8_t cmd[2] = {uint8_t(int(Status::TimecodeQuarterFrame)), uint8_t((message & 0x7 << 4) | (value & 0xf))};
         _sendMessage(cmd, 2);
     }
 
     void songPositionPointer(uint16_t pointer)
     {
-        uint8_t cmd[3] = {uint8_t(int(Status::SongPositionPointer)),
-                          uint8_t((pointer % 128) & 0x7f), uint8_t((pointer / 128) & 0x7f)};
+        uint8_t cmd[3] = {uint8_t(int(Status::SongPositionPointer)), uint8_t((pointer % 128) & 0x7f),
+                          uint8_t((pointer / 128) & 0x7f)};
         _sendMessage(cmd, 3);
     }
 
     void songSelect(uint8_t song)
     {
-        uint8_t cmd[2] = {uint8_t(int(Status::TimecodeQuarterFrame)),
-                          uint8_t(song & 0x7f)};
+        uint8_t cmd[2] = {uint8_t(int(Status::TimecodeQuarterFrame)), uint8_t(song & 0x7f)};
         _sendMessage(cmd, 2);
     }
 
@@ -485,7 +479,6 @@ public:
         uint8_t cmd = uint8_t(Status::TuneRequest);
         _sendMessage(&cmd, 1);
     }
-
 
     void startSeq()
     {
@@ -505,15 +498,14 @@ public:
         _sendMessage(&cmd, 1);
     }
 
-
     void reset()
     {
         uint8_t cmd = uint8_t(Status::Reset);
         _sendMessage(&cmd, 1);
     }
 
-    const std::vector<uint8_t>& getResult() const {return m_result;}
-    std::vector<uint8_t>& getResult() {return m_result;}
+    const std::vector<uint8_t>& getResult() const { return m_result; }
+    std::vector<uint8_t>& getResult() { return m_result; }
 };
 
 static uint32_t DecodeRLE(const unsigned char*& data)
@@ -622,7 +614,7 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
 {
     std::vector<uint8_t> ret = {'M', 'T', 'h', 'd'};
     uint32_t six32 = SBig(uint32_t(6));
-    for (int i=0 ; i<4 ; ++i)
+    for (int i = 0; i < 4; ++i)
         ret.push_back(reinterpret_cast<uint8_t*>(&six32)[i]);
 
     ret.push_back(0);
@@ -658,7 +650,7 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
         encoder.getResult().push_back(3);
 
         uint32_t tempo24 = SBig(60000000 / song.m_tempo);
-        for (int i=1 ; i<4 ; ++i)
+        for (int i = 1; i < 4; ++i)
             encoder.getResult().push_back(reinterpret_cast<uint8_t*>(&tempo24)[i]);
 
         /* Write out tempo changes */
@@ -676,7 +668,7 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
             encoder.getResult().push_back(3);
 
             uint32_t tempo24 = SBig(60000000 / (change.m_tempo & 0x7fffffff));
-            for (int i=1 ; i<4 ; ++i)
+            for (int i = 1; i < 4; ++i)
                 encoder.getResult().push_back(reinterpret_cast<uint8_t*>(&tempo24)[i]);
 
             ++song.m_tempoPtr;
@@ -692,7 +684,7 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
         ret.push_back('r');
         ret.push_back('k');
         uint32_t trkSz = SBig(uint32_t(encoder.getResult().size()));
-        for (int i=0 ; i<4 ; ++i)
+        for (int i = 0; i < 4; ++i)
             ret.push_back(reinterpret_cast<uint8_t*>(&trkSz)[i]);
         ret.insert(ret.cend(), encoder.getResult().begin(), encoder.getResult().end());
     }
@@ -731,7 +723,8 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
                             trk->m_lastPitchVal += pitchDelta;
                             trk->m_pitchWheelData = ptr;
                             trk->m_lastPitchTick = nextTick;
-                            events.emplace(regStart + nextTick, Event{PitchEvent{}, trk->m_midiChan, clamp(0, trk->m_lastPitchVal / 2 + 0x2000, 0x4000)});
+                            events.emplace(regStart + nextTick, Event{PitchEvent{}, trk->m_midiChan,
+                                                                      clamp(0, trk->m_lastPitchVal / 2 + 0x2000, 0x4000)});
                         }
                         else
                             break;
@@ -753,7 +746,9 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
                             trk->m_lastModVal += modDelta;
                             trk->m_modWheelData = ptr;
                             trk->m_lastModTick = nextTick;
-                            events.emplace(regStart + nextTick, Event{CtrlEvent{}, trk->m_midiChan, 1, uint8_t(clamp(0, trk->m_lastModVal * 128 / 16384, 127)), 0});
+                            events.emplace(regStart + nextTick,
+                                           Event{CtrlEvent{}, trk->m_midiChan, 1,
+                                                 uint8_t(clamp(0, trk->m_lastModVal * 128 / 16384, 127)), 0});
                         }
                         else
                             break;
@@ -778,7 +773,8 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
                             /* Control change */
                             uint8_t val = trk->m_data[0] & 0x7f;
                             uint8_t ctrl = trk->m_data[1] & 0x7f;
-                            events.emplace(regStart + trk->m_eventWaitCountdown, Event{CtrlEvent{}, trk->m_midiChan, ctrl, val, 0});
+                            events.emplace(regStart + trk->m_eventWaitCountdown,
+                                           Event{CtrlEvent{}, trk->m_midiChan, ctrl, val, 0});
                             trk->m_data += 2;
                         }
                         else if (trk->m_data[0] & 0x80)
@@ -793,9 +789,10 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
                             /* Note */
                             uint8_t note = trk->m_data[0] & 0x7f;
                             uint8_t vel = trk->m_data[1] & 0x7f;
-                            uint16_t length = (song.m_bigEndian ? SBig(*reinterpret_cast<const uint16_t*>(trk->m_data + 2)) :
-                                                                       *reinterpret_cast<const uint16_t*>(trk->m_data + 2));
-                            events.emplace(regStart + trk->m_eventWaitCountdown, Event{NoteEvent{}, trk->m_midiChan, note, vel, length});
+                            uint16_t length = (song.m_bigEndian ? SBig(*reinterpret_cast<const uint16_t*>(trk->m_data + 2))
+                                                                : *reinterpret_cast<const uint16_t*>(trk->m_data + 2));
+                            events.emplace(regStart + trk->m_eventWaitCountdown,
+                                           Event{NoteEvent{}, trk->m_midiChan, note, vel, length});
                             trk->m_data += 4;
                         }
 
@@ -820,18 +817,20 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
                             if ((trk->m_data[2] & 0x80) != 0x80)
                             {
                                 /* Note */
-                                uint16_t length = (song.m_bigEndian ? SBig(*reinterpret_cast<const uint16_t*>(trk->m_data)) :
-                                                                           *reinterpret_cast<const uint16_t*>(trk->m_data));
+                                uint16_t length = (song.m_bigEndian ? SBig(*reinterpret_cast<const uint16_t*>(trk->m_data))
+                                                                    : *reinterpret_cast<const uint16_t*>(trk->m_data));
                                 uint8_t note = trk->m_data[2] & 0x7f;
                                 uint8_t vel = trk->m_data[3] & 0x7f;
-                                events.emplace(regStart + trk->m_eventWaitCountdown, Event{NoteEvent{}, trk->m_midiChan, note, vel, length});
+                                events.emplace(regStart + trk->m_eventWaitCountdown,
+                                               Event{NoteEvent{}, trk->m_midiChan, note, vel, length});
                             }
                             else if (trk->m_data[2] & 0x80 && trk->m_data[3] & 0x80)
                             {
                                 /* Control change */
                                 uint8_t val = trk->m_data[2] & 0x7f;
                                 uint8_t ctrl = trk->m_data[3] & 0x7f;
-                                events.emplace(regStart + trk->m_eventWaitCountdown, Event{CtrlEvent{}, trk->m_midiChan, ctrl, val, 0});
+                                events.emplace(regStart + trk->m_eventWaitCountdown,
+                                               Event{CtrlEvent{}, trk->m_midiChan, ctrl, val, 0});
                             }
                             else if (trk->m_data[2] & 0x80)
                             {
@@ -843,8 +842,8 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
                         }
 
                         /* Set next delta-time */
-                        int32_t absTick = (song.m_bigEndian ? SBig(*reinterpret_cast<const int32_t*>(trk->m_data)) :
-                                                                   *reinterpret_cast<const int32_t*>(trk->m_data));
+                        int32_t absTick = (song.m_bigEndian ? SBig(*reinterpret_cast<const int32_t*>(trk->m_data))
+                                                            : *reinterpret_cast<const int32_t*>(trk->m_data));
                         trk->m_eventWaitCountdown += absTick - trk->m_lastN64EventTick;
                         trk->m_lastN64EventTick = absTick;
                         trk->m_data += 4;
@@ -904,7 +903,7 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
             ret.push_back('r');
             ret.push_back('k');
             uint32_t trkSz = SBig(uint32_t(encoder.getResult().size()));
-            for (int i=0 ; i<4 ; ++i)
+            for (int i = 0; i < 4; ++i)
                 ret.push_back(reinterpret_cast<uint8_t*>(&trkSz)[i]);
             ret.insert(ret.cend(), encoder.getResult().begin(), encoder.getResult().end());
         }
@@ -955,7 +954,7 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
     std::vector<std::pair<uint32_t, uint32_t>> tempoBuf;
 
     std::array<uint8_t, 64> chanMap;
-    for (int i=0 ; i<64 ; ++i)
+    for (int i = 0; i < 64; ++i)
         chanMap[i] = 0xff;
 
     struct Region
@@ -987,7 +986,7 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
     std::vector<Region> regions;
     int curRegionOff = 0;
 
-    for (int i=0 ; i<header.count ; ++i)
+    for (int i = 0; i < header.count; ++i)
     {
         if (memcmp(&*it, "MTrk", 4))
             return {};
@@ -1039,7 +1038,7 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
             begin = dec.receiveBytes(begin, end);
 
         std::vector<std::pair<int, std::multimap<int, Event>>>& results = dec.getResults();
-        for (int c=0 ; c<16 ; ++c)
+        for (int c = 0; c < 16; ++c)
         {
             int lastTrackStartTick = 0;
             bool didChanInit = false;
@@ -1096,7 +1095,7 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
                                     if (big)
                                     {
                                         uint32_t tickBig = SBig(uint32_t(eventTick - startTick));
-                                        for (int i=0 ; i<4 ; ++i)
+                                        for (int i = 0; i < 4; ++i)
                                             region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&tickBig)[i]);
                                         region.eventBuf.push_back(0x80 | event.second.velOrVal);
                                         region.eventBuf.push_back(0x80 | event.second.noteOrCtrl);
@@ -1104,7 +1103,7 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
                                     else
                                     {
                                         uint32_t tick = uint32_t(eventTick - startTick);
-                                        for (int i=0 ; i<4 ; ++i)
+                                        for (int i = 0; i < 4; ++i)
                                             region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&tick)[i]);
                                         region.eventBuf.push_back(0x80 | event.second.velOrVal);
                                         region.eventBuf.push_back(0x80 | event.second.noteOrCtrl);
@@ -1126,7 +1125,7 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
                                 if (big)
                                 {
                                     uint32_t tickBig = SBig(uint32_t(eventTick - startTick));
-                                    for (int i=0 ; i<4 ; ++i)
+                                    for (int i = 0; i < 4; ++i)
                                         region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&tickBig)[i]);
                                     region.eventBuf.push_back(0x80 | event.second.program);
                                     region.eventBuf.push_back(0);
@@ -1134,7 +1133,7 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
                                 else
                                 {
                                     uint32_t tick = uint32_t(eventTick - startTick);
-                                    for (int i=0 ; i<4 ; ++i)
+                                    for (int i = 0; i < 4; ++i)
                                         region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&tick)[i]);
                                     region.eventBuf.push_back(0x80 | event.second.program);
                                     region.eventBuf.push_back(0);
@@ -1166,7 +1165,7 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
                                 if (big)
                                 {
                                     uint32_t tickBig = SBig(uint32_t(eventTick - startTick));
-                                    for (int i=0 ; i<4 ; ++i)
+                                    for (int i = 0; i < 4; ++i)
                                         region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&tickBig)[i]);
                                     uint16_t lenBig = SBig(uint16_t(event.second.length));
                                     region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&lenBig)[0]);
@@ -1177,7 +1176,7 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
                                 else
                                 {
                                     uint32_t tick = uint32_t(eventTick - startTick);
-                                    for (int i=0 ; i<4 ; ++i)
+                                    for (int i = 0; i < 4; ++i)
                                         region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&tick)[i]);
                                     uint16_t len = uint16_t(event.second.length);
                                     region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&len)[0]);
@@ -1219,11 +1218,10 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
                     {
                         if (big)
                         {
-                            uint32_t selTick = std::max(std::max(lastEventTick - startTick,
-                                                                 lastPitchTick - startTick),
-                                                                 lastModTick - startTick);
+                            uint32_t selTick = std::max(std::max(lastEventTick - startTick, lastPitchTick - startTick),
+                                                        lastModTick - startTick);
                             uint32_t tickBig = SBig(uint32_t(selTick));
-                            for (int i=0 ; i<4 ; ++i)
+                            for (int i = 0; i < 4; ++i)
                                 region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&tickBig)[i]);
                             region.eventBuf.push_back(0);
                             region.eventBuf.push_back(0);
@@ -1232,11 +1230,10 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
                         }
                         else
                         {
-                            uint32_t selTick = std::max(std::max(lastEventTick - startTick,
-                                                                 lastPitchTick - startTick),
-                                                                 lastModTick - startTick);
+                            uint32_t selTick = std::max(std::max(lastEventTick - startTick, lastPitchTick - startTick),
+                                                        lastModTick - startTick);
                             uint32_t tick = uint32_t(selTick);
-                            for (int i=0 ; i<4 ; ++i)
+                            for (int i = 0; i < 4; ++i)
                                 region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&tick)[i]);
                             region.eventBuf.push_back(0);
                             region.eventBuf.push_back(0);
@@ -1340,7 +1337,7 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
             head.swapBig();
         *reinterpret_cast<SongState::Header*>(&*ret.insert(ret.cend(), 0x18, 0)) = head;
 
-        for (int i=0 ; i<64 ; ++i)
+        for (int i = 0; i < 64; ++i)
         {
             if (i >= trackRegionIdxArr.size())
             {
@@ -1349,8 +1346,8 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
             }
 
             uint32_t idx = trackRegionIdxArr[i];
-            *reinterpret_cast<uint32_t*>(&*ret.insert(ret.cend(), 4, 0)) = big ? SBig(uint32_t(0x18 + 4 * 64 + idx * 12)) :
-                                                                                      uint32_t(0x18 + 4 * 64 + idx * 12);
+            *reinterpret_cast<uint32_t*>(&*ret.insert(ret.cend(), 4, 0)) =
+                big ? SBig(uint32_t(0x18 + 4 * 64 + idx * 12)) : uint32_t(0x18 + 4 * 64 + idx * 12);
         }
 
         for (SongState::TrackRegion& reg : regionBuf)
@@ -1358,8 +1355,8 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
 
         uint32_t regBase = regIdxOff + 4 * regionDataIdxArr.size();
         for (uint32_t regOff : regionDataIdxArr)
-            *reinterpret_cast<uint32_t*>(&*ret.insert(ret.cend(), 4, 0)) = big ? SBig(uint32_t(regBase + regOff)) :
-                                                                                      uint32_t(regBase + regOff);
+            *reinterpret_cast<uint32_t*>(&*ret.insert(ret.cend(), 4, 0)) =
+                big ? SBig(uint32_t(regBase + regOff)) : uint32_t(regBase + regOff);
 
         uint32_t curOffset = regBase;
         for (Region& reg : regions)
@@ -1368,15 +1365,14 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
 
             if (reg.pitchBuf.size())
                 *reinterpret_cast<uint32_t*>(&*ret.insert(ret.cend(), 4, 0)) =
-                    big ? SBig(uint32_t(curOffset + 12 + reg.eventBuf.size())) :
-                               uint32_t(curOffset + 12 + reg.eventBuf.size());
+                    big ? SBig(uint32_t(curOffset + 12 + reg.eventBuf.size())) : uint32_t(curOffset + 12 + reg.eventBuf.size());
             else
                 ret.insert(ret.cend(), 4, 0);
 
             if (reg.modBuf.size())
                 *reinterpret_cast<uint32_t*>(&*ret.insert(ret.cend(), 4, 0)) =
-                    big ? SBig(uint32_t(curOffset + 12 + reg.eventBuf.size() + reg.pitchBuf.size())) :
-                               uint32_t(curOffset + 12 + reg.eventBuf.size() + reg.pitchBuf.size());
+                    big ? SBig(uint32_t(curOffset + 12 + reg.eventBuf.size() + reg.pitchBuf.size()))
+                        : uint32_t(curOffset + 12 + reg.eventBuf.size() + reg.pitchBuf.size());
             else
                 ret.insert(ret.cend(), 4, 0);
 
@@ -1419,7 +1415,7 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
         for (SongState::TrackRegion& reg : regionBuf)
             *reinterpret_cast<SongState::TrackRegion*>(&*ret.insert(ret.cend(), 12, 0)) = reg;
 
-        for (int i=0 ; i<64 ; ++i)
+        for (int i = 0; i < 64; ++i)
         {
             if (i >= trackRegionIdxArr.size())
             {
@@ -1428,8 +1424,8 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
             }
 
             uint32_t idx = trackRegionIdxArr[i];
-            *reinterpret_cast<uint32_t*>(&*ret.insert(ret.cend(), 4, 0)) = big ? SBig(uint32_t(0x18 + 4 * 64 + idx * 12)) :
-                                                                                      uint32_t(0x18 + 4 * 64 + idx * 12);
+            *reinterpret_cast<uint32_t*>(&*ret.insert(ret.cend(), 4, 0)) =
+                big ? SBig(uint32_t(0x18 + 4 * 64 + idx * 12)) : uint32_t(0x18 + 4 * 64 + idx * 12);
         }
 
         memmove(&*ret.insert(ret.cend(), 64, 0), chanMap.data(), 64);
@@ -1442,15 +1438,14 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
 
             if (reg.pitchBuf.size())
                 *reinterpret_cast<uint32_t*>(&*ret.insert(ret.cend(), 4, 0)) =
-                    big ? SBig(uint32_t(curOffset + 12 + reg.eventBuf.size())) :
-                               uint32_t(curOffset + 12 + reg.eventBuf.size());
+                    big ? SBig(uint32_t(curOffset + 12 + reg.eventBuf.size())) : uint32_t(curOffset + 12 + reg.eventBuf.size());
             else
                 ret.insert(ret.cend(), 4, 0);
 
             if (reg.modBuf.size())
                 *reinterpret_cast<uint32_t*>(&*ret.insert(ret.cend(), 4, 0)) =
-                    big ? SBig(uint32_t(curOffset + 12 + reg.eventBuf.size() + reg.pitchBuf.size())) :
-                               uint32_t(curOffset + 12 + reg.eventBuf.size() + reg.pitchBuf.size());
+                    big ? SBig(uint32_t(curOffset + 12 + reg.eventBuf.size() + reg.pitchBuf.size()))
+                        : uint32_t(curOffset + 12 + reg.eventBuf.size() + reg.pitchBuf.size());
             else
                 ret.insert(ret.cend(), 4, 0);
 
@@ -1469,8 +1464,8 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
         }
 
         for (uint32_t regOff : regionDataIdxArr)
-            *reinterpret_cast<uint32_t*>(&*ret.insert(ret.cend(), 4, 0)) = big ? SBig(uint32_t(regBase + regOff)) :
-                                                                                      uint32_t(regBase + regOff);
+            *reinterpret_cast<uint32_t*>(&*ret.insert(ret.cend(), 4, 0)) =
+                big ? SBig(uint32_t(regBase + regOff)) : uint32_t(regBase + regOff);
 
         if (tempoBuf.size())
             memmove(&*ret.insert(ret.cend(), tempoBuf.size() * 8, 0), tempoBuf.data(), tempoBuf.size() * 8);
@@ -1480,5 +1475,4 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
 
     return ret;
 }
-
 }

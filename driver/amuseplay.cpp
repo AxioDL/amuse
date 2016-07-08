@@ -16,9 +16,10 @@
 static logvisor::Module Log("amuseplay");
 
 #if __GNUC__
-__attribute__((__format__ (__printf__, 3, 4)))
+__attribute__((__format__(__printf__, 3, 4)))
 #endif
-static inline void SNPrintf(boo::SystemChar* str, size_t maxlen, const boo::SystemChar* format, ...)
+static inline void
+SNPrintf(boo::SystemChar* str, size_t maxlen, const boo::SystemChar* format, ...)
 {
     va_list va;
     va_start(va, format);
@@ -36,33 +37,33 @@ static inline void SNPrintf(boo::SystemChar* str, size_t maxlen, const boo::Syst
 
 #include <signal.h>
 
-static void abortHandler( int signum )
+static void abortHandler(int signum)
 {
-    unsigned int   i;
-    void         * stack[ 100 ];
+    unsigned int i;
+    void* stack[100];
     unsigned short frames;
-    SYMBOL_INFO  * symbol;
-    HANDLE         process;
+    SYMBOL_INFO* symbol;
+    HANDLE process;
 
     process = GetCurrentProcess();
-    SymInitialize( process, NULL, TRUE );
-    frames               = CaptureStackBackTrace( 0, 100, stack, NULL );
-    symbol               = ( SYMBOL_INFO * )calloc( sizeof( SYMBOL_INFO ) + 256 * sizeof( char ), 1 );
-    symbol->MaxNameLen   = 255;
-    symbol->SizeOfStruct = sizeof( SYMBOL_INFO );
+    SymInitialize(process, NULL, TRUE);
+    frames = CaptureStackBackTrace(0, 100, stack, NULL);
+    symbol = (SYMBOL_INFO*)calloc(sizeof(SYMBOL_INFO) + 256 * sizeof(char), 1);
+    symbol->MaxNameLen = 255;
+    symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
 
-    for( i = 0; i < frames; i++ )
+    for (i = 0; i < frames; i++)
     {
-        SymFromAddr( process, ( DWORD64 )( stack[ i ] ), 0, symbol );
+        SymFromAddr(process, (DWORD64)(stack[i]), 0, symbol);
 
-        printf( "%i: %s - 0x%0llX", frames - i - 1, symbol->Name, symbol->Address );
+        printf("%i: %s - 0x%0llX", frames - i - 1, symbol->Name, symbol->Address);
 
-        DWORD  dwDisplacement;
+        DWORD dwDisplacement;
         IMAGEHLP_LINE64 line;
         SymSetOptions(SYMOPT_LOAD_LINES);
 
         line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
-        if (SymGetLineFromAddr64(process, ( DWORD64 )( stack[ i ] ), &dwDisplacement, &line))
+        if (SymGetLineFromAddr64(process, (DWORD64)(stack[i]), &dwDisplacement, &line))
         {
             // SymGetLineFromAddr64 returned success
             printf(" LINE %d\n", line.LineNumber);
@@ -73,12 +74,12 @@ static void abortHandler( int signum )
         }
     }
 
-    free( symbol );
+    free(symbol);
 
     // If you caught one of the above signals, it is likely you just
     // want to quit your program right now.
     system("PAUSE");
-    exit( signum );
+    exit(signum);
 }
 #endif
 
@@ -88,6 +89,7 @@ struct EventCallback : boo::IWindowCallback
 {
     AppCallback& m_app;
     bool m_tracking = false;
+
 public:
     void charKeyDown(unsigned long charCode, boo::EModifierKey mods, bool isRepeat);
     void charKeyUp(unsigned long charCode, boo::EModifierKey mods);
@@ -151,9 +153,10 @@ struct AppCallback : boo::IApplicationCallback
             voxCount = m_seq->getVoiceCount();
             program = m_seq->getChanProgram(m_chanId);
         }
-        printf("\r                                                                                "
-               "\r  %" PRISize " Setup %d, Chan %d, Prog %d, Octave: %d, Vel: %d, VOL: %d%%\r", voxCount,
-               m_setupId, m_chanId, program, m_octave, m_velocity, int(std::rint(m_volume * 100)));
+        printf(
+            "\r                                                                                "
+            "\r  %" PRISize " Setup %d, Chan %d, Prog %d, Octave: %d, Vel: %d, VOL: %d%%\r",
+            voxCount, m_setupId, m_chanId, program, m_octave, m_velocity, int(std::rint(m_volume * 100)));
         fflush(stdout);
     }
 
@@ -176,19 +179,20 @@ struct AppCallback : boo::IApplicationCallback
 
     void SongLoop(const amuse::SongGroupIndex& index)
     {
-        printf("░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░\n"
-               "░░░   ████ ████  ┃  ████ ████ ████   ┃   ████ ████  ░░░\n"
-               "░░░   ████ ████  ┃  ████ ████ ████   ┃   ████ ████  ░░░\n"
-               "░░░   ▌W▐█ ▌E▐█  ┃  ▌T▐█ ▌Y▐█ ▌U▐█   ┃   ▌O▐█ ▌P▐█  ░░░\n"
-               "░░░    │    │    ┃    │    │    │    ┃    │    │    ░░░\n"
-               "░░░ A  │ S  │ D  ┃ F  │ G  │ H  │ J  ┃ K  │ L  │ ;  ░░░\n"
-               "░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░\n"
-               "<left/right>: cycle MIDI setup, <up/down>: volume, <space>: PANIC\n"
-               "<tab>: sustain pedal, <window-Y>: pitch wheel, <window-X>: mod wheel\n"
-               "<Z/X>: octave, <C/V>: velocity, <B/N>: channel, <,/.>: program, <Q>: quit\n");
+        printf(
+            "░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░\n"
+            "░░░   ████ ████  ┃  ████ ████ ████   ┃   ████ ████  ░░░\n"
+            "░░░   ████ ████  ┃  ████ ████ ████   ┃   ████ ████  ░░░\n"
+            "░░░   ▌W▐█ ▌E▐█  ┃  ▌T▐█ ▌Y▐█ ▌U▐█   ┃   ▌O▐█ ▌P▐█  ░░░\n"
+            "░░░    │    │    ┃    │    │    │    ┃    │    │    ░░░\n"
+            "░░░ A  │ S  │ D  ┃ F  │ G  │ H  │ J  ┃ K  │ L  │ ;  ░░░\n"
+            "░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░\n"
+            "<left/right>: cycle MIDI setup, <up/down>: volume, <space>: PANIC\n"
+            "<tab>: sustain pedal, <window-Y>: pitch wheel, <window-X>: mod wheel\n"
+            "<Z/X>: octave, <C/V>: velocity, <B/N>: channel, <,/.>: program, <Q>: quit\n");
 
-        std::map<int, const std::array<amuse::SongGroupIndex::MIDISetup, 16>*> sortEntries
-            (index.m_midiSetups.cbegin(), index.m_midiSetups.cend());
+        std::map<int, const std::array<amuse::SongGroupIndex::MIDISetup, 16>*> sortEntries(index.m_midiSetups.cbegin(),
+                                                                                           index.m_midiSetups.cend());
         auto setupIt = sortEntries.cbegin();
         if (setupIt != sortEntries.cend())
         {
@@ -287,9 +291,10 @@ struct AppCallback : boo::IApplicationCallback
     void UpdateSFXDisplay()
     {
         bool playing = m_vox && m_vox->state() == amuse::VoiceState::Playing;
-        printf("\r                                                                                "
-               "\r  %c SFX %d, VOL: %d%%\r", playing ? '>' : ' ',
-               m_sfxId, int(std::rint(m_volume * 100)));
+        printf(
+            "\r                                                                                "
+            "\r  %c SFX %d, VOL: %d%%\r",
+            playing ? '>' : ' ', m_sfxId, int(std::rint(m_volume * 100)));
         fflush(stdout);
     }
 
@@ -311,8 +316,8 @@ struct AppCallback : boo::IApplicationCallback
     {
         printf("<space>: keyon/keyoff, <left/right>: cycle SFX, <up/down>: volume, <Q>: quit\n");
 
-        std::map<uint16_t, const amuse::SFXGroupIndex::SFXEntry*> sortEntries
-            (index.m_sfxEntries.cbegin(), index.m_sfxEntries.cend());
+        std::map<uint16_t, const amuse::SFXGroupIndex::SFXEntry*> sortEntries(index.m_sfxEntries.cbegin(),
+                                                                              index.m_sfxEntries.cend());
         auto sfxIt = sortEntries.cbegin();
         if (sfxIt != sortEntries.cend())
             SelectSFX(sfxIt->first);
@@ -410,7 +415,8 @@ struct AppCallback : boo::IApplicationCallback
                 m_seq->nextChanProgram(m_chanId);
                 m_updateDisp = true;
                 break;
-            default: break;
+            default:
+                break;
             }
         }
     }
@@ -434,7 +440,8 @@ struct AppCallback : boo::IApplicationCallback
                 else if (m_sfxId != -1)
                     m_vox = m_engine->fxStart(m_sfxId, m_volume, 0.f);
                 m_updateDisp = true;
-            default: break;
+            default:
+                break;
             }
         }
         else if (m_seq && m_chanId != -1)
@@ -534,7 +541,8 @@ struct AppCallback : boo::IApplicationCallback
             case ':':
                 m_seq->keyOn(m_chanId, (m_octave + 1) * 12 + 16, m_velocity);
                 break;
-            default: break;
+            default:
+                break;
             }
 
             if (!setPanic)
@@ -605,7 +613,8 @@ struct AppCallback : boo::IApplicationCallback
             case ':':
                 m_seq->keyOff(m_chanId, (m_octave + 1) * 12 + 16, m_velocity);
                 break;
-            default: break;
+            default:
+                break;
             }
         }
     }
@@ -620,12 +629,10 @@ struct AppCallback : boo::IApplicationCallback
         m_win->showWindow();
         boo::ITextureR* tex = nullptr;
         boo::GraphicsDataToken gfxToken =
-        m_win->getMainContextDataFactory()->commitTransaction(
-        [&](boo::IGraphicsDataFactory::Context& ctx) -> bool
-        {
-            tex = ctx.newRenderTexture(100, 100, false, false);
-            return true;
-        });
+            m_win->getMainContextDataFactory()->commitTransaction([&](boo::IGraphicsDataFactory::Context& ctx) -> bool {
+                tex = ctx.newRenderTexture(100, 100, false, false);
+                return true;
+            });
         boo::IGraphicsCommandQueue* q = m_win->getCommandQueue();
         q->setRenderTarget(tex);
         q->clearTarget();
@@ -656,8 +663,10 @@ struct AppCallback : boo::IApplicationCallback
         }
 
         std::list<amuse::AudioGroupProject> m_projs;
-        std::map<int, std::pair<std::pair<amuse::SystemString, amuse::IntrusiveAudioGroupData>*, const amuse::SongGroupIndex*>> allSongGroups;
-        std::map<int, std::pair<std::pair<amuse::SystemString, amuse::IntrusiveAudioGroupData>*, const amuse::SFXGroupIndex*>> allSFXGroups;
+        std::map<int, std::pair<std::pair<amuse::SystemString, amuse::IntrusiveAudioGroupData>*, const amuse::SongGroupIndex*>>
+            allSongGroups;
+        std::map<int, std::pair<std::pair<amuse::SystemString, amuse::IntrusiveAudioGroupData>*, const amuse::SFXGroupIndex*>>
+            allSFXGroups;
         size_t totalGroups = 0;
 
         for (auto& grp : data)
@@ -667,10 +676,10 @@ struct AppCallback : boo::IApplicationCallback
             amuse::AudioGroupProject& proj = m_projs.back();
             totalGroups += proj.sfxGroups().size() + proj.songGroups().size();
 
-            for (auto it = proj.songGroups().begin() ; it != proj.songGroups().end() ; ++it)
+            for (auto it = proj.songGroups().begin(); it != proj.songGroups().end(); ++it)
                 allSongGroups[it->first] = std::make_pair(&grp, &it->second);
 
-            for (auto it = proj.sfxGroups().begin() ; it != proj.sfxGroups().end() ; ++it)
+            for (auto it = proj.sfxGroups().begin(); it != proj.sfxGroups().end(); ++it)
                 allSFXGroups[it->first] = std::make_pair(&grp, &it->second);
         }
 
@@ -743,8 +752,7 @@ struct AppCallback : boo::IApplicationCallback
                                         break;
                                 }
                             }
-                            amuse::Printf(_S("    %d %s (Group %d, Setup %d)\n"), idx++,
-                                          pair.first.c_str(), grpId, setupId);
+                            amuse::Printf(_S("    %d %s (Group %d, Setup %d)\n"), idx++, pair.first.c_str(), grpId, setupId);
                         }
 
                         int userSel = 0;
@@ -813,17 +821,15 @@ struct AppCallback : boo::IApplicationCallback
                 printf("Multiple Audio Groups discovered:\n");
                 for (const auto& pair : allSFXGroups)
                 {
-                    amuse::Printf(_S("    %d %s (SFXGroup)  %" PRISize " sfx-entries\n"),
-                                  pair.first, pair.second.first->first.c_str(),
-                                  pair.second.second->m_sfxEntries.size());
+                    amuse::Printf(_S("    %d %s (SFXGroup)  %" PRISize " sfx-entries\n"), pair.first,
+                                  pair.second.first->first.c_str(), pair.second.second->m_sfxEntries.size());
                 }
                 for (const auto& pair : allSongGroups)
                 {
-                    amuse::Printf(_S("    %d %s (SongGroup)  %" PRISize " normal-pages, %" PRISize " drum-pages, %" PRISize " MIDI-setups\n"),
-                                  pair.first, pair.second.first->first.c_str(),
-                                  pair.second.second->m_normPages.size(),
-                                  pair.second.second->m_drumPages.size(),
-                                  pair.second.second->m_midiSetups.size());
+                    amuse::Printf(_S("    %d %s (SongGroup)  %" PRISize " normal-pages, %" PRISize " drum-pages, %" PRISize
+                                     " MIDI-setups\n"),
+                                  pair.first, pair.second.first->first.c_str(), pair.second.second->m_normPages.size(),
+                                  pair.second.second->m_drumPages.size(), pair.second.second->m_midiSetups.size());
                 }
 
                 int userSel = 0;
@@ -923,13 +929,9 @@ struct AppCallback : boo::IApplicationCallback
         return 0;
     }
 
-    void appQuitting(boo::IApplication*)
-    {
-        m_running = false;
-    }
+    void appQuitting(boo::IApplication*) { m_running = false; }
 
-    AppCallback(int argc, const boo::SystemChar** argv)
-    : m_argc(argc), m_argv(argv), m_eventRec(*this), m_events(m_eventRec) {}
+    AppCallback(int argc, const boo::SystemChar** argv) : m_argc(argc), m_argv(argv), m_eventRec(*this), m_events(m_eventRec) {}
 };
 
 void EventCallback::charKeyDown(unsigned long charCode, boo::EModifierKey mods, bool isRepeat)
@@ -940,10 +942,7 @@ void EventCallback::charKeyDown(unsigned long charCode, boo::EModifierKey mods, 
         m_app.charKeyDown(charCode);
 }
 
-void EventCallback::charKeyUp(unsigned long charCode, boo::EModifierKey mods)
-{
-    m_app.charKeyUp(charCode);
-}
+void EventCallback::charKeyUp(unsigned long charCode, boo::EModifierKey mods) { m_app.charKeyUp(charCode); }
 
 void EventCallback::specialKeyDown(boo::ESpecialKey key, boo::EModifierKey mods, bool isRepeat)
 {
@@ -975,13 +974,12 @@ void EventCallback::specialKeyDown(boo::ESpecialKey key, boo::EModifierKey mods,
         break;
     case boo::ESpecialKey::Esc:
         m_app.m_breakout = true;
-    default: break;
+    default:
+        break;
     }
 }
 
-void EventCallback::specialKeyUp(boo::ESpecialKey key, boo::EModifierKey mods)
-{
-}
+void EventCallback::specialKeyUp(boo::ESpecialKey key, boo::EModifierKey mods) {}
 
 void EventCallback::mouseDown(const boo::SWindowCoord& coord, boo::EMouseButton, boo::EModifierKey)
 {
@@ -1029,8 +1027,8 @@ int main(int argc, const boo::SystemChar** argv)
 {
     logvisor::RegisterConsoleLogger();
     AppCallback app(argc, argv);
-    int ret = boo::ApplicationRun(boo::IApplication::EPlatformType::Auto,
-                                  app, _S("amuseplay"), _S("Amuse Player"), argc, argv, false);
+    int ret = boo::ApplicationRun(boo::IApplication::EPlatformType::Auto, app, _S("amuseplay"), _S("Amuse Player"), argc, argv,
+                                  false);
     printf("IM DYING!!\n");
     return ret;
 }
@@ -1038,10 +1036,10 @@ int main(int argc, const boo::SystemChar** argv)
 #if _WIN32
 int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR lpCmdLine, int)
 {
-    signal( SIGABRT, abortHandler );
-    signal( SIGSEGV, abortHandler );
-    signal( SIGILL,  abortHandler );
-    signal( SIGFPE,  abortHandler );
+    signal(SIGABRT, abortHandler);
+    signal(SIGSEGV, abortHandler);
+    signal(SIGILL, abortHandler);
+    signal(SIGFPE, abortHandler);
 
     int argc = 0;
     const boo::SystemChar** argv = (const wchar_t**)(CommandLineToArgvW(lpCmdLine, &argc));
@@ -1049,11 +1047,11 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR lpCmdLine, int)
     GetModuleFileNameW(nullptr, selfPath, 1024);
     static const boo::SystemChar* booArgv[32] = {};
     booArgv[0] = selfPath;
-    for (int i=0 ; i<argc ; ++i)
-        booArgv[i+1] = argv[i];
+    for (int i = 0; i < argc; ++i)
+        booArgv[i + 1] = argv[i];
 
     logvisor::CreateWin32Console();
     SetConsoleOutputCP(65001);
-    return wmain(argc+1, booArgv);
+    return wmain(argc + 1, booArgv);
 }
 #endif

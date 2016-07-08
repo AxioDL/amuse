@@ -18,9 +18,10 @@
 static logvisor::Module Log("amuserender");
 
 #if __GNUC__
-__attribute__((__format__ (__printf__, 3, 4)))
+__attribute__((__format__(__printf__, 3, 4)))
 #endif
-static inline void SNPrintf(boo::SystemChar* str, size_t maxlen, const boo::SystemChar* format, ...)
+static inline void
+SNPrintf(boo::SystemChar* str, size_t maxlen, const boo::SystemChar* format, ...)
 {
     va_list va;
     va_start(va, format);
@@ -38,33 +39,33 @@ static inline void SNPrintf(boo::SystemChar* str, size_t maxlen, const boo::Syst
 
 #include <signal.h>
 
-static void abortHandler( int signum )
+static void abortHandler(int signum)
 {
-    unsigned int   i;
-    void         * stack[ 100 ];
+    unsigned int i;
+    void* stack[100];
     unsigned short frames;
-    SYMBOL_INFO  * symbol;
-    HANDLE         process;
+    SYMBOL_INFO* symbol;
+    HANDLE process;
 
     process = GetCurrentProcess();
-    SymInitialize( process, NULL, TRUE );
-    frames               = CaptureStackBackTrace( 0, 100, stack, NULL );
-    symbol               = ( SYMBOL_INFO * )calloc( sizeof( SYMBOL_INFO ) + 256 * sizeof( char ), 1 );
-    symbol->MaxNameLen   = 255;
-    symbol->SizeOfStruct = sizeof( SYMBOL_INFO );
+    SymInitialize(process, NULL, TRUE);
+    frames = CaptureStackBackTrace(0, 100, stack, NULL);
+    symbol = (SYMBOL_INFO*)calloc(sizeof(SYMBOL_INFO) + 256 * sizeof(char), 1);
+    symbol->MaxNameLen = 255;
+    symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
 
-    for( i = 0; i < frames; i++ )
+    for (i = 0; i < frames; i++)
     {
-        SymFromAddr( process, ( DWORD64 )( stack[ i ] ), 0, symbol );
+        SymFromAddr(process, (DWORD64)(stack[i]), 0, symbol);
 
-        printf( "%i: %s - 0x%0llX", frames - i - 1, symbol->Name, symbol->Address );
+        printf("%i: %s - 0x%0llX", frames - i - 1, symbol->Name, symbol->Address);
 
-        DWORD  dwDisplacement;
+        DWORD dwDisplacement;
         IMAGEHLP_LINE64 line;
         SymSetOptions(SYMOPT_LOAD_LINES);
 
         line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
-        if (SymGetLineFromAddr64(process, ( DWORD64 )( stack[ i ] ), &dwDisplacement, &line))
+        if (SymGetLineFromAddr64(process, (DWORD64)(stack[i]), &dwDisplacement, &line))
         {
             // SymGetLineFromAddr64 returned success
             printf(" LINE %d\n", line.LineNumber);
@@ -75,21 +76,18 @@ static void abortHandler( int signum )
         }
     }
 
-    free( symbol );
+    free(symbol);
 
     // If you caught one of the above signals, it is likely you just
     // want to quit your program right now.
     system("PAUSE");
-    exit( signum );
+    exit(signum);
 }
 #endif
 
 /* SIGINT will gracefully break write loop */
 static bool g_BreakLoop = false;
-static void SIGINTHandler(int sig)
-{
-    g_BreakLoop = true;
-}
+static void SIGINTHandler(int sig) { g_BreakLoop = true; }
 
 #if _WIN32
 int wmain(int argc, const boo::SystemChar** argv)
@@ -102,16 +100,16 @@ int main(int argc, const boo::SystemChar** argv)
     std::vector<boo::SystemString> m_args;
     m_args.reserve(argc);
     double rate = 32000.0;
-    for (int i=1 ; i<argc ; ++i)
+    for (int i = 1; i < argc; ++i)
     {
 #if _WIN32
         if (!wcsncmp(argv[i], L"-r", 2))
         {
             if (argv[i][2])
                 rate = wcstod(&argv[i][2], nullptr);
-            else if (argc > (i+1))
+            else if (argc > (i + 1))
             {
-                rate = wcstod(argv[i+1], nullptr);
+                rate = wcstod(argv[i + 1], nullptr);
                 ++i;
             }
         }
@@ -122,9 +120,9 @@ int main(int argc, const boo::SystemChar** argv)
         {
             if (argv[i][2])
                 rate = strtod(&argv[i][2], nullptr);
-            else if (argc > (i+1))
+            else if (argc > (i + 1))
             {
-                rate = strtod(argv[i+1], nullptr);
+                rate = strtod(argv[i + 1], nullptr);
                 ++i;
             }
         }
@@ -164,8 +162,10 @@ int main(int argc, const boo::SystemChar** argv)
     bool m_sfxGroup = false;
 
     std::list<amuse::AudioGroupProject> m_projs;
-    std::map<int, std::pair<std::pair<amuse::SystemString, amuse::IntrusiveAudioGroupData>*, const amuse::SongGroupIndex*>> allSongGroups;
-    std::map<int, std::pair<std::pair<amuse::SystemString, amuse::IntrusiveAudioGroupData>*, const amuse::SFXGroupIndex*>> allSFXGroups;
+    std::map<int, std::pair<std::pair<amuse::SystemString, amuse::IntrusiveAudioGroupData>*, const amuse::SongGroupIndex*>>
+        allSongGroups;
+    std::map<int, std::pair<std::pair<amuse::SystemString, amuse::IntrusiveAudioGroupData>*, const amuse::SFXGroupIndex*>>
+        allSFXGroups;
     size_t totalGroups = 0;
 
     for (auto& grp : data)
@@ -175,10 +175,10 @@ int main(int argc, const boo::SystemChar** argv)
         amuse::AudioGroupProject& proj = m_projs.back();
         totalGroups += proj.sfxGroups().size() + proj.songGroups().size();
 
-        for (auto it = proj.songGroups().begin() ; it != proj.songGroups().end() ; ++it)
+        for (auto it = proj.songGroups().begin(); it != proj.songGroups().end(); ++it)
             allSongGroups[it->first] = std::make_pair(&grp, &it->second);
 
-        for (auto it = proj.sfxGroups().begin() ; it != proj.sfxGroups().end() ; ++it)
+        for (auto it = proj.sfxGroups().begin(); it != proj.sfxGroups().end(); ++it)
             allSFXGroups[it->first] = std::make_pair(&grp, &it->second);
     }
 
@@ -246,8 +246,7 @@ int main(int argc, const boo::SystemChar** argv)
                                 break;
                         }
                     }
-                    amuse::Printf(_S("    %d %s (Group %d, Setup %d)\n"), idx++,
-                                  pair.first.c_str(), grpId, setupId);
+                    amuse::Printf(_S("    %d %s (Group %d, Setup %d)\n"), idx++, pair.first.c_str(), grpId, setupId);
                 }
 
                 int userSel = 0;
@@ -319,17 +318,15 @@ int main(int argc, const boo::SystemChar** argv)
         printf("Multiple Audio Groups discovered:\n");
         for (const auto& pair : allSFXGroups)
         {
-            amuse::Printf(_S("    %d %s (SFXGroup)  %" PRISize " sfx-entries\n"),
-                          pair.first, pair.second.first->first.c_str(),
+            amuse::Printf(_S("    %d %s (SFXGroup)  %" PRISize " sfx-entries\n"), pair.first, pair.second.first->first.c_str(),
                           pair.second.second->m_sfxEntries.size());
         }
         for (const auto& pair : allSongGroups)
         {
-            amuse::Printf(_S("    %d %s (SongGroup)  %" PRISize " normal-pages, %" PRISize " drum-pages, %" PRISize " MIDI-setups\n"),
-                          pair.first, pair.second.first->first.c_str(),
-                          pair.second.second->m_normPages.size(),
-                          pair.second.second->m_drumPages.size(),
-                          pair.second.second->m_midiSetups.size());
+            amuse::Printf(
+                _S("    %d %s (SongGroup)  %" PRISize " normal-pages, %" PRISize " drum-pages, %" PRISize " MIDI-setups\n"),
+                pair.first, pair.second.first->first.c_str(), pair.second.second->m_normPages.size(),
+                pair.second.second->m_drumPages.size(), pair.second.second->m_midiSetups.size());
         }
 
         int userSel = 0;
@@ -476,10 +473,10 @@ int main(int argc, const boo::SystemChar** argv)
 #if _WIN32
 int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR lpCmdLine, int)
 {
-    signal( SIGABRT, abortHandler );
-    signal( SIGSEGV, abortHandler );
-    signal( SIGILL,  abortHandler );
-    signal( SIGFPE,  abortHandler );
+    signal(SIGABRT, abortHandler);
+    signal(SIGSEGV, abortHandler);
+    signal(SIGILL, abortHandler);
+    signal(SIGFPE, abortHandler);
 
     int argc = 0;
     const boo::SystemChar** argv = (const wchar_t**)(CommandLineToArgvW(lpCmdLine, &argc));
@@ -487,11 +484,11 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR lpCmdLine, int)
     GetModuleFileNameW(nullptr, selfPath, 1024);
     static const boo::SystemChar* booArgv[32] = {};
     booArgv[0] = selfPath;
-    for (int i=0 ; i<argc ; ++i)
-        booArgv[i+1] = argv[i];
+    for (int i = 0; i < argc; ++i)
+        booArgv[i + 1] = argv[i];
 
     logvisor::CreateWin32Console();
     SetConsoleOutputCP(65001);
-    return wmain(argc+1, booArgv);
+    return wmain(argc + 1, booArgv);
 }
 #endif

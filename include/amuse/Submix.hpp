@@ -23,7 +23,7 @@ class Submix
     friend class Voice;
     friend class Sequencer;
     Engine& m_root;
-    Submix* m_submix = nullptr; /**< Parent submix of this submix (or NULL if mixing to main output) */
+    Submix* m_submix = nullptr;                      /**< Parent submix of this submix (or NULL if mixing to main output) */
     std::unique_ptr<IBackendSubmix> m_backendSubmix; /**< Handle to client-implemented backend submix */
     std::vector<std::unique_ptr<EffectBaseTypeless>> m_effectStack; /**< Ordered list of effects to apply to submix */
     bool m_destroyed = false;
@@ -40,10 +40,10 @@ public:
     }
 
     /** Obtain pointer to Submix's parent Submix */
-    Submix* getParentSubmix() {return m_submix;}
+    Submix* getParentSubmix() { return m_submix; }
 
     /** Add new effect to effect stack and assume ownership */
-    template <class T, class ...Args>
+    template <class T, class... Args>
     T& makeEffect(Args... args)
     {
         switch (m_backendSubmix->getSampleFormat())
@@ -77,18 +77,16 @@ public:
     EffectDelay& makeDelay(uint32_t initDelay, uint32_t initFeedback, uint32_t initOutput);
 
     /** Add new standard-quality reverb effect to effect stack and assume ownership */
-    EffectReverbStd& makeReverbStd(float coloration, float mix, float time,
-                                   float damping, float preDelay);
+    EffectReverbStd& makeReverbStd(float coloration, float mix, float time, float damping, float preDelay);
 
     /** Add new high-quality reverb effect to effect stack and assume ownership */
-    EffectReverbHi& makeReverbHi(float coloration, float mix, float time,
-                                 float damping, float preDelay, float crosstalk);
+    EffectReverbHi& makeReverbHi(float coloration, float mix, float time, float damping, float preDelay, float crosstalk);
 
     /** Remove and deallocate all effects from effect stack */
-    void clearEffects() {m_effectStack.clear();}
+    void clearEffects() { m_effectStack.clear(); }
 
     /** Returns true when an effect callback is bound */
-    bool canApplyEffect() const {return m_effectStack.size() != 0;}
+    bool canApplyEffect() const { return m_effectStack.size() != 0; }
 
     /** in/out transformation entry for audio effect */
     void applyEffect(int16_t* audio, size_t frameCount, const ChannelMap& chanMap) const;
@@ -102,9 +100,8 @@ public:
     /** advice effects of changing sample rate */
     void resetOutputSampleRate(double sampleRate);
 
-    Engine& getEngine() {return m_root;}
+    Engine& getEngine() { return m_root; }
 };
-
 }
 
 #endif // __AMUSE_SUBMIX_HPP__

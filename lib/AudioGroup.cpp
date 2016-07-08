@@ -5,28 +5,31 @@ namespace amuse
 {
 
 AudioGroup::AudioGroup(const AudioGroupData& data, GCNDataTag)
-: m_proj(data.getProj(), GCNDataTag{}),
-  m_pool(data.getPool()),
-  m_sdir(data.getSdir(), GCNDataTag{}),
-  m_samp(data.getSamp()),
-  m_fmt(DataFormat::GCN)
-{}
+: m_proj(data.getProj(), GCNDataTag{})
+, m_pool(data.getPool())
+, m_sdir(data.getSdir(), GCNDataTag{})
+, m_samp(data.getSamp())
+, m_fmt(DataFormat::GCN)
+{
+}
 
 AudioGroup::AudioGroup(const AudioGroupData& data, bool absOffs, N64DataTag)
-: m_proj(data.getProj(), absOffs, N64DataTag{}),
-  m_pool(data.getPool()),
-  m_sdir(data.getSdir(), data.getSamp(), absOffs, N64DataTag{}),
-  m_samp(data.getSamp()),
-  m_fmt(DataFormat::N64)
-{}
+: m_proj(data.getProj(), absOffs, N64DataTag{})
+, m_pool(data.getPool())
+, m_sdir(data.getSdir(), data.getSamp(), absOffs, N64DataTag{})
+, m_samp(data.getSamp())
+, m_fmt(DataFormat::N64)
+{
+}
 
 AudioGroup::AudioGroup(const AudioGroupData& data, bool absOffs, PCDataTag)
-: m_proj(data.getProj(), absOffs, PCDataTag{}),
-  m_pool(data.getPool(), PCDataTag{}),
-  m_sdir(data.getSdir(), absOffs, PCDataTag{}),
-  m_samp(data.getSamp()),
-  m_fmt(DataFormat::PC)
-{}
+: m_proj(data.getProj(), absOffs, PCDataTag{})
+, m_pool(data.getPool(), PCDataTag{})
+, m_sdir(data.getSdir(), absOffs, PCDataTag{})
+, m_samp(data.getSamp())
+, m_fmt(DataFormat::PC)
+{
+}
 
 const Sample* AudioGroup::getSample(int sfxId) const
 {
@@ -36,9 +39,5 @@ const Sample* AudioGroup::getSample(int sfxId) const
     return &search->second;
 }
 
-const unsigned char* AudioGroup::getSampleData(uint32_t offset) const
-{
-    return m_samp + offset;
-}
-
+const unsigned char* AudioGroup::getSampleData(uint32_t offset) const { return m_samp + offset; }
 }

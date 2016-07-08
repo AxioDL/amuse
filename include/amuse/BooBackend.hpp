@@ -27,11 +27,10 @@ class BooBackendVoice : public IBackendVoice
         VoiceCallback(BooBackendVoice& parent) : m_parent(parent) {}
     } m_cb;
     std::unique_ptr<boo::IAudioVoice> m_booVoice;
+
 public:
-    BooBackendVoice(boo::IAudioVoiceEngine& engine, Voice& clientVox,
-                    double sampleRate, bool dynamicPitch);
-    BooBackendVoice(boo::IAudioSubmix& submix, Voice& clientVox,
-                    double sampleRate, bool dynamicPitch);
+    BooBackendVoice(boo::IAudioVoiceEngine& engine, Voice& clientVox, double sampleRate, bool dynamicPitch);
+    BooBackendVoice(boo::IAudioSubmix& submix, Voice& clientVox, double sampleRate, bool dynamicPitch);
     void resetSampleRate(double sampleRate);
     void setMatrixCoefficients(const float coefs[8], bool slew);
     void setSubmixMatrixCoefficients(const float coefs[8], bool slew);
@@ -49,16 +48,14 @@ class BooBackendSubmix : public IBackendSubmix
     {
         BooBackendSubmix& m_parent;
         bool canApplyEffect() const;
-        void applyEffect(int16_t* audio, size_t frameCount,
-                         const boo::ChannelMap& chanMap, double sampleRate) const;
-        void applyEffect(int32_t* audio, size_t frameCount,
-                         const boo::ChannelMap& chanMap, double sampleRate) const;
-        void applyEffect(float* audio, size_t frameCount,
-                         const boo::ChannelMap& chanMap, double sampleRate) const;
+        void applyEffect(int16_t* audio, size_t frameCount, const boo::ChannelMap& chanMap, double sampleRate) const;
+        void applyEffect(int32_t* audio, size_t frameCount, const boo::ChannelMap& chanMap, double sampleRate) const;
+        void applyEffect(float* audio, size_t frameCount, const boo::ChannelMap& chanMap, double sampleRate) const;
         void resetOutputSampleRate(double sampleRate);
         SubmixCallback(BooBackendSubmix& parent) : m_parent(parent) {}
     } m_cb;
     std::unique_ptr<boo::IAudioSubmix> m_booSubmix;
+
 public:
     BooBackendSubmix(boo::IAudioVoiceEngine& engine, Submix& clientSmx);
     BooBackendSubmix(boo::IAudioSubmix& parent, Submix& clientSmx);
@@ -121,17 +118,17 @@ class BooBackendVoiceAllocator : public IBackendVoiceAllocator
 {
     friend class BooBackendMIDIReader;
     boo::IAudioVoiceEngine& m_booEngine;
+
 public:
     BooBackendVoiceAllocator(boo::IAudioVoiceEngine& booEngine);
     std::unique_ptr<IBackendVoice> allocateVoice(Voice& clientVox, double sampleRate, bool dynamicPitch);
     std::unique_ptr<IBackendSubmix> allocateSubmix(Submix& clientSmx);
     std::vector<std::pair<std::string, std::string>> enumerateMIDIDevices();
-    std::unique_ptr<IMIDIReader> allocateMIDIReader(Engine& engine, const char* name=nullptr);
+    std::unique_ptr<IMIDIReader> allocateMIDIReader(Engine& engine, const char* name = nullptr);
     void register5MsCallback(std::function<void(double)>&& callback);
     AudioChannelSet getAvailableSet();
     void pumpAndMixVoices();
 };
-
 }
 
 #endif // __AMUSE_BOO_BACKEND_HPP__
