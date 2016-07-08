@@ -5,7 +5,7 @@
 
 namespace amuse
 {
-
+/* clang-format off */
 static const wchar_t *const GMNames[128] =
 {
     L"Acoustic Grand Piano", L"Bright Acoustic Piano", L"Electric Grand Piano", L"Honky-tonk Piano", L"Rhodes Piano", L"Chorused Piano",
@@ -42,6 +42,7 @@ static const wchar_t *const GMPercNames[128] =
     L"Long Guiro", L"Claves", L"Hi Wood Block", L"Low Wood Block", L"Mute Cuica", L"Open Cuica",
     L"Mute Triangle", L"Open Triangle"
 };
+/* clang-format on */
 
 bool AudioGroupDataCollection::loadProj()
 {
