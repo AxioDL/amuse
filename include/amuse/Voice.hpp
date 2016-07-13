@@ -14,7 +14,7 @@
 namespace amuse
 {
 class IBackendVoice;
-class Submix;
+class Studio;
 struct Keymap;
 struct LayerMapping;
 
@@ -35,7 +35,7 @@ class Voice : public Entity
     friend class Envelope;
     int m_vid; /**< VoiceID of this voice instance */
     bool m_emitter; /**< Voice is part of an Emitter */
-    Submix* m_submix = nullptr; /**< Submix this voice outputs to (or NULL for the main output mix) */
+    std::shared_ptr<Studio> m_studio; /**< Studio this voice outputs to */
 
     std::unique_ptr<IBackendVoice> m_backendVoice; /**< Handle to client-implemented backend voice */
     SoundMacroState m_state; /**< State container for SoundMacro playback */
@@ -164,8 +164,8 @@ class Voice : public Entity
     void _notifyCtrlChange(uint8_t ctrl, int8_t val);
 public:
     ~Voice();
-    Voice(Engine& engine, const AudioGroup& group, int groupId, int vid, bool emitter, Submix* smx);
-    Voice(Engine& engine, const AudioGroup& group, int groupId, ObjectId oid, int vid, bool emitter, Submix* smx);
+    Voice(Engine& engine, const AudioGroup& group, int groupId, int vid, bool emitter, std::weak_ptr<Studio> studio);
+    Voice(Engine& engine, const AudioGroup& group, int groupId, ObjectId oid, int vid, bool emitter, std::weak_ptr<Studio> studio);
 
     /** Called before each supplyAudio invocation to prepare voice
      *  backend for possible parameter updates */
@@ -175,8 +175,8 @@ public:
      *  internally advancing the voice stream */
     size_t supplyAudio(size_t frames, int16_t* data);
 
-    /** Obtain pointer to Voice's Submix */
-    Submix* getSubmix() {return m_submix;}
+    /** Obtain pointer to Voice's Studio */
+    std::shared_ptr<Studio> getStudio() {return m_studio;}
 
     /** Get current state of voice */
     VoiceState state() const {return m_voxState;}

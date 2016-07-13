@@ -44,7 +44,7 @@ public:
                                                          bool dynamicPitch)=0;
 
     /** Amuse obtains a new submix from the platform this way */
-    virtual std::unique_ptr<IBackendSubmix> allocateSubmix(Submix& clientSmx)=0;
+    virtual std::unique_ptr<IBackendSubmix> allocateSubmix(Submix& clientSmx, bool mainOut)=0;
 
     /** Amuse obtains a list of all MIDI devices this way */
     virtual std::vector<std::pair<std::string, std::string>> enumerateMIDIDevices()=0;

@@ -24,25 +24,20 @@ BooBackendVoice::BooBackendVoice(boo::IAudioVoiceEngine& engine, Voice& clientVo
   m_booVoice(engine.allocateNewMonoVoice(sampleRate, &m_cb, dynamicPitch))
 {}
 
-BooBackendVoice::BooBackendVoice(boo::IAudioSubmix& submix, Voice& clientVox,
-                                 double sampleRate, bool dynamicPitch)
-: m_clientVox(clientVox), m_cb(*this),
-  m_booVoice(submix.allocateNewMonoVoice(sampleRate, &m_cb, dynamicPitch))
-{}
-
 void BooBackendVoice::resetSampleRate(double sampleRate)
 {
     m_booVoice->resetSampleRate(sampleRate);
 }
 
-void BooBackendVoice::setMatrixCoefficients(const float coefs[8], bool slew)
+void BooBackendVoice::resetChannelLevels()
 {
-    m_booVoice->setMonoMatrixCoefficients(coefs, slew);
+    m_booVoice->resetChannelLevels();
 }
 
-void BooBackendVoice::setSubmixMatrixCoefficients(const float coefs[8], bool slew)
+void BooBackendVoice::setChannelLevels(IBackendSubmix* submix, const float coefs[8], bool slew)
 {
-    m_booVoice->setMonoSubmixMatrixCoefficients(coefs, slew);
+    BooBackendSubmix& smx = *reinterpret_cast<BooBackendSubmix*>(submix);
+    m_booVoice->setMonoChannelLevels(smx.m_booSubmix.get(), coefs, slew);
 }
 
 void BooBackendVoice::setPitchRatio(double ratio, bool slew)
@@ -88,23 +83,14 @@ void BooBackendSubmix::SubmixCallback::resetOutputSampleRate(double sampleRate)
     m_parent.m_clientSmx.resetOutputSampleRate(sampleRate);
 }
 
-BooBackendSubmix::BooBackendSubmix(boo::IAudioVoiceEngine& engine, Submix& clientSmx)
-: m_clientSmx(clientSmx), m_cb(*this), m_booSubmix(engine.allocateNewSubmix(&m_cb))
+BooBackendSubmix::BooBackendSubmix(boo::IAudioVoiceEngine& engine, Submix& clientSmx, bool mainOut)
+: m_clientSmx(clientSmx), m_cb(*this), m_booSubmix(engine.allocateNewSubmix(mainOut, &m_cb))
 {}
 
-BooBackendSubmix::BooBackendSubmix(boo::IAudioSubmix& parent, Submix& clientSmx)
-: m_clientSmx(clientSmx), m_cb(*this), m_booSubmix(parent.allocateNewSubmix(&m_cb))
-{}
-
-void BooBackendSubmix::setChannelGains(const float gains[8])
+void BooBackendSubmix::setSendLevel(IBackendSubmix* submix, float level, bool slew)
 {
-    m_booSubmix->setChannelGains(gains);
-}
-
-std::unique_ptr<IBackendVoice>
-BooBackendSubmix::allocateVoice(Voice& clientVox, double sampleRate, bool dynamicPitch)
-{
-    return std::make_unique<BooBackendVoice>(*m_booSubmix, clientVox, sampleRate, dynamicPitch);
+    BooBackendSubmix& smx = *reinterpret_cast<BooBackendSubmix*>(submix);
+    m_booSubmix->setSendLevel(smx.m_booSubmix.get(), level, slew);
 }
 
 double BooBackendSubmix::getSampleRate() const
@@ -327,9 +313,9 @@ BooBackendVoiceAllocator::allocateVoice(Voice& clientVox, double sampleRate, boo
     return std::make_unique<BooBackendVoice>(m_booEngine, clientVox, sampleRate, dynamicPitch);
 }
 
-std::unique_ptr<IBackendSubmix> BooBackendVoiceAllocator::allocateSubmix(Submix& clientSmx)
+std::unique_ptr<IBackendSubmix> BooBackendVoiceAllocator::allocateSubmix(Submix& clientSmx, bool mainOut)
 {
-    return std::make_unique<BooBackendSubmix>(m_booEngine, clientSmx);
+    return std::make_unique<BooBackendSubmix>(m_booEngine, clientSmx, mainOut);
 }
 
 std::vector<std::pair<std::string, std::string>> BooBackendVoiceAllocator::enumerateMIDIDevices()

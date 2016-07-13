@@ -3,6 +3,7 @@
 
 namespace amuse
 {
+class IBackendSubmix;
 
 /** Same channel enums from boo, used for matrix coefficient table index */
 enum class AudioChannel
@@ -34,11 +35,11 @@ public:
     /** Set new sample rate into platform voice (may result in artifacts while playing) */
     virtual void resetSampleRate(double sampleRate)=0;
 
-    /** Set channel-gains for audio source (AudioChannel enum for array index) */
-    virtual void setMatrixCoefficients(const float coefs[8], bool slew)=0;
+    /** Reset channel-gains to silence and unbind all submixes */
+    virtual void resetChannelLevels()=0;
 
-    /** Set submix-channel-gains for audio source (AudioChannel enum for array index) */
-    virtual void setSubmixMatrixCoefficients(const float coefs[8], bool slew)=0;
+    /** Set channel-gains for audio source (AudioChannel enum for array index) */
+    virtual void setChannelLevels(IBackendSubmix* submix, const float coefs[8], bool slew)=0;
 
     /** Called by client to dynamically adjust the pitch of voices with dynamic pitch enabled */
     virtual void setPitchRatio(double ratio, bool slew)=0;

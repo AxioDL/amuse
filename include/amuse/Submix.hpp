@@ -23,14 +23,13 @@ class Submix
     friend class Voice;
     friend class Sequencer;
     Engine& m_root;
-    Submix* m_submix = nullptr; /**< Parent submix of this submix (or NULL if mixing to main output) */
     std::unique_ptr<IBackendSubmix> m_backendSubmix; /**< Handle to client-implemented backend submix */
     std::vector<std::unique_ptr<EffectBaseTypeless>> m_effectStack; /**< Ordered list of effects to apply to submix */
     bool m_destroyed = false;
     void _destroy();
 
 public:
-    Submix(Engine& engine, Submix* smx);
+    Submix(Engine& engine);
     ~Submix()
     {
 #ifndef NDEBUG
@@ -38,9 +37,6 @@ public:
         assert(m_destroyed);
 #endif
     }
-
-    /** Obtain pointer to Submix's parent Submix */
-    Submix* getParentSubmix() {return m_submix;}
 
     /** Add new effect to effect stack and assume ownership */
     template <class T, class ...Args>

@@ -22,6 +22,7 @@ set(SOURCES
     lib/Voice.cpp
     lib/VolumeLUT.cpp
     lib/Submix.cpp
+    lib/Studio.cpp
     lib/EffectBase.cpp
     lib/EffectReverb.cpp
     lib/EffectChorus.cpp
@@ -49,6 +50,7 @@ set(HEADERS
     include/amuse/SongState.hpp
     include/amuse/Voice.hpp
     include/amuse/Submix.hpp
+    include/amuse/Studio.hpp
     include/amuse/IBackendSubmix.hpp
     include/amuse/IBackendVoice.hpp
     include/amuse/IBackendVoiceAllocator.hpp

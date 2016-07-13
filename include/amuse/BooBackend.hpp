@@ -30,11 +30,10 @@ class BooBackendVoice : public IBackendVoice
 public:
     BooBackendVoice(boo::IAudioVoiceEngine& engine, Voice& clientVox,
                     double sampleRate, bool dynamicPitch);
-    BooBackendVoice(boo::IAudioSubmix& submix, Voice& clientVox,
-                    double sampleRate, bool dynamicPitch);
     void resetSampleRate(double sampleRate);
-    void setMatrixCoefficients(const float coefs[8], bool slew);
-    void setSubmixMatrixCoefficients(const float coefs[8], bool slew);
+
+    void resetChannelLevels();
+    void setChannelLevels(IBackendSubmix* submix, const float coefs[8], bool slew);
     void setPitchRatio(double ratio, bool slew);
     void start();
     void stop();
@@ -44,6 +43,7 @@ public:
 class BooBackendSubmix : public IBackendSubmix
 {
     friend class BooBackendVoiceAllocator;
+    friend class BooBackendVoice;
     Submix& m_clientSmx;
     struct SubmixCallback : boo::IAudioSubmixCallback
     {
@@ -60,10 +60,8 @@ class BooBackendSubmix : public IBackendSubmix
     } m_cb;
     std::unique_ptr<boo::IAudioSubmix> m_booSubmix;
 public:
-    BooBackendSubmix(boo::IAudioVoiceEngine& engine, Submix& clientSmx);
-    BooBackendSubmix(boo::IAudioSubmix& parent, Submix& clientSmx);
-    void setChannelGains(const float gains[8]);
-    std::unique_ptr<IBackendVoice> allocateVoice(Voice& clientVox, double sampleRate, bool dynamicPitch);
+    BooBackendSubmix(boo::IAudioVoiceEngine& engine, Submix& clientSmx, bool mainOut);
+    void setSendLevel(IBackendSubmix* submix, float level, bool slew);
     double getSampleRate() const;
     SubmixFormat getSampleFormat() const;
 };
@@ -124,7 +122,7 @@ class BooBackendVoiceAllocator : public IBackendVoiceAllocator
 public:
     BooBackendVoiceAllocator(boo::IAudioVoiceEngine& booEngine);
     std::unique_ptr<IBackendVoice> allocateVoice(Voice& clientVox, double sampleRate, bool dynamicPitch);
-    std::unique_ptr<IBackendSubmix> allocateSubmix(Submix& clientSmx);
+    std::unique_ptr<IBackendSubmix> allocateSubmix(Submix& clientSmx, bool mainOut);
     std::vector<std::pair<std::string, std::string>> enumerateMIDIDevices();
     std::unique_ptr<IMIDIReader> allocateMIDIReader(Engine& engine, const char* name=nullptr);
     void register5MsCallback(std::function<void(double)>&& callback);

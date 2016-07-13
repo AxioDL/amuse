@@ -8,8 +8,8 @@ void Submix::_destroy()
     m_destroyed = true;
 }
 
-Submix::Submix(Engine& engine, Submix* smx)
-: m_root(engine), m_submix(smx)
+Submix::Submix(Engine& engine)
+: m_root(engine)
 {}
 
 EffectChorus& Submix::makeChorus(uint32_t baseDelay, uint32_t variation, uint32_t period)

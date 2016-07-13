@@ -47,36 +47,40 @@ void Sequencer::_bringOutYourDead()
 void Sequencer::_destroy()
 {
     Entity::_destroy();
-    if (m_submix)
+    if (m_studio)
     {
-        m_engine.removeSubmix(m_submix);
-        m_submix = nullptr;
+        m_engine.removeStudio(m_studio);
+        m_studio.reset();
     }
 }
 
 Sequencer::~Sequencer()
 {
-    if (m_submix)
+    if (m_studio)
     {
-        m_engine.removeSubmix(m_submix);
-        m_submix = nullptr;
+        m_engine.removeStudio(m_studio);
+        m_studio.reset();
     }
 }
 
 Sequencer::Sequencer(Engine& engine, const AudioGroup& group, int groupId,
-                     const SongGroupIndex* songGroup, int setupId, Submix* smx)
+                     const SongGroupIndex* songGroup, int setupId, std::weak_ptr<Studio> studio)
 : Entity(engine, group, groupId), m_songGroup(songGroup)
 {
     auto it = m_songGroup->m_midiSetups.find(setupId);
     if (it != m_songGroup->m_midiSetups.cend())
         m_midiSetup = it->second->data();
 
-    m_submix = m_engine.addSubmix(smx);
-    m_submix->makeReverbHi(0.2f, 0.3f, 1.f, 0.5f, 0.f, 0.f);
+    std::shared_ptr<Studio> st = studio.lock();
+    m_studio = m_engine.addStudio(st ? false : true);
+    if (st)
+        m_studio->addStudioSend(studio, 1.f, 0.f, 0.f);
+    m_studio->getAuxA().makeReverbHi(0.2f, 0.3f, 1.f, 0.5f, 0.f, 0.f);
+    m_studio->getAuxB().makeChorus(10, 5, 1000);
 }
 
 Sequencer::Sequencer(Engine& engine, const AudioGroup& group, int groupId,
-                     const SFXGroupIndex* sfxGroup, Submix* smx)
+                     const SFXGroupIndex* sfxGroup, std::weak_ptr<Studio> studio)
 : Entity(engine, group, groupId), m_sfxGroup(sfxGroup)
 {
     //m_submix = m_engine.addSubmix(smx);
@@ -217,7 +221,7 @@ std::shared_ptr<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velo
     std::list<std::shared_ptr<Voice>>::iterator ret =
         m_parent.m_engine._allocateVoice(m_parent.m_audioGroup,
                                          m_parent.m_groupId, 32000.0,
-                                         true, false, m_parent.m_submix);
+                                         true, false, m_parent.m_studio);
     if (*ret)
     {
         m_chanVoxs[note] = *ret;

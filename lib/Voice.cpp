@@ -27,14 +27,14 @@ Voice::~Voice()
     //fprintf(stderr, "DEALLOC %d\n", m_vid);
 }
 
-Voice::Voice(Engine& engine, const AudioGroup& group, int groupId, int vid, bool emitter, Submix* smx)
-: Entity(engine, group, groupId), m_vid(vid), m_emitter(emitter), m_submix(smx)
+Voice::Voice(Engine& engine, const AudioGroup& group, int groupId, int vid, bool emitter, std::weak_ptr<Studio> studio)
+: Entity(engine, group, groupId), m_vid(vid), m_emitter(emitter), m_studio(studio)
 {
     //fprintf(stderr, "ALLOC %d\n", m_vid);
 }
 
-Voice::Voice(Engine& engine, const AudioGroup& group, int groupId, ObjectId oid, int vid, bool emitter, Submix* smx)
-: Entity(engine, group, groupId, oid), m_vid(vid), m_emitter(emitter), m_submix(smx)
+Voice::Voice(Engine& engine, const AudioGroup& group, int groupId, ObjectId oid, int vid, bool emitter, std::weak_ptr<Studio> studio)
+: Entity(engine, group, groupId, oid), m_vid(vid), m_emitter(emitter), m_studio(studio)
 {
     //fprintf(stderr, "ALLOC %d\n", m_vid);
 }
@@ -174,13 +174,9 @@ std::unique_ptr<int8_t[]>& Voice::_ensureCtrlVals()
 std::list<std::shared_ptr<Voice>>::iterator Voice::_allocateVoice(double sampleRate, bool dynamicPitch)
 {
     auto it = m_childVoices.emplace(m_childVoices.end(), new Voice(m_engine, m_audioGroup,
-                                    m_groupId, m_engine.m_nextVid++, m_emitter, m_submix));
-    if (m_submix)
-        m_childVoices.back()->m_backendVoice =
-            m_submix->m_backendSubmix->allocateVoice(*m_childVoices.back(), sampleRate, dynamicPitch);
-    else
-        m_childVoices.back()->m_backendVoice =
-            m_engine.getBackend().allocateVoice(*m_childVoices.back(), sampleRate, dynamicPitch);
+                                    m_groupId, m_engine.m_nextVid++, m_emitter, m_studio));
+    m_childVoices.back()->m_backendVoice =
+        m_engine.getBackend().allocateVoice(*m_childVoices.back(), sampleRate, dynamicPitch);
     return it;
 }
 
@@ -897,11 +893,12 @@ void Voice::_setPan(float pan)
     coefs[7] = (totalPan >= 0.f) ? 1.f : (1.f + totalPan);
     coefs[7] *= 1.f - std::fabs(totalSpan);
 
-    m_backendVoice->setMatrixCoefficients(coefs, true);
+    m_backendVoice->setChannelLevels(nullptr, coefs, true);
 
+    float revCoefs[8];
     for (int i=0 ; i<8 ; ++i)
-        coefs[i] *= m_curReverbVol;
-    m_backendVoice->setSubmixMatrixCoefficients(coefs, true);
+        revCoefs[i] = coefs[i] * m_curReverbVol;
+    m_backendVoice->setChannelLevels(m_studio->getAuxA().m_backendSubmix.get(), revCoefs, true);
 }
 
 void Voice::setPan(float pan)

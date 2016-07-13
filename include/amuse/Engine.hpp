@@ -9,6 +9,7 @@
 #include "Emitter.hpp"
 #include "AudioGroupSampleDirectory.hpp"
 #include "Sequencer.hpp"
+#include "Studio.hpp"
 
 namespace amuse
 {
@@ -37,11 +38,12 @@ class Engine
     IBackendVoiceAllocator& m_backend;
     AmplitudeMode m_ampMode;
     std::unique_ptr<IMIDIReader> m_midiReader;
+    std::shared_ptr<Studio> m_defaultStudio;
     std::unordered_map<const AudioGroupData*, std::unique_ptr<AudioGroup>> m_audioGroups;
     std::list<std::shared_ptr<Voice>> m_activeVoices;
     std::list<std::shared_ptr<Emitter>> m_activeEmitters;
     std::list<std::shared_ptr<Sequencer>> m_activeSequencers;
-    std::list<Submix> m_activeSubmixes;
+    std::list<std::shared_ptr<Studio>> m_activeStudios;
     std::unordered_map<uint16_t, std::tuple<AudioGroup*, int, const SFXGroupIndex::SFXEntry*>> m_sfxLookup;
     std::linear_congruential_engine<uint32_t, 0x41c64e6d, 0x3039, UINT32_MAX> m_random;
     int m_nextVid = 0;
@@ -52,15 +54,15 @@ class Engine
 
     std::list<std::shared_ptr<Voice>>::iterator
     _allocateVoice(const AudioGroup& group, int groupId, double sampleRate,
-                   bool dynamicPitch, bool emitter, Submix* smx);
+                   bool dynamicPitch, bool emitter, std::weak_ptr<Studio> studio);
     std::list<std::shared_ptr<Sequencer>>::iterator
     _allocateSequencer(const AudioGroup& group, int groupId,
-                       int setupId, Submix* smx);
-    std::list<Submix>::iterator _allocateSubmix(Submix* smx);
+                       int setupId, std::weak_ptr<Studio> studio);
+    std::list<std::shared_ptr<Studio>>::iterator _allocateStudio(bool mainOut);
     std::list<std::shared_ptr<Voice>>::iterator _destroyVoice(std::list<std::shared_ptr<Voice>>::iterator it);
     std::list<std::shared_ptr<Sequencer>>::iterator _destroySequencer(std::list<std::shared_ptr<Sequencer>>::iterator it);
-    std::list<Submix>::iterator _destroySubmix(std::list<Submix>::iterator it);
-    std::list<Submix>::iterator _removeSubmix(std::list<Submix>::iterator it);
+    std::list<std::shared_ptr<Studio>>::iterator _destroyStudio(std::list<std::shared_ptr<Studio>>::iterator it);
+    std::list<std::shared_ptr<Studio>>::iterator _removeStudio(std::list<std::shared_ptr<Studio>>::iterator it);
     void _bringOutYourDead();
     void _5MsCallback(double dt);
 public:
@@ -79,23 +81,34 @@ public:
     /** Remove audio group from engine */
     void removeAudioGroup(const AudioGroupData& data);
 
-    /** Create new Submix (a.k.a 'Studio') within root mix engine */
-    Submix* addSubmix(Submix* parent=nullptr);
+    /** Access engine's default studio */
+    std::shared_ptr<Studio> getDefaultStudio() {return m_defaultStudio;}
 
-    /** Remove Submix and deallocate */
-    void removeSubmix(Submix* smx);
+    /** Create new Studio within engine */
+    std::shared_ptr<Studio> addStudio(bool mainOut);
+
+    /** Remove Studio from engine */
+    void removeStudio(std::weak_ptr<Studio> studio);
 
     /** Start soundFX playing from loaded audio groups */
-    std::shared_ptr<Voice> fxStart(int sfxId, float vol, float pan, Submix* smx=nullptr);
+    std::shared_ptr<Voice> fxStart(int sfxId, float vol, float pan, std::weak_ptr<Studio> smx);
+    std::shared_ptr<Voice> fxStart(int sfxId, float vol, float pan)
+    {
+        return fxStart(sfxId, vol, pan, m_defaultStudio);
+    }
 
     /** Start soundFX playing from loaded audio groups, attach to positional emitter */
     std::shared_ptr<Emitter> addEmitter(const Vector3f& pos, const Vector3f& dir, float maxDist,
                                         float falloff, int sfxId, float minVol, float maxVol,
-                                        Submix* smx=nullptr);
+                                        std::weak_ptr<Studio> smx);
 
     /** Start song playing from loaded audio groups */
     std::shared_ptr<Sequencer> seqPlay(int groupId, int songId, const unsigned char* arrData,
-                                       Submix* smx=nullptr);
+                                       std::weak_ptr<Studio> smx);
+    std::shared_ptr<Sequencer> seqPlay(int groupId, int songId, const unsigned char* arrData)
+    {
+        return seqPlay(groupId, songId, arrData, m_defaultStudio);
+    }
 
     /** Find voice from VoiceId */
     std::shared_ptr<Voice> findVoice(int vid);

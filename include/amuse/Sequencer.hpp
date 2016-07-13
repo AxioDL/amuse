@@ -12,7 +12,7 @@
 
 namespace amuse
 {
-class Submix;
+class Studio;
 class Voice;
 
 /** State of sequencer over lifetime */
@@ -31,7 +31,7 @@ class Sequencer : public Entity
     const SongGroupIndex::MIDISetup* m_midiSetup = nullptr; /**< Selected MIDI setup (may be null) */
     const SFXGroupIndex* m_sfxGroup = nullptr; /**< SFX Groups are alternatively referenced here */
     std::vector<const SFXGroupIndex::SFXEntry*> m_sfxMappings; /**< SFX entries are mapped to MIDI keys this via this */
-    Submix* m_submix = nullptr; /**< Submix this sequencer outputs to (or NULL for the main output mix) */
+    std::shared_ptr<Studio> m_studio; /**< Studio this sequencer outputs to */
 
     const unsigned char* m_arrData = nullptr; /**< Current playing arrangement data */
     SongState m_songState; /**< State of current arrangement playback */
@@ -85,15 +85,15 @@ class Sequencer : public Entity
 public:
     ~Sequencer();
     Sequencer(Engine& engine, const AudioGroup& group, int groupId,
-              const SongGroupIndex* songGroup, int setupId, Submix* smx);
+              const SongGroupIndex* songGroup, int setupId, std::weak_ptr<Studio> studio);
     Sequencer(Engine& engine, const AudioGroup& group, int groupId,
-              const SFXGroupIndex* sfxGroup, Submix* smx);
+              const SFXGroupIndex* sfxGroup, std::weak_ptr<Studio> studio);
 
     /** Advance current song data (if any) */
     void advance(double dt);
 
     /** Obtain pointer to Sequencer's Submix */
-    Submix* getSubmix() {return m_submix;}
+    std::shared_ptr<Studio> getStudio() {return m_studio;}
 
     /** Get current state of sequencer */
     SequencerState state() const {return m_state;}
