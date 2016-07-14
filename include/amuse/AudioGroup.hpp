@@ -9,8 +9,7 @@ namespace amuse
 {
 class AudioGroupData;
 
-using Sample = std::pair<AudioGroupSampleDirectory::Entry,
-                         AudioGroupSampleDirectory::ADPCMParms>;
+using Sample = std::pair<AudioGroupSampleDirectory::Entry, AudioGroupSampleDirectory::ADPCMParms>;
 
 /** Runtime audio group index container */
 class AudioGroup
@@ -21,20 +20,20 @@ class AudioGroup
     const unsigned char* m_samp;
     DataFormat m_fmt;
     bool m_valid;
+
 public:
-    operator bool() const {return m_valid;}
+    operator bool() const { return m_valid; }
     AudioGroup(const AudioGroupData& data, GCNDataTag);
     AudioGroup(const AudioGroupData& data, bool absOffs, N64DataTag);
     AudioGroup(const AudioGroupData& data, bool absOffs, PCDataTag);
 
     const Sample* getSample(int sfxId) const;
     const unsigned char* getSampleData(uint32_t offset) const;
-    const AudioGroupProject& getProj() const {return m_proj;}
-    const AudioGroupPool& getPool() const {return m_pool;}
-    const AudioGroupSampleDirectory& getSdir() const {return m_sdir;}
-    DataFormat getDataFormat() const {return m_fmt;}
+    const AudioGroupProject& getProj() const { return m_proj; }
+    const AudioGroupPool& getPool() const { return m_pool; }
+    const AudioGroupSampleDirectory& getSdir() const { return m_sdir; }
+    DataFormat getDataFormat() const { return m_fmt; }
 };
-
 }
 
 #endif // __AMUSE_AUDIOGROUP_HPP__

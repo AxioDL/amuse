@@ -33,9 +33,13 @@ struct AudioGroupDataCollection
         uint32_t absOffs;
         uint32_t active;
         MetaData(amuse::DataFormat fmtIn, uint32_t absOffsIn, uint32_t activeIn)
-        : fmt(fmtIn), absOffs(absOffsIn), active(activeIn) {}
+        : fmt(fmtIn), absOffs(absOffsIn), active(activeIn)
+        {
+        }
         MetaData(athena::io::FileReader& r)
-        : fmt(amuse::DataFormat(r.readUint32Little())), absOffs(r.readUint32Little()), active(r.readUint32Little()) {}
+        : fmt(amuse::DataFormat(r.readUint32Little())), absOffs(r.readUint32Little()), active(r.readUint32Little())
+        {
+        }
     };
     std::experimental::optional<MetaData> m_metaData;
 
@@ -58,7 +62,10 @@ struct AudioGroupDataCollection
     bool loadMeta();
 
     AudioGroupDataCollection(const std::wstring& path, const std::wstring& name);
-    bool isDataComplete() const {return m_projData.size() && m_poolData.size() && m_sdirData.size() && m_sampData.size() && m_metaData;}
+    bool isDataComplete() const
+    {
+        return m_projData.size() && m_poolData.size() && m_sdirData.size() && m_sampData.size() && m_metaData;
+    }
     bool _attemptLoad();
     bool _indexData();
 
@@ -84,12 +91,15 @@ struct AudioGroupCollection
 class AudioGroupFilePresenter
 {
     friend class VSTBackend;
+
 public:
     using CollectionIterator = std::map<std::wstring, std::unique_ptr<AudioGroupCollection>>::iterator;
+
 private:
     VSTBackend& m_backend;
     std::map<std::wstring, std::unique_ptr<AudioGroupCollection>> m_audioGroupCollections;
     std::vector<CollectionIterator> m_iteratorVec;
+
 public:
     AudioGroupFilePresenter(VSTBackend& backend) : m_backend(backend) {}
     void update();
@@ -99,9 +109,8 @@ public:
     void addCollection(const std::wstring& name,
                        std::vector<std::pair<std::wstring, amuse::IntrusiveAudioGroupData>>&& collection);
     void removeCollection(unsigned idx);
-    VSTBackend& getBackend() {return m_backend;}
+    VSTBackend& getBackend() { return m_backend; }
 };
-
 }
 
 #endif // __AMUSE_AUDIOGROUPFILEPRESENTER_HPP__

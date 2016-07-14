@@ -9,7 +9,7 @@ namespace amuse
 
 void Sequencer::ChannelState::_bringOutYourDead()
 {
-    for (auto it = m_chanVoxs.begin() ; it != m_chanVoxs.end() ;)
+    for (auto it = m_chanVoxs.begin(); it != m_chanVoxs.end();)
     {
         Voice* vox = it->second.get();
         vox->_bringOutYourDead();
@@ -21,7 +21,7 @@ void Sequencer::ChannelState::_bringOutYourDead()
         ++it;
     }
 
-    for (auto it = m_keyoffVoxs.begin() ; it != m_keyoffVoxs.end() ;)
+    for (auto it = m_keyoffVoxs.begin(); it != m_keyoffVoxs.end();)
     {
         Voice* vox = it->get();
         vox->_bringOutYourDead();
@@ -48,44 +48,28 @@ void Sequencer::_destroy()
 {
     Entity::_destroy();
     if (m_studio)
-    {
-        m_engine.removeStudio(m_studio);
         m_studio.reset();
-    }
 }
 
 Sequencer::~Sequencer()
 {
     if (m_studio)
-    {
-        m_engine.removeStudio(m_studio);
         m_studio.reset();
-    }
 }
 
-Sequencer::Sequencer(Engine& engine, const AudioGroup& group, int groupId,
-                     const SongGroupIndex* songGroup, int setupId, std::weak_ptr<Studio> studio)
-: Entity(engine, group, groupId), m_songGroup(songGroup)
+Sequencer::Sequencer(Engine& engine, const AudioGroup& group, int groupId, const SongGroupIndex* songGroup, int setupId,
+                     std::weak_ptr<Studio> studio)
+: Entity(engine, group, groupId), m_songGroup(songGroup), m_studio(studio)
 {
     auto it = m_songGroup->m_midiSetups.find(setupId);
     if (it != m_songGroup->m_midiSetups.cend())
         m_midiSetup = it->second->data();
-
-    std::shared_ptr<Studio> st = studio.lock();
-    m_studio = m_engine.addStudio(st ? false : true);
-    if (st)
-        m_studio->addStudioSend(studio, 1.f, 0.f, 0.f);
-    m_studio->getAuxA().makeReverbHi(0.2f, 0.3f, 1.f, 0.5f, 0.f, 0.f);
-    m_studio->getAuxB().makeChorus(10, 5, 1000);
 }
 
-Sequencer::Sequencer(Engine& engine, const AudioGroup& group, int groupId,
-                     const SFXGroupIndex* sfxGroup, std::weak_ptr<Studio> studio)
-: Entity(engine, group, groupId), m_sfxGroup(sfxGroup)
+Sequencer::Sequencer(Engine& engine, const AudioGroup& group, int groupId, const SFXGroupIndex* sfxGroup,
+                     std::weak_ptr<Studio> studio)
+: Entity(engine, group, groupId), m_sfxGroup(sfxGroup), m_studio(studio)
 {
-    //m_submix = m_engine.addSubmix(smx);
-    //m_submix->makeReverbHi(0.2f, 0.3f, 1.f, 0.5f, 0.f, 0.f);
-
     std::map<uint16_t, const SFXGroupIndex::SFXEntry*> sortSFX;
     for (const auto& sfx : sfxGroup->m_sfxEntries)
         sortSFX[sfx.first] = sfx.second;
@@ -95,12 +79,9 @@ Sequencer::Sequencer(Engine& engine, const AudioGroup& group, int groupId,
         m_sfxMappings.push_back(sfx.second);
 }
 
-Sequencer::ChannelState::~ChannelState()
-{
-}
+Sequencer::ChannelState::~ChannelState() {}
 
-Sequencer::ChannelState::ChannelState(Sequencer& parent, uint8_t chanId)
-: m_parent(parent), m_chanId(chanId)
+Sequencer::ChannelState::ChannelState(Sequencer& parent, uint8_t chanId) : m_parent(parent), m_chanId(chanId)
 {
     if (m_parent.m_songGroup)
     {
@@ -218,10 +199,8 @@ std::shared_ptr<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velo
         m_chanVoxs.erase(keySearch);
     }
 
-    std::list<std::shared_ptr<Voice>>::iterator ret =
-        m_parent.m_engine._allocateVoice(m_parent.m_audioGroup,
-                                         m_parent.m_groupId, 32000.0,
-                                         true, false, m_parent.m_studio);
+    std::list<std::shared_ptr<Voice>>::iterator ret = m_parent.m_engine._allocateVoice(
+        m_parent.m_audioGroup, m_parent.m_groupId, 32000.0, true, false, m_parent.m_studio);
     if (*ret)
     {
         m_chanVoxs[note] = *ret;
@@ -247,6 +226,7 @@ std::shared_ptr<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velo
         }
         (*ret)->setVolume(m_parent.m_curVol * m_curVol);
         (*ret)->setReverbVol(m_ctrlVals[0x5b] / 127.f);
+        (*ret)->setAuxBVol(m_ctrlVals[0x5d] / 127.f);
         (*ret)->setPan(m_curPan);
         (*ret)->setPitchWheel(m_curPitchWheel);
 
@@ -307,7 +287,8 @@ void Sequencer::ChannelState::setCtrlValue(uint8_t ctrl, int8_t val)
     case 10:
         setPan(val / 64.f - 1.f);
         break;
-    default: break;
+    default:
+        break;
     }
 }
 
@@ -395,14 +376,11 @@ void Sequencer::setPitchWheel(uint8_t chan, float pitchWheel)
     m_chanStates[chan]->setPitchWheel(pitchWheel);
 }
 
-void Sequencer::setTempo(double ticksPerSec)
-{
-    m_ticksPerSec = ticksPerSec;
-}
+void Sequencer::setTempo(double ticksPerSec) { m_ticksPerSec = ticksPerSec; }
 
 void Sequencer::ChannelState::allOff()
 {
-    for (auto it = m_chanVoxs.begin() ; it != m_chanVoxs.end() ;)
+    for (auto it = m_chanVoxs.begin(); it != m_chanVoxs.end();)
     {
         if (it->second == m_lastVoice.lock())
             m_lastVoice.reset();
@@ -453,7 +431,7 @@ void Sequencer::allOff(uint8_t chan, bool now)
 
 void Sequencer::ChannelState::killKeygroup(uint8_t kg, bool now)
 {
-    for (auto it = m_chanVoxs.begin() ; it != m_chanVoxs.end() ;)
+    for (auto it = m_chanVoxs.begin(); it != m_chanVoxs.end();)
     {
         Voice* vox = it->second.get();
         if (vox->m_keygroup == kg)
@@ -475,7 +453,7 @@ void Sequencer::ChannelState::killKeygroup(uint8_t kg, bool now)
 
     if (now)
     {
-        for (auto it = m_keyoffVoxs.begin() ; it != m_keyoffVoxs.end() ;)
+        for (auto it = m_keyoffVoxs.begin(); it != m_keyoffVoxs.end();)
         {
             Voice* vox = it->get();
             if (vox->m_keygroup == kg)
@@ -638,5 +616,4 @@ void Sequencer::prevChanProgram(int8_t chanId)
 
     return m_chanStates[chanId]->prevProgram();
 }
-
 }

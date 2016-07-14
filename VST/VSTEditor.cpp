@@ -16,10 +16,7 @@ static HBRUSH gGreyBorderBrush;
 namespace amuse
 {
 
-VSTEditor::VSTEditor(VSTBackend& backend)
-: AEffEditor(&backend), m_backend(backend)
-{
-}
+VSTEditor::VSTEditor(VSTBackend& backend) : AEffEditor(&backend), m_backend(backend) {}
 
 bool VSTEditor::getRect(ERect** rect)
 {
@@ -27,10 +24,7 @@ bool VSTEditor::getRect(ERect** rect)
     return true;
 }
 
-LRESULT CALLBACK VSTEditor::WindowProc(HWND hwnd,
-                                       UINT uMsg,
-                                       WPARAM wParam,
-                                       LPARAM lParam)
+LRESULT CALLBACK VSTEditor::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     VSTEditor& editor = *reinterpret_cast<VSTEditor*>(GetWindowLongPtrW(hwnd, 0));
     switch (uMsg)
@@ -101,10 +95,7 @@ LRESULT CALLBACK VSTEditor::WindowProc(HWND hwnd,
     }
 }
 
-LRESULT CALLBACK VSTEditor::ColHeaderWindowProc(HWND hwnd,
-                                                UINT uMsg,
-                                                WPARAM wParam,
-                                                LPARAM lParam)
+LRESULT CALLBACK VSTEditor::ColHeaderWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch (uMsg)
     {
@@ -119,15 +110,12 @@ LRESULT CALLBACK VSTEditor::ColHeaderWindowProc(HWND hwnd,
         RECT rect;
         GetClientRect(hwnd, &rect);
 
-        TRIVERTEX verts[] =
-        {
-            {rect.left, rect.top, 0x6000, 0x6000, 0x7000, 0xff00},
-            {rect.right, rect.bottom, 0x2000, 0x2000, 0x2800, 0xff00}
-        };
+        TRIVERTEX verts[] = {{rect.left, rect.top, 0x6000, 0x6000, 0x7000, 0xff00},
+                             {rect.right, rect.bottom, 0x2000, 0x2000, 0x2800, 0xff00}};
         GRADIENT_RECT grect = {0, 1};
         GradientFill(dc, verts, 2, &grect, 1, GRADIENT_FILL_RECT_V);
 
-        SetTextColor(dc, RGB(255,255,255));
+        SetTextColor(dc, RGB(255, 255, 255));
         SetBkMode(dc, TRANSPARENT);
         SelectObject(dc, GetStockObject(ANSI_VAR_FONT));
         rect.left += 6;
@@ -160,33 +148,22 @@ bool VSTEditor::open(void* ptr)
 {
     AEffEditor::open(ptr);
     HWND hostView = HWND(ptr);
-    gGreyBorderBrush = CreateSolidBrush(RGB(100,100,100));
+    gGreyBorderBrush = CreateSolidBrush(RGB(100, 100, 100));
 
-    WNDCLASSW notifyCls =
-    {
-        CS_HREDRAW | CS_VREDRAW,
-        WindowProc,
-        0,
-        8,
-        HINSTANCE(hInstance),
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        L"VSTNotify"
-    };
+    WNDCLASSW notifyCls = {CS_HREDRAW | CS_VREDRAW,
+                           WindowProc,
+                           0,
+                           8,
+                           HINSTANCE(hInstance),
+                           nullptr,
+                           nullptr,
+                           nullptr,
+                           nullptr,
+                           L"VSTNotify"};
     RegisterClassW(&notifyCls);
 
-    m_rootView = CreateWindowW(L"VSTNotify",
-                               L"",
-                               WS_CHILD,
-                               0, 0,
-                               m_windowRect.right,
-                               m_windowRect.bottom,
-                               hostView,
-                               nullptr,
-                               HINSTANCE(hInstance),
-                               nullptr);
+    m_rootView = CreateWindowW(L"VSTNotify", L"", WS_CHILD, 0, 0, m_windowRect.right, m_windowRect.bottom, hostView,
+                               nullptr, HINSTANCE(hInstance), nullptr);
     SetWindowLongPtrW(m_rootView, 0, LONG_PTR(this));
     ShowWindow(m_rootView, SW_SHOW);
 
@@ -203,18 +180,12 @@ bool VSTEditor::open(void* ptr)
     column.fmt = LVCFMT_LEFT | LVCFMT_FIXED_WIDTH;
     column.cx = 199;
 
-    m_collectionTree = CreateWindowW(WC_TREEVIEW,
-                                     L"",
-                                     WS_CHILD | WS_CLIPSIBLINGS | TVS_SHOWSELALWAYS | TVS_HASLINES | TVS_LINESATROOT | TVS_HASBUTTONS,
-                                     1, 25,
-                                     199,
-                                     m_windowRect.bottom - m_windowRect.top - 26,
-                                     m_rootView,
-                                     nullptr,
-                                     nullptr,
-                                     nullptr);
-    TreeView_SetBkColor(m_collectionTree, RGB(64,64,64));
-    TreeView_SetTextColor(m_collectionTree, RGB(255,255,255));
+    m_collectionTree =
+        CreateWindowW(WC_TREEVIEW, L"",
+                      WS_CHILD | WS_CLIPSIBLINGS | TVS_SHOWSELALWAYS | TVS_HASLINES | TVS_LINESATROOT | TVS_HASBUTTONS,
+                      1, 25, 199, m_windowRect.bottom - m_windowRect.top - 26, m_rootView, nullptr, nullptr, nullptr);
+    TreeView_SetBkColor(m_collectionTree, RGB(64, 64, 64));
+    TreeView_SetTextColor(m_collectionTree, RGB(255, 255, 255));
     HTREEITEM rootItemA = TreeView_InsertItem(m_collectionTree, &treeItem);
     treeItem.item.pszText = L"Root B";
     HTREEITEM rootItemB = TreeView_InsertItem(m_collectionTree, &treeItem);
@@ -231,113 +202,61 @@ bool VSTEditor::open(void* ptr)
     TreeView_InsertItem(m_collectionTree, &treeItem);
     ShowWindow(m_collectionTree, SW_SHOW);
 
-    HWND cHeader = CreateWindowW(WC_HEADER,
-                                 L"",
-                                 WS_CHILD,
-                                 1, 1,
-                                 199,
-                                 24,
-                                 m_rootView,
-                                 nullptr,
-                                 nullptr,
-                                 nullptr);
+    HWND cHeader = CreateWindowW(WC_HEADER, L"", WS_CHILD, 1, 1, 199, 24, m_rootView, nullptr, nullptr, nullptr);
     SetWindowLongPtrW(cHeader, GWLP_USERDATA, LONG_PTR(L"Collection"));
     OriginalListViewProc = WNDPROC(SetWindowLongPtr(cHeader, GWLP_WNDPROC, LONG_PTR(ColHeaderWindowProc)));
     ShowWindow(cHeader, SW_SHOW);
 
-    HWND gHeader = CreateWindowW(WC_HEADER,
-                                 L"",
-                                 WS_CHILD,
-                                 201, 1,
-                                 199,
-                                 24,
-                                 m_rootView,
-                                 nullptr,
-                                 nullptr,
-                                 nullptr);
+    HWND gHeader = CreateWindowW(WC_HEADER, L"", WS_CHILD, 201, 1, 199, 24, m_rootView, nullptr, nullptr, nullptr);
     SetWindowLongPtrW(gHeader, GWLP_USERDATA, LONG_PTR(L"Group"));
     OriginalListViewProc = WNDPROC(SetWindowLongPtr(gHeader, GWLP_WNDPROC, LONG_PTR(ColHeaderWindowProc)));
     ShowWindow(gHeader, SW_SHOW);
 
-    HWND pHeader = CreateWindowW(WC_HEADER,
-                                 L"",
-                                 WS_CHILD,
-                                 401, 1,
-                                 198,
-                                 24,
-                                 m_rootView,
-                                 nullptr,
-                                 nullptr,
-                                 nullptr);
+    HWND pHeader = CreateWindowW(WC_HEADER, L"", WS_CHILD, 401, 1, 198, 24, m_rootView, nullptr, nullptr, nullptr);
     SetWindowLongPtrW(pHeader, GWLP_USERDATA, LONG_PTR(L"Page"));
     OriginalListViewProc = WNDPROC(SetWindowLongPtr(pHeader, GWLP_WNDPROC, LONG_PTR(ColHeaderWindowProc)));
     ShowWindow(pHeader, SW_SHOW);
 
-    m_collectionAdd = CreateWindowW(WC_BUTTON,
-                                    L"+",
-                                    WS_CHILD | WS_CLIPSIBLINGS | BS_PUSHBUTTON,
-                                    1, m_windowRect.bottom - m_windowRect.top - 25,
-                                    25, 24,
-                                    m_rootView,
-                                    nullptr,
-                                    nullptr,
-                                    nullptr);
+    m_collectionAdd =
+        CreateWindowW(WC_BUTTON, L"+", WS_CHILD | WS_CLIPSIBLINGS | BS_PUSHBUTTON, 1,
+                      m_windowRect.bottom - m_windowRect.top - 25, 25, 24, m_rootView, nullptr, nullptr, nullptr);
     SetWindowFont(m_collectionAdd, GetStockObject(ANSI_FIXED_FONT), FALSE);
     Button_Enable(m_collectionAdd, TRUE);
     SetWindowPos(m_collectionAdd, HWND_TOP, 1, m_windowRect.bottom - m_windowRect.top - 25, 25, 24, SWP_SHOWWINDOW);
 
-    m_collectionRemove = CreateWindowW(WC_BUTTON,
-                                       L"-",
-                                       WS_CHILD | WS_CLIPSIBLINGS | BS_PUSHBUTTON,
-                                       26, m_windowRect.bottom - m_windowRect.top - 25,
-                                       25, 24,
-                                       m_rootView,
-                                       nullptr,
-                                       nullptr,
-                                       nullptr);
+    m_collectionRemove =
+        CreateWindowW(WC_BUTTON, L"-", WS_CHILD | WS_CLIPSIBLINGS | BS_PUSHBUTTON, 26,
+                      m_windowRect.bottom - m_windowRect.top - 25, 25, 24, m_rootView, nullptr, nullptr, nullptr);
     SetWindowFont(m_collectionRemove, GetStockObject(ANSI_FIXED_FONT), FALSE);
     Button_Enable(m_collectionRemove, FALSE);
     SetWindowPos(m_collectionRemove, HWND_TOP, 26, m_windowRect.bottom - m_windowRect.top - 25, 25, 24, SWP_SHOWWINDOW);
 
-
-    m_groupListView = CreateWindowW(WC_LISTVIEW,
-                                    L"",
-                                    WS_CHILD | LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_NOCOLUMNHEADER | LVS_NOSORTHEADER,
-                                    201, 25,
-                                    199,
-                                    m_windowRect.bottom - m_windowRect.top - 26,
-                                    m_rootView,
-                                    nullptr,
-                                    nullptr,
-                                    nullptr);
+    m_groupListView =
+        CreateWindowW(WC_LISTVIEW, L"",
+                      WS_CHILD | LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_NOCOLUMNHEADER | LVS_NOSORTHEADER,
+                      201, 25, 199, m_windowRect.bottom - m_windowRect.top - 26, m_rootView, nullptr, nullptr, nullptr);
     column.pszText = L"Group";
     HWND header = ListView_GetHeader(m_groupListView);
     SetWindowLongPtrW(header, GWLP_USERDATA, LONG_PTR(column.pszText));
     SetWindowLongPtr(header, GWLP_WNDPROC, LONG_PTR(ColHeaderWindowProc));
-    ListView_SetBkColor(m_groupListView, RGB(64,64,64));
+    ListView_SetBkColor(m_groupListView, RGB(64, 64, 64));
     ListView_SetTextBkColor(m_groupListView, CLR_NONE);
-    ListView_SetTextColor(m_groupListView, RGB(255,255,255));
+    ListView_SetTextColor(m_groupListView, RGB(255, 255, 255));
     ListView_InsertColumn(m_groupListView, 0, &column);
     ShowWindow(m_groupListView, SW_SHOW);
 
-    m_pageListView = CreateWindowW(WC_LISTVIEW,
-                                   L"",
-                                   WS_CHILD | LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_NOCOLUMNHEADER | LVS_NOSORTHEADER,
-                                   401, 25,
-                                   198,
-                                   m_windowRect.bottom - m_windowRect.top - 26,
-                                   m_rootView,
-                                   nullptr,
-                                   nullptr,
-                                   nullptr);
+    m_pageListView =
+        CreateWindowW(WC_LISTVIEW, L"",
+                      WS_CHILD | LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_NOCOLUMNHEADER | LVS_NOSORTHEADER,
+                      401, 25, 198, m_windowRect.bottom - m_windowRect.top - 26, m_rootView, nullptr, nullptr, nullptr);
     column.pszText = L"Page";
     column.cx = 198 - GetSystemMetrics(SM_CXVSCROLL);
     header = ListView_GetHeader(m_pageListView);
     SetWindowLongPtrW(header, GWLP_USERDATA, LONG_PTR(column.pszText));
     SetWindowLongPtr(header, GWLP_WNDPROC, LONG_PTR(ColHeaderWindowProc));
-    ListView_SetBkColor(m_pageListView, RGB(64,64,64));
+    ListView_SetBkColor(m_pageListView, RGB(64, 64, 64));
     ListView_SetTextBkColor(m_pageListView, CLR_NONE);
-    ListView_SetTextColor(m_pageListView, RGB(255,255,255));
+    ListView_SetTextColor(m_pageListView, RGB(255, 255, 255));
     ListView_InsertColumn(m_pageListView, 0, &column);
     ShowWindow(m_pageListView, SW_SHOW);
 
@@ -468,14 +387,7 @@ void VSTEditor::reselectPage()
     }
 }
 
-void VSTEditor::selectNormalPage(int idx)
-{
-    m_backend.setNormalProgram(idx);
-}
+void VSTEditor::selectNormalPage(int idx) { m_backend.setNormalProgram(idx); }
 
-void VSTEditor::selectDrumPage(int idx)
-{
-    m_backend.setDrumProgram(idx);
-}
-
+void VSTEditor::selectDrumPage(int idx) { m_backend.setDrumProgram(idx); }
 }

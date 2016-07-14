@@ -12,21 +12,21 @@
 #include <windows.h>
 #include <Stringapiset.h>
 
-static void *memmem(const void *haystack, size_t hlen, const void *needle, size_t nlen)
+static void* memmem(const void* haystack, size_t hlen, const void* needle, size_t nlen)
 {
     int needle_first;
-    const uint8_t *p = static_cast<const uint8_t*>(haystack);
+    const uint8_t* p = static_cast<const uint8_t*>(haystack);
     size_t plen = hlen;
 
     if (!nlen)
         return NULL;
 
-    needle_first = *(unsigned char *)needle;
+    needle_first = *(unsigned char*)needle;
 
     while (plen >= nlen && (p = static_cast<const uint8_t*>(memchr(p, needle_first, plen - nlen + 1))))
     {
         if (!memcmp(p, needle, nlen))
-            return (void *)p;
+            return (void*)p;
 
         p++;
         plen = hlen - (p - static_cast<const uint8_t*>(haystack));
@@ -45,10 +45,7 @@ static amuse::SystemString StrToSys(const std::string& str)
 }
 
 #else
-static amuse::SystemString StrToSys(const std::string& str)
-{
-    return str;
-}
+static amuse::SystemString StrToSys(const std::string& str) { return str; }
 
 #endif
 
@@ -105,14 +102,10 @@ static bool IsChunkExtension(const SystemChar* path, const SystemChar*& dotOut)
     const SystemChar* ext = StrRChr(path, _S('.'));
     if (ext)
     {
-        if (!CompareCaseInsensitive(ext, _S(".poo")) ||
-            !CompareCaseInsensitive(ext, _S(".pool")) ||
-            !CompareCaseInsensitive(ext, _S(".pro")) ||
-            !CompareCaseInsensitive(ext, _S(".proj")) ||
-            !CompareCaseInsensitive(ext, _S(".sdi")) ||
-            !CompareCaseInsensitive(ext, _S(".sdir")) ||
-            !CompareCaseInsensitive(ext, _S(".sam")) ||
-            !CompareCaseInsensitive(ext, _S(".samp")))
+        if (!CompareCaseInsensitive(ext, _S(".poo")) || !CompareCaseInsensitive(ext, _S(".pool")) ||
+            !CompareCaseInsensitive(ext, _S(".pro")) || !CompareCaseInsensitive(ext, _S(".proj")) ||
+            !CompareCaseInsensitive(ext, _S(".sdi")) || !CompareCaseInsensitive(ext, _S(".sdir")) ||
+            !CompareCaseInsensitive(ext, _S(".sam")) || !CompareCaseInsensitive(ext, _S(".samp")))
         {
             dotOut = ext;
             return true;
@@ -126,8 +119,7 @@ static bool IsSongExtension(const SystemChar* path, const SystemChar*& dotOut)
     const SystemChar* ext = StrRChr(path, _S('.'));
     if (ext)
     {
-        if (!CompareCaseInsensitive(ext, _S(".son")) ||
-            !CompareCaseInsensitive(ext, _S(".sng")) ||
+        if (!CompareCaseInsensitive(ext, _S(".son")) || !CompareCaseInsensitive(ext, _S(".sng")) ||
             !CompareCaseInsensitive(ext, _S(".song")))
         {
             dotOut = ext;
@@ -153,7 +145,7 @@ static bool ValidateMP1(FILE* fp)
         uint32_t nameCount;
         fread(&nameCount, 1, 4, fp);
         nameCount = SBig(nameCount);
-        for (uint32_t i=0 ; i<nameCount ; ++i)
+        for (uint32_t i = 0; i < nameCount; ++i)
         {
             FSeek(fp, 8, SEEK_CUR);
             uint32_t nameLen;
@@ -165,7 +157,7 @@ static bool ValidateMP1(FILE* fp)
         uint32_t resCount;
         fread(&resCount, 1, 4, fp);
         resCount = SBig(resCount);
-        for (uint32_t i=0 ; i<resCount ; ++i)
+        for (uint32_t i = 0; i < resCount; ++i)
         {
             FSeek(fp, 4, SEEK_CUR);
             uint32_t type;
@@ -212,7 +204,7 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadMP1(FIL
         uint32_t nameCount;
         fread(&nameCount, 1, 4, fp);
         nameCount = SBig(nameCount);
-        for (uint32_t i=0 ; i<nameCount ; ++i)
+        for (uint32_t i = 0; i < nameCount; ++i)
         {
             FSeek(fp, 8, SEEK_CUR);
             uint32_t nameLen;
@@ -225,7 +217,7 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadMP1(FIL
         fread(&resCount, 1, 4, fp);
         resCount = SBig(resCount);
         ret.reserve(resCount);
-        for (uint32_t i=0 ; i<resCount ; ++i)
+        for (uint32_t i = 0; i < resCount; ++i)
         {
             FSeek(fp, 4, SEEK_CUR);
             uint32_t type;
@@ -273,10 +265,10 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadMP1(FIL
                         std::unique_ptr<uint8_t[]> sdir(new uint8_t[sdirLen]);
                         fread(sdir.get(), 1, sdirLen, fp);
 
-                        ret.emplace_back(std::move(name), IntrusiveAudioGroupData{proj.release(), projLen,
-                                                                                  pool.release(), poolLen,
-                                                                                  sdir.release(), sdirLen,
-                                                                                  samp.release(), sampLen, GCNDataTag{}});
+                        ret.emplace_back(std::move(name),
+                                         IntrusiveAudioGroupData{proj.release(), projLen, pool.release(), poolLen,
+                                                                 sdir.release(), sdirLen, samp.release(), sampLen,
+                                                                 GCNDataTag{}});
                     }
                 }
                 FSeek(fp, origPos, SEEK_SET);
@@ -303,7 +295,7 @@ static bool ValidateMP1Songs(FILE* fp)
         uint32_t nameCount;
         fread(&nameCount, 1, 4, fp);
         nameCount = SBig(nameCount);
-        for (uint32_t i=0 ; i<nameCount ; ++i)
+        for (uint32_t i = 0; i < nameCount; ++i)
         {
             FSeek(fp, 8, SEEK_CUR);
             uint32_t nameLen;
@@ -315,7 +307,7 @@ static bool ValidateMP1Songs(FILE* fp)
         uint32_t resCount;
         fread(&resCount, 1, 4, fp);
         resCount = SBig(resCount);
-        for (uint32_t i=0 ; i<resCount ; ++i)
+        for (uint32_t i = 0; i < resCount; ++i)
         {
             FSeek(fp, 4, SEEK_CUR);
             uint32_t type;
@@ -353,7 +345,7 @@ static std::vector<std::pair<SystemString, ContainerRegistry::SongData>> LoadMP1
 
         std::unordered_map<uint32_t, SystemString> names;
         names.reserve(nameCount);
-        for (uint32_t i=0 ; i<nameCount ; ++i)
+        for (uint32_t i = 0; i < nameCount; ++i)
         {
             FSeek(fp, 4, SEEK_CUR);
             uint32_t id;
@@ -371,7 +363,7 @@ static std::vector<std::pair<SystemString, ContainerRegistry::SongData>> LoadMP1
         fread(&resCount, 1, 4, fp);
         resCount = SBig(resCount);
         ret.reserve(resCount);
-        for (uint32_t i=0 ; i<resCount ; ++i)
+        for (uint32_t i = 0; i < resCount; ++i)
         {
             FSeek(fp, 4, SEEK_CUR);
             uint32_t type;
@@ -420,7 +412,6 @@ static std::vector<std::pair<SystemString, ContainerRegistry::SongData>> LoadMP1
                     ret.emplace_back(name, ContainerRegistry::SongData(std::move(song), sonLength, groupId, midiSetup));
                 }
 
-
                 FSeek(fp, origPos, SEEK_SET);
             }
         }
@@ -445,7 +436,7 @@ static bool ValidateMP2(FILE* fp)
         uint32_t nameCount;
         fread(&nameCount, 1, 4, fp);
         nameCount = SBig(nameCount);
-        for (uint32_t i=0 ; i<nameCount ; ++i)
+        for (uint32_t i = 0; i < nameCount; ++i)
         {
             FSeek(fp, 8, SEEK_CUR);
             uint32_t nameLen;
@@ -457,7 +448,7 @@ static bool ValidateMP2(FILE* fp)
         uint32_t resCount;
         fread(&resCount, 1, 4, fp);
         resCount = SBig(resCount);
-        for (uint32_t i=0 ; i<resCount ; ++i)
+        for (uint32_t i = 0; i < resCount; ++i)
         {
             FSeek(fp, 4, SEEK_CUR);
             uint32_t type;
@@ -504,7 +495,7 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadMP2(FIL
         uint32_t nameCount;
         fread(&nameCount, 1, 4, fp);
         nameCount = SBig(nameCount);
-        for (uint32_t i=0 ; i<nameCount ; ++i)
+        for (uint32_t i = 0; i < nameCount; ++i)
         {
             FSeek(fp, 8, SEEK_CUR);
             uint32_t nameLen;
@@ -517,7 +508,7 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadMP2(FIL
         fread(&resCount, 1, 4, fp);
         resCount = SBig(resCount);
         ret.reserve(resCount);
-        for (uint32_t i=0 ; i<resCount ; ++i)
+        for (uint32_t i = 0; i < resCount; ++i)
         {
             FSeek(fp, 4, SEEK_CUR);
             uint32_t type;
@@ -571,10 +562,10 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadMP2(FIL
                             std::unique_ptr<uint8_t[]> samp(new uint8_t[sampSz]);
                             fread(samp.get(), 1, sampSz, fp);
 
-                            ret.emplace_back(std::move(name), IntrusiveAudioGroupData{proj.release(), projSz,
-                                                                                      pool.release(), poolSz,
-                                                                                      sdir.release(), sdirSz,
-                                                                                      samp.release(), sampSz, GCNDataTag{}});
+                            ret.emplace_back(std::move(name),
+                                             IntrusiveAudioGroupData{proj.release(), projSz, pool.release(), poolSz,
+                                                                     sdir.release(), sdirSz, samp.release(), sampSz,
+                                                                     GCNDataTag{}});
                         }
                     }
                 }
@@ -608,14 +599,14 @@ struct RS1FSTEntry
 static void SwapN64Rom16(void* data, size_t size)
 {
     uint16_t* words = reinterpret_cast<uint16_t*>(data);
-    for (size_t i=0 ; i<size/2 ; ++i)
+    for (size_t i = 0; i < size / 2; ++i)
         words[i] = SBig(words[i]);
 }
 
 static void SwapN64Rom32(void* data, size_t size)
 {
     uint32_t* words = reinterpret_cast<uint32_t*>(data);
-    for (size_t i=0 ; i<size/4 ; ++i)
+    for (size_t i = 0; i < size / 4; ++i)
         words[i] = SBig(words[i]);
 }
 
@@ -637,7 +628,7 @@ static bool ValidateRS1PC(FILE* fp)
             fread(entries.get(), fstSz, 1, fp);
 
             uint8_t foundComps = 0;
-            for (uint32_t i=0 ; i<elemCount ; ++i)
+            for (uint32_t i = 0; i < elemCount; ++i)
             {
                 RS1FSTEntry& entry = entries[i];
                 if (!strncmp("proj_SND", entry.name, 16))
@@ -683,7 +674,7 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadRS1PC(F
             std::unique_ptr<uint8_t[]> samp;
             size_t sampSz = 0;
 
-            for (uint32_t i=0 ; i<elemCount ; ++i)
+            for (uint32_t i = 0; i < elemCount; ++i)
             {
                 RS1FSTEntry& entry = entries[i];
                 if (!strncmp("proj_SND", entry.name, 16))
@@ -716,9 +707,9 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadRS1PC(F
                 }
             }
 
-            ret.emplace_back(_S("Group"), IntrusiveAudioGroupData{proj.release(), projSz, pool.release(), poolSz,
-                                                                  sdir.release(), sdirSz, samp.release(), sampSz,
-                                                                  false, PCDataTag{}});
+            ret.emplace_back(_S("Group"),
+                             IntrusiveAudioGroupData{proj.release(), projSz, pool.release(), poolSz, sdir.release(),
+                                                     sdirSz, samp.release(), sampSz, false, PCDataTag{}});
         }
     }
 
@@ -741,7 +732,7 @@ static std::vector<std::pair<SystemString, ContainerRegistry::SongData>> LoadRS1
             std::unique_ptr<RS1FSTEntry[]> entries(new RS1FSTEntry[elemCount]);
             fread(entries.get(), fstSz, 1, fp);
 
-            for (uint32_t i=0 ; i<elemCount ; ++i)
+            for (uint32_t i = 0; i < elemCount; ++i)
             {
                 RS1FSTEntry& entry = entries[i];
                 if (strstr(entry.name, "SNG"))
@@ -780,8 +771,8 @@ static bool ValidateRS1N64(FILE* fp)
         return false; /* GameId not 'NRSE', 'NRSJ', or 'NRSP' */
 #endif
 
-    const uint8_t* dataSeg = reinterpret_cast<const uint8_t*>(memmem(data.get(), endPos,
-                                                                     "dbg_data\0\0\0\0\0\0\0\0", 16));
+    const uint8_t* dataSeg =
+        reinterpret_cast<const uint8_t*>(memmem(data.get(), endPos, "dbg_data\0\0\0\0\0\0\0\0", 16));
     if (dataSeg)
     {
         dataSeg += 28;
@@ -795,7 +786,7 @@ static bool ValidateRS1N64(FILE* fp)
         const RS1FSTEntry* lastEnt = reinterpret_cast<const RS1FSTEntry*>(dataSeg + fstEnd);
 
         uint8_t foundComps = 0;
-        for (; entry != lastEnt ; ++entry)
+        for (; entry != lastEnt; ++entry)
         {
             if (!strncmp("proj_SND", entry->name, 16))
                 foundComps |= 1;
@@ -827,8 +818,8 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadRS1N64(
     else if ((data[0] & 0x80) != 0x80 && (data[1] & 0x80) == 0x80)
         SwapN64Rom16(data.get(), endPos);
 
-    const uint8_t* dataSeg = reinterpret_cast<const uint8_t*>(memmem(data.get(), endPos,
-                                                                     "dbg_data\0\0\0\0\0\0\0\0", 16));
+    const uint8_t* dataSeg =
+        reinterpret_cast<const uint8_t*>(memmem(data.get(), endPos, "dbg_data\0\0\0\0\0\0\0\0", 16));
     if (dataSeg)
     {
         dataSeg += 28;
@@ -850,7 +841,7 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadRS1N64(
         std::unique_ptr<uint8_t[]> samp;
         size_t sampSz = 0;
 
-        for (; entry != lastEnt ; ++entry)
+        for (; entry != lastEnt; ++entry)
         {
             RS1FSTEntry ent = *entry;
             ent.swapBig();
@@ -917,9 +908,9 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadRS1N64(
             }
         }
 
-        ret.emplace_back(_S("Group"), IntrusiveAudioGroupData{proj.release(), projSz, pool.release(), poolSz,
-                                                              sdir.release(), sdirSz, samp.release(), sampSz,
-                                                              false, N64DataTag{}});
+        ret.emplace_back(_S("Group"),
+                         IntrusiveAudioGroupData{proj.release(), projSz, pool.release(), poolSz, sdir.release(), sdirSz,
+                                                 samp.release(), sampSz, false, N64DataTag{}});
     }
 
     return ret;
@@ -938,8 +929,8 @@ static std::vector<std::pair<SystemString, ContainerRegistry::SongData>> LoadRS1
     else if ((data[0] & 0x80) != 0x80 && (data[1] & 0x80) == 0x80)
         SwapN64Rom16(data.get(), endPos);
 
-    const uint8_t* dataSeg = reinterpret_cast<const uint8_t*>(memmem(data.get(), endPos,
-                                                                     "dbg_data\0\0\0\0\0\0\0\0", 16));
+    const uint8_t* dataSeg =
+        reinterpret_cast<const uint8_t*>(memmem(data.get(), endPos, "dbg_data\0\0\0\0\0\0\0\0", 16));
     if (dataSeg)
     {
         dataSeg += 28;
@@ -952,7 +943,7 @@ static std::vector<std::pair<SystemString, ContainerRegistry::SongData>> LoadRS1
         const RS1FSTEntry* entry = reinterpret_cast<const RS1FSTEntry*>(dataSeg + fstOff);
         const RS1FSTEntry* lastEnt = reinterpret_cast<const RS1FSTEntry*>(dataSeg + fstEnd);
 
-        for (; entry != lastEnt ; ++entry)
+        for (; entry != lastEnt; ++entry)
         {
             RS1FSTEntry ent = *entry;
             ent.swapBig();
@@ -998,7 +989,7 @@ static bool ValidateBFNPC(FILE* fp)
             fread(entries.get(), fstSz, 1, fp);
 
             uint8_t foundComps = 0;
-            for (uint32_t i=0 ; i<elemCount ; ++i)
+            for (uint32_t i = 0; i < elemCount; ++i)
             {
                 RS1FSTEntry& entry = entries[i];
                 if (!strncmp("proj", entry.name, 16))
@@ -1044,7 +1035,7 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadBFNPC(F
             std::unique_ptr<uint8_t[]> samp;
             size_t sampSz = 0;
 
-            for (uint32_t i=0 ; i<elemCount ; ++i)
+            for (uint32_t i = 0; i < elemCount; ++i)
             {
                 RS1FSTEntry& entry = entries[i];
                 if (!strncmp("proj", entry.name, 16))
@@ -1077,9 +1068,9 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadBFNPC(F
                 }
             }
 
-            ret.emplace_back(_S("Group"), IntrusiveAudioGroupData{proj.release(), projSz, pool.release(), poolSz,
-                                                                  sdir.release(), sdirSz, samp.release(), sampSz,
-                                                                  true, PCDataTag{}});
+            ret.emplace_back(_S("Group"),
+                             IntrusiveAudioGroupData{proj.release(), projSz, pool.release(), poolSz, sdir.release(),
+                                                     sdirSz, samp.release(), sampSz, true, PCDataTag{}});
         }
     }
 
@@ -1102,7 +1093,7 @@ static std::vector<std::pair<SystemString, ContainerRegistry::SongData>> LoadBFN
             std::unique_ptr<RS1FSTEntry[]> entries(new RS1FSTEntry[elemCount]);
             fread(entries.get(), fstSz, 1, fp);
 
-            for (uint32_t i=0 ; i<elemCount ; ++i)
+            for (uint32_t i = 0; i < elemCount; ++i)
             {
                 RS1FSTEntry& entry = entries[i];
                 if (!strncmp(entry.name, "s_", 2))
@@ -1141,8 +1132,8 @@ static bool ValidateBFNN64(FILE* fp)
         return false; /* GameId not 'NRSE', 'NRSJ', or 'NRSP' */
 #endif
 
-    const uint8_t* dataSeg = reinterpret_cast<const uint8_t*>(memmem(data.get(), endPos,
-                                                                     "dbg_data\0\0\0\0\0\0\0\0", 16));
+    const uint8_t* dataSeg =
+        reinterpret_cast<const uint8_t*>(memmem(data.get(), endPos, "dbg_data\0\0\0\0\0\0\0\0", 16));
     if (dataSeg)
     {
         dataSeg += 28;
@@ -1156,7 +1147,7 @@ static bool ValidateBFNN64(FILE* fp)
         const RS1FSTEntry* lastEnt = reinterpret_cast<const RS1FSTEntry*>(dataSeg + fstEnd);
 
         uint8_t foundComps = 0;
-        for (; entry != lastEnt ; ++entry)
+        for (; entry != lastEnt; ++entry)
         {
             if (!strncmp("proj", entry->name, 16))
                 foundComps |= 1;
@@ -1188,8 +1179,8 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadBFNN64(
     else if ((data[0] & 0x80) != 0x80 && (data[1] & 0x80) == 0x80)
         SwapN64Rom16(data.get(), endPos);
 
-    const uint8_t* dataSeg = reinterpret_cast<const uint8_t*>(memmem(data.get(), endPos,
-                                                                     "dbg_data\0\0\0\0\0\0\0\0", 16));
+    const uint8_t* dataSeg =
+        reinterpret_cast<const uint8_t*>(memmem(data.get(), endPos, "dbg_data\0\0\0\0\0\0\0\0", 16));
     if (dataSeg)
     {
         dataSeg += 28;
@@ -1211,7 +1202,7 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadBFNN64(
         std::unique_ptr<uint8_t[]> samp;
         size_t sampSz = 0;
 
-        for (; entry != lastEnt ; ++entry)
+        for (; entry != lastEnt; ++entry)
         {
             RS1FSTEntry ent = *entry;
             ent.swapBig();
@@ -1278,9 +1269,9 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadBFNN64(
             }
         }
 
-        ret.emplace_back(_S("Group"), IntrusiveAudioGroupData{proj.release(), projSz, pool.release(), poolSz,
-                                                              sdir.release(), sdirSz, samp.release(), sampSz,
-                                                              true, N64DataTag{}});
+        ret.emplace_back(_S("Group"),
+                         IntrusiveAudioGroupData{proj.release(), projSz, pool.release(), poolSz, sdir.release(), sdirSz,
+                                                 samp.release(), sampSz, true, N64DataTag{}});
     }
 
     return ret;
@@ -1299,8 +1290,8 @@ static std::vector<std::pair<SystemString, ContainerRegistry::SongData>> LoadBFN
     else if ((data[0] & 0x80) != 0x80 && (data[1] & 0x80) == 0x80)
         SwapN64Rom16(data.get(), endPos);
 
-    const uint8_t* dataSeg = reinterpret_cast<const uint8_t*>(memmem(data.get(), endPos,
-                                                                     "dbg_data\0\0\0\0\0\0\0\0", 16));
+    const uint8_t* dataSeg =
+        reinterpret_cast<const uint8_t*>(memmem(data.get(), endPos, "dbg_data\0\0\0\0\0\0\0\0", 16));
     if (dataSeg)
     {
         dataSeg += 28;
@@ -1313,7 +1304,7 @@ static std::vector<std::pair<SystemString, ContainerRegistry::SongData>> LoadBFN
         const RS1FSTEntry* entry = reinterpret_cast<const RS1FSTEntry*>(dataSeg + fstOff);
         const RS1FSTEntry* lastEnt = reinterpret_cast<const RS1FSTEntry*>(dataSeg + fstEnd);
 
-        for (; entry != lastEnt ; ++entry)
+        for (; entry != lastEnt; ++entry)
         {
             RS1FSTEntry ent = *entry;
             ent.swapBig();
@@ -1427,7 +1418,7 @@ static bool ValidateRS2(FILE* fp)
         return false;
 
     FSeek(fp, int64_t(fstOff), SEEK_SET);
-    for (size_t i=0 ; i<fstSz/64 ; ++i)
+    for (size_t i = 0; i < fstSz / 64; ++i)
     {
         RS2FSTEntry entry;
         fread(&entry, 1, 64, fp);
@@ -1457,7 +1448,7 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadRS2(FIL
         return ret;
 
     FSeek(fp, int64_t(fstOff), SEEK_SET);
-    for (size_t i=0 ; i<fstSz/64 ; ++i)
+    for (size_t i = 0; i < fstSz / 64; ++i)
     {
         RS2FSTEntry entry;
         fread(&entry, 1, 64, fp);
@@ -1472,7 +1463,7 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadRS2(FIL
             uint32_t groupCount = SBig(*reinterpret_cast<uint32_t*>(audData.get() + indexOff));
             const uint32_t* groupOffs = reinterpret_cast<const uint32_t*>(audData.get() + indexOff + 4);
 
-            for (uint32_t j=0 ; j<groupCount ; ++j)
+            for (uint32_t j = 0; j < groupCount; ++j)
             {
                 const uint8_t* groupData = audData.get() + SBig(groupOffs[j]);
                 RS23GroupHead head = *reinterpret_cast<const RS23GroupHead*>(groupData);
@@ -1494,8 +1485,9 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadRS2(FIL
                 {
                     SystemChar name[128];
                     SNPrintf(name, 128, _S("GroupFile%02u"), j);
-                    ret.emplace_back(name, IntrusiveAudioGroupData{proj.release(), head.projLen, pool.release(), head.poolLen,
-                                                                   sdir.release(), head.sdirLen, samp.release(), head.sampLen, GCNDataTag{}});
+                    ret.emplace_back(name, IntrusiveAudioGroupData{proj.release(), head.projLen, pool.release(),
+                                                                   head.poolLen, sdir.release(), head.sdirLen,
+                                                                   samp.release(), head.sampLen, GCNDataTag{}});
                 }
             }
 
@@ -1522,7 +1514,7 @@ static std::vector<std::pair<SystemString, ContainerRegistry::SongData>> LoadRS2
         return ret;
 
     FSeek(fp, int64_t(fstOff), SEEK_SET);
-    for (size_t i=0 ; i<fstSz/64 ; ++i)
+    for (size_t i = 0; i < fstSz / 64; ++i)
     {
         RS2FSTEntry entry;
         fread(&entry, 1, 64, fp);
@@ -1537,7 +1529,7 @@ static std::vector<std::pair<SystemString, ContainerRegistry::SongData>> LoadRS2
             uint32_t groupCount = SBig(*reinterpret_cast<uint32_t*>(audData.get() + indexOff));
             const uint32_t* groupOffs = reinterpret_cast<const uint32_t*>(audData.get() + indexOff + 4);
 
-            for (uint32_t j=0 ; j<groupCount ; ++j)
+            for (uint32_t j = 0; j < groupCount; ++j)
             {
                 const uint8_t* groupData = audData.get() + SBig(groupOffs[j]);
                 RS23GroupHead head = *reinterpret_cast<const RS23GroupHead*>(groupData);
@@ -1547,7 +1539,7 @@ static std::vector<std::pair<SystemString, ContainerRegistry::SongData>> LoadRS2
                     continue;
 
                 const RS23SONHead* sonData = reinterpret_cast<const RS23SONHead*>(audData.get() + head.sonIdxBeginOff);
-                for (uint32_t s=0 ; s<head.sonCount ; ++s)
+                for (uint32_t s = 0; s < head.sonCount; ++s)
                 {
                     RS23SONHead sonHead = sonData[s];
                     sonHead.swapBig();
@@ -1556,8 +1548,8 @@ static std::vector<std::pair<SystemString, ContainerRegistry::SongData>> LoadRS2
                     SNPrintf(name, 128, _S("GroupFile%02u-%u"), j, s);
                     std::unique_ptr<uint8_t[]> song(new uint8_t[sonHead.length]);
                     memmove(song.get(), audData.get() + sonHead.offset, sonHead.length);
-                    ret.emplace_back(name, ContainerRegistry::SongData(std::move(song), sonHead.length,
-                                                                       sonHead.groupId, sonHead.setupId));
+                    ret.emplace_back(name, ContainerRegistry::SongData(std::move(song), sonHead.length, sonHead.groupId,
+                                                                       sonHead.setupId));
                 }
             }
 
@@ -1602,7 +1594,7 @@ static bool ValidateRS3(FILE* fp)
         return false;
 
     FSeek(fp, int64_t(fstOff), SEEK_SET);
-    for (size_t i=0 ; i<fstSz/160 ; ++i)
+    for (size_t i = 0; i < fstSz / 160; ++i)
     {
         RS3FSTEntry entry;
         fread(&entry, 1, 160, fp);
@@ -1630,7 +1622,7 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadRS3(FIL
         return ret;
 
     FSeek(fp, int64_t(fstOff), SEEK_SET);
-    for (size_t i=0 ; i<fstSz/160 ; ++i)
+    for (size_t i = 0; i < fstSz / 160; ++i)
     {
         RS3FSTEntry entry;
         fread(&entry, 1, 160, fp);
@@ -1645,7 +1637,7 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadRS3(FIL
             uint32_t groupCount = SBig(*reinterpret_cast<uint32_t*>(audData.get() + indexOff));
             const uint32_t* groupOffs = reinterpret_cast<const uint32_t*>(audData.get() + indexOff + 4);
 
-            for (uint32_t j=0 ; j<groupCount ; ++j)
+            for (uint32_t j = 0; j < groupCount; ++j)
             {
                 const uint8_t* groupData = audData.get() + SBig(groupOffs[j]);
                 RS23GroupHead head = *reinterpret_cast<const RS23GroupHead*>(groupData);
@@ -1667,8 +1659,9 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadRS3(FIL
                 {
                     SystemChar name[128];
                     SNPrintf(name, 128, _S("GroupFile%02u"), j);
-                    ret.emplace_back(name, IntrusiveAudioGroupData{proj.release(), head.projLen, pool.release(), head.poolLen,
-                                                                   sdir.release(), head.sdirLen, samp.release(), head.sampLen, GCNDataTag{}});
+                    ret.emplace_back(name, IntrusiveAudioGroupData{proj.release(), head.projLen, pool.release(),
+                                                                   head.poolLen, sdir.release(), head.sdirLen,
+                                                                   samp.release(), head.sampLen, GCNDataTag{}});
                 }
             }
 
@@ -1690,8 +1683,8 @@ static bool ValidateStarFoxAdvSongs(FILE* fp)
 
     const uint32_t* lengths = reinterpret_cast<const uint32_t*>(data.get());
     size_t totalLen = 0;
-    int i=0;
-    for (; i<128 ; ++i)
+    int i = 0;
+    for (; i < 128; ++i)
     {
         uint32_t len = SBig(lengths[i]);
         if (len == 0)
@@ -1699,7 +1692,7 @@ static bool ValidateStarFoxAdvSongs(FILE* fp)
         totalLen += len;
         totalLen = ((totalLen + 31) & ~31);
     }
-    totalLen += (((i*4) + 31) & ~31);
+    totalLen += (((i * 4) + 31) & ~31);
 
     return totalLen == endPos;
 }
@@ -1716,8 +1709,8 @@ static std::vector<std::pair<SystemString, ContainerRegistry::SongData>> LoadSta
     fread(data.get(), 1, endPos, midifp);
 
     const uint32_t* lengths = reinterpret_cast<const uint32_t*>(data.get());
-    int i=0;
-    for (; i<128 ; ++i)
+    int i = 0;
+    for (; i < 128; ++i)
     {
         uint32_t len = SBig(lengths[i]);
         if (len == 0)
@@ -1725,8 +1718,8 @@ static std::vector<std::pair<SystemString, ContainerRegistry::SongData>> LoadSta
     }
 
     size_t sngCount = i;
-    size_t cur = (((sngCount*4) + 31) & ~31);
-    for (i=0; i<sngCount ; ++i)
+    size_t cur = (((sngCount * 4) + 31) & ~31);
+    for (i = 0; i < sngCount; ++i)
     {
         uint32_t len = SBig(lengths[i]);
         if (len == 0)
@@ -1768,7 +1761,8 @@ struct TTYDSongDesc
     uint8_t setup;
 };
 
-static std::vector<std::pair<SystemString, ContainerRegistry::SongData>> LoadPaperMarioTTYDSongs(FILE* midifp, FILE* descFp)
+static std::vector<std::pair<SystemString, ContainerRegistry::SongData>> LoadPaperMarioTTYDSongs(FILE* midifp,
+                                                                                                 FILE* descFp)
 {
     if (!descFp)
         return {};
@@ -1802,9 +1796,9 @@ static std::vector<std::pair<SystemString, ContainerRegistry::SongData>> LoadPap
 
         std::unique_ptr<uint8_t[]> songData(new uint8_t[len - 32]);
         memcpy(songData.get(), (data.get() + off + 32), len - 32);
-        ret.emplace_back(StrToSys(std::string(songDescs[song].name, 30)),
-                         ContainerRegistry::SongData(std::move(songData), len - 32,
-                             songDescs[song].group, songDescs[song].setup));
+        ret.emplace_back(
+            StrToSys(std::string(songDescs[song].name, 30)),
+            ContainerRegistry::SongData(std::move(songData), len - 32, songDescs[song].group, songDescs[song].setup));
         off += len;
         song++;
     }
@@ -1931,15 +1925,14 @@ ContainerRegistry::Type ContainerRegistry::DetectContainerType(const SystemChar*
     return Type::Invalid;
 }
 
-std::vector<std::pair<SystemString, IntrusiveAudioGroupData>>
-ContainerRegistry::LoadContainer(const SystemChar* path)
+std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> ContainerRegistry::LoadContainer(const SystemChar* path)
 {
     Type typeOut;
     return LoadContainer(path, typeOut);
 };
 
-std::vector<std::pair<SystemString, IntrusiveAudioGroupData>>
-ContainerRegistry::LoadContainer(const SystemChar* path, Type& typeOut)
+std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> ContainerRegistry::LoadContainer(const SystemChar* path,
+                                                                                               Type& typeOut)
 {
     FILE* fp;
     typeOut = Type::Invalid;
@@ -2034,17 +2027,17 @@ ContainerRegistry::LoadContainer(const SystemChar* path, Type& typeOut)
 
         /* SDIR-based format detection */
         if (*reinterpret_cast<uint32_t*>(sdir.get() + 8) == 0x0)
-            ret.emplace_back(_S("Group"), IntrusiveAudioGroupData{proj.release(), projLen, pool.release(), poolLen,
-                                                                  sdir.release(), sdirLen, samp.release(), sampLen,
-                                                                  GCNDataTag{}});
+            ret.emplace_back(_S("Group"),
+                             IntrusiveAudioGroupData{proj.release(), projLen, pool.release(), poolLen, sdir.release(),
+                                                     sdirLen, samp.release(), sampLen, GCNDataTag{}});
         else if (sdir[9] == 0x0)
-            ret.emplace_back(_S("Group"), IntrusiveAudioGroupData{proj.release(), projLen, pool.release(), poolLen,
-                                                                  sdir.release(), sdirLen, samp.release(), sampLen,
-                                                                  false, N64DataTag{}});
+            ret.emplace_back(_S("Group"),
+                             IntrusiveAudioGroupData{proj.release(), projLen, pool.release(), poolLen, sdir.release(),
+                                                     sdirLen, samp.release(), sampLen, false, N64DataTag{}});
         else
-            ret.emplace_back(_S("Group"), IntrusiveAudioGroupData{proj.release(), projLen, pool.release(), poolLen,
-                                                                  sdir.release(), sdirLen, samp.release(), sampLen,
-                                                                  false, PCDataTag{}});
+            ret.emplace_back(_S("Group"),
+                             IntrusiveAudioGroupData{proj.release(), projLen, pool.release(), poolLen, sdir.release(),
+                                                     sdirLen, samp.release(), sampLen, false, PCDataTag{}});
 
         typeOut = Type::Raw4;
         return ret;
@@ -2124,8 +2117,7 @@ ContainerRegistry::LoadContainer(const SystemChar* path, Type& typeOut)
     return {};
 }
 
-std::vector<std::pair<SystemString, ContainerRegistry::SongData>>
-ContainerRegistry::LoadSongs(const SystemChar* path)
+std::vector<std::pair<SystemString, ContainerRegistry::SongData>> ContainerRegistry::LoadSongs(const SystemChar* path)
 {
     FILE* fp;
 
@@ -2223,5 +2215,4 @@ ContainerRegistry::LoadSongs(const SystemChar* path)
 
     return {};
 }
-
 }

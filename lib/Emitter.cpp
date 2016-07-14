@@ -18,28 +18,15 @@ void Emitter::_destroy()
     m_vox->kill();
 }
 
-void Emitter::setPos(const Vector3f& pos)
-{
-}
+void Emitter::setPos(const Vector3f& pos) {}
 
-void Emitter::setDir(const Vector3f& dir)
-{
-}
+void Emitter::setDir(const Vector3f& dir) {}
 
-void Emitter::setMaxDist(float maxDist)
-{
-}
+void Emitter::setMaxDist(float maxDist) {}
 
-void Emitter::setMaxVol(float maxVol)
-{
-}
+void Emitter::setMaxVol(float maxVol) {}
 
-void Emitter::setMinVol(float minVol)
-{
-}
+void Emitter::setMinVol(float minVol) {}
 
-void Emitter::setFalloff(float falloff)
-{
-}
-
+void Emitter::setFalloff(float falloff) {}
 }

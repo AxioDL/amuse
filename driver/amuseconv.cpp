@@ -52,7 +52,6 @@ static bool ExtractAudioGroup(const amuse::SystemString& inPath, const amuse::Sy
         {
             Log.report(logvisor::Info, _S("Extracting %s"), group.first.c_str());
         }
-
     }
 
     auto songs = amuse::ContainerRegistry::LoadSongs(inPath.c_str());
@@ -74,7 +73,8 @@ static bool ExtractAudioGroup(const amuse::SystemString& inPath, const amuse::Sy
             Log.report(logvisor::Info, _S("Extracting %s"), pair.first.c_str());
             int extractedVersion;
             bool isBig;
-            std::vector<uint8_t> mid = amuse::SongConverter::SongToMIDI(pair.second.m_data.get(), extractedVersion, isBig);
+            std::vector<uint8_t> mid =
+                amuse::SongConverter::SongToMIDI(pair.second.m_data.get(), extractedVersion, isBig);
             fwrite(mid.data(), 1, mid.size(), fp);
             fclose(fp);
         }
@@ -173,14 +173,12 @@ int main(int argc, const amuse::SystemChar** argv)
         const amuse::SystemChar* dot = barePath.c_str() + dotPos;
         if (dotPos != amuse::SystemString::npos)
         {
-            if (!amuse::CompareCaseInsensitive(dot, _S(".mid")) ||
-                !amuse::CompareCaseInsensitive(dot, _S(".midi")))
+            if (!amuse::CompareCaseInsensitive(dot, _S(".mid")) || !amuse::CompareCaseInsensitive(dot, _S(".midi")))
             {
                 ReportConvType(type);
                 good = BuildSNG(barePath, argv[2], 1, true);
             }
-            else if (!amuse::CompareCaseInsensitive(dot, _S(".son")) ||
-                     !amuse::CompareCaseInsensitive(dot, _S(".sng")))
+            else if (!amuse::CompareCaseInsensitive(dot, _S(".son")) || !amuse::CompareCaseInsensitive(dot, _S(".sng")))
             {
                 good = ExtractSNG(argv[1], argv[2]);
             }

@@ -13,27 +13,17 @@ struct VSTVoiceEngine : boo::BaseAudioVoiceEngine
     size_t m_renderFrames = 0;
     size_t m_curBufFrame = 0;
 
-    boo::AudioChannelSet _getAvailableSet()
-    {
-        return boo::AudioChannelSet::Stereo;
-    }
+    boo::AudioChannelSet _getAvailableSet() { return boo::AudioChannelSet::Stereo; }
 
-    std::vector<std::pair<std::string, std::string>> enumerateMIDIDevices() const
-    {
-        return {};
-    }
+    std::vector<std::pair<std::string, std::string>> enumerateMIDIDevices() const { return {}; }
 
     boo::ReceiveFunctor* m_midiReceiver = nullptr;
 
     struct MIDIIn : public boo::IMIDIIn
     {
-        MIDIIn(bool virt, boo::ReceiveFunctor&& receiver)
-        : IMIDIIn(virt, std::move(receiver)) {}
+        MIDIIn(bool virt, boo::ReceiveFunctor&& receiver) : IMIDIIn(virt, std::move(receiver)) {}
 
-        std::string description() const
-        {
-            return "VST MIDI";
-        }
+        std::string description() const { return "VST MIDI"; }
     };
 
     std::unique_ptr<boo::IMIDIIn> newVirtualMIDIIn(boo::ReceiveFunctor&& receiver)
@@ -43,32 +33,17 @@ struct VSTVoiceEngine : boo::BaseAudioVoiceEngine
         return ret;
     }
 
-    std::unique_ptr<boo::IMIDIOut> newVirtualMIDIOut()
-    {
-        return {};
-    }
+    std::unique_ptr<boo::IMIDIOut> newVirtualMIDIOut() { return {}; }
 
-    std::unique_ptr<boo::IMIDIInOut> newVirtualMIDIInOut(boo::ReceiveFunctor&& receiver)
-    {
-        return {};
-    }
+    std::unique_ptr<boo::IMIDIInOut> newVirtualMIDIInOut(boo::ReceiveFunctor&& receiver) { return {}; }
 
-    std::unique_ptr<boo::IMIDIIn> newRealMIDIIn(const char* name, boo::ReceiveFunctor&& receiver)
-    {
-        return {};
-    }
+    std::unique_ptr<boo::IMIDIIn> newRealMIDIIn(const char* name, boo::ReceiveFunctor&& receiver) { return {}; }
 
-    std::unique_ptr<boo::IMIDIOut> newRealMIDIOut(const char* name)
-    {
-        return {};
-    }
+    std::unique_ptr<boo::IMIDIOut> newRealMIDIOut(const char* name) { return {}; }
 
-    std::unique_ptr<boo::IMIDIInOut> newRealMIDIInOut(const char* name, boo::ReceiveFunctor&& receiver)
-    {
-        return {};
-    }
+    std::unique_ptr<boo::IMIDIInOut> newRealMIDIInOut(const char* name, boo::ReceiveFunctor&& receiver) { return {}; }
 
-    bool useMIDILock() const {return false;}
+    bool useMIDILock() const { return false; }
 
     VSTVoiceEngine()
     {
@@ -112,7 +87,7 @@ struct VSTVoiceEngine : boo::BaseAudioVoiceEngine
 
     void pumpAndMixVoices()
     {
-        for (size_t f=0 ; f<m_renderFrames ;)
+        for (size_t f = 0; f < m_renderFrames;)
         {
             if (m_curBufFrame == m_5msFrames)
             {
@@ -123,11 +98,11 @@ struct VSTVoiceEngine : boo::BaseAudioVoiceEngine
             size_t remRenderFrames = std::min(m_renderFrames - f, m_5msFrames - m_curBufFrame);
             if (remRenderFrames)
             {
-                for (size_t i=0 ; i<2 ; ++i)
+                for (size_t i = 0; i < 2; ++i)
                 {
                     float* bufOut = m_outputData[i];
-                    for (size_t lf=0 ; lf<remRenderFrames ; ++lf)
-                        bufOut[f+lf] = m_interleavedBuf[(m_curBufFrame+lf)*2+i];
+                    for (size_t lf = 0; lf < remRenderFrames; ++lf)
+                        bufOut[f + lf] = m_interleavedBuf[(m_curBufFrame + lf) * 2 + i];
                 }
                 m_curBufFrame += remRenderFrames;
                 f += remRenderFrames;
@@ -135,18 +110,17 @@ struct VSTVoiceEngine : boo::BaseAudioVoiceEngine
         }
     }
 
-    double getCurrentSampleRate() const {return m_mixInfo.m_sampleRate;}
+    double getCurrentSampleRate() const { return m_mixInfo.m_sampleRate; }
 };
 
 namespace amuse
 {
 
-#define kBackendID CCONST ('a','m','u','s')
+#define kBackendID CCONST('a', 'm', 'u', 's')
 
 static logvisor::Module Log("amuse::AudioUnitBackend");
 
-VSTBackend::VSTBackend(audioMasterCallback cb)
-: AudioEffectX(cb, 0, 0), m_filePresenter(*this), m_editor(*this)
+VSTBackend::VSTBackend(audioMasterCallback cb) : AudioEffectX(cb, 0, 0), m_filePresenter(*this), m_editor(*this)
 {
     isSynth();
     setUniqueID(kBackendID);
@@ -170,15 +144,9 @@ VSTBackend::VSTBackend(audioMasterCallback cb)
     m_filePresenter.update();
 }
 
-VSTBackend::~VSTBackend()
-{
-    editor = nullptr;
-}
+VSTBackend::~VSTBackend() { editor = nullptr; }
 
-AEffEditor* VSTBackend::getEditor()
-{
-    return &m_editor;
-}
+AEffEditor* VSTBackend::getEditor() { return &m_editor; }
 
 VstInt32 VSTBackend::processEvents(VstEvents* events)
 {
@@ -197,7 +165,7 @@ VstInt32 VSTBackend::processEvents(VstEvents* events)
 
     if (engine.m_midiReceiver)
     {
-        for (VstInt32 i=0 ; i<events->numEvents ; ++i)
+        for (VstInt32 i = 0; i < events->numEvents; ++i)
         {
             VstMidiEvent* evt = reinterpret_cast<VstMidiEvent*>(events->events[i]);
             if (evt->type == kVstMidiType)
@@ -207,9 +175,9 @@ VstInt32 VSTBackend::processEvents(VstEvents* events)
                     evt->midiData[0] &= ~0xf;
                     evt->midiData[0] |= m_routeChannel & 0xf;
                 }
-                (*engine.m_midiReceiver)(std::vector<uint8_t>(std::cbegin(evt->midiData),
-                                                              std::cbegin(evt->midiData) + evt->byteSize),
-                                         (m_curFrame + evt->deltaFrames) / sampleRate);
+                (*engine.m_midiReceiver)(
+                    std::vector<uint8_t>(std::cbegin(evt->midiData), std::cbegin(evt->midiData) + evt->byteSize),
+                    (m_curFrame + evt->deltaFrames) / sampleRate);
             }
         }
     }
@@ -242,10 +210,7 @@ VstInt32 VSTBackend::canDo(char* text)
     return returnCode;
 }
 
-VstPlugCategory VSTBackend::getPlugCategory()
-{
-    return kPlugCategSynth;
-}
+VstPlugCategory VSTBackend::getPlugCategory() { return kPlugCategSynth; }
 
 bool VSTBackend::getEffectName(char* text)
 {
@@ -284,10 +249,7 @@ bool VSTBackend::getOutputProperties(VstInt32 index, VstPinProperties* propertie
     return returnCode;
 }
 
-VstInt32 VSTBackend::getNumMidiInputChannels()
-{
-    return 1;
-}
+VstInt32 VSTBackend::getNumMidiInputChannels() { return 1; }
 
 void VSTBackend::setSampleRate(float sampleRate)
 {
@@ -427,10 +389,6 @@ VstInt32 VSTBackend::setChunk(void* data, VstInt32 byteSize, bool)
 
     return 1;
 }
-
 }
 
-AudioEffect* createEffectInstance(audioMasterCallback audioMaster)
-{
-    return new amuse::VSTBackend(audioMaster);
-}
+AudioEffect* createEffectInstance(audioMasterCallback audioMaster) { return new amuse::VSTBackend(audioMaster); }

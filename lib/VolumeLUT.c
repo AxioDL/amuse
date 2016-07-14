@@ -1,14 +1,13 @@
-namespace amuse
-{
+/* clang-format off */
 
-/*
+/* # [-10,0] dB RMS volume scale generator
  * import math
  * print("    %.10ff," % 0.0)
  * for i in range(65536):
  *     print("    %.10ff," % (math.sqrt(10 ** (i/65536 - 1)) - 0.31622))
  */
 
-extern "C" const float VolumeLUT[] =
+const float VolumeLUT[] =
 {
     0.f,
     0.0000077660f,
@@ -65548,5 +65547,4 @@ extern "C" const float VolumeLUT[] =
     0.6837448660f,
     0.6837624328f
 };
-
-}
+/* clang-format on */

@@ -17,6 +17,7 @@ class Emitter : public Entity
 
     friend class Engine;
     void _destroy();
+
 public:
     ~Emitter();
     Emitter(Engine& engine, const AudioGroup& group, std::shared_ptr<Voice>&& vox);
@@ -28,9 +29,8 @@ public:
     void setMinVol(float minVol);
     void setFalloff(float falloff);
 
-    std::shared_ptr<Voice>& getVoice() {return m_vox;}
+    std::shared_ptr<Voice>& getVoice() { return m_vox; }
 };
-
 }
 
 #endif // __AMUSE_EMITTER_HPP__

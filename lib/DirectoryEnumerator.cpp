@@ -8,11 +8,11 @@
 #include <sys/stat.h>
 
 #if !defined(S_ISREG) && defined(S_IFMT) && defined(S_IFREG)
-#define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
+#define S_ISREG(m) (((m)&S_IFMT) == S_IFREG)
 #endif
 
 #if !defined(S_ISDIR) && defined(S_IFMT) && defined(S_IFDIR)
-#define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
+#define S_ISDIR(m) (((m)&S_IFMT) == S_IFDIR)
 #endif
 
 #include <map>
@@ -22,8 +22,7 @@
 namespace amuse
 {
 
-DirectoryEnumerator::DirectoryEnumerator(const SystemChar* path, Mode mode,
-                                         bool sizeSort, bool reverse, bool noHidden)
+DirectoryEnumerator::DirectoryEnumerator(const SystemChar* path, Mode mode, bool sizeSort, bool reverse, bool noHidden)
 {
     Sstat theStat;
     if (Stat(path, &theStat) || !S_ISDIR(theStat.st_mode))
@@ -75,7 +74,7 @@ DirectoryEnumerator::DirectoryEnumerator(const SystemChar* path, Mode mode,
             if (noHidden && (d.cFileName[0] == L'.' || (d.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) != 0))
                 continue;
             SystemString fp(path);
-            fp +=_S('/');
+            fp += _S('/');
             fp += d.cFileName;
             Sstat st;
             if (Stat(fp.c_str(), &st) || !S_ISDIR(st.st_mode))
@@ -84,7 +83,7 @@ DirectoryEnumerator::DirectoryEnumerator(const SystemChar* path, Mode mode,
         } while (FindNextFileW(dir, &d));
 
         if (reverse)
-            for (auto it=sort.crbegin() ; it != sort.crend() ; ++it)
+            for (auto it = sort.crbegin(); it != sort.crend(); ++it)
                 m_entries.push_back(std::move(it->second));
         else
             for (auto& e : sort)
@@ -119,7 +118,7 @@ DirectoryEnumerator::DirectoryEnumerator(const SystemChar* path, Mode mode,
             } while (FindNextFileW(dir, &d));
 
             if (reverse)
-                for (auto it=sort.crbegin() ; it != sort.crend() ; ++it)
+                for (auto it = sort.crbegin(); it != sort.crend(); ++it)
                     m_entries.push_back(std::move(it->second));
             else
                 for (auto& e : sort)
@@ -144,7 +143,7 @@ DirectoryEnumerator::DirectoryEnumerator(const SystemChar* path, Mode mode,
             } while (FindNextFileW(dir, &d));
 
             if (reverse)
-                for (auto it=sort.crbegin() ; it != sort.crend() ; ++it)
+                for (auto it = sort.crbegin(); it != sort.crend(); ++it)
                     m_entries.push_back(std::move(it->second));
             else
                 for (auto& e : sort)
@@ -210,7 +209,7 @@ DirectoryEnumerator::DirectoryEnumerator(const SystemChar* path, Mode mode,
         }
 
         if (reverse)
-            for (auto it=sort.crbegin() ; it != sort.crend() ; ++it)
+            for (auto it = sort.crbegin(); it != sort.crend(); ++it)
                 m_entries.push_back(std::move(it->second));
         else
             for (auto& e : sort)
@@ -244,7 +243,7 @@ DirectoryEnumerator::DirectoryEnumerator(const SystemChar* path, Mode mode,
             }
 
             if (reverse)
-                for (auto it=sort.crbegin() ; it != sort.crend() ; ++it)
+                for (auto it = sort.crbegin(); it != sort.crend(); ++it)
                     m_entries.push_back(std::move(it->second));
             else
                 for (auto& e : sort)
@@ -269,7 +268,7 @@ DirectoryEnumerator::DirectoryEnumerator(const SystemChar* path, Mode mode,
             }
 
             if (reverse)
-                for (auto it=sort.crbegin() ; it != sort.crend() ; ++it)
+                for (auto it = sort.crbegin(); it != sort.crend(); ++it)
                     m_entries.push_back(std::move(it->second));
             else
                 for (auto& e : sort)
@@ -283,5 +282,4 @@ DirectoryEnumerator::DirectoryEnumerator(const SystemChar* path, Mode mode,
 
 #endif
 }
-
 }

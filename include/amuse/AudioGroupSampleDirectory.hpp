@@ -12,6 +12,7 @@ namespace amuse
 class AudioGroupSampleDirectory
 {
     friend class AudioGroup;
+
 public:
     struct Entry
     {
@@ -26,8 +27,7 @@ public:
         uint32_t m_adpcmParmOffset;
         void swapBig();
     };
-    union ADPCMParms
-    {
+    union ADPCMParms {
         struct DSPParms
         {
             uint16_t m_bytesPerFrame;
@@ -44,17 +44,17 @@ public:
         void swapBigDSP();
         void swapBigVADPCM();
     };
+
 private:
     std::unordered_map<uint16_t, std::pair<Entry, ADPCMParms>> m_entries;
+
 public:
     AudioGroupSampleDirectory(const unsigned char* data, GCNDataTag);
-    AudioGroupSampleDirectory(const unsigned char* data, const unsigned char* sampData,
-                              bool absOffs, N64DataTag);
+    AudioGroupSampleDirectory(const unsigned char* data, const unsigned char* sampData, bool absOffs, N64DataTag);
     AudioGroupSampleDirectory(const unsigned char* data, bool absOffs, PCDataTag);
-    
-    const std::unordered_map<uint16_t, std::pair<Entry, ADPCMParms>>& sampleEntries() const {return m_entries;}
-};
 
+    const std::unordered_map<uint16_t, std::pair<Entry, ADPCMParms>>& sampleEntries() const { return m_entries; }
+};
 }
 
 #endif // __AMUSE_AUDIOGROUPSAMPLEDIR_HPP__

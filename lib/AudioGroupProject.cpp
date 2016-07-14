@@ -96,7 +96,7 @@ AudioGroupProject::AudioGroupProject(const unsigned char* data, GCNDataTag)
             idx.m_sfxEntries.reserve(count);
             const SFXGroupIndex::SFXEntry* entries =
                 reinterpret_cast<const SFXGroupIndex::SFXEntry*>(data + header.pageTableOff + 4);
-            for (int i=0 ; i<count ; ++i)
+            for (int i = 0; i < count; ++i)
             {
                 idx.m_sfxEntries[SBig(entries->defineId)] = entries;
                 ++entries;
@@ -208,7 +208,7 @@ void AudioGroupProject::_allocateConvBuffers(const unsigned char* data, bool abs
     if (drumPageCount)
         m_convDrumPages.reset(new SongGroupIndex::PageEntry[drumPageCount]);
     if (midiSetupCount)
-        m_convMidiSetups.reset(new std::array<SongGroupIndex::MIDISetup, 16>[midiSetupCount]);
+        m_convMidiSetups.reset(new std::array<SongGroupIndex::MIDISetup, 16>[ midiSetupCount ]);
 }
 
 AudioGroupProject::AudioGroupProject(const unsigned char* data, bool absOffs, N64DataTag)
@@ -262,7 +262,7 @@ AudioGroupProject::AudioGroupProject(const unsigned char* data, bool absOffs, N6
                 const std::array<MusyX1MIDISetup, 16>* midiSetups =
                     reinterpret_cast<const std::array<MusyX1MIDISetup, 16>*>(setupData + 4);
 
-                for (int i=0 ; i<16 ; ++i)
+                for (int i = 0; i < 16; ++i)
                     (*midiSetups)[i].setIntoMusyX2((*midiSetupsBuf)[i]);
 
                 idx.m_midiSetups[songId] = midiSetupsBuf;
@@ -278,7 +278,7 @@ AudioGroupProject::AudioGroupProject(const unsigned char* data, bool absOffs, N6
             /* SFX entries */
             uint16_t count = SBig(*reinterpret_cast<const uint16_t*>(subData + header.pageTableOff));
             idx.m_sfxEntries.reserve(count);
-            for (int i=0 ; i<count ; ++i)
+            for (int i = 0; i < count; ++i)
             {
                 const SFXGroupIndex::SFXEntry* entries =
                     reinterpret_cast<const SFXGroupIndex::SFXEntry*>(subData + header.pageTableOff + 4 + i * 12);
@@ -319,7 +319,7 @@ void AudioGroupProject::_allocateConvBuffers(const unsigned char* data, bool abs
         {
             /* Normal pages */
             const MusyX1PageEntry* normEntries =
-            reinterpret_cast<const MusyX1PageEntry*>(subData + group->pageTableOff);
+                reinterpret_cast<const MusyX1PageEntry*>(subData + group->pageTableOff);
             while (normEntries->objId != 0xffff)
             {
                 ++normPageCount;
@@ -328,7 +328,7 @@ void AudioGroupProject::_allocateConvBuffers(const unsigned char* data, bool abs
 
             /* Drum pages */
             const MusyX1PageEntry* drumEntries =
-            reinterpret_cast<const MusyX1PageEntry*>(subData + group->drumTableOff);
+                reinterpret_cast<const MusyX1PageEntry*>(subData + group->drumTableOff);
             while (drumEntries->objId != 0xffff)
             {
                 ++drumPageCount;
@@ -358,7 +358,7 @@ void AudioGroupProject::_allocateConvBuffers(const unsigned char* data, bool abs
     if (drumPageCount)
         m_convDrumPages.reset(new SongGroupIndex::PageEntry[drumPageCount]);
     if (midiSetupCount)
-        m_convMidiSetups.reset(new std::array<SongGroupIndex::MIDISetup, 16>[midiSetupCount]);
+        m_convMidiSetups.reset(new std::array<SongGroupIndex::MIDISetup, 16>[ midiSetupCount ]);
 }
 
 AudioGroupProject::AudioGroupProject(const unsigned char* data, bool absOffs, PCDataTag)
@@ -410,7 +410,7 @@ AudioGroupProject::AudioGroupProject(const unsigned char* data, bool absOffs, PC
                 const std::array<MusyX1MIDISetup, 16>* midiSetups =
                     reinterpret_cast<const std::array<MusyX1MIDISetup, 16>*>(setupData + 4);
 
-                for (int i=0 ; i<16 ; ++i)
+                for (int i = 0; i < 16; ++i)
                     (*midiSetups)[i].setIntoMusyX2((*midiSetupsBuf)[i]);
 
                 idx.m_midiSetups[songId] = midiSetupsBuf;
@@ -426,10 +426,10 @@ AudioGroupProject::AudioGroupProject(const unsigned char* data, bool absOffs, PC
             /* SFX entries */
             uint16_t count = *reinterpret_cast<const uint16_t*>(subData + group->pageTableOff);
             idx.m_sfxEntries.reserve(count);
-            for (int i=0 ; i<count ; ++i)
+            for (int i = 0; i < count; ++i)
             {
                 const SFXGroupIndex::SFXEntry* entries =
-                reinterpret_cast<const SFXGroupIndex::SFXEntry*>(subData + group->pageTableOff + 4 + i * 12);
+                    reinterpret_cast<const SFXGroupIndex::SFXEntry*>(subData + group->pageTableOff + 4 + i * 12);
                 idx.m_sfxEntries[entries->defineId] = entries;
             }
         }
@@ -481,5 +481,4 @@ const SFXGroupIndex* AudioGroupProject::getSFXGroupIndex(int groupId) const
         return nullptr;
     return &search->second;
 }
-
 }

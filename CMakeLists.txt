@@ -20,10 +20,9 @@ set(SOURCES
     lib/SongConverter.cpp
     lib/SongState.cpp
     lib/Voice.cpp
-    lib/VolumeLUT.cpp
+    lib/VolumeLUT.c
     lib/Submix.cpp
     lib/Studio.cpp
-    lib/EffectBase.cpp
     lib/EffectReverb.cpp
     lib/EffectChorus.cpp
     lib/EffectDelay.cpp

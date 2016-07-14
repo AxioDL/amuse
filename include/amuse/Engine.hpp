@@ -23,7 +23,7 @@ class IMIDIReader;
 
 enum class AmplitudeMode
 {
-    PerSample, /**< Per-sample amplitude evaluation (dt = 1.0 / sampleRate, rather CPU demanding) */
+    PerSample,      /**< Per-sample amplitude evaluation (dt = 1.0 / sampleRate, rather CPU demanding) */
     BlockLinearized /**< Per-block lerp amplitude evaluation (dt = 160.0 / sampleRate) */
 };
 
@@ -33,17 +33,19 @@ class Engine
     friend class Voice;
     friend class Emitter;
     friend class Sequencer;
+    friend class Studio;
     friend struct Sequencer::ChannelState;
 
     IBackendVoiceAllocator& m_backend;
     AmplitudeMode m_ampMode;
     std::unique_ptr<IMIDIReader> m_midiReader;
-    std::shared_ptr<Studio> m_defaultStudio;
     std::unordered_map<const AudioGroupData*, std::unique_ptr<AudioGroup>> m_audioGroups;
     std::list<std::shared_ptr<Voice>> m_activeVoices;
     std::list<std::shared_ptr<Emitter>> m_activeEmitters;
     std::list<std::shared_ptr<Sequencer>> m_activeSequencers;
-    std::list<std::shared_ptr<Studio>> m_activeStudios;
+    std::list<std::weak_ptr<Studio>> m_activeStudios; /* lifetime dependent on contributing audio entities */
+    bool m_defaultStudioReady = false;
+    std::shared_ptr<Studio> m_defaultStudio;
     std::unordered_map<uint16_t, std::tuple<AudioGroup*, int, const SFXGroupIndex::SFXEntry*>> m_sfxLookup;
     std::linear_congruential_engine<uint32_t, 0x41c64e6d, 0x3039, UINT32_MAX> m_random;
     int m_nextVid = 0;
@@ -52,25 +54,24 @@ class Engine
     std::pair<AudioGroup*, const SongGroupIndex*> _findSongGroup(int groupId) const;
     std::pair<AudioGroup*, const SFXGroupIndex*> _findSFXGroup(int groupId) const;
 
-    std::list<std::shared_ptr<Voice>>::iterator
-    _allocateVoice(const AudioGroup& group, int groupId, double sampleRate,
-                   bool dynamicPitch, bool emitter, std::weak_ptr<Studio> studio);
-    std::list<std::shared_ptr<Sequencer>>::iterator
-    _allocateSequencer(const AudioGroup& group, int groupId,
-                       int setupId, std::weak_ptr<Studio> studio);
-    std::list<std::shared_ptr<Studio>>::iterator _allocateStudio(bool mainOut);
+    std::list<std::shared_ptr<Voice>>::iterator _allocateVoice(const AudioGroup& group, int groupId, double sampleRate,
+                                                               bool dynamicPitch, bool emitter,
+                                                               std::weak_ptr<Studio> studio);
+    std::list<std::shared_ptr<Sequencer>>::iterator _allocateSequencer(const AudioGroup& group, int groupId,
+                                                                       int setupId, std::weak_ptr<Studio> studio);
+    std::shared_ptr<Studio> _allocateStudio(bool mainOut);
     std::list<std::shared_ptr<Voice>>::iterator _destroyVoice(std::list<std::shared_ptr<Voice>>::iterator it);
-    std::list<std::shared_ptr<Sequencer>>::iterator _destroySequencer(std::list<std::shared_ptr<Sequencer>>::iterator it);
-    std::list<std::shared_ptr<Studio>>::iterator _destroyStudio(std::list<std::shared_ptr<Studio>>::iterator it);
-    std::list<std::shared_ptr<Studio>>::iterator _removeStudio(std::list<std::shared_ptr<Studio>>::iterator it);
+    std::list<std::shared_ptr<Sequencer>>::iterator
+    _destroySequencer(std::list<std::shared_ptr<Sequencer>>::iterator it);
     void _bringOutYourDead();
     void _5MsCallback(double dt);
+
 public:
     ~Engine();
-    Engine(IBackendVoiceAllocator& backend, AmplitudeMode ampMode=AmplitudeMode::PerSample);
+    Engine(IBackendVoiceAllocator& backend, AmplitudeMode ampMode = AmplitudeMode::PerSample);
 
     /** Access voice backend of engine */
-    IBackendVoiceAllocator& getBackend() {return m_backend;}
+    IBackendVoiceAllocator& getBackend() { return m_backend; }
 
     /** Update all active audio entities and fill OS audio buffers as needed */
     void pumpEngine();
@@ -82,13 +83,10 @@ public:
     void removeAudioGroup(const AudioGroupData& data);
 
     /** Access engine's default studio */
-    std::shared_ptr<Studio> getDefaultStudio() {return m_defaultStudio;}
+    std::shared_ptr<Studio> getDefaultStudio() { return m_defaultStudio; }
 
     /** Create new Studio within engine */
     std::shared_ptr<Studio> addStudio(bool mainOut);
-
-    /** Remove Studio from engine */
-    void removeStudio(std::weak_ptr<Studio> studio);
 
     /** Start soundFX playing from loaded audio groups */
     std::shared_ptr<Voice> fxStart(int sfxId, float vol, float pan, std::weak_ptr<Studio> smx);
@@ -98,9 +96,8 @@ public:
     }
 
     /** Start soundFX playing from loaded audio groups, attach to positional emitter */
-    std::shared_ptr<Emitter> addEmitter(const Vector3f& pos, const Vector3f& dir, float maxDist,
-                                        float falloff, int sfxId, float minVol, float maxVol,
-                                        std::weak_ptr<Studio> smx);
+    std::shared_ptr<Emitter> addEmitter(const Vector3f& pos, const Vector3f& dir, float maxDist, float falloff,
+                                        int sfxId, float minVol, float maxVol, std::weak_ptr<Studio> smx);
 
     /** Start song playing from loaded audio groups */
     std::shared_ptr<Sequencer> seqPlay(int groupId, int songId, const unsigned char* arrData,
@@ -120,12 +117,11 @@ public:
     void sendMacroMessage(ObjectId macroId, int32_t val);
 
     /** Obtain next random number from engine's PRNG */
-    uint32_t nextRandom() {return m_random();}
+    uint32_t nextRandom() { return m_random(); }
 
     /** Obtain list of active sequencers */
-    std::list<std::shared_ptr<Sequencer>>& getActiveSequencers() {return m_activeSequencers;}
+    std::list<std::shared_ptr<Sequencer>>& getActiveSequencers() { return m_activeSequencers; }
 };
-
 }
 
 #endif // __AMUSE_ENGINE_HPP__

@@ -6,42 +6,153 @@
 namespace amuse
 {
 
-static const wchar_t *const GMNames[128] =
-{
-    L"Acoustic Grand Piano", L"Bright Acoustic Piano", L"Electric Grand Piano", L"Honky-tonk Piano", L"Rhodes Piano", L"Chorused Piano",
-    L"Harpsichord", L"Clavinet", L"Celesta", L"Glockenspiel", L"Music Box", L"Vibraphone", L"Marimba", L"Xylophone", L"Tubular Bells", L"Dulcimer",
-    L"Drawbar Organ", L"Percussive Organ", L"Rock Organ", L"Church Organ", L"Reed Organ", L"Accordion", L"Harmonica", L"Tango Accordion",
-    L"Acoustic Guitar (nylon)", L"Acoustic Guitar (steel)", L"Electric Guitar (jazz)", L"Electric Guitar (clean)", L"Electric Guitar (muted)",
-    L"Overdriven Guitar", L"Distortion Guitar", L"Guitar Harmonics", L"Acoustic Bass", L"Electric Bass (finger)", L"Electric Bass (pick)",
-    L"Fretless Bass", L"Slap Bass 1", L"Slap Bass 2", L"Synth Bass 1", L"Synth Bass 2", L"Violin", L"Viola", L"Cello", L"Contrabass",
-    L"Tremelo Strings", L"Pizzicato Strings", L"Orchestral Harp", L"Timpani", L"String Ensemble 1", L"String Ensemble 2", L"SynthStrings 1",
-    L"SynthStrings 2", L"Choir Aahs", L"Voice Oohs", L"Synth Voice", L"Orchestra Hit", L"Trumpet", L"Trombone", L"Tuba", L"Muted Trumpet",
-    L"French Horn", L"Brass Section", L"Synth Brass 1", L"Synth Brass 2", L"Soprano Sax", L"Alto Sax", L"Tenor Sax", L"Baritone Sax",
-    L"Oboe", L"English Horn", L"Bassoon", L"Clarinet", L"Piccolo", L"Flute", L"Recorder", L"Pan Flute", L"Bottle Blow", L"Shakuhachi", L"Whistle",
-    L"Ocarina", L"Lead 1 (square)", L"Lead 2 (sawtooth)", L"Lead 3 (calliope lead)", L"Lead 4 (chiff lead)", L"Lead 5 (charang)",
-    L"Lead 6 (voice)", L"Lead 7 (fifths)", L"Lead 8 (bass + lead)", L"Pad 1 (new age)", L"Pad 2 (warm)", L"Pad 3 (polysynth)", L"Pad 4 (choir)",
-    L"Pad 5 (bowed)", L"Pad 6 (metallic)", L"Pad 7 (halo)", L"Pad 8 (sweep)", L"FX 1 (rain)", L"FX 2 (soundtrack)", L"FX 3 (crystal)",
-    L"FX 4 (atmosphere)", L"FX 5 (brightness)", L"FX 6 (goblins)", L"FX 7 (echoes)", L"FX 8 (sci-fi)", L"Sitar", L"Banjo", L"Shamisen", L"Koto",
-    L"Kalimba", L"Bagpipe", L"Fiddle", L"Shanai", L"Tinkle Bell", L"Agogo", L"Steel Drums", L"Woodblock", L"Taiko Drum", L"Melodic Tom",
-    L"Synth Drum", L"Reverse Cymbal", L"Guitar Fret Noise", L"Breath Noise", L"Seashore", L"Bird Tweet", L"Telephone Ring", L"Helicopter",
-    L"Applause", L"Gunshot"
-};
+static const wchar_t* const GMNames[128] = {L"Acoustic Grand Piano",
+                                            L"Bright Acoustic Piano",
+                                            L"Electric Grand Piano",
+                                            L"Honky-tonk Piano",
+                                            L"Rhodes Piano",
+                                            L"Chorused Piano",
+                                            L"Harpsichord",
+                                            L"Clavinet",
+                                            L"Celesta",
+                                            L"Glockenspiel",
+                                            L"Music Box",
+                                            L"Vibraphone",
+                                            L"Marimba",
+                                            L"Xylophone",
+                                            L"Tubular Bells",
+                                            L"Dulcimer",
+                                            L"Drawbar Organ",
+                                            L"Percussive Organ",
+                                            L"Rock Organ",
+                                            L"Church Organ",
+                                            L"Reed Organ",
+                                            L"Accordion",
+                                            L"Harmonica",
+                                            L"Tango Accordion",
+                                            L"Acoustic Guitar (nylon)",
+                                            L"Acoustic Guitar (steel)",
+                                            L"Electric Guitar (jazz)",
+                                            L"Electric Guitar (clean)",
+                                            L"Electric Guitar (muted)",
+                                            L"Overdriven Guitar",
+                                            L"Distortion Guitar",
+                                            L"Guitar Harmonics",
+                                            L"Acoustic Bass",
+                                            L"Electric Bass (finger)",
+                                            L"Electric Bass (pick)",
+                                            L"Fretless Bass",
+                                            L"Slap Bass 1",
+                                            L"Slap Bass 2",
+                                            L"Synth Bass 1",
+                                            L"Synth Bass 2",
+                                            L"Violin",
+                                            L"Viola",
+                                            L"Cello",
+                                            L"Contrabass",
+                                            L"Tremelo Strings",
+                                            L"Pizzicato Strings",
+                                            L"Orchestral Harp",
+                                            L"Timpani",
+                                            L"String Ensemble 1",
+                                            L"String Ensemble 2",
+                                            L"SynthStrings 1",
+                                            L"SynthStrings 2",
+                                            L"Choir Aahs",
+                                            L"Voice Oohs",
+                                            L"Synth Voice",
+                                            L"Orchestra Hit",
+                                            L"Trumpet",
+                                            L"Trombone",
+                                            L"Tuba",
+                                            L"Muted Trumpet",
+                                            L"French Horn",
+                                            L"Brass Section",
+                                            L"Synth Brass 1",
+                                            L"Synth Brass 2",
+                                            L"Soprano Sax",
+                                            L"Alto Sax",
+                                            L"Tenor Sax",
+                                            L"Baritone Sax",
+                                            L"Oboe",
+                                            L"English Horn",
+                                            L"Bassoon",
+                                            L"Clarinet",
+                                            L"Piccolo",
+                                            L"Flute",
+                                            L"Recorder",
+                                            L"Pan Flute",
+                                            L"Bottle Blow",
+                                            L"Shakuhachi",
+                                            L"Whistle",
+                                            L"Ocarina",
+                                            L"Lead 1 (square)",
+                                            L"Lead 2 (sawtooth)",
+                                            L"Lead 3 (calliope lead)",
+                                            L"Lead 4 (chiff lead)",
+                                            L"Lead 5 (charang)",
+                                            L"Lead 6 (voice)",
+                                            L"Lead 7 (fifths)",
+                                            L"Lead 8 (bass + lead)",
+                                            L"Pad 1 (new age)",
+                                            L"Pad 2 (warm)",
+                                            L"Pad 3 (polysynth)",
+                                            L"Pad 4 (choir)",
+                                            L"Pad 5 (bowed)",
+                                            L"Pad 6 (metallic)",
+                                            L"Pad 7 (halo)",
+                                            L"Pad 8 (sweep)",
+                                            L"FX 1 (rain)",
+                                            L"FX 2 (soundtrack)",
+                                            L"FX 3 (crystal)",
+                                            L"FX 4 (atmosphere)",
+                                            L"FX 5 (brightness)",
+                                            L"FX 6 (goblins)",
+                                            L"FX 7 (echoes)",
+                                            L"FX 8 (sci-fi)",
+                                            L"Sitar",
+                                            L"Banjo",
+                                            L"Shamisen",
+                                            L"Koto",
+                                            L"Kalimba",
+                                            L"Bagpipe",
+                                            L"Fiddle",
+                                            L"Shanai",
+                                            L"Tinkle Bell",
+                                            L"Agogo",
+                                            L"Steel Drums",
+                                            L"Woodblock",
+                                            L"Taiko Drum",
+                                            L"Melodic Tom",
+                                            L"Synth Drum",
+                                            L"Reverse Cymbal",
+                                            L"Guitar Fret Noise",
+                                            L"Breath Noise",
+                                            L"Seashore",
+                                            L"Bird Tweet",
+                                            L"Telephone Ring",
+                                            L"Helicopter",
+                                            L"Applause",
+                                            L"Gunshot"};
 
-static const wchar_t *const GMPercNames[128] =
-{
-    nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-    nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-    nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-    nullptr, nullptr, nullptr, nullptr, L"Acoustic Bass Drum", L"Bass Drum 1", L"Side Stick",
-    L"Acoustic Snare", L"Hand Clap", L"Electric Snare", L"Low Floor Tom", L"Closed Hi-Hat",
-    L"High Floor Tom", L"Pedal Hi-Hat", L"Low Tom", L"Open Hi-Hat", L"Low-Mid Tom", L"Hi-Mid Tom",
-    L"Crash Cymbal 1", L"High Tom", L"Ride Cymbal 1", L"Chinese Cymbal", L"Ride Bell", L"Tambourine",
-    L"Splash Cymbal", L"Cowbell", L"Crash Cymbal 2", L"Vibraslap", L"Ride Cymbal 2", L"Hi Bongo",
-    L"Low Bongo", L"Mute Hi Conga", L"Open Hi Conga", L"Low Conga", L"High Timbale", L"Low Timbale",
-    L"High Agogo", L"Low Agogo", L"Cabasa", L"Maracas", L"Short Whistle", L"Long Whistle", L"Short Guiro",
-    L"Long Guiro", L"Claves", L"Hi Wood Block", L"Low Wood Block", L"Mute Cuica", L"Open Cuica",
-    L"Mute Triangle", L"Open Triangle"
-};
+static const wchar_t* const GMPercNames[128] = {
+    nullptr,          nullptr,           nullptr,           nullptr,           nullptr,
+    nullptr,          nullptr,           nullptr,           nullptr,           nullptr,
+    nullptr,          nullptr,           nullptr,           nullptr,           nullptr,
+    nullptr,          nullptr,           nullptr,           nullptr,           nullptr,
+    nullptr,          nullptr,           nullptr,           nullptr,           nullptr,
+    nullptr,          nullptr,           nullptr,           nullptr,           nullptr,
+    nullptr,          nullptr,           nullptr,           nullptr,           L"Acoustic Bass Drum",
+    L"Bass Drum 1",   L"Side Stick",     L"Acoustic Snare", L"Hand Clap",      L"Electric Snare",
+    L"Low Floor Tom", L"Closed Hi-Hat",  L"High Floor Tom", L"Pedal Hi-Hat",   L"Low Tom",
+    L"Open Hi-Hat",   L"Low-Mid Tom",    L"Hi-Mid Tom",     L"Crash Cymbal 1", L"High Tom",
+    L"Ride Cymbal 1", L"Chinese Cymbal", L"Ride Bell",      L"Tambourine",     L"Splash Cymbal",
+    L"Cowbell",       L"Crash Cymbal 2", L"Vibraslap",      L"Ride Cymbal 2",  L"Hi Bongo",
+    L"Low Bongo",     L"Mute Hi Conga",  L"Open Hi Conga",  L"Low Conga",      L"High Timbale",
+    L"Low Timbale",   L"High Agogo",     L"Low Agogo",      L"Cabasa",         L"Maracas",
+    L"Short Whistle", L"Long Whistle",   L"Short Guiro",    L"Long Guiro",     L"Claves",
+    L"Hi Wood Block", L"Low Wood Block", L"Mute Cuica",     L"Open Cuica",     L"Mute Triangle",
+    L"Open Triangle"};
 
 bool AudioGroupDataCollection::loadProj()
 {
@@ -109,7 +220,6 @@ bool AudioGroupDataCollection::loadMeta()
 AudioGroupDataCollection::AudioGroupDataCollection(const std::wstring& path, const std::wstring& name)
 : m_path(path), m_name(name)
 {
-
 }
 
 bool AudioGroupDataCollection::_attemptLoad()
@@ -134,28 +244,22 @@ bool AudioGroupDataCollection::_indexData()
 {
     switch (m_metaData->fmt)
     {
-        case amuse::DataFormat::GCN:
-        default:
-            m_loadedData.emplace(m_projData.data(), m_projData.size(),
-                                 m_poolData.data(), m_poolData.size(),
-                                 m_sdirData.data(), m_sdirData.size(),
-                                 m_sampData.data(), m_sampData.size(),
-                                 amuse::GCNDataTag{});
-            break;
-        case amuse::DataFormat::N64:
-            m_loadedData.emplace(m_projData.data(), m_projData.size(),
-                                 m_poolData.data(), m_poolData.size(),
-                                 m_sdirData.data(), m_sdirData.size(),
-                                 m_sampData.data(), m_sampData.size(),
-                                 m_metaData->absOffs, amuse::N64DataTag{});
-            break;
-        case amuse::DataFormat::PC:
-            m_loadedData.emplace(m_projData.data(), m_projData.size(),
-                                 m_poolData.data(), m_poolData.size(),
-                                 m_sdirData.data(), m_sdirData.size(),
-                                 m_sampData.data(), m_sampData.size(),
-                                 m_metaData->absOffs, amuse::PCDataTag{});
-            break;
+    case amuse::DataFormat::GCN:
+    default:
+        m_loadedData.emplace(m_projData.data(), m_projData.size(), m_poolData.data(), m_poolData.size(),
+                             m_sdirData.data(), m_sdirData.size(), m_sampData.data(), m_sampData.size(),
+                             amuse::GCNDataTag{});
+        break;
+    case amuse::DataFormat::N64:
+        m_loadedData.emplace(m_projData.data(), m_projData.size(), m_poolData.data(), m_poolData.size(),
+                             m_sdirData.data(), m_sdirData.size(), m_sampData.data(), m_sampData.size(),
+                             m_metaData->absOffs, amuse::N64DataTag{});
+        break;
+    case amuse::DataFormat::PC:
+        m_loadedData.emplace(m_projData.data(), m_projData.size(), m_poolData.data(), m_poolData.size(),
+                             m_sdirData.data(), m_sdirData.size(), m_sampData.data(), m_sampData.size(),
+                             m_metaData->absOffs, amuse::PCDataTag{});
+        break;
     }
 
     return m_loadedData.operator bool();
@@ -189,18 +293,15 @@ void AudioGroupDataCollection::addToEngine(amuse::Engine& engine)
     }
 }
 
-void AudioGroupDataCollection::removeFromEngine(amuse::Engine& engine) const
-{
-    engine.removeAudioGroup(*m_loadedData);
-}
+void AudioGroupDataCollection::removeFromEngine(amuse::Engine& engine) const { engine.removeAudioGroup(*m_loadedData); }
 
 AudioGroupCollection::AudioGroupCollection(const std::wstring& path, const std::wstring& name)
 : m_path(path), m_name(name)
 {
-
 }
 
-void AudioGroupCollection::addCollection(std::vector<std::pair<std::wstring, amuse::IntrusiveAudioGroupData>>&& collection)
+void AudioGroupCollection::addCollection(
+    std::vector<std::pair<std::wstring, amuse::IntrusiveAudioGroupData>>&& collection)
 {
     for (std::pair<std::wstring, amuse::IntrusiveAudioGroupData>& pair : collection)
     {
@@ -210,9 +311,9 @@ void AudioGroupCollection::addCollection(std::vector<std::pair<std::wstring, amu
         auto search = m_groups.find(pair.first);
         if (search == m_groups.end())
         {
-            search = m_groups.emplace(pair.first,
-                                      std::make_unique<AudioGroupDataCollection>(collectionPath,
-                                                                                 pair.first)).first;
+            search =
+                m_groups.emplace(pair.first, std::make_unique<AudioGroupDataCollection>(collectionPath, pair.first))
+                    .first;
         }
 
         AudioGroupDataCollection& dataCollection = *search->second;
@@ -253,9 +354,9 @@ void AudioGroupCollection::update(AudioGroupFilePresenter& presenter)
             if (search == m_groups.end())
             {
                 search =
-                m_groups.emplace(nameStr,
-                                 std::make_unique<AudioGroupDataCollection>(m_path + L'\\' + nameStr,
-                                                                            nameStr)).first;
+                    m_groups
+                        .emplace(nameStr, std::make_unique<AudioGroupDataCollection>(m_path + L'\\' + nameStr, nameStr))
+                        .first;
                 search->second->_attemptLoad();
             }
         }
@@ -284,8 +385,10 @@ void AudioGroupFilePresenter::update()
             auto search = theMap.find(nameStr);
             if (search == theMap.end())
             {
-                search = theMap.emplace(nameStr,
-                    std::make_unique<AudioGroupCollection>(m_backend.getUserDir() + L'\\' + nameStr, nameStr)).first;
+                search = theMap
+                             .emplace(nameStr, std::make_unique<AudioGroupCollection>(
+                                                   m_backend.getUserDir() + L'\\' + nameStr, nameStr))
+                             .first;
                 search->second->update(*this);
             }
         }
@@ -294,11 +397,12 @@ void AudioGroupFilePresenter::update()
     FindClose(dir);
 }
 
-void AudioGroupFilePresenter::addCollection(const std::wstring& name,
-     std::vector<std::pair<std::wstring, amuse::IntrusiveAudioGroupData>>&& collection)
+void AudioGroupFilePresenter::addCollection(
+    const std::wstring& name, std::vector<std::pair<std::wstring, amuse::IntrusiveAudioGroupData>>&& collection)
 {
     std::wstring path = m_backend.getUserDir() + L'\\' + name;
-    AudioGroupCollection& insert = *m_audioGroupCollections.emplace(name, std::make_unique<AudioGroupCollection>(path, name)).first->second;
+    AudioGroupCollection& insert =
+        *m_audioGroupCollections.emplace(name, std::make_unique<AudioGroupCollection>(path, name)).first->second;
     CreateDirectory(insert.m_path.c_str(), nullptr);
     insert.addCollection(std::move(collection));
 
@@ -368,7 +472,7 @@ void AudioGroupCollection::populateFiles(VSTEditor& editor, HTREEITEM colHandle,
 
     m_iteratorVec.clear();
     m_iteratorVec.reserve(m_groups.size());
-    for (auto it = m_groups.begin() ; it != m_groups.end() ; ++it)
+    for (auto it = m_groups.begin(); it != m_groups.end(); ++it)
     {
         ins.item.pszText = LPWSTR(it->first.c_str());
         ins.item.lParam = LPARAM(0x80000000 | (parentIdx << 16) | m_iteratorVec.size());
@@ -389,7 +493,7 @@ void AudioGroupFilePresenter::populateCollectionColumn(VSTEditor& editor)
 
     m_iteratorVec.clear();
     m_iteratorVec.reserve(m_audioGroupCollections.size());
-    for (auto it = m_audioGroupCollections.begin() ; it != m_audioGroupCollections.end() ; ++it)
+    for (auto it = m_audioGroupCollections.begin(); it != m_audioGroupCollections.end(); ++it)
     {
         ins.item.cChildren = it->second->m_groups.size() ? 1 : 0;
         ins.item.pszText = LPWSTR(it->first.c_str());
@@ -453,7 +557,8 @@ void AudioGroupFilePresenter::populatePageColumn(VSTEditor& editor, int collecti
                     for (auto& pair : sortPages)
                     {
                         wchar_t name[256];
-                        wnsprintf(name, 256, L"%d (%s)", pair.first, GMNames[pair.first] ? GMNames[pair.first] : L"???");
+                        wnsprintf(name, 256, L"%d (%s)", pair.first,
+                                  GMNames[pair.first] ? GMNames[pair.first] : L"???");
                         item.pszText = name;
                         item.iItem = idx++;
                         item.lParam = pair.first;
@@ -467,7 +572,8 @@ void AudioGroupFilePresenter::populatePageColumn(VSTEditor& editor, int collecti
                     for (auto& pair : sortPages)
                     {
                         wchar_t name[256];
-                        wnsprintf(name, 256, L"%d (%s)", pair.first, GMPercNames[pair.first] ? GMPercNames[pair.first] : L"???");
+                        wnsprintf(name, 256, L"%d (%s)", pair.first,
+                                  GMPercNames[pair.first] ? GMPercNames[pair.first] : L"???");
                         item.pszText = name;
                         item.iItem = idx++;
                         item.lParam = 0x80000000 | pair.first;
@@ -478,5 +584,4 @@ void AudioGroupFilePresenter::populatePageColumn(VSTEditor& editor, int collecti
         }
     }
 }
-
 }

@@ -6,6 +6,7 @@
 #include "amuse/AudioGroupPool.hpp"
 #include <string.h>
 
+/* Squelch Win32 macro pollution >.< */
 #undef SendMessage
 #undef GetMessage
 
@@ -25,18 +26,17 @@ void SoundMacroState::Command::swapBig()
     words[1] = SBig(words[1]);
 }
 
-void SoundMacroState::Evaluator::addComponent(uint8_t midiCtrl, float scale,
-                                           Combine combine, VarType varType)
+void SoundMacroState::Evaluator::addComponent(uint8_t midiCtrl, float scale, Combine combine, VarType varType)
 {
     m_comps.push_back({midiCtrl, scale, combine, varType});
 }
 
-float SoundMacroState::Evaluator::evaluate(const Voice& vox, const SoundMacroState& st) const
+float SoundMacroState::Evaluator::evaluate(double time, const Voice& vox, const SoundMacroState& st) const
 {
     float value = 0.f;
 
     /* Iterate each component */
-    for (auto it=m_comps.cbegin() ; it != m_comps.cend() ; ++it)
+    for (auto it = m_comps.cbegin(); it != m_comps.cend(); ++it)
     {
         const Component& comp = *it;
         float thisValue = 0.f;
@@ -57,12 +57,12 @@ float SoundMacroState::Evaluator::evaluate(const Voice& vox, const SoundMacroSta
             case 130:
                 /* LFO1 */
                 if (vox.m_lfoPeriods[0])
-                    thisValue = std::sin(vox.m_voiceTime / vox.m_lfoPeriods[0] * 2.f * M_PIF);
+                    thisValue = std::sin(time / vox.m_lfoPeriods[0] * 2.f * M_PIF);
                 break;
             case 131:
                 /* LFO2 */
                 if (vox.m_lfoPeriods[1])
-                    thisValue = std::sin(vox.m_voiceTime / vox.m_lfoPeriods[1] * 2.f * M_PIF);
+                    thisValue = std::sin(time / vox.m_lfoPeriods[1] * 2.f * M_PIF);
                 break;
             case 132:
                 /* Surround panning */
@@ -89,7 +89,7 @@ float SoundMacroState::Evaluator::evaluate(const Voice& vox, const SoundMacroSta
             }
         }
         else if (comp.m_varType == VarType::Var)
-            thisValue = st.m_variables[std::max(0, std::min(255, int(comp.m_midiCtrl)))];
+            thisValue = st.m_variables[clamp(0, int(comp.m_midiCtrl), 255)];
 
         /* Apply scale */
         thisValue *= comp.m_scale;
@@ -122,8 +122,8 @@ void SoundMacroState::initialize(const unsigned char* ptr, int step, bool swapDa
     initialize(ptr, step, 1000.f, 0, 0, 0, swapData);
 }
 
-void SoundMacroState::initialize(const unsigned char* ptr, int step, double ticksPerSec,
-                                 uint8_t midiKey, uint8_t midiVel, uint8_t midiMod, bool swapData)
+void SoundMacroState::initialize(const unsigned char* ptr, int step, double ticksPerSec, uint8_t midiKey,
+                                 uint8_t midiVel, uint8_t midiMod, bool swapData)
 {
     m_ticksPerSec = ticksPerSec;
     m_initKey = midiKey;
@@ -203,8 +203,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
                 if (macroId == m_header.m_macroId)
                     m_pc.back().second = macroStep;
                 else
-                    vox.loadSoundObject(macroId, macroStep, m_ticksPerSec,
-                                        m_initKey, m_initVel, m_initMod);
+                    vox.loadSoundObject(macroId, macroStep, m_ticksPerSec, m_initKey, m_initVel, m_initMod);
             }
 
             break;
@@ -221,8 +220,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
                 if (macroId == m_header.m_macroId)
                     m_pc.back().second = macroStep;
                 else
-                    vox.loadSoundObject(macroId, macroStep, m_ticksPerSec,
-                                        m_initKey, m_initVel, m_initMod);
+                    vox.loadSoundObject(macroId, macroStep, m_ticksPerSec, m_initKey, m_initVel, m_initMod);
             }
 
             break;
@@ -305,8 +303,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
             if (macroId == m_header.m_macroId)
                 m_pc.back().second = macroStep;
             else
-                vox.loadSoundObject(macroId, macroStep, m_ticksPerSec,
-                                    m_initKey, m_initVel, m_initMod);
+                vox.loadSoundObject(macroId, macroStep, m_ticksPerSec, m_initKey, m_initVel, m_initMod);
 
             break;
         }
@@ -350,8 +347,8 @@ bool SoundMacroState::advance(Voice& vox, double dt)
             int8_t addNote = cmd.m_data[0];
             ObjectId macroId = *reinterpret_cast<ObjectId*>(&cmd.m_data[1]);
             int16_t macroStep = *reinterpret_cast<int16_t*>(&cmd.m_data[3]);
-            //int8_t priority = cmd.m_data[5];
-            //int8_t maxVoices = cmd.m_data[6];
+            // int8_t priority = cmd.m_data[5];
+            // int8_t maxVoices = cmd.m_data[6];
 
             std::shared_ptr<Voice> sibVox = vox.startChildMacro(addNote, macroId, macroStep);
             if (sibVox)
@@ -394,8 +391,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
                 if (macroId == m_header.m_macroId)
                     m_pc.back().second = macroStep;
                 else
-                    vox.loadSoundObject(macroId, macroStep, m_ticksPerSec,
-                                        m_initKey, m_initVel, m_initMod);
+                    vox.loadSoundObject(macroId, macroStep, m_ticksPerSec, m_initKey, m_initVel, m_initMod);
             }
 
             break;
@@ -426,7 +422,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
             bool orgVel = cmd.m_data[4];
 
             int32_t eval = int32_t(orgVel ? m_initVel : m_curVel) * scale / 127 + add;
-            eval = std::max(0, std::min(127, eval));
+            eval = clamp(0, eval, 127);
 
             if (curve != 0)
             {
@@ -462,7 +458,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
             double secTime = fadeTime / q;
 
             int32_t eval = int32_t(m_curVel) * scale / 127 + add;
-            eval = std::max(0, std::min(127, eval));
+            eval = clamp(0, eval, 127);
 
             const Curve* curveData;
             if (curve != 0)
@@ -517,8 +513,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
                 if (macroId == m_header.m_macroId)
                     m_pc.back().second = macroStep;
                 else
-                    vox.loadSoundObject(macroId, macroStep, m_ticksPerSec,
-                                        m_initKey, m_initVel, m_initMod);
+                    vox.loadSoundObject(macroId, macroStep, m_ticksPerSec, m_initKey, m_initVel, m_initMod);
             }
 
             break;
@@ -535,7 +530,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
             float secTime = fadeTime / q;
 
             int32_t eval = int32_t(m_curVel) * scale / 127 + add;
-            eval = std::max(0, std::min(127, eval));
+            eval = clamp(0, eval, 127);
 
             const Curve* curveData;
             if (curve != 0)
@@ -774,8 +769,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
             if (macroId == m_header.m_macroId)
                 m_pc.push_back({m_pc.back().first, macroStep});
             else
-                vox.loadSoundObject(macroId, macroStep, m_ticksPerSec,
-                                    m_initKey, m_initVel, m_initMod, true);
+                vox.loadSoundObject(macroId, macroStep, m_ticksPerSec, m_initKey, m_initVel, m_initMod, true);
 
             m_header = *reinterpret_cast<const Header*>(m_pc.back().first);
             if (vox.getAudioGroup().getDataFormat() != DataFormat::PC)
@@ -804,7 +798,8 @@ bool SoundMacroState::advance(Voice& vox, double dt)
                 vox.m_messageTrap.macroId = macroId;
                 vox.m_messageTrap.macroStep = macroStep;
                 break;
-            default: break;
+            default:
+                break;
             }
 
             break;
@@ -827,7 +822,8 @@ bool SoundMacroState::advance(Voice& vox, double dt)
                 vox.m_messageTrap.macroId = 0xffff;
                 vox.m_messageTrap.macroStep = -1;
                 break;
-            default: break;
+            default:
+                break;
             }
 
             break;
@@ -1237,14 +1233,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
     return false;
 }
 
-void SoundMacroState::keyoffNotify(Voice& vox)
-{
-    m_keyoff = true;
-}
+void SoundMacroState::keyoffNotify(Voice& vox) { m_keyoff = true; }
 
-void SoundMacroState::sampleEndNotify(Voice& vox)
-{
-    m_sampleEnd = true;
-}
-
+void SoundMacroState::sampleEndNotify(Voice& vox) { m_sampleEnd = true; }
 }

@@ -22,15 +22,14 @@ public:
     virtual ~IBackendSubmix() = default;
 
     /** Set send level for submix (AudioChannel enum for array index) */
-    virtual void setSendLevel(IBackendSubmix* submix, float level, bool slew)=0;
+    virtual void setSendLevel(IBackendSubmix* submix, float level, bool slew) = 0;
 
     /** Amuse gets fixed sample rate of submix this way */
-    virtual double getSampleRate() const=0;
+    virtual double getSampleRate() const = 0;
 
     /** Amuse gets fixed sample format of submix this way */
-    virtual SubmixFormat getSampleFormat() const=0;
+    virtual SubmixFormat getSampleFormat() const = 0;
 };
-
 }
 
 #endif // __AMUSE_IBACKENDSUBMIX_HPP__

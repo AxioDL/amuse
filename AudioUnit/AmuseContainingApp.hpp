@@ -36,15 +36,15 @@
     IBOutlet NSTableView* sfxTable;
     IBOutlet NSTableView* samplesTable;
     IBOutlet NSTextView* creditsView;
-    
+
     IBOutlet NSButton* removeDataButton;
     IBOutlet NSMenuItem* removeDataMenu;
-    
+
     AudioGroupFilePresenter* groupFilePresenter;
-    
+
     SamplesTableController* samplesController;
     SFXTableController* sfxController;
-    
+
 @public
     std::unique_ptr<boo::IAudioVoiceEngine> booEngine;
     std::experimental::optional<amuse::BooBackendVoiceAllocator> amuseAllocator;

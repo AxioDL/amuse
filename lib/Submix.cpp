@@ -3,14 +3,7 @@
 namespace amuse
 {
 
-void Submix::_destroy()
-{
-    m_destroyed = true;
-}
-
-Submix::Submix(Engine& engine)
-: m_root(engine)
-{}
+Submix::Submix(Engine& engine) : m_root(engine) {}
 
 EffectChorus& Submix::makeChorus(uint32_t baseDelay, uint32_t variation, uint32_t period)
 {
@@ -22,14 +15,13 @@ EffectDelay& Submix::makeDelay(uint32_t initDelay, uint32_t initFeedback, uint32
     return makeEffect<EffectDelay>(initDelay, initFeedback, initOutput);
 }
 
-EffectReverbStd& Submix::makeReverbStd(float coloration, float mix, float time,
-                                       float damping, float preDelay)
+EffectReverbStd& Submix::makeReverbStd(float coloration, float mix, float time, float damping, float preDelay)
 {
     return makeEffect<EffectReverbStd>(coloration, mix, time, damping, preDelay);
 }
 
-EffectReverbHi& Submix::makeReverbHi(float coloration, float mix, float time,
-                                     float damping, float preDelay, float crosstalk)
+EffectReverbHi& Submix::makeReverbHi(float coloration, float mix, float time, float damping, float preDelay,
+                                     float crosstalk)
 {
     return makeEffect<EffectReverbHi>(coloration, mix, time, damping, preDelay, crosstalk);
 }
@@ -57,5 +49,4 @@ void Submix::resetOutputSampleRate(double sampleRate)
     for (const std::unique_ptr<EffectBaseTypeless>& effect : m_effectStack)
         effect->resetOutputSampleRate(sampleRate);
 }
-
 }

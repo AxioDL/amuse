@@ -30,24 +30,28 @@ struct AudioGroupDataCollection
     NSURL* m_meta;
 
     AudioGroupDataToken* m_token;
-    
+
     std::vector<uint8_t> m_projData;
     std::vector<uint8_t> m_poolData;
     std::vector<uint8_t> m_sdirData;
     std::vector<uint8_t> m_sampData;
-    
+
     struct MetaData
     {
         amuse::DataFormat fmt;
         uint32_t absOffs;
         uint32_t active;
         MetaData(amuse::DataFormat fmtIn, uint32_t absOffsIn, uint32_t activeIn)
-        : fmt(fmtIn), absOffs(absOffsIn), active(activeIn) {}
+        : fmt(fmtIn), absOffs(absOffsIn), active(activeIn)
+        {
+        }
         MetaData(athena::io::FileReader& r)
-        : fmt(amuse::DataFormat(r.readUint32Little())), absOffs(r.readUint32Little()), active(r.readUint32Little()) {}
+        : fmt(amuse::DataFormat(r.readUint32Little())), absOffs(r.readUint32Little()), active(r.readUint32Little())
+        {
+        }
     };
     std::experimental::optional<MetaData> m_metaData;
-    
+
     std::experimental::optional<amuse::AudioGroupData> m_loadedData;
     const amuse::AudioGroup* m_loadedGroup;
     std::vector<AudioGroupToken*> m_groupTokens;
@@ -61,7 +65,10 @@ struct AudioGroupDataCollection
     bool loadMeta(AudioGroupFilePresenter* presenter);
 
     AudioGroupDataCollection(const std::string& name, NSURL* proj, NSURL* pool, NSURL* sdir, NSURL* samp, NSURL* meta);
-    bool isDataComplete() const {return m_projData.size() && m_poolData.size() && m_sdirData.size() && m_sampData.size() && m_metaData;}
+    bool isDataComplete() const
+    {
+        return m_projData.size() && m_poolData.size() && m_sdirData.size() && m_sampData.size() && m_metaData;
+    }
     bool _attemptLoad(AudioGroupFilePresenter* presenter);
     bool _indexData(AudioGroupFilePresenter* presenter);
 
@@ -72,11 +79,11 @@ struct AudioGroupDataCollection
 struct AudioGroupCollection
 {
     NSURL* m_url;
-    
+
     AudioGroupCollectionToken* m_token;
     std::map<std::string, std::unique_ptr<AudioGroupDataCollection>> m_groups;
     std::vector<std::map<std::string, std::unique_ptr<AudioGroupDataCollection>>::iterator> m_filterGroups;
-    
+
     AudioGroupCollection(NSURL* url);
     void addCollection(AudioGroupFilePresenter* presenter,
                        std::vector<std::pair<std::string, amuse::IntrusiveAudioGroupData>>&& collection);
@@ -119,8 +126,10 @@ struct AudioGroupCollection
     NSAttributedString* m_name;
     const std::pair<amuse::AudioGroupSampleDirectory::Entry, amuse::AudioGroupSampleDirectory::ADPCMParms>* m_sample;
 }
-- (id)initWithName:(NSAttributedString*)name samp:(const std::pair<amuse::AudioGroupSampleDirectory::Entry,
-                                                   amuse::AudioGroupSampleDirectory::ADPCMParms>*)sample;
+- (id)
+initWithName:(NSAttributedString*)name
+        samp:(const std::pair<amuse::AudioGroupSampleDirectory::Entry, amuse::AudioGroupSampleDirectory::ADPCMParms>*)
+                 sample;
 @end
 
 @interface AudioGroupToken : NSObject
@@ -144,12 +153,13 @@ struct AudioGroupCollection
     std::vector<std::map<std::string, std::unique_ptr<AudioGroupCollection>>::iterator> m_filterAudioGroupCollections;
     NSOutlineView* m_lastOutlineView;
     NSString* m_searchStr;
-    
+
     std::vector<AudioGroupSFXToken*> m_sfxTableData;
     std::vector<AudioGroupSampleToken*> m_sampleTableData;
 }
 - (id)initWithAudioGroupClient:(id<AudioGroupClient>)client;
-- (BOOL)addCollectionName:(std::string&&)name items:(std::vector<std::pair<std::string, amuse::IntrusiveAudioGroupData>>&&)collection;
+- (BOOL)addCollectionName:(std::string&&)name
+                    items:(std::vector<std::pair<std::string, amuse::IntrusiveAudioGroupData>>&&)collection;
 - (void)update;
 - (void)resetIterators;
 - (void)setSearchFilter:(NSString*)str;

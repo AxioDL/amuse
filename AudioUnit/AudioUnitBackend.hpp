@@ -27,12 +27,10 @@ namespace amuse
 class AudioUnitBackendVoiceAllocator : public BooBackendVoiceAllocator
 {
 public:
-    AudioUnitBackendVoiceAllocator(boo::IAudioVoiceEngine& booEngine)
-    : BooBackendVoiceAllocator(booEngine) {}
+    AudioUnitBackendVoiceAllocator(boo::IAudioVoiceEngine& booEngine) : BooBackendVoiceAllocator(booEngine) {}
 };
 
 void RegisterAudioUnit();
-
 }
 
 @interface AmuseAudioUnit : AUAudioUnit <AudioGroupClient>
@@ -47,7 +45,7 @@ void RegisterAudioUnit();
     AUAudioUnitBusArray* m_outs;
 }
 - (nullable id)initWithComponentDescription:(AudioComponentDescription)componentDescription
-                                      error:(NSError * __nullable * __nonnull)outError
+                                      error:(NSError* __nullable* __nonnull)outError
                              viewController:(AudioUnitViewController* __nonnull)vc;
 - (void)requestAudioGroup:(AudioGroupToken* _Nonnull)group;
 @end
