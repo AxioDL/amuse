@@ -304,10 +304,18 @@ int main(int argc, const boo::SystemChar** argv)
     /* Get group selection via user */
     if (m_groupId != -1)
     {
-        if (allSongGroups.find(m_groupId) != allSongGroups.end())
+        auto songSearch = allSongGroups.find(m_groupId);
+        auto sfxSearch = allSFXGroups.find(m_groupId);
+        if (songSearch != allSongGroups.end())
+        {
             m_sfxGroup = false;
-        else if (allSFXGroups.find(m_groupId) != allSFXGroups.end())
+            m_groupName = &songSearch->second.first->first;
+        }
+        else if (sfxSearch != allSFXGroups.end())
+        {
             m_sfxGroup = true;
+            m_groupName = &sfxSearch->second.first->first;
+        }
         else
         {
             Log.report(logvisor::Error, "unable to find Group %d", m_groupId);
