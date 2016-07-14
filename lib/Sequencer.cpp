@@ -93,13 +93,19 @@ Sequencer::ChannelState::ChannelState(Sequencer& parent, uint8_t chanId) : m_par
             {
                 auto it = m_parent.m_songGroup->m_drumPages.find(m_setup->programNo);
                 if (it != m_parent.m_songGroup->m_drumPages.cend())
+                {
                     m_page = it->second;
+                    m_curProgram = m_setup->programNo;
+                }
             }
             else
             {
                 auto it = m_parent.m_songGroup->m_normPages.find(m_setup->programNo);
                 if (it != m_parent.m_songGroup->m_normPages.cend())
+                {
                     m_page = it->second;
+                    m_curProgram = m_setup->programNo;
+                }
             }
 
             m_curVol = m_setup->volume / 127.f;
@@ -578,8 +584,15 @@ void Sequencer::setVolume(float vol)
 
 int8_t Sequencer::getChanProgram(int8_t chanId) const
 {
-    if (chanId > 15 || !m_chanStates[chanId])
+    if (chanId > 15)
         return 0;
+
+    if (!m_chanStates[chanId])
+    {
+        if (!m_midiSetup)
+            return 0;
+        return m_midiSetup[chanId].programNo;
+    }
 
     return m_chanStates[chanId]->m_curProgram;
 }
