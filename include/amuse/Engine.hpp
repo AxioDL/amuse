@@ -107,6 +107,9 @@ public:
         return seqPlay(groupId, songId, arrData, m_defaultStudio);
     }
 
+    /** Set total volume of engine */
+    void setVolume(float vol);
+
     /** Find voice from VoiceId */
     std::shared_ptr<Voice> findVoice(int vid);
 

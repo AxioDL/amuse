@@ -169,7 +169,7 @@ struct AppCallback : boo::IApplicationCallback
             m_seq->kill();
         }
         m_seq = m_engine->seqPlay(m_groupId, setupId, nullptr);
-        m_seq->setVolume(m_volume);
+        m_engine->setVolume(m_volume);
 
         if (m_arrData)
             m_seq->playSong(m_arrData->m_data.get(), false);
@@ -963,19 +963,13 @@ void EventCallback::specialKeyDown(boo::ESpecialKey key, boo::EModifierKey mods,
     case boo::ESpecialKey::Up:
         if (m_app.m_volume < 1.f)
             m_app.m_volume = amuse::clamp(0.f, m_app.m_volume + 0.05f, 1.f);
-        if (m_app.m_vox)
-            m_app.m_vox->setVolume(m_app.m_volume);
-        if (m_app.m_seq)
-            m_app.m_seq->setVolume(m_app.m_volume);
+        m_app.m_engine->setVolume(m_app.m_volume);
         m_app.m_updateDisp = true;
         break;
     case boo::ESpecialKey::Down:
         if (m_app.m_volume > 0.f)
             m_app.m_volume = amuse::clamp(0.f, m_app.m_volume - 0.05f, 1.f);
-        if (m_app.m_vox)
-            m_app.m_vox->setVolume(m_app.m_volume);
-        if (m_app.m_seq)
-            m_app.m_seq->setVolume(m_app.m_volume);
+        m_app.m_engine->setVolume(m_app.m_volume);
         m_app.m_updateDisp = true;
         break;
     case boo::ESpecialKey::Esc:

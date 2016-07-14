@@ -56,6 +56,9 @@ public:
     /** Amuse flushes voice samples to the backend this way */
     virtual void pumpAndMixVoices() = 0;
 
+    /** Set volume of main mix out */
+    virtual void setVolume(float vol) = 0;
+
     /** Amuse may request callbacks 200-updates-per-second virtually */
     virtual void register5MsCallback(std::function<void(double dt)>&& callback) = 0;
 };

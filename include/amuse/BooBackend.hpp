@@ -130,6 +130,7 @@ public:
     void register5MsCallback(std::function<void(double)>&& callback);
     AudioChannelSet getAvailableSet();
     void pumpAndMixVoices();
+    void setVolume(float vol);
 };
 }
 

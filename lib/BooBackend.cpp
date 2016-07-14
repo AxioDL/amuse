@@ -288,4 +288,6 @@ void BooBackendVoiceAllocator::register5MsCallback(std::function<void(double)>&&
 AudioChannelSet BooBackendVoiceAllocator::getAvailableSet() { return AudioChannelSet(m_booEngine.getAvailableSet()); }
 
 void BooBackendVoiceAllocator::pumpAndMixVoices() { m_booEngine.pumpAndMixVoices(); }
+
+void BooBackendVoiceAllocator::setVolume(float vol) { m_booEngine.setVolume(vol); }
 }

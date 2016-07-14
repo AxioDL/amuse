@@ -384,6 +384,14 @@ std::shared_ptr<Sequencer> Engine::seqPlay(int groupId, int songId, const unsign
     return {};
 }
 
+extern "C" const float VolumeLUT[];
+
+/** Set total volume of engine */
+void Engine::setVolume(float vol)
+{
+    m_backend.setVolume(VolumeLUT[int(vol * 65536)]);
+}
+
 /** Find voice from VoiceId */
 std::shared_ptr<Voice> Engine::findVoice(int vid)
 {
