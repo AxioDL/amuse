@@ -389,7 +389,7 @@ extern "C" const float VolumeLUT[];
 /** Set total volume of engine */
 void Engine::setVolume(float vol)
 {
-    m_backend.setVolume(VolumeLUT[int(vol * 65536)]);
+    m_backend.setVolume(VolumeLUT[int(clamp(0.f, vol, 1.f) * 65536)] * 1.46245869f);
 }
 
 /** Find voice from VoiceId */
