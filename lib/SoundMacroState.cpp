@@ -557,6 +557,15 @@ bool SoundMacroState::advance(Voice& vox, double dt)
             m_midiDecay = cmd.m_data[1];
             m_midiSustain = cmd.m_data[2];
             m_midiRelease = cmd.m_data[3];
+
+            /* Bootstrap ADSR defaults here */
+            if (!vox.getCtrlValue(m_midiSustain))
+            {
+                vox.setCtrlValue(m_midiAttack, 10);
+                vox.setCtrlValue(m_midiSustain, 127);
+                vox.setCtrlValue(m_midiRelease, 10);
+            }
+
             break;
         }
         case Op::RndNote:

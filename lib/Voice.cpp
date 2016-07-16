@@ -1244,6 +1244,7 @@ size_t Voice::getTotalVoices() const
 void Voice::kill()
 {
     m_voxState = VoiceState::Dead;
+    m_backendVoice->stop();
     for (const std::shared_ptr<Voice>& vox : m_childVoices)
         vox->kill();
 }
