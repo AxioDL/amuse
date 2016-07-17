@@ -49,32 +49,35 @@ struct PitchEvent
 /* Intermediate event */
 struct Event
 {
+    enum class Type : uint8_t
+    {
+        Note,
+        Control,
+        Program,
+        Pitch
+    } m_type;
+
     bool endEvent = false;
-    bool isNote = false;
-    bool isControlChange = false;
-    bool isProgChange = false;
     uint8_t channel;
     uint8_t noteOrCtrl;
     uint8_t velOrVal;
     uint8_t program;
     uint16_t length;
-
-    bool isPitchBend = false;
     int pitchBend;
 
     Event(NoteEvent, uint8_t chan, uint8_t note, uint8_t vel, uint16_t len)
-    : isNote(true), channel(chan), noteOrCtrl(note), velOrVal(vel), length(len)
+    : m_type(Type::Note), channel(chan), noteOrCtrl(note), velOrVal(vel), length(len)
     {
     }
 
     Event(CtrlEvent, uint8_t chan, uint8_t note, uint8_t vel, uint16_t len)
-    : isControlChange(true), channel(chan), noteOrCtrl(note), velOrVal(vel), length(len)
+    : m_type(Type::Control), channel(chan), noteOrCtrl(note), velOrVal(vel), length(len)
     {
     }
 
-    Event(ProgEvent, uint8_t chan, uint8_t prog) : isProgChange(true), channel(chan), program(prog) {}
+    Event(ProgEvent, uint8_t chan, uint8_t prog) : m_type(Type::Program), channel(chan), program(prog) {}
 
-    Event(PitchEvent, uint8_t chan, int pBend) : isPitchBend(true), channel(chan), pitchBend(pBend) {}
+    Event(PitchEvent, uint8_t chan, int pBend) : m_type(Type::Pitch), channel(chan), pitchBend(pBend) {}
 };
 
 class MIDIDecoder
@@ -864,7 +867,7 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
                 /* Resolve key-off events */
                 for (auto& pair : events)
                 {
-                    if (pair.second.isNote)
+                    if (pair.second.m_type == Event::Type::Note)
                     {
                         auto it = allEvents.emplace(pair.first + pair.second.length, pair.second);
                         it->second.endEvent = true;
@@ -879,24 +882,23 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
                 encoder._sendContinuedValue(pair.first - lastTime);
                 lastTime = pair.first;
 
-                if (pair.second.isControlChange)
+                switch (pair.second.m_type)
                 {
+                case Event::Type::Control:
                     encoder.controlChange(pair.second.channel, pair.second.noteOrCtrl, pair.second.velOrVal);
-                }
-                else if (pair.second.isProgChange)
-                {
+                    break;
+                case Event::Type::Program:
                     encoder.programChange(trk->m_midiChan, pair.second.program);
-                }
-                else if (pair.second.isPitchBend)
-                {
+                    break;
+                case Event::Type::Pitch:
                     encoder.pitchBend(trk->m_midiChan, pair.second.pitchBend);
-                }
-                else if (pair.second.isNote)
-                {
+                    break;
+                case Event::Type::Note:
                     if (pair.second.endEvent)
                         encoder.noteOff(pair.second.channel, pair.second.noteOrCtrl, pair.second.velOrVal);
                     else
                         encoder.noteOn(pair.second.channel, pair.second.noteOrCtrl, pair.second.velOrVal);
+                    break;
                 }
             }
 
@@ -1080,7 +1082,9 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
                             lastModVal = 0;
                         }
 
-                        if (event.second.isControlChange)
+                        switch (event.second.m_type)
+                        {
+                        case Event::Type::Control:
                         {
                             if (event.second.noteOrCtrl == 1)
                             {
@@ -1119,8 +1123,9 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
                                     }
                                 }
                             }
+                            break;
                         }
-                        else if (event.second.isProgChange)
+                        case Event::Type::Program:
                         {
                             if (version == 1)
                             {
@@ -1148,16 +1153,18 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
                                     region.eventBuf.push_back(0);
                                 }
                             }
+                            break;
                         }
-                        else if (event.second.isPitchBend)
+                        case Event::Type::Pitch:
                         {
                             EncodeRLE(region.pitchBuf, uint32_t(eventTick - lastPitchTick));
                             lastPitchTick = eventTick;
                             int newPitch = (event.second.pitchBend - 0x2000) * 2;
                             EncodeContinuousRLE(region.pitchBuf, newPitch - lastPitchVal);
                             lastPitchVal = newPitch;
+                            break;
                         }
-                        else if (event.second.isNote)
+                        case Event::Type::Note:
                         {
                             if (version == 1)
                             {
@@ -1194,6 +1201,8 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
                                     region.eventBuf.push_back(event.second.velOrVal);
                                 }
                             }
+                            break;
+                        }
                         }
                     }
                 }
