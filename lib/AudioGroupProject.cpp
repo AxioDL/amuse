@@ -152,7 +152,7 @@ struct MusyX1MIDISetup
     }
 };
 
-void AudioGroupProject::_allocateConvBuffers(const unsigned char* data, bool absOffs, N64DataTag)
+void AudioGroupProject::_allocateConvBuffers(const unsigned char* data, N64DataTag)
 {
     size_t normPageCount = 0;
     size_t drumPageCount = 0;
@@ -161,7 +161,7 @@ void AudioGroupProject::_allocateConvBuffers(const unsigned char* data, bool abs
     const GroupHeader* group = reinterpret_cast<const GroupHeader*>(data);
     while (group->groupEndOff != 0xffffffff)
     {
-        const unsigned char* subData = absOffs ? data : data + 8;
+        const unsigned char* subData = data + 8;
         GroupHeader header = *group;
         header.swapBig();
 
@@ -187,20 +187,16 @@ void AudioGroupProject::_allocateConvBuffers(const unsigned char* data, bool abs
 
             /* MIDI setups */
             const uint8_t* setupData = subData + header.midiSetupsOff;
-            while (*reinterpret_cast<const uint32_t*>(setupData) != 0xffffffff)
+            const uint8_t* setupEnd = subData + header.groupEndOff;
+            while (setupData < setupEnd)
             {
                 ++midiSetupCount;
                 setupData += 8 * 16 + 4;
             }
         }
 
-        if (absOffs)
-            group = reinterpret_cast<const GroupHeader*>(data + header.groupEndOff);
-        else
-        {
-            data += header.groupEndOff;
-            group = reinterpret_cast<const GroupHeader*>(data);
-        }
+        data += header.groupEndOff;
+        group = reinterpret_cast<const GroupHeader*>(data);
     }
 
     if (normPageCount)
@@ -213,7 +209,8 @@ void AudioGroupProject::_allocateConvBuffers(const unsigned char* data, bool abs
 
 AudioGroupProject::AudioGroupProject(const unsigned char* data, bool absOffs, N64DataTag)
 {
-    _allocateConvBuffers(data, absOffs, N64DataTag{});
+    if (!absOffs)
+        _allocateConvBuffers(data, N64DataTag{});
     SongGroupIndex::PageEntry* normPagesBuf = m_convNormalPages.get();
     SongGroupIndex::PageEntry* drumPagesBuf = m_convDrumPages.get();
     std::array<SongGroupIndex::MIDISetup, 16>* midiSetupsBuf = m_convMidiSetups.get();
@@ -232,42 +229,77 @@ AudioGroupProject::AudioGroupProject(const unsigned char* data, bool absOffs, N6
             SongGroupIndex& idx = m_songGroups[header.groupId];
             bIdx = &idx;
 
-            /* Normal pages */
-            const MusyX1PageEntry* normEntries =
-                reinterpret_cast<const MusyX1PageEntry*>(subData + header.pageTableOff);
-            while (normEntries->objId != 0xffff)
+            if (absOffs)
             {
-                normEntries->setIntoMusyX2(*normPagesBuf);
-                idx.m_normPages[normEntries->programNo] = normPagesBuf;
-                ++normEntries;
-                ++normPagesBuf;
+                /* Normal pages */
+                const SongGroupIndex::PageEntry* normEntries =
+                    reinterpret_cast<const SongGroupIndex::PageEntry*>(data + header.pageTableOff);
+                while (normEntries->objId != 0xffff)
+                {
+                    idx.m_normPages[normEntries->programNo] = normEntries;
+                    ++normEntries;
+                }
+
+                /* Drum pages */
+                const SongGroupIndex::PageEntry* drumEntries =
+                    reinterpret_cast<const SongGroupIndex::PageEntry*>(data + header.drumTableOff);
+                while (drumEntries->objId != 0xffff)
+                {
+                    idx.m_drumPages[drumEntries->programNo] = drumEntries;
+                    ++drumEntries;
+                }
+
+                /* MIDI setups */
+                const uint8_t* setupData = data + header.midiSetupsOff;
+                const uint8_t* setupEnd = data + header.groupEndOff;
+                while (setupData < setupEnd)
+                {
+                    uint16_t songId = SBig(*reinterpret_cast<const uint16_t*>(setupData));
+                    idx.m_midiSetups[songId] =
+                        reinterpret_cast<const std::array<SongGroupIndex::MIDISetup, 16>*>(setupData + 4);
+                    setupData += 5 * 16 + 4;
+                }
             }
-
-            /* Drum pages */
-            const MusyX1PageEntry* drumEntries =
-                reinterpret_cast<const MusyX1PageEntry*>(subData + header.drumTableOff);
-            while (drumEntries->objId != 0xffff)
+            else
             {
-                drumEntries->setIntoMusyX2(*drumPagesBuf);
-                idx.m_drumPages[drumEntries->programNo] = drumPagesBuf;
-                ++drumEntries;
-                ++drumPagesBuf;
-            }
+                /* Normal pages */
+                const MusyX1PageEntry* normEntries =
+                    reinterpret_cast<const MusyX1PageEntry*>(subData + header.pageTableOff);
+                while (normEntries->objId != 0xffff)
+                {
+                    normEntries->setIntoMusyX2(*normPagesBuf);
+                    idx.m_normPages[normEntries->programNo] = normPagesBuf;
+                    ++normEntries;
+                    ++normPagesBuf;
+                }
 
-            /* MIDI setups */
-            const uint8_t* setupData = subData + header.midiSetupsOff;
-            while (*reinterpret_cast<const uint32_t*>(setupData) != 0xffffffff)
-            {
-                uint16_t songId = SBig(*reinterpret_cast<const uint16_t*>(setupData));
-                const std::array<MusyX1MIDISetup, 16>* midiSetups =
-                    reinterpret_cast<const std::array<MusyX1MIDISetup, 16>*>(setupData + 4);
+                /* Drum pages */
+                const MusyX1PageEntry* drumEntries =
+                    reinterpret_cast<const MusyX1PageEntry*>(subData + header.drumTableOff);
+                while (drumEntries->objId != 0xffff)
+                {
+                    drumEntries->setIntoMusyX2(*drumPagesBuf);
+                    idx.m_drumPages[drumEntries->programNo] = drumPagesBuf;
+                    ++drumEntries;
+                    ++drumPagesBuf;
+                }
 
-                for (int i = 0; i < 16; ++i)
-                    (*midiSetups)[i].setIntoMusyX2((*midiSetupsBuf)[i]);
+                /* MIDI setups */
+                const uint8_t* setupData = subData + header.midiSetupsOff;
+                const uint8_t* setupEnd = subData + header.groupEndOff;
+                while (setupData < setupEnd)
+                {
+                    uint16_t songId = SBig(*reinterpret_cast<const uint16_t*>(setupData));
+                    const std::array<MusyX1MIDISetup, 16>* midiSetups =
+                        reinterpret_cast<const std::array<MusyX1MIDISetup, 16>*>(setupData + 4);
 
-                idx.m_midiSetups[songId] = midiSetupsBuf;
-                setupData += 8 * 16 + 4;
-                ++midiSetupsBuf;
+                    for (int i = 0; i < 16; ++i)
+                        (*midiSetups)[i].setIntoMusyX2((*midiSetupsBuf)[i]);
+
+                    idx.m_midiSetups[songId] = midiSetupsBuf;
+                    setupData += 8 * 16 + 4;
+                    ++midiSetupsBuf;
+                }
             }
         }
         else if (header.type == GroupType::SFX)
@@ -304,7 +336,7 @@ AudioGroupProject::AudioGroupProject(const unsigned char* data, bool absOffs, N6
     }
 }
 
-void AudioGroupProject::_allocateConvBuffers(const unsigned char* data, bool absOffs, PCDataTag)
+void AudioGroupProject::_allocateConvBuffers(const unsigned char* data, PCDataTag)
 {
     size_t normPageCount = 0;
     size_t drumPageCount = 0;
@@ -313,7 +345,7 @@ void AudioGroupProject::_allocateConvBuffers(const unsigned char* data, bool abs
     const GroupHeader* group = reinterpret_cast<const GroupHeader*>(data);
     while (group->groupEndOff != 0xffffffff)
     {
-        const unsigned char* subData = absOffs ? data : data + 8;
+        const unsigned char* subData = data + 8;
 
         if (group->type == GroupType::Song)
         {
@@ -337,20 +369,16 @@ void AudioGroupProject::_allocateConvBuffers(const unsigned char* data, bool abs
 
             /* MIDI setups */
             const uint8_t* setupData = subData + group->midiSetupsOff;
-            while (*reinterpret_cast<const uint32_t*>(setupData) != 0xffffffff)
+            const uint8_t* setupEnd = subData + group->groupEndOff;
+            while (setupData < setupEnd)
             {
                 ++midiSetupCount;
                 setupData += 8 * 16 + 4;
             }
         }
 
-        if (absOffs)
-            group = reinterpret_cast<const GroupHeader*>(data + group->groupEndOff);
-        else
-        {
-            data += group->groupEndOff;
-            group = reinterpret_cast<const GroupHeader*>(data);
-        }
+        data += group->groupEndOff;
+        group = reinterpret_cast<const GroupHeader*>(data);
     }
 
     if (normPageCount)
@@ -363,7 +391,8 @@ void AudioGroupProject::_allocateConvBuffers(const unsigned char* data, bool abs
 
 AudioGroupProject::AudioGroupProject(const unsigned char* data, bool absOffs, PCDataTag)
 {
-    _allocateConvBuffers(data, absOffs, PCDataTag{});
+    if (!absOffs)
+        _allocateConvBuffers(data, PCDataTag{});
     SongGroupIndex::PageEntry* normPagesBuf = m_convNormalPages.get();
     SongGroupIndex::PageEntry* drumPagesBuf = m_convDrumPages.get();
     std::array<SongGroupIndex::MIDISetup, 16>* midiSetupsBuf = m_convMidiSetups.get();
@@ -380,42 +409,77 @@ AudioGroupProject::AudioGroupProject(const unsigned char* data, bool absOffs, PC
             SongGroupIndex& idx = m_songGroups[group->groupId];
             bIdx = &idx;
 
-            /* Normal pages */
-            const MusyX1PageEntry* normEntries =
-                reinterpret_cast<const MusyX1PageEntry*>(subData + group->pageTableOff);
-            while (normEntries->objId != 0xffff)
+            if (absOffs)
             {
-                normEntries->setIntoMusyX2(*normPagesBuf);
-                idx.m_normPages[normEntries->programNo] = normPagesBuf;
-                ++normEntries;
-                ++normPagesBuf;
+                /* Normal pages */
+                const SongGroupIndex::PageEntry* normEntries =
+                    reinterpret_cast<const SongGroupIndex::PageEntry*>(data + group->pageTableOff);
+                while (normEntries->objId != 0xffff)
+                {
+                    idx.m_normPages[normEntries->programNo] = normEntries;
+                    ++normEntries;
+                }
+
+                /* Drum pages */
+                const SongGroupIndex::PageEntry* drumEntries =
+                    reinterpret_cast<const SongGroupIndex::PageEntry*>(data + group->drumTableOff);
+                while (drumEntries->objId != 0xffff)
+                {
+                    idx.m_drumPages[drumEntries->programNo] = drumEntries;
+                    ++drumEntries;
+                }
+
+                /* MIDI setups */
+                const uint8_t* setupData = data + group->midiSetupsOff;
+                const uint8_t* setupEnd = data + group->groupEndOff;
+                while (setupData < setupEnd)
+                {
+                    uint16_t songId = *reinterpret_cast<const uint16_t*>(setupData);
+                    idx.m_midiSetups[songId] =
+                        reinterpret_cast<const std::array<SongGroupIndex::MIDISetup, 16>*>(setupData + 4);
+                    setupData += 5 * 16 + 4;
+                }
             }
-
-            /* Drum pages */
-            const MusyX1PageEntry* drumEntries =
-                reinterpret_cast<const MusyX1PageEntry*>(subData + group->drumTableOff);
-            while (drumEntries->objId != 0xffff)
+            else
             {
-                drumEntries->setIntoMusyX2(*drumPagesBuf);
-                idx.m_drumPages[drumEntries->programNo] = drumPagesBuf;
-                ++drumEntries;
-                ++drumPagesBuf;
-            }
+                /* Normal pages */
+                const MusyX1PageEntry* normEntries =
+                    reinterpret_cast<const MusyX1PageEntry*>(subData + group->pageTableOff);
+                while (normEntries->objId != 0xffff)
+                {
+                    normEntries->setIntoMusyX2(*normPagesBuf);
+                    idx.m_normPages[normEntries->programNo] = normPagesBuf;
+                    ++normEntries;
+                    ++normPagesBuf;
+                }
 
-            /* MIDI setups */
-            const uint8_t* setupData = subData + group->midiSetupsOff;
-            while (*reinterpret_cast<const uint32_t*>(setupData) != 0xffffffff)
-            {
-                uint16_t songId = *reinterpret_cast<const uint16_t*>(setupData);
-                const std::array<MusyX1MIDISetup, 16>* midiSetups =
-                    reinterpret_cast<const std::array<MusyX1MIDISetup, 16>*>(setupData + 4);
+                /* Drum pages */
+                const MusyX1PageEntry* drumEntries =
+                    reinterpret_cast<const MusyX1PageEntry*>(subData + group->drumTableOff);
+                while (drumEntries->objId != 0xffff)
+                {
+                    drumEntries->setIntoMusyX2(*drumPagesBuf);
+                    idx.m_drumPages[drumEntries->programNo] = drumPagesBuf;
+                    ++drumEntries;
+                    ++drumPagesBuf;
+                }
 
-                for (int i = 0; i < 16; ++i)
-                    (*midiSetups)[i].setIntoMusyX2((*midiSetupsBuf)[i]);
+                /* MIDI setups */
+                const uint8_t* setupData = subData + group->midiSetupsOff;
+                const uint8_t* setupEnd = subData + group->groupEndOff;
+                while (setupData < setupEnd)
+                {
+                    uint16_t songId = *reinterpret_cast<const uint16_t*>(setupData);
+                    const std::array<MusyX1MIDISetup, 16>* midiSetups =
+                        reinterpret_cast<const std::array<MusyX1MIDISetup, 16>*>(setupData + 4);
 
-                idx.m_midiSetups[songId] = midiSetupsBuf;
-                setupData += 8 * 16 + 4;
-                ++midiSetupsBuf;
+                    for (int i = 0; i < 16; ++i)
+                        (*midiSetups)[i].setIntoMusyX2((*midiSetupsBuf)[i]);
+
+                    idx.m_midiSetups[songId] = midiSetupsBuf;
+                    setupData += 8 * 16 + 4;
+                    ++midiSetupsBuf;
+                }
             }
         }
         else if (group->type == GroupType::SFX)
