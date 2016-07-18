@@ -1,7 +1,14 @@
+cmake_minimum_required(VERSION 3.0)
 project(amuse)
 
-if(EXISTS boo)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/boo AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/athena)
+  message(STATUS "Preparing standalone build")
+  if (NOT MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wno-narrowing")
+  endif()
   add_subdirectory(boo)
+  add_subdirectory(athena)
+  include_directories(athena/include)
 endif()
 
 set(SOURCES
