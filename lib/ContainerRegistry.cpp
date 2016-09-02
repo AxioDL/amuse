@@ -560,7 +560,8 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadMP2(FIL
                         rem -= dsz;
                     }
 
-                    fp = FOpen(_S("amuse_tmp.dat"), _S("r+"));
+                    fp = FOpen(_S("amuse_tmp.dat"), _S("rw"));
+                    rewind(fp);
                     fwrite(buf, 1, decompSz, fp);
                     rewind(fp);
                 }
@@ -609,7 +610,11 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadMP2(FIL
                         }
                     }
                 }
-                Unlink(_S("amuse_tmp.dat"));
+                if (compressed)
+                {
+                    fclose(fp);
+                    Unlink(_S("amuse_tmp.dat"));
+                }
                 fp = old_fp;
                 FSeek(fp, origPos, SEEK_SET);
             }
