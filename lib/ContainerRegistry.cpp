@@ -540,7 +540,6 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadMP2(FIL
                 FILE* old_fp = fp;
                 if (compressed)
                 {
-                    fprintf(stderr, "Decompressing...\n");
                     uint32_t decompSz;
                     fread(&decompSz, 1, 4, fp);
                     decompSz = SBig(decompSz);
