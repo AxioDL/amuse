@@ -6,6 +6,7 @@
 #include <memory>
 #include <unordered_map>
 #include <zlib.h>
+#include <lzo/lzo1x.h>
 
 #if _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -420,9 +421,6 @@ static std::vector<std::pair<SystemString, ContainerRegistry::SongData>> LoadMP1
 
 static bool ValidateMP2(FILE* fp)
 {
-    if (FileLength(fp) > 40 * 1024 * 1024)
-        return false;
-
     uint32_t magic;
     fread(&magic, 1, 4, fp);
     magic = SBig(magic);
@@ -448,7 +446,8 @@ static bool ValidateMP2(FILE* fp)
         resCount = SBig(resCount);
         for (uint32_t i = 0; i < resCount; ++i)
         {
-            FSeek(fp, 4, SEEK_CUR);
+            uint32_t compressed;
+            fread(&compressed, 1, 4, fp);
             uint32_t type;
             fread(&type, 1, 4, fp);
             type = SBig(type);
@@ -462,13 +461,28 @@ static bool ValidateMP2(FILE* fp)
                 int64_t origPos = FTell(fp);
                 FSeek(fp, offset, SEEK_SET);
                 char testBuf[4];
-                if (fread(testBuf, 1, 4, fp) == 4)
+                if (!compressed)
                 {
-                    if (amuse::SBig(*reinterpret_cast<uint32_t*>(testBuf)) == 0x1)
-                        return true;
-                    else
+                    if (fread(testBuf, 1, 4, fp) != 4)
                         return false;
                 }
+                else
+                {
+                    FSeek(fp, 4, SEEK_CUR);
+                    uint16_t chunkSz;
+                    fread(&chunkSz, 1, 2, fp);
+                    chunkSz = SBig(chunkSz);
+                    uint8_t compBuf[0x8000];
+                    uint8_t destBuf[0x8000 * 2];
+                    fread(compBuf, 1, chunkSz, fp);
+                    lzo_uint dsz = 0x8000 * 2;
+                    lzo1x_decompress(compBuf, chunkSz, destBuf, &dsz, nullptr);
+                    memcpy(testBuf, destBuf, 4);
+                }
+                if (amuse::SBig(*reinterpret_cast<uint32_t*>(testBuf)) == 0x1)
+                    return true;
+                else
+                    return false;
                 FSeek(fp, origPos, SEEK_SET);
             }
         }
@@ -508,7 +522,8 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadMP2(FIL
         ret.reserve(resCount);
         for (uint32_t i = 0; i < resCount; ++i)
         {
-            FSeek(fp, 4, SEEK_CUR);
+            uint32_t compressed;
+            fread(&compressed, 1, 4, fp);
             uint32_t type;
             fread(&type, 1, 4, fp);
             type = SBig(type);
@@ -522,6 +537,33 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadMP2(FIL
                 int64_t origPos = FTell(fp);
                 FSeek(fp, offset, SEEK_SET);
                 char testBuf[4];
+                FILE* old_fp = fp;
+                if (compressed)
+                {
+                    fprintf(stderr, "Decompressing...\n");
+                    uint32_t decompSz;
+                    fread(&decompSz, 1, 4, fp);
+                    decompSz = SBig(decompSz);
+                    uint8_t compBuf[0x8000];
+                    uint8_t* buf = new uint8_t[decompSz];
+                    uint8_t* bufCur = buf;
+                    uint32_t rem = decompSz;
+                    while (rem)
+                    {
+                        uint16_t chunkSz;
+                        fread(&chunkSz, 1, 2, fp);
+                        chunkSz = SBig(chunkSz);
+                        fread(compBuf, 1, chunkSz, fp);
+                        lzo_uint dsz = rem;
+                        lzo1x_decompress(compBuf, chunkSz, bufCur, &dsz, nullptr);
+                        bufCur += dsz;
+                        rem -= dsz;
+                    }
+
+                    fp = FOpen(_S("amuse_tmp.dat"), _S("r+"));
+                    fwrite(buf, 1, decompSz, fp);
+                    rewind(fp);
+                }
                 if (fread(testBuf, 1, 4, fp) == 4)
                 {
                     if (amuse::SBig(*reinterpret_cast<uint32_t*>(testBuf)) == 0x1)
@@ -567,6 +609,8 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadMP2(FIL
                         }
                     }
                 }
+                Unlink(_S("amuse_tmp.dat"));
+                fp = old_fp;
                 FSeek(fp, origPos, SEEK_SET);
             }
         }

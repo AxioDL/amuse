@@ -9,9 +9,18 @@
 #include <string>
 #include <cstring>
 
-#ifndef _MSC_VER
+#ifndef _WIN32
 #include <strings.h>
 #include <sys/stat.h>
+#include <unistd.h>
+#else
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN 1
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <Windows.h>
 #endif
 
 namespace amuse
@@ -184,6 +193,15 @@ static inline FILE* FOpen(const SystemChar* path, const SystemChar* mode)
         return nullptr;
 #endif
     return fp;
+}
+
+static inline void Unlink(const SystemChar* file)
+{
+#if _WIN32
+    _wunlink(file);
+#else
+    unlink(file);
+#endif
 }
 
 #undef bswap16
