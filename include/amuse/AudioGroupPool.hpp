@@ -22,22 +22,15 @@ static inline double TimeCentsToSeconds(int32_t tc)
 /** Defines phase-based volume curve for macro volume control */
 struct ADSR
 {
-    uint8_t attackFine;    /* 0-255ms */
-    uint8_t attackCoarse;  /* 0-65280ms */
-    uint8_t decayFine;     /* 0-255ms */
-    uint8_t decayCoarse;   /* 0-65280ms */
-    uint8_t sustainFine;   /* multiply by 0.0244 for percentage */
-    uint8_t sustainCoarse; /* multiply by 6.25 for percentage */
-    uint8_t releaseFine;   /* 0-255ms */
-    uint8_t releaseCoarse; /* 0-65280ms */
+    uint16_t attack;
+    uint16_t decay;
+    uint16_t sustain;     /* 0x1000 == 100% */
+    uint16_t release;     /* milliseconds */
 
-    double getAttack() const { return (attackCoarse * 255 + attackFine) / 1000.0; }
-    double getDecay() const { return decayCoarse == 128 ? 0.0 : ((decayCoarse * 255 + decayFine) / 1000.0); }
-    double getSustain() const
-    {
-        return decayCoarse == 128 ? 1.0 : ((sustainCoarse * 6.25 + sustainFine * 0.0244) / 100.0);
-    }
-    double getRelease() const { return (releaseCoarse * 255 + releaseFine) / 1000.0; }
+    double getAttack() const { return attack / 1000.0; }
+    double getDecay() const { return (decay == 0x8000) ? 0.0 : (decay / 1000.0); }
+    double getSustain() const { return sustain / double(0x1000); }
+    double getRelease() const { return release / double(1000); }
 };
 
 /** Defines phase-based volume curve for macro volume control (modified DLS standard) */
