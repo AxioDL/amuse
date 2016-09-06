@@ -30,7 +30,7 @@ struct ADSR
     double getAttack() const { return attack / 1000.0; }
     double getDecay() const { return (decay == 0x8000) ? 0.0 : (decay / 1000.0); }
     double getSustain() const { return sustain / double(0x1000); }
-    double getRelease() const { return release / double(1000); }
+    double getRelease() const { return release / 1000.0; }
 };
 
 /** Defines phase-based volume curve for macro volume control (modified DLS standard) */
@@ -46,7 +46,7 @@ struct ADSRDLS
     double getAttack() const { return TimeCentsToSeconds(attack); }
     double getDecay() const { return TimeCentsToSeconds(decay); }
     double getSustain() const { return sustain / double(0x1000); }
-    double getRelease() const { return release / double(1000); }
+    double getRelease() const { return release / 1000.0; }
     double getVelToAttack(int8_t vel) const
     {
         if (velToAttack == 0x80000000)
