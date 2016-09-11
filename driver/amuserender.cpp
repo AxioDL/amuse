@@ -481,6 +481,7 @@ int main(int argc, const boo::SystemChar** argv)
 }
 
 #if _WIN32
+#include <shellapi.h>
 int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR lpCmdLine, int)
 {
     signal(SIGABRT, abortHandler);

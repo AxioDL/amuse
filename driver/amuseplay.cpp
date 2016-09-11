@@ -31,58 +31,6 @@ SNPrintf(boo::SystemChar* str, size_t maxlen, const boo::SystemChar* format, ...
     va_end(va);
 }
 
-#if _WIN32
-#include <DbgHelp.h>
-#pragma comment(lib, "Dbghelp.lib")
-
-#include <signal.h>
-
-static void abortHandler(int signum)
-{
-    unsigned int i;
-    void* stack[100];
-    unsigned short frames;
-    SYMBOL_INFO* symbol;
-    HANDLE process;
-
-    process = GetCurrentProcess();
-    SymInitialize(process, NULL, TRUE);
-    frames = CaptureStackBackTrace(0, 100, stack, NULL);
-    symbol = (SYMBOL_INFO*)calloc(sizeof(SYMBOL_INFO) + 256 * sizeof(char), 1);
-    symbol->MaxNameLen = 255;
-    symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
-
-    for (i = 0; i < frames; i++)
-    {
-        SymFromAddr(process, (DWORD64)(stack[i]), 0, symbol);
-
-        printf("%i: %s - 0x%0llX", frames - i - 1, symbol->Name, symbol->Address);
-
-        DWORD dwDisplacement;
-        IMAGEHLP_LINE64 line;
-        SymSetOptions(SYMOPT_LOAD_LINES);
-
-        line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
-        if (SymGetLineFromAddr64(process, (DWORD64)(stack[i]), &dwDisplacement, &line))
-        {
-            // SymGetLineFromAddr64 returned success
-            printf(" LINE %d\n", line.LineNumber);
-        }
-        else
-        {
-            printf("\n");
-        }
-    }
-
-    free(symbol);
-
-    // If you caught one of the above signals, it is likely you just
-    // want to quit your program right now.
-    system("PAUSE");
-    exit(signum);
-}
-#endif
-
 struct AppCallback;
 
 struct EventCallback : boo::IWindowCallback
@@ -1026,6 +974,7 @@ int main(int argc, const boo::SystemChar** argv)
 #endif
 {
     logvisor::RegisterConsoleLogger();
+    logvisor::RegisterStandardExceptions();
     AppCallback app(argc, argv);
     int ret = boo::ApplicationRun(boo::IApplication::EPlatformType::Auto, app, _S("amuseplay"), _S("Amuse Player"),
                                   argc, argv, false);
@@ -1034,13 +983,9 @@ int main(int argc, const boo::SystemChar** argv)
 }
 
 #if _WIN32
+#include <shellapi.h>
 int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR lpCmdLine, int)
 {
-    signal(SIGABRT, abortHandler);
-    signal(SIGSEGV, abortHandler);
-    signal(SIGILL, abortHandler);
-    signal(SIGFPE, abortHandler);
-
     int argc = 0;
     const boo::SystemChar** argv = (const wchar_t**)(CommandLineToArgvW(lpCmdLine, &argc));
     static boo::SystemChar selfPath[1024];
