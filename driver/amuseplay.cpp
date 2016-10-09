@@ -264,6 +264,8 @@ struct AppCallback : boo::IApplicationCallback
     {
         printf("<space>: keyon/keyoff, <left/right>: cycle SFX, <up/down>: volume, <Q>: quit\n");
 
+        m_seq = m_engine->seqPlay(m_groupId, 0, nullptr);
+
         std::map<uint16_t, const amuse::SFXGroupIndex::SFXEntry*> sortEntries(index.m_sfxEntries.cbegin(),
                                                                               index.m_sfxEntries.cend());
         auto sfxIt = sortEntries.cbegin();
@@ -316,6 +318,8 @@ struct AppCallback : boo::IApplicationCallback
             {
                 m_breakout = false;
                 m_vox.reset();
+                m_seq->allOff(true);
+                m_seq.reset();
                 break;
             }
 
@@ -383,6 +387,8 @@ struct AppCallback : boo::IApplicationCallback
             switch (charCode)
             {
             case ' ':
+                if (m_seq)
+                    m_seq->allOff(true);
                 if (m_vox && m_vox->state() == amuse::VoiceState::Playing)
                     m_vox->keyOff();
                 else if (m_sfxId != -1)
