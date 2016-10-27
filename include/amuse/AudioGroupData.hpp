@@ -116,8 +116,8 @@ public:
     IntrusiveAudioGroupData(const IntrusiveAudioGroupData&) = delete;
     IntrusiveAudioGroupData& operator=(const IntrusiveAudioGroupData&) = delete;
 
-    IntrusiveAudioGroupData(IntrusiveAudioGroupData&& other);
-    IntrusiveAudioGroupData& operator=(IntrusiveAudioGroupData&& other);
+    IntrusiveAudioGroupData(IntrusiveAudioGroupData&& other) noexcept;
+    IntrusiveAudioGroupData& operator=(IntrusiveAudioGroupData&& other) noexcept;
 
     void dangleOwnership() { m_owns = false; }
 };
