@@ -46,7 +46,8 @@ void Voice::_macroSampleEnd()
     {
         if (m_sampleEndTrap.macroId == m_state.m_header.m_macroId)
         {
-            m_state.m_pc.back().second = m_sampleEndTrap.macroStep;
+            m_state.m_pc.back().second = SoundMacroState::_assertPC(m_sampleEndTrap.macroStep,
+                                                                    m_state.m_header.m_size);
             m_state.m_inWait = false;
         }
         else
@@ -751,9 +752,11 @@ bool Voice::_loadSoundMacro(const unsigned char* macroData, int macroStep, doubl
     {
         if (!pushPc)
             m_state.m_pc.clear();
-        m_state.m_pc.push_back({macroData, macroStep});
-        m_state.m_header = *reinterpret_cast<const SoundMacroState::Header*>(macroData);
-        if (m_audioGroup.getDataFormat() != DataFormat::PC)
+        const SoundMacroState::Header& header = reinterpret_cast<const SoundMacroState::Header&>(macroData);
+        const bool swapData = m_audioGroup.getDataFormat() != DataFormat::PC;
+        m_state.m_pc.push_back({macroData, SoundMacroState::_assertPC(macroStep, header.m_size, swapData)});
+        m_state.m_header = header;
+        if (swapData)
             m_state.m_header.swapBig();
     }
 
@@ -846,7 +849,8 @@ void Voice::keyOff()
     {
         if (m_keyoffTrap.macroId == m_state.m_header.m_macroId)
         {
-            m_state.m_pc.back().second = m_keyoffTrap.macroStep;
+            m_state.m_pc.back().second = SoundMacroState::_assertPC(m_keyoffTrap.macroStep,
+                                                                    m_state.m_header.m_size);
             m_state.m_inWait = false;
         }
         else
@@ -867,7 +871,8 @@ void Voice::message(int32_t val)
     if (m_messageTrap.macroId != 0xffff)
     {
         if (m_messageTrap.macroId == m_state.m_header.m_macroId)
-            m_state.m_pc.back().second = m_messageTrap.macroStep;
+            m_state.m_pc.back().second = SoundMacroState::_assertPC(m_messageTrap.macroStep,
+                                                                    m_state.m_header.m_size);
         else
             loadSoundObject(m_messageTrap.macroId, m_messageTrap.macroStep, m_state.m_ticksPerSec, m_state.m_initKey,
                             m_state.m_initVel, m_state.m_initMod);

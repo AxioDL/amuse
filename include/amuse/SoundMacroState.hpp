@@ -5,6 +5,7 @@
 #include <vector>
 #include <list>
 #include "Entity.hpp"
+#include "Common.hpp"
 
 namespace amuse
 {
@@ -118,6 +119,17 @@ class SoundMacroState
 
     /** 'program counter' stack for the active SoundMacro */
     std::vector<std::pair<const unsigned char*, int>> m_pc;
+
+    static int _assertPC(int pc, uint32_t size);
+    static int _assertPC(int pc, uint32_t size, bool swapSize)
+    {
+        return _assertPC(pc, swapSize ? SBig(size) : size);
+    }
+
+    void _setPC(int pc)
+    {
+        m_pc.back().second = _assertPC(pc, m_header.m_size);
+    }
 
     double m_ticksPerSec; /**< ratio for resolving ticks in commands that use them */
     uint8_t m_initVel;    /**< Velocity played for this macro invocation */

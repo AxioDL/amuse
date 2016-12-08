@@ -103,7 +103,7 @@ if (APPLE AND (NOT CMAKE_OSX_DEPLOYMENT_TARGET OR CMAKE_OSX_DEPLOYMENT_TARGET VE
       )
 
     else()
-      message(WARNING "Unable to find developer provision profile; skipping Amuse-AU")
+      message(WARNING "Unable to find developer provisioning profile; skipping Amuse-AU")
     endif()
   endif()
 endif()

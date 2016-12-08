@@ -13,6 +13,19 @@
 namespace amuse
 {
 
+int SoundMacroState::_assertPC(int pc, uint32_t size)
+{
+    if (pc == -1)
+        return -1;
+    int cmdCount = (size - sizeof(Header)) / sizeof(Command);
+    if (pc >= cmdCount)
+    {
+        fprintf(stderr, "SoundMacro PC bounds exceeded [%d/%d]\n", pc, cmdCount);
+        abort();
+    }
+    return pc;
+}
+
 void SoundMacroState::Header::swapBig()
 {
     m_size = SBig(m_size);
@@ -133,7 +146,8 @@ void SoundMacroState::initialize(const unsigned char* ptr, int step, double tick
     m_curMod = midiMod;
     m_curPitch = midiKey * 100;
     m_pc.clear();
-    m_pc.push_back({ptr, step});
+    const Header& header = reinterpret_cast<const Header&>(ptr);
+    m_pc.push_back({ptr, _assertPC(step, header.m_size, swapData)});
     m_inWait = false;
     m_execTime = 0.f;
     m_keyoff = false;
@@ -143,7 +157,7 @@ void SoundMacroState::initialize(const unsigned char* ptr, int step, double tick
     m_useAdsrControllers = false;
     m_portamentoMode = 2;
     m_portamentoTime = 0.5f;
-    m_header = *reinterpret_cast<const Header*>(ptr);
+    m_header = header;
     if (swapData)
         m_header.swapBig();
 }
@@ -180,6 +194,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
 
         /* Load next command based on counter */
         const Command* commands = reinterpret_cast<const Command*>(m_pc.back().first + sizeof(Header));
+        _assertPC(m_pc.back().second, m_header.m_size);
         Command cmd = commands[m_pc.back().second++];
         if (vox.getAudioGroup().getDataFormat() != DataFormat::PC)
             cmd.swapBig();
@@ -189,7 +204,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
         {
         case Op::End:
         case Op::Stop:
-            m_pc.back().second = -1;
+            _setPC(-1);
             return true;
         case Op::SplitKey:
         {
@@ -201,7 +216,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
             {
                 /* Do Branch */
                 if (macroId == m_header.m_macroId)
-                    m_pc.back().second = macroStep;
+                    _setPC(macroStep);
                 else
                     vox.loadSoundObject(macroId, macroStep, m_ticksPerSec, m_initKey, m_initVel, m_initMod);
             }
@@ -218,7 +233,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
             {
                 /* Do Branch */
                 if (macroId == m_header.m_macroId)
-                    m_pc.back().second = macroStep;
+                    _setPC(macroStep);
                 else
                     vox.loadSoundObject(macroId, macroStep, m_ticksPerSec, m_initKey, m_initVel, m_initMod);
             }
@@ -287,7 +302,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
             {
                 /* Loop back to step */
                 --m_loopCountdown;
-                m_pc.back().second = step;
+                _setPC(step);
             }
             else /* Break out of loop */
                 m_loopCountdown = -1;
@@ -301,7 +316,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
 
             /* Do Branch */
             if (macroId == m_header.m_macroId)
-                m_pc.back().second = macroStep;
+                _setPC(macroStep);
             else
                 vox.loadSoundObject(macroId, macroStep, m_ticksPerSec, m_initKey, m_initVel, m_initMod);
 
@@ -389,7 +404,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
             {
                 /* Do Branch */
                 if (macroId == m_header.m_macroId)
-                    m_pc.back().second = macroStep;
+                    _setPC(macroStep);
                 else
                     vox.loadSoundObject(macroId, macroStep, m_ticksPerSec, m_initKey, m_initVel, m_initMod);
             }
@@ -511,7 +526,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
             {
                 /* Do branch */
                 if (macroId == m_header.m_macroId)
-                    m_pc.back().second = macroStep;
+                    _setPC(macroStep);
                 else
                     vox.loadSoundObject(macroId, macroStep, m_ticksPerSec, m_initKey, m_initVel, m_initMod);
             }
@@ -776,7 +791,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
             int16_t macroStep = *reinterpret_cast<int16_t*>(&cmd.m_data[3]);
 
             if (macroId == m_header.m_macroId)
-                m_pc.push_back({m_pc.back().first, macroStep});
+                m_pc.push_back({m_pc.back().first, _assertPC(macroStep, m_header.m_size)});
             else
                 vox.loadSoundObject(macroId, macroStep, m_ticksPerSec, m_initKey, m_initVel, m_initMod, true);
 
@@ -1205,7 +1220,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
                 b = m_variables[b];
 
             if ((a == b) ^ lnot)
-                m_pc.back().second = macroStep;
+                _setPC(macroStep);
 
             break;
         }
@@ -1229,7 +1244,7 @@ bool SoundMacroState::advance(Voice& vox, double dt)
                 b = m_variables[b];
 
             if ((a < b) ^ lnot)
-                m_pc.back().second = macroStep;
+                _setPC(macroStep);
 
             break;
         }
