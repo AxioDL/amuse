@@ -58,10 +58,10 @@ void EffectDelayImp<T>::applyEffect(T* audio, size_t frameCount, const ChannelMa
 
     for (size_t f = 0; f < frameCount;)
     {
-        for (int c = 0; c < chanMap.m_channelCount; ++c)
+        for (unsigned c = 0; c < chanMap.m_channelCount; ++c)
         {
             T* chanAud = audio + c;
-            for (int i = 0; i < m_blockSamples && f < frameCount; ++i, ++f)
+            for (unsigned i = 0; i < m_blockSamples && f < frameCount; ++i, ++f)
             {
                 T& liveSamp = chanAud[chanMap.m_channelCount * i];
                 T& samp = x30_chanLines[c][xc_currentPos[c] * m_blockSamples + i];

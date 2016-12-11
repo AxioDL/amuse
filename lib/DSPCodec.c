@@ -11,7 +11,7 @@ unsigned DSPDecompressFrame(int16_t* out, const uint8_t* in,
     int32_t factor2 = coefs[cIdx][1];
     uint8_t exp = in[0] & 0xf;
     unsigned ret = 0;
-    for (int s=0 ; s<14 && s<lastSample ; ++s)
+    for (unsigned s=0 ; s<14 && s<lastSample ; ++s)
     {
         int32_t sampleData = (s&1)?
         NibbleToInt[(in[s/2+1])&0xf]:
@@ -41,7 +41,7 @@ unsigned DSPDecompressFrameStereoStride(int16_t* out, const uint8_t* in,
     int32_t factor2 = coefs[cIdx][1];
     uint32_t exp = in[0] & 0xf;
     unsigned ret = 0;
-    for (int s=0 ; s<14 && s<lastSample ; ++s)
+    for (unsigned s=0 ; s<14 && s<lastSample ; ++s)
     {
         int32_t sampleData = (s&1)?
         NibbleToInt[(in[s/2+1])&0xf]:
@@ -71,7 +71,7 @@ unsigned DSPDecompressFrameStereoDupe(int16_t* out, const uint8_t* in,
     int32_t factor2 = coefs[cIdx][1];
     uint8_t exp = in[0] & 0xf;
     unsigned ret = 0;
-    for (int s=0 ; s<14 && s<lastSample ; ++s)
+    for (unsigned s=0 ; s<14 && s<lastSample ; ++s)
     {
         int32_t sampleData = (s&1)?
         NibbleToInt[(in[s/2+1])&0xf]:
@@ -102,7 +102,7 @@ unsigned DSPDecompressFrameRanged(int16_t* out, const uint8_t* in,
     int32_t factor2 = coefs[cIdx][1];
     uint8_t exp = in[0] & 0xf;
     unsigned ret = 0;
-    for (int s=firstSample ; s<14 && s<lastSample ; ++s)
+    for (unsigned s=firstSample ; s<14 && s<lastSample ; ++s)
     {
         int32_t sampleData = (s&1)?
         NibbleToInt[(in[s/2+1])&0xf]:
@@ -132,7 +132,7 @@ unsigned DSPDecompressFrameStateOnly(const uint8_t* in,
     int32_t factor2 = coefs[cIdx][1];
     uint8_t exp = in[0] & 0xf;
     unsigned ret = 0;
-    for (int s=0 ; s<14 && s<lastSample ; ++s)
+    for (unsigned s=0 ; s<14 && s<lastSample ; ++s)
     {
         int32_t sampleData = (s&1)?
         NibbleToInt[(in[s/2+1])&0xf]:

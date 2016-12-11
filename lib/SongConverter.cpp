@@ -1324,7 +1324,7 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
                     reg.m_progNum = 0xff;
                     reg.m_unk1 = 0xff;
                     reg.m_unk2 = 0;
-                    reg.m_regionIndex = 0xffff;
+                    reg.m_regionIndex = -1;
                     reg.m_unk3 = 0;
                 }
                 else
@@ -1333,7 +1333,7 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
                     reg.m_progNum = 0xff;
                     reg.m_unk1 = 0xff;
                     reg.m_unk2 = 0;
-                    reg.m_regionIndex = 0xffff;
+                    reg.m_regionIndex = -1;
                     reg.m_unk3 = 0;
                 }
             }

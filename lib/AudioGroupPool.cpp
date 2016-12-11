@@ -73,7 +73,7 @@ AudioGroupPool::AudioGroupPool(const unsigned char* data)
             uint32_t count = SBig(*reinterpret_cast<const uint32_t*>(cur + 8));
             mappingsOut.reserve(count);
             const unsigned char* subcur = cur + 12;
-            for (int i = 0; i < count; ++i)
+            for (uint32_t i = 0; i < count; ++i)
                 mappingsOut.push_back(reinterpret_cast<const LayerMapping*>(subcur + i * 12));
 
             cur += size;
@@ -133,7 +133,7 @@ AudioGroupPool::AudioGroupPool(const unsigned char* data, PCDataTag)
             uint32_t count = *reinterpret_cast<const uint32_t*>(cur + 8);
             mappingsOut.reserve(count);
             const unsigned char* subcur = cur + 12;
-            for (int i = 0; i < count; ++i)
+            for (uint32_t i = 0; i < count; ++i)
                 mappingsOut.push_back(reinterpret_cast<const LayerMapping*>(subcur + i * 12));
 
             cur += size;

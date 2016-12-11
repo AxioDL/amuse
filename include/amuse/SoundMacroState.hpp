@@ -7,6 +7,10 @@
 #include "Entity.hpp"
 #include "Common.hpp"
 
+/* Squelch Win32 macro pollution >.< */
+#undef SendMessage
+#undef GetMessage
+
 namespace amuse
 {
 class Voice;

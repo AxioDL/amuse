@@ -372,7 +372,7 @@ bool SongState::Track::advance(Sequencer& seq, int32_t ticks)
     while (m_nextRegion->indexValid(m_parent.m_bigEndian))
     {
         uint32_t nextRegTick = (m_parent.m_bigEndian ? SBig(m_nextRegion->m_startTick) : m_nextRegion->m_startTick);
-        if (endTick > nextRegTick)
+        if (uint32_t(endTick) > nextRegTick)
             advanceRegion(&seq);
         else
             break;
