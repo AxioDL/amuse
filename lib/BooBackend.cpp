@@ -16,17 +16,17 @@ size_t BooBackendVoice::VoiceCallback::supplyAudio(boo::IAudioVoice&, size_t fra
     return m_parent.m_clientVox.supplyAudio(frames, data);
 }
 
-void BooBackendVoice::VoiceCallback::routeAudio(size_t frames, double dt, int busId, int16_t* in, int16_t* out)
+void BooBackendVoice::VoiceCallback::routeAudio(size_t frames, size_t channels, double dt, int busId, int16_t* in, int16_t* out)
 {
     m_parent.m_clientVox.routeAudio(frames, dt, busId, in, out);
 }
 
-void BooBackendVoice::VoiceCallback::routeAudio(size_t frames, double dt, int busId, int32_t* in, int32_t* out)
+void BooBackendVoice::VoiceCallback::routeAudio(size_t frames, size_t channels, double dt, int busId, int32_t* in, int32_t* out)
 {
     m_parent.m_clientVox.routeAudio(frames, dt, busId, in, out);
 }
 
-void BooBackendVoice::VoiceCallback::routeAudio(size_t frames, double dt, int busId, float* in, float* out)
+void BooBackendVoice::VoiceCallback::routeAudio(size_t frames, size_t channels, double dt, int busId, float* in, float* out)
 {
     m_parent.m_clientVox.routeAudio(frames, dt, busId, in, out);
 }

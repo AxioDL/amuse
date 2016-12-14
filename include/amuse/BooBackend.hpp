@@ -24,9 +24,9 @@ class BooBackendVoice : public IBackendVoice
         BooBackendVoice& m_parent;
         void preSupplyAudio(boo::IAudioVoice& voice, double dt);
         size_t supplyAudio(boo::IAudioVoice& voice, size_t frames, int16_t* data);
-        void routeAudio(size_t frames, double dt, int busId, int16_t* in, int16_t* out);
-        void routeAudio(size_t frames, double dt, int busId, int32_t* in, int32_t* out);
-        void routeAudio(size_t frames, double dt, int busId, float* in, float* out);
+        void routeAudio(size_t frames, size_t channels, double dt, int busId, int16_t* in, int16_t* out);
+        void routeAudio(size_t frames, size_t channels, double dt, int busId, int32_t* in, int32_t* out);
+        void routeAudio(size_t frames, size_t channels, double dt, int busId, float* in, float* out);
         VoiceCallback(BooBackendVoice& parent) : m_parent(parent) {}
     } m_cb;
     std::unique_ptr<boo::IAudioVoice> m_booVoice;
