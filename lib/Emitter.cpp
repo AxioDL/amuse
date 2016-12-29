@@ -18,9 +18,9 @@ void Emitter::_destroy()
     m_vox->kill();
 }
 
-void Emitter::setPos(const Vector3f& pos) {}
+void Emitter::setPos(const float* pos) {}
 
-void Emitter::setDir(const Vector3f& dir) {}
+void Emitter::setDir(const float* dir) {}
 
 void Emitter::setMaxDist(float maxDist) {}
 

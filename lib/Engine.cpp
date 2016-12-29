@@ -320,7 +320,7 @@ std::shared_ptr<Voice> Engine::fxStart(int sfxId, float vol, float pan, std::wea
 }
 
 /** Start soundFX playing from loaded audio groups, attach to positional emitter */
-std::shared_ptr<Emitter> Engine::addEmitter(const Vector3f& pos, const Vector3f& dir, float maxDist, float falloff,
+std::shared_ptr<Emitter> Engine::addEmitter(const float* pos, const float* dir, float maxDist, float falloff,
                                             int sfxId, float minVol, float maxVol, std::weak_ptr<Studio> smx)
 {
     auto search = m_sfxLookup.find(sfxId);

@@ -96,8 +96,13 @@ public:
     }
 
     /** Start soundFX playing from loaded audio groups, attach to positional emitter */
-    std::shared_ptr<Emitter> addEmitter(const Vector3f& pos, const Vector3f& dir, float maxDist, float falloff,
+    std::shared_ptr<Emitter> addEmitter(const float* pos, const float* dir, float maxDist, float falloff,
                                         int sfxId, float minVol, float maxVol, std::weak_ptr<Studio> smx);
+    std::shared_ptr<Emitter> addEmitter(const float* pos, const float* dir, float maxDist, float falloff,
+                                        int sfxId, float minVol, float maxVol)
+    {
+        return addEmitter(pos, dir, maxDist, falloff, sfxId, minVol, maxVol, m_defaultStudio);
+    }
 
     /** Start song playing from loaded audio groups */
     std::shared_ptr<Sequencer> seqPlay(int groupId, int songId, const unsigned char* arrData,

@@ -22,8 +22,8 @@ public:
     ~Emitter();
     Emitter(Engine& engine, const AudioGroup& group, std::shared_ptr<Voice>&& vox);
 
-    void setPos(const Vector3f& pos);
-    void setDir(const Vector3f& dir);
+    void setPos(const float* pos);
+    void setDir(const float* dir);
     void setMaxDist(float maxDist);
     void setMaxVol(float maxVol);
     void setMinVol(float minVol);
