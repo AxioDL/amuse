@@ -27,7 +27,6 @@ set(SOURCES
     lib/SongConverter.cpp
     lib/SongState.cpp
     lib/Voice.cpp
-    lib/VolumeLUT.c
     lib/Submix.cpp
     lib/Studio.cpp
     lib/EffectReverb.cpp

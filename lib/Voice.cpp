@@ -12,7 +12,6 @@
 
 namespace amuse
 {
-extern "C" const float VolumeLUT[];
 
 void Voice::_destroy()
 {
@@ -193,8 +192,7 @@ std::list<std::shared_ptr<Voice>>::iterator Voice::_destroyVoice(std::list<std::
 template <typename T>
 static T ApplyVolume(float vol, T samp)
 {
-    /* -10dB to 0dB mapped to full volume range */
-    return samp * VolumeLUT[int(vol * 65536)];
+    return samp * 0.5f * vol;
 }
 
 void Voice::_procSamplePre(int16_t& samp)
