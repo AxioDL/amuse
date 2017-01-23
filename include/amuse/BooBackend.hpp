@@ -128,6 +128,7 @@ public:
     std::vector<std::pair<std::string, std::string>> enumerateMIDIDevices();
     std::unique_ptr<IMIDIReader> allocateMIDIReader(Engine& engine, const char* name = nullptr);
     void register5MsCallback(std::function<void(double)>&& callback);
+    void unregister5MsCallback();
     AudioChannelSet getAvailableSet();
     void pumpAndMixVoices();
     void setVolume(float vol);

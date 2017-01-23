@@ -8,6 +8,35 @@
 namespace amuse
 {
 
+/** Parameters needed to create EffectReverbStd */
+struct EffectReverbStdInfo
+{
+    float coloration = 0.f; /**< [0.0, 1.0] influences filter coefficients to define surface characteristics of a room */
+    float mix = 0.f;        /**< [0.0, 1.0] dry/wet mix factor of reverb effect */
+    float time = 0.01f;     /**< [0.01, 10.0] time in seconds for reflection decay */
+    float damping = 0.f;    /**< [0.0, 1.0] damping factor influencing low-pass filter of reflections */
+    float preDelay = 0.f;   /**< [0.0, 0.1] time in seconds before initial reflection heard */
+
+    EffectReverbStdInfo() = default;
+    EffectReverbStdInfo(float coloration, float mix, float time, float damping, float preDelay)
+    : coloration(coloration), mix(mix), time(time), damping(damping), preDelay(preDelay) {}
+};
+
+/** Parameters needed to create EffectReverbHi */
+struct EffectReverbHiInfo
+{
+    float coloration = 0.f; /**< [0.0, 1.0] influences filter coefficients to define surface characteristics of a room */
+    float mix = 0.f;        /**< [0.0, 1.0] dry/wet mix factor of reverb effect */
+    float time = 0.01f;     /**< [0.01, 10.0] time in seconds for reflection decay */
+    float damping = 0.f;    /**< [0.0, 1.0] damping factor influencing low-pass filter of reflections */
+    float preDelay = 0.f;   /**< [0.0, 0.1] time in seconds before initial reflection heard */
+    float crosstalk = 0.f;  /**< [0.0, 1.0] factor defining how much reflections are allowed to bleed to other channels */
+
+    EffectReverbHiInfo() = default;
+    EffectReverbHiInfo(float coloration, float mix, float time, float damping, float preDelay, float crosstalk)
+    : coloration(coloration), mix(mix), time(time), damping(damping), preDelay(preDelay), crosstalk(crosstalk) {}
+};
+
 /** Delay state for one 'tap' of the reverb effect */
 struct ReverbDelayLine
 {
@@ -78,6 +107,15 @@ public:
         x150_x1d8_preDelay = clamp(0.f, preDelay, 0.1f);
         m_dirty = true;
     }
+
+    void setParams(const EffectReverbStdInfo& info)
+    {
+        setColoration(info.coloration);
+        setMix(info.mix);
+        setTime(info.time);
+        setDamping(info.damping);
+        setPreDelay(info.preDelay);
+    }
 };
 
 /** Reverb effect with configurable reflection filtering, adds per-channel low-pass and crosstalk */
@@ -97,6 +135,16 @@ public:
     {
         x1dc_crosstalk = clamp(0.f, crosstalk, 1.f);
         m_dirty = true;
+    }
+
+    void setParams(const EffectReverbHiInfo& info)
+    {
+        setColoration(info.coloration);
+        setMix(info.mix);
+        setTime(info.time);
+        setDamping(info.damping);
+        setPreDelay(info.preDelay);
+        setCrosstalk(info.crosstalk);
     }
 };
 
@@ -121,6 +169,9 @@ class EffectReverbStdImp : public EffectBase<T>, public EffectReverbStd
 
 public:
     EffectReverbStdImp(float coloration, float mix, float time, float damping, float preDelay, double sampleRate);
+    EffectReverbStdImp(const EffectReverbStdInfo& info, double sampleRate)
+    : EffectReverbStdImp(info.coloration, info.mix, info.time, info.damping, info.preDelay, sampleRate) {}
+
     void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap);
     void resetOutputSampleRate(double sampleRate) { _setup(sampleRate); }
 };
@@ -151,6 +202,9 @@ class EffectReverbHiImp : public EffectBase<T>, public EffectReverbHi
 public:
     EffectReverbHiImp(float coloration, float mix, float time, float damping, float preDelay, float crosstalk,
                       double sampleRate);
+    EffectReverbHiImp(const EffectReverbHiInfo& info, double sampleRate)
+    : EffectReverbHiImp(info.coloration, info.mix, info.time, info.damping, info.preDelay, info.crosstalk, sampleRate) {}
+
     void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap);
     void resetOutputSampleRate(double sampleRate) { _setup(sampleRate); }
 };

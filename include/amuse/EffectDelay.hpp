@@ -2,6 +2,7 @@
 #define __AMUSE_EFFECTDELAY_HPP__
 
 #include "EffectBase.hpp"
+#include "IBackendVoice.hpp"
 #include "Common.hpp"
 #include <stdint.h>
 #include <memory>
@@ -10,6 +11,38 @@ namespace amuse
 {
 template <typename T>
 class EffectDelayImp;
+
+/** Parameters needed to create EffectDelay */
+struct EffectDelayInfo
+{
+    uint32_t delay[8];         /**< [10, 5000] time in ms of each channel's delay */
+    uint32_t feedback[8] = {}; /**< [0, 100] percent to mix delayed signal with input signal */
+    uint32_t output[8] = {};   /**< [0, 100] total output percent */
+
+    static uint32_t lerp(uint32_t v0, uint32_t v1, float t) { return (1.f - t) * v0 + t * v1; }
+
+    static void Interp3To8(uint32_t arr[8], uint32_t L, uint32_t R, uint32_t S)
+    {
+        arr[int(AudioChannel::FrontLeft)] = L;
+        arr[int(AudioChannel::FrontRight)] = R;
+        arr[int(AudioChannel::RearLeft)] = lerp(L, S, 0.75f);
+        arr[int(AudioChannel::RearRight)] = lerp(R, S, 0.75f);
+        arr[int(AudioChannel::FrontCenter)] = lerp(L, R, 0.5f);
+        arr[int(AudioChannel::LFE)] = arr[int(AudioChannel::FrontCenter)];
+        arr[int(AudioChannel::SideLeft)] = lerp(L, S, 0.5f);
+        arr[int(AudioChannel::SideRight)] = lerp(R, S, 0.5f);
+    }
+
+    EffectDelayInfo() { std::fill_n(delay, 8, 10); }
+    EffectDelayInfo(uint32_t delayL, uint32_t delayR, uint32_t delayS,
+                    uint32_t feedbackL, uint32_t feedbackR, uint32_t feedbackS,
+                    uint32_t outputL, uint32_t outputR, uint32_t outputS)
+    {
+        Interp3To8(delay, delayL, delayR, delayS);
+        Interp3To8(feedback, feedbackL, feedbackR, feedbackS);
+        Interp3To8(output, outputL, outputR, outputS);
+    }
+};
 
 /** Mixes the audio back into itself after specified delay */
 class EffectDelay
@@ -59,10 +92,22 @@ public:
             x54_output[i] = output;
         m_dirty = true;
     }
+
     void setChanOutput(int chanIdx, uint32_t output)
     {
         output = clamp(0u, output, 100u);
         x54_output[chanIdx] = output;
+        m_dirty = true;
+    }
+
+    void setParams(const EffectDelayInfo& info)
+    {
+        for (int i = 0; i < 8; ++i)
+        {
+            x3c_delay[i] = clamp(10u, info.delay[i], 5000u);
+            x48_feedback[i] = clamp(0u, info.feedback[i], 100u);
+            x54_output[i] = clamp(0u, info.output[i], 100u);
+        }
         m_dirty = true;
     }
 };
@@ -85,6 +130,8 @@ class EffectDelayImp : public EffectBase<T>, public EffectDelay
 
 public:
     EffectDelayImp(uint32_t initDelay, uint32_t initFeedback, uint32_t initOutput, double sampleRate);
+    EffectDelayImp(const EffectDelayInfo& info, double sampleRate);
+
     void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap);
     void resetOutputSampleRate(double sampleRate) { _setup(sampleRate); }
 };

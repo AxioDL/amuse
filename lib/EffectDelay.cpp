@@ -25,6 +25,19 @@ EffectDelayImp<T>::EffectDelayImp(uint32_t initDelay, uint32_t initFeedback, uin
 }
 
 template <typename T>
+EffectDelayImp<T>::EffectDelayImp(const EffectDelayInfo& info, double sampleRate)
+{
+    for (int i = 0; i < 8; ++i)
+    {
+        x3c_delay[i] = clamp(10u, info.delay[i], 5000u);
+        x48_feedback[i] = clamp(0u, info.feedback[i], 100u);
+        x54_output[i] = clamp(0u, info.output[i], 100u);
+    }
+
+    _setup(sampleRate);
+}
+
+template <typename T>
 void EffectDelayImp<T>::_setup(double sampleRate)
 {
     m_sampsPerMs = std::ceil(sampleRate / 1000.0);

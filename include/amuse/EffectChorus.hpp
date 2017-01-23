@@ -12,6 +12,18 @@ class EffectChorusImp;
 
 #define AMUSE_CHORUS_NUM_BLOCKS 3
 
+/** Parameters needed to create EffectChorus */
+struct EffectChorusInfo
+{
+    uint32_t baseDelay = 5; /**< [5, 15] minimum value (in ms) for computed delay */
+    uint32_t variation = 0; /**< [0, 5] time error (in ms) to set delay within */
+    uint32_t period = 500;  /**< [500, 10000] time (in ms) of one delay-shift cycle */
+
+    EffectChorusInfo() = default;
+    EffectChorusInfo(uint32_t baseDelay, uint32_t variation, uint32_t period)
+    : baseDelay(baseDelay), variation(variation), period(period) {}
+};
+
 /** Mixes the audio back into itself after continuously-varying delay */
 class EffectChorus
 {
@@ -47,6 +59,13 @@ public:
         period = clamp(500u, period, 10000u);
         x98_period = period;
         m_dirty = true;
+    }
+
+    void updateParams(const EffectChorusInfo& info)
+    {
+        setBaseDelay(info.baseDelay);
+        setVariation(info.variation);
+        setPeriod(info.period);
     }
 };
 
@@ -91,6 +110,9 @@ class EffectChorusImp : public EffectBase<T>, public EffectChorus
 public:
     ~EffectChorusImp();
     EffectChorusImp(uint32_t baseDelay, uint32_t variation, uint32_t period, double sampleRate);
+    EffectChorusImp(const EffectChorusInfo& info, double sampleRate)
+    : EffectChorusImp(info.baseDelay, info.variation, info.period, sampleRate) {}
+
     void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap);
     void resetOutputSampleRate(double sampleRate) { _setup(sampleRate); }
 };

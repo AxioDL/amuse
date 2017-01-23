@@ -60,15 +60,27 @@ public:
     /** Add new chorus effect to effect stack and assume ownership */
     EffectChorus& makeChorus(uint32_t baseDelay, uint32_t variation, uint32_t period);
 
+    /** Add new chorus effect to effect stack and assume ownership */
+    EffectChorus& makeChorus(const EffectChorusInfo& info);
+
     /** Add new delay effect to effect stack and assume ownership */
     EffectDelay& makeDelay(uint32_t initDelay, uint32_t initFeedback, uint32_t initOutput);
+
+    /** Add new delay effect to effect stack and assume ownership */
+    EffectDelay& makeDelay(const EffectDelayInfo& info);
 
     /** Add new standard-quality reverb effect to effect stack and assume ownership */
     EffectReverbStd& makeReverbStd(float coloration, float mix, float time, float damping, float preDelay);
 
+    /** Add new standard-quality reverb effect to effect stack and assume ownership */
+    EffectReverbStd& makeReverbStd(const EffectReverbStdInfo& info);
+
     /** Add new high-quality reverb effect to effect stack and assume ownership */
     EffectReverbHi& makeReverbHi(float coloration, float mix, float time, float damping, float preDelay,
                                  float crosstalk);
+
+    /** Add new high-quality reverb effect to effect stack and assume ownership */
+    EffectReverbHi& makeReverbHi(const EffectReverbHiInfo& info);
 
     /** Remove and deallocate all effects from effect stack */
     void clearEffects() { m_effectStack.clear(); }

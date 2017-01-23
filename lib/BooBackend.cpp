@@ -285,6 +285,11 @@ void BooBackendVoiceAllocator::register5MsCallback(std::function<void(double)>&&
     m_booEngine.register5MsCallback(std::move(callback));
 }
 
+void BooBackendVoiceAllocator::unregister5MsCallback()
+{
+    m_booEngine.unregister5MsCallback();
+}
+
 AudioChannelSet BooBackendVoiceAllocator::getAvailableSet() { return AudioChannelSet(m_booEngine.getAvailableSet()); }
 
 void BooBackendVoiceAllocator::pumpAndMixVoices() { m_booEngine.pumpAndMixVoices(); }

@@ -61,6 +61,9 @@ public:
 
     /** Amuse may request callbacks 200-updates-per-second virtually */
     virtual void register5MsCallback(std::function<void(double dt)>&& callback) = 0;
+
+    /** This is important to ensure orderly cleanup */
+    virtual void unregister5MsCallback() = 0;
 };
 }
 

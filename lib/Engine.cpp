@@ -15,6 +15,7 @@ static const float FullLevels[8] = {1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f};
 
 Engine::~Engine()
 {
+    m_backend.unregister5MsCallback();
     for (std::shared_ptr<Sequencer>& seq : m_activeSequencers)
         if (!seq->m_destroyed)
             seq->_destroy();

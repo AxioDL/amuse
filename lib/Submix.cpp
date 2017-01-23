@@ -10,9 +10,19 @@ EffectChorus& Submix::makeChorus(uint32_t baseDelay, uint32_t variation, uint32_
     return makeEffect<EffectChorus>(baseDelay, variation, period);
 }
 
+EffectChorus& Submix::makeChorus(const EffectChorusInfo& info)
+{
+    return makeEffect<EffectChorus>(info);
+}
+
 EffectDelay& Submix::makeDelay(uint32_t initDelay, uint32_t initFeedback, uint32_t initOutput)
 {
     return makeEffect<EffectDelay>(initDelay, initFeedback, initOutput);
+}
+
+EffectDelay& Submix::makeDelay(const EffectDelayInfo& info)
+{
+    return makeEffect<EffectDelay>(info);
 }
 
 EffectReverbStd& Submix::makeReverbStd(float coloration, float mix, float time, float damping, float preDelay)
@@ -20,10 +30,20 @@ EffectReverbStd& Submix::makeReverbStd(float coloration, float mix, float time, 
     return makeEffect<EffectReverbStd>(coloration, mix, time, damping, preDelay);
 }
 
+EffectReverbStd& Submix::makeReverbStd(const EffectReverbStdInfo& info)
+{
+    return makeEffect<EffectReverbStd>(info);
+}
+
 EffectReverbHi& Submix::makeReverbHi(float coloration, float mix, float time, float damping, float preDelay,
                                      float crosstalk)
 {
     return makeEffect<EffectReverbHi>(coloration, mix, time, damping, preDelay, crosstalk);
+}
+
+EffectReverbHi& Submix::makeReverbHi(const EffectReverbHiInfo& info)
+{
+    return makeEffect<EffectReverbHi>(info);
 }
 
 void Submix::applyEffect(int16_t* audio, size_t frameCount, const ChannelMap& chanMap) const
