@@ -49,6 +49,7 @@ class Engine
     std::unordered_map<uint16_t, std::tuple<AudioGroup*, int, const SFXGroupIndex::SFXEntry*>> m_sfxLookup;
     std::linear_congruential_engine<uint32_t, 0x41c64e6d, 0x3039, UINT32_MAX> m_random;
     int m_nextVid = 0;
+    float m_masterVolume = 1.f;
 
     AudioGroup* _addAudioGroup(const AudioGroupData& data, std::unique_ptr<AudioGroup>&& grp);
     std::pair<AudioGroup*, const SongGroupIndex*> _findSongGroup(int groupId) const;

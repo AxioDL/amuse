@@ -192,7 +192,7 @@ std::list<std::shared_ptr<Voice>>::iterator Voice::_destroyVoice(std::list<std::
 template <typename T>
 static T ApplyVolume(float vol, T samp)
 {
-    return samp * 0.5f * vol;
+    return samp * 0.7f * vol;
 }
 
 void Voice::_procSamplePre(int16_t& samp)
@@ -219,7 +219,7 @@ void Voice::_procSamplePre(int16_t& samp)
             float l = clamp(0.f, m_lastLevel * (1.f - t) + m_nextLevel * t, 1.f);
 
             /* Apply total volume to sample using decibel scale */
-            samp = ApplyVolume(l, samp);
+            samp = ApplyVolume(l * m_engine.m_masterVolume, samp);
             return;
         }
 
@@ -313,7 +313,7 @@ void Voice::_procSamplePre(int16_t& samp)
     m_nextLevel = clamp(0.f, m_nextLevel, 1.f);
 
     /* Apply total volume to sample using decibel scale */
-    samp = ApplyVolume(m_nextLevel, samp);
+    samp = ApplyVolume(m_nextLevel * m_engine.m_masterVolume, samp);
 }
 
 template <typename T>
