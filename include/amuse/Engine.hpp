@@ -65,7 +65,6 @@ class Engine
     std::list<std::shared_ptr<Sequencer>>::iterator
     _destroySequencer(std::list<std::shared_ptr<Sequencer>>::iterator it);
     void _bringOutYourDead();
-    void _5MsCallback(double dt);
 
 public:
     ~Engine();
@@ -73,9 +72,6 @@ public:
 
     /** Access voice backend of engine */
     IBackendVoiceAllocator& getBackend() { return m_backend; }
-
-    /** Update all active audio entities and fill OS audio buffers as needed */
-    void pumpEngine();
 
     /** Add audio group data pointers to engine; must remain resident! */
     const AudioGroup* addAudioGroup(const AudioGroupData& data);
@@ -130,6 +126,14 @@ public:
 
     /** Obtain list of active sequencers */
     std::list<std::shared_ptr<Sequencer>>& getActiveSequencers() { return m_activeSequencers; }
+
+    /** All mixing occurs in virtual 5ms intervals;
+     *  this is called at the start of each interval for all mixable entities */
+    void _on5MsInterval(IBackendVoiceAllocator& engine, double dt);
+
+    /** When a pumping cycle is complete this is called to allow the client to
+     *  perform periodic cleanup tasks */
+    void _onPumpCycleComplete(IBackendVoiceAllocator& engine);
 };
 }
 

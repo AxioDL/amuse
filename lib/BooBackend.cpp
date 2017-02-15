@@ -254,7 +254,11 @@ void BooBackendMIDIReader::stopSeq() {}
 
 void BooBackendMIDIReader::reset() {}
 
-BooBackendVoiceAllocator::BooBackendVoiceAllocator(boo::IAudioVoiceEngine& booEngine) : m_booEngine(booEngine) {}
+BooBackendVoiceAllocator::BooBackendVoiceAllocator(boo::IAudioVoiceEngine& booEngine)
+: m_booEngine(booEngine)
+{
+    booEngine.setCallbackInterface(this);
+}
 
 std::unique_ptr<IBackendVoice> BooBackendVoiceAllocator::allocateVoice(Voice& clientVox, double sampleRate,
                                                                        bool dynamicPitch)
@@ -280,19 +284,24 @@ std::unique_ptr<IMIDIReader> BooBackendVoiceAllocator::allocateMIDIReader(Engine
     return ret;
 }
 
-void BooBackendVoiceAllocator::register5MsCallback(std::function<void(double)>&& callback)
+void BooBackendVoiceAllocator::setCallbackInterface(Engine* engine)
 {
-    m_booEngine.register5MsCallback(std::move(callback));
-}
-
-void BooBackendVoiceAllocator::unregister5MsCallback()
-{
-    m_booEngine.unregister5MsCallback();
+    m_cbInterface = engine;
 }
 
 AudioChannelSet BooBackendVoiceAllocator::getAvailableSet() { return AudioChannelSet(m_booEngine.getAvailableSet()); }
 
-void BooBackendVoiceAllocator::pumpAndMixVoices() { m_booEngine.pumpAndMixVoices(); }
-
 void BooBackendVoiceAllocator::setVolume(float vol) { m_booEngine.setVolume(vol); }
+
+void BooBackendVoiceAllocator::on5MsInterval(boo::IAudioVoiceEngine& engine, double dt)
+{
+    if (m_cbInterface)
+        m_cbInterface->_on5MsInterval(*this, dt);
+}
+
+void BooBackendVoiceAllocator::onPumpCycleComplete(boo::IAudioVoiceEngine& engine)
+{
+    if (m_cbInterface)
+        m_cbInterface->_onPumpCycleComplete(*this);
+}
 }

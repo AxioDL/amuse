@@ -53,17 +53,11 @@ public:
     /** Amuse obtains speaker-configuration from the platform this way */
     virtual AudioChannelSet getAvailableSet() = 0;
 
-    /** Amuse flushes voice samples to the backend this way */
-    virtual void pumpAndMixVoices() = 0;
-
     /** Set volume of main mix out */
     virtual void setVolume(float vol) = 0;
 
-    /** Amuse may request callbacks 200-updates-per-second virtually */
-    virtual void register5MsCallback(std::function<void(double dt)>&& callback) = 0;
-
-    /** This is important to ensure orderly cleanup */
-    virtual void unregister5MsCallback() = 0;
+    /** Amuse registers for key callback events from the mixing engine this way */
+    virtual void setCallbackInterface(Engine* engine) = 0;
 };
 }
 

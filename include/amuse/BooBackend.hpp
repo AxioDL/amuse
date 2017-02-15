@@ -116,10 +116,11 @@ public:
 };
 
 /** Backend voice allocator implementation for boo mixer */
-class BooBackendVoiceAllocator : public IBackendVoiceAllocator
+class BooBackendVoiceAllocator : public IBackendVoiceAllocator, public boo::IAudioVoiceEngineCallback
 {
     friend class BooBackendMIDIReader;
     boo::IAudioVoiceEngine& m_booEngine;
+    Engine* m_cbInterface = nullptr;
 
 public:
     BooBackendVoiceAllocator(boo::IAudioVoiceEngine& booEngine);
@@ -127,11 +128,11 @@ public:
     std::unique_ptr<IBackendSubmix> allocateSubmix(Submix& clientSmx, bool mainOut, int busId);
     std::vector<std::pair<std::string, std::string>> enumerateMIDIDevices();
     std::unique_ptr<IMIDIReader> allocateMIDIReader(Engine& engine, const char* name = nullptr);
-    void register5MsCallback(std::function<void(double)>&& callback);
-    void unregister5MsCallback();
+    void setCallbackInterface(Engine* engine);
     AudioChannelSet getAvailableSet();
-    void pumpAndMixVoices();
     void setVolume(float vol);
+    void on5MsInterval(boo::IAudioVoiceEngine& engine, double dt);
+    void onPumpCycleComplete(boo::IAudioVoiceEngine& engine);
 };
 }
 

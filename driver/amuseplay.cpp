@@ -125,7 +125,7 @@ struct AppCallback : boo::IApplicationCallback
         UpdateSongDisplay();
     }
 
-    void SongLoop(const amuse::SongGroupIndex& index)
+    void SongLoop(const amuse::SongGroupIndex& index, boo::IAudioVoiceEngine& booEngine)
     {
         printf(
             "░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░\n"
@@ -202,7 +202,7 @@ struct AppCallback : boo::IApplicationCallback
                 UpdateSongDisplay();
             }
 
-            m_engine->pumpEngine();
+            m_win->waitForRetrace(&booEngine);
 
             size_t voxCount;
             int8_t progId;
@@ -231,8 +231,6 @@ struct AppCallback : boo::IApplicationCallback
                 m_seq.reset();
                 break;
             }
-
-            m_win->waitForRetrace();
         }
     }
 
@@ -260,7 +258,7 @@ struct AppCallback : boo::IApplicationCallback
         UpdateSFXDisplay();
     }
 
-    void SFXLoop(const amuse::SFXGroupIndex& index)
+    void SFXLoop(const amuse::SFXGroupIndex& index, boo::IAudioVoiceEngine& booEngine)
     {
         printf("<space>: keyon/keyoff, <left/right>: cycle SFX, <up/down>: volume, <Q>: quit\n");
 
@@ -306,7 +304,7 @@ struct AppCallback : boo::IApplicationCallback
                 UpdateSFXDisplay();
             }
 
-            m_engine->pumpEngine();
+            m_win->waitForRetrace(&booEngine);
 
             if (m_vox && m_vox->state() == amuse::VoiceState::Dead)
             {
@@ -322,8 +320,6 @@ struct AppCallback : boo::IApplicationCallback
                 m_seq.reset();
                 break;
             }
-
-            m_win->waitForRetrace();
         }
     }
 
@@ -876,9 +872,9 @@ struct AppCallback : boo::IApplicationCallback
 
             /* Enter playback loop */
             if (m_sfxGroup)
-                SFXLoop(*sfxIndex);
+                SFXLoop(*sfxIndex, *voxEngine);
             else
-                SongLoop(*songIndex);
+                SongLoop(*songIndex, *voxEngine);
 
             printf("\n\n");
         }

@@ -470,7 +470,7 @@ int main(int argc, const boo::SystemChar** argv)
     signal(SIGINT, SIGINTHandler);
     do
     {
-        engine.pumpEngine();
+        voxEngine->pumpAndMixVoices();
         wroteFrames += voxEngine->get5MsFrames();
         printf("\rFrame %" PRISize, wroteFrames);
         fflush(stdout);

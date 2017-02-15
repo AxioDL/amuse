@@ -15,7 +15,7 @@ static const float FullLevels[8] = {1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f};
 
 Engine::~Engine()
 {
-    m_backend.unregister5MsCallback();
+    m_backend.setCallbackInterface(nullptr);
     for (std::shared_ptr<Sequencer>& seq : m_activeSequencers)
         if (!seq->m_destroyed)
             seq->_destroy();
@@ -31,7 +31,7 @@ Engine::Engine(IBackendVoiceAllocator& backend, AmplitudeMode ampMode)
     m_defaultStudio->getAuxA().makeReverbStd(0.5f, 0.8f, 3.0f, 0.5f, 0.1f);
     m_defaultStudio->getAuxB().makeChorus(15, 0, 500);
     m_defaultStudioReady = true;
-    backend.register5MsCallback(std::bind(&Engine::_5MsCallback, this, std::placeholders::_1));
+    m_backend.setCallbackInterface(this);
     m_midiReader = backend.allocateMIDIReader(*this);
 }
 
@@ -172,7 +172,7 @@ void Engine::_bringOutYourDead()
     }
 }
 
-void Engine::_5MsCallback(double dt)
+void Engine::_on5MsInterval(IBackendVoiceAllocator& engine, double dt)
 {
     if (m_midiReader)
         m_midiReader->pumpReader(dt);
@@ -180,10 +180,8 @@ void Engine::_5MsCallback(double dt)
         seq->advance(dt);
 }
 
-/** Update all active audio entities and fill OS audio buffers as needed */
-void Engine::pumpEngine()
+void Engine::_onPumpCycleComplete(IBackendVoiceAllocator& engine)
 {
-    m_backend.pumpAndMixVoices();
     _bringOutYourDead();
 
     /* Determine lowest available free vid */
