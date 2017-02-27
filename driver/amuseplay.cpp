@@ -113,7 +113,7 @@ struct AppCallback : boo::IApplicationCallback
         m_setupId = setupId;
         if (m_seq)
         {
-            m_seq->stopSong(true);
+            m_seq->stopSong(0.f, true);
             m_seq->kill();
         }
         m_seq = m_engine->seqPlay(m_groupId, setupId, nullptr);

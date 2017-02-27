@@ -149,12 +149,45 @@ Sequencer::ChannelState::ChannelState(Sequencer& parent, uint8_t chanId) : m_par
 void Sequencer::advance(double dt)
 {
     if (m_state == SequencerState::Playing)
+    {
+        if (m_stopFadeTime)
+        {
+            float step = dt / m_stopFadeTime * m_stopFadeBeginVol;
+            float vol = std::max(0.f, m_curVol - step);
+            if (vol == 0.f)
+            {
+                m_arrData = nullptr;
+                m_state = SequencerState::Interactive;
+                allOff(true);
+                m_stopFadeTime = 0.f;
+                return;
+            }
+            else
+            {
+                setVolume(vol);
+            }
+        }
+        else if (m_volFadeTime)
+        {
+            float step = dt / m_volFadeTime * std::fabsf(m_volFadeTarget - m_volFadeStart);
+            float vol;
+            if (m_curVol < m_volFadeTarget)
+                vol = std::min(m_volFadeTarget, m_curVol + step);
+            else if (m_curVol >= m_volFadeTarget)
+                vol = std::max(m_volFadeTarget, m_curVol - step);
+            if (vol == m_volFadeTarget)
+                m_volFadeTime = 0.f;
+            else
+                setVolume(vol);
+        }
+
         if (m_songState.advance(*this, dt))
         {
             m_arrData = nullptr;
             m_state = SequencerState::Interactive;
             allOff();
         }
+    }
 }
 
 size_t Sequencer::ChannelState::getVoiceCount() const
@@ -536,11 +569,19 @@ void Sequencer::playSong(const unsigned char* arrData, bool dieOnEnd)
     m_state = SequencerState::Playing;
 }
 
-void Sequencer::stopSong(bool now)
+void Sequencer::stopSong(float fadeTime, bool now)
 {
-    allOff(now);
-    m_arrData = nullptr;
-    m_state = SequencerState::Interactive;
+    if (fadeTime == 0.f)
+    {
+        allOff(now);
+        m_arrData = nullptr;
+        m_state = SequencerState::Interactive;
+    }
+    else
+    {
+        m_stopFadeTime = fadeTime;
+        m_stopFadeBeginVol = m_curVol;
+    }
 }
 
 void Sequencer::ChannelState::setVolume(float vol)
@@ -574,12 +615,21 @@ void Sequencer::ChannelState::setPan(float pan)
     }
 }
 
-void Sequencer::setVolume(float vol)
+void Sequencer::setVolume(float vol, float fadeTime)
 {
-    m_curVol = vol;
-    for (auto& chan : m_chanStates)
-        if (chan)
-            chan->setVolume(chan->m_curVol);
+    if (fadeTime == 0.f)
+    {
+        m_curVol = vol;
+        for (auto& chan : m_chanStates)
+            if (chan)
+                chan->setVolume(chan->m_curVol);
+    }
+    else
+    {
+        m_volFadeTime = fadeTime;
+        m_volFadeTarget = vol;
+        m_volFadeStart = m_curVol;
+    }
 }
 
 int8_t Sequencer::getChanProgram(int8_t chanId) const

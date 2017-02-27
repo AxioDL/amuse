@@ -40,6 +40,11 @@ class Sequencer : public Entity
     bool m_dieOnEnd = false; /**< Sequencer will be killed when current arrangement completes */
 
     float m_curVol = 1.f; /**< Current volume of sequencer */
+    float m_volFadeTime = 0.f;
+    float m_volFadeTarget = 0.f;
+    float m_volFadeStart = 0.f;
+    float m_stopFadeTime = 0.f;
+    float m_stopFadeBeginVol = 0.f;
 
     /** State of a single MIDI channel */
     struct ChannelState
@@ -135,10 +140,10 @@ public:
     void playSong(const unsigned char* arrData, bool dieOnEnd = true);
 
     /** Stop current MIDI arrangement */
-    void stopSong(bool now = false);
+    void stopSong(float fadeTime = 0.f, bool now = false);
 
     /** Set total volume of sequencer */
-    void setVolume(float vol);
+    void setVolume(float vol, float fadeTime = 0.f);
 
     /** Get current program number of channel */
     int8_t getChanProgram(int8_t chanId) const;
