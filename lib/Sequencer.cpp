@@ -169,7 +169,7 @@ void Sequencer::advance(double dt)
         }
         else if (m_volFadeTime)
         {
-            float step = dt / m_volFadeTime * std::fabsf(m_volFadeTarget - m_volFadeStart);
+            float step = dt / m_volFadeTime * std::fabs(m_volFadeTarget - m_volFadeStart);
             float vol;
             if (m_curVol < m_volFadeTarget)
                 vol = std::min(m_volFadeTarget, m_curVol + step);
