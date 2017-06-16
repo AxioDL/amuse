@@ -2,7 +2,7 @@
 #define __AMUSE_COMMON_HPP__
 
 #include <algorithm>
-#include <limits.h>
+#include <limits>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdarg.h>
@@ -74,35 +74,19 @@ static inline T clamp(T a, T val, T b)
 }
 
 template <typename T>
-static inline T ClampFull(float in)
-{
-    return in;
-}
-
-template <>
-inline int16_t ClampFull<int16_t>(float in)
-{
-    if (in < SHRT_MIN)
-        return SHRT_MIN;
-    else if (in > SHRT_MAX)
-        return SHRT_MAX;
-    return in;
-}
-
-template <>
-inline int32_t ClampFull<int32_t>(float in)
-{
-    if (in < INT_MIN)
-        return INT_MIN;
-    else if (in > INT_MAX)
-        return INT_MAX;
-    return in;
-}
-
-template <>
-inline float ClampFull<float>(float in)
-{
-    return in;
+inline T ClampFull(float in)
+{    
+    if(std::is_floating_point<T>())
+    {
+        return std::min<T>(std::max<T>(in, -1.0), 1.0);
+    }
+    else
+    {
+        constexpr T MAX = std::numeric_limits<T>::max();
+        constexpr T MIN = std::numeric_limits<T>::min();
+        
+        return std::min<T>(std::max<T>(in, MIN), MAX);
+    }
 }
 
 #ifndef M_PIF
