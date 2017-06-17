@@ -85,7 +85,12 @@ inline T ClampFull(float in)
         constexpr T MAX = std::numeric_limits<T>::max();
         constexpr T MIN = std::numeric_limits<T>::min();
         
-        return std::min<T>(std::max<T>(in, MIN), MAX);
+        if(in < MIN)
+            return MIN;
+        else if(in > MAX)
+            return MAX;
+        else
+            return in;
     }
 }
 
