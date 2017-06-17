@@ -23,6 +23,8 @@
 #include <Windows.h>
 #endif
 
+constexpr float NativeSampleRate = 32000.0f;
+
 namespace amuse
 {
 

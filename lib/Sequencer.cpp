@@ -239,7 +239,7 @@ std::shared_ptr<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velo
     }
 
     std::list<std::shared_ptr<Voice>>::iterator ret = m_parent.m_engine._allocateVoice(
-        m_parent.m_audioGroup, m_parent.m_groupId, 32000.0, true, false, m_parent.m_studio);
+        m_parent.m_audioGroup, m_parent.m_groupId, NativeSampleRate, true, false, m_parent.m_studio);
     if (*ret)
     {
         m_chanVoxs[note] = *ret;
