@@ -101,7 +101,7 @@ SongState::Track::Track(SongState& parent, uint8_t midiChan, const TrackRegion* 
 : m_parent(parent), m_midiChan(midiChan), m_curRegion(nullptr), m_nextRegion(regions)
 {
     for (int i = 0; i < 128; ++i)
-        m_remNoteLengths[i] = INT_MIN;
+        m_remNoteLengths[i] = std::numeric_limits<decltype(m_remNoteLengths)::value_type>::min();
 }
 
 void SongState::Track::setRegion(Sequencer* seq, const TrackRegion* region)
@@ -381,13 +381,14 @@ bool SongState::Track::advance(Sequencer& seq, int32_t ticks)
     /* Stop finished notes */
     for (int i = 0; i < 128; ++i)
     {
-        if (m_remNoteLengths[i] != INT_MIN)
+        constexpr decltype(m_remNoteLengths)::value_type MIN = std::numeric_limits<decltype(MIN)>::min();
+        if (m_remNoteLengths[i] != MIN)
         {
             m_remNoteLengths[i] -= ticks;
             if (m_remNoteLengths[i] <= 0)
             {
                 seq.keyOff(m_midiChan, i, 0);
-                m_remNoteLengths[i] = INT_MIN;
+                m_remNoteLengths[i] = MIN;
             }
         }
     }

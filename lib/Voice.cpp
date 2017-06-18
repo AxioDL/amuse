@@ -722,7 +722,7 @@ int Voice::maxVid() const
 std::shared_ptr<Voice> Voice::_startChildMacro(ObjectId macroId, int macroStep, double ticksPerSec, uint8_t midiKey,
                                                uint8_t midiVel, uint8_t midiMod, bool pushPc)
 {
-    std::list<std::shared_ptr<Voice>>::iterator vox = _allocateVoice(32000.0, true);
+    std::list<std::shared_ptr<Voice>>::iterator vox = _allocateVoice(NativeSampleRate, true);
     if (!(*vox)->loadSoundObject(macroId, macroStep, ticksPerSec, midiKey, midiVel, midiMod, pushPc))
     {
         _destroyVoice(vox);

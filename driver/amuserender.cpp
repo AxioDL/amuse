@@ -99,7 +99,7 @@ int main(int argc, const boo::SystemChar** argv)
 
     std::vector<boo::SystemString> m_args;
     m_args.reserve(argc);
-    double rate = 32000.0;
+    double rate = NativeSampleRate;
     for (int i = 1; i < argc; ++i)
     {
 #if _WIN32

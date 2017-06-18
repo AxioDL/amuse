@@ -304,7 +304,7 @@ std::shared_ptr<Voice> Engine::fxStart(int sfxId, float vol, float pan, std::wea
         return nullptr;
 
     std::list<std::shared_ptr<Voice>>::iterator ret =
-        _allocateVoice(*grp, std::get<1>(search->second), 32000.0, true, false, smx);
+        _allocateVoice(*grp, std::get<1>(search->second), NativeSampleRate, true, false, smx);
 
     ObjectId oid = (grp->getDataFormat() == DataFormat::PC) ? entry->objId : SBig(entry->objId);
     if (!(*ret)->loadSoundObject(oid, 0, 1000.f, entry->defKey, entry->defVel, 0))
@@ -332,7 +332,7 @@ std::shared_ptr<Emitter> Engine::addEmitter(const float* pos, const float* dir, 
         return nullptr;
 
     std::list<std::shared_ptr<Voice>>::iterator vox =
-        _allocateVoice(*grp, std::get<1>(search->second), 32000.0, true, true, smx);
+        _allocateVoice(*grp, std::get<1>(search->second), NativeSampleRate, true, true, smx);
     auto emitIt = m_activeEmitters.emplace(m_activeEmitters.end(), new Emitter(*this, *grp, std::move(*vox)));
     Emitter& ret = *(*emitIt);
 

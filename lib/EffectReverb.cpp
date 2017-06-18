@@ -90,7 +90,7 @@ template <typename T>
 void EffectReverbStdImp<T>::_update()
 {
     float timeSamples = x148_x1d0_time * m_sampleRate;
-    double rateRatio = m_sampleRate / 32000.0;
+    double rateRatio = m_sampleRate / NativeSampleRate;
     for (int c = 0; c < 8; ++c)
     {
         for (int t = 0; t < 2; ++t)
@@ -265,7 +265,7 @@ template <typename T>
 void EffectReverbHiImp<T>::_update()
 {
     float timeSamples = x148_x1d0_time * m_sampleRate;
-    double rateRatio = m_sampleRate / 32000.0;
+    double rateRatio = m_sampleRate / NativeSampleRate;
     for (int c = 0; c < 8; ++c)
     {
         for (int t = 0; t < 3; ++t)
