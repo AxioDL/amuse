@@ -101,13 +101,13 @@ if(TARGET boo)
 
   # Player
   add_executable(amuseplay WIN32 driver/amuseplay.cpp)
-  target_link_libraries(amuseplay amuse boo ${BOO_SYS_LIBS} logvisor athena-core ${ZLIB_LIBRARIES} ${LZO_LIB})
+  target_link_libraries(amuseplay amuse boo ${BOO_SYS_LIBS} logvisor athena-core athena-libyaml ${ZLIB_LIBRARIES} ${LZO_LIB})
 
   # Converter
   add_executable(amuseconv driver/amuseconv.cpp)
-  target_link_libraries(amuseconv amuse ${BOO_SYS_LIBS} logvisor athena-core ${ZLIB_LIBRARIES} ${LZO_LIB})
+  target_link_libraries(amuseconv amuse boo ${BOO_SYS_LIBS} logvisor athena-core athena-libyaml ${ZLIB_LIBRARIES} ${LZO_LIB})
 
   # Renderer
   add_executable(amuserender driver/amuserender.cpp)
-  target_link_libraries(amuserender amuse boo ${BOO_SYS_LIBS} logvisor athena-core ${ZLIB_LIBRARIES} ${LZO_LIB})
+  target_link_libraries(amuserender amuse boo ${BOO_SYS_LIBS} logvisor athena-core athena-libyaml ${ZLIB_LIBRARIES} ${LZO_LIB})
 endif()
