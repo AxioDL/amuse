@@ -174,10 +174,13 @@ void Engine::_bringOutYourDead()
 
 void Engine::_on5MsInterval(IBackendVoiceAllocator& engine, double dt)
 {
+    m_channelSet = engine.getAvailableSet();
     if (m_midiReader)
         m_midiReader->pumpReader(dt);
     for (std::shared_ptr<Sequencer>& seq : m_activeSequencers)
         seq->advance(dt);
+    for (std::shared_ptr<Emitter>& emitter : m_activeEmitters)
+        emitter->_update();
 }
 
 void Engine::_onPumpCycleComplete(IBackendVoiceAllocator& engine)
@@ -320,7 +323,8 @@ std::shared_ptr<Voice> Engine::fxStart(int sfxId, float vol, float pan, std::wea
 
 /** Start soundFX playing from loaded audio groups, attach to positional emitter */
 std::shared_ptr<Emitter> Engine::addEmitter(const float* pos, const float* dir, float maxDist, float falloff,
-                                            int sfxId, float minVol, float maxVol, std::weak_ptr<Studio> smx)
+                                            int sfxId, float minVol, float maxVol, bool doppler,
+                                            std::weak_ptr<Studio> smx)
 {
     auto search = m_sfxLookup.find(sfxId);
     if (search == m_sfxLookup.end())
@@ -333,7 +337,8 @@ std::shared_ptr<Emitter> Engine::addEmitter(const float* pos, const float* dir, 
 
     std::list<std::shared_ptr<Voice>>::iterator vox =
         _allocateVoice(*grp, std::get<1>(search->second), NativeSampleRate, true, true, smx);
-    auto emitIt = m_activeEmitters.emplace(m_activeEmitters.end(), new Emitter(*this, *grp, std::move(*vox)));
+    auto emitIt = m_activeEmitters.emplace(m_activeEmitters.end(),
+        new Emitter(*this, *grp, std::move(*vox), maxDist, minVol, falloff, doppler));
     Emitter& ret = *(*emitIt);
 
     ObjectId oid = (grp->getDataFormat() == DataFormat::PC) ? entry->objId : SBig(entry->objId);
@@ -345,14 +350,34 @@ std::shared_ptr<Emitter> Engine::addEmitter(const float* pos, const float* dir, 
     }
 
     (*vox)->setPan(entry->panning);
-    ret.setPos(pos);
-    ret.setDir(dir);
-    ret.setMaxDist(maxDist);
-    ret.setFalloff(falloff);
-    ret.setMinVol(minVol);
+    ret.setVectors(pos, dir);
     ret.setMaxVol(maxVol);
 
     return *emitIt;
+}
+
+/** Build listener and add to engine's listener list */
+std::shared_ptr<Listener> Engine::addListener(const float* pos, const float* dir, const float* heading, const float* up,
+                                              float frontDiff, float backDiff, float soundSpeed, float volume)
+{
+    auto listenerIt = m_activeListeners.emplace(m_activeListeners.end(),
+        new Listener(volume, frontDiff, backDiff, soundSpeed));
+    Listener& ret = *(*listenerIt);
+    ret.setVectors(pos, dir, heading, up);
+    return *listenerIt;
+}
+
+/** Remove listener from engine's listener list */
+void Engine::removeListener(Listener* listener)
+{
+    for (auto it = m_activeListeners.begin() ; it != m_activeListeners.end() ; ++it)
+    {
+        if (it->get() == listener)
+        {
+            m_activeListeners.erase(it);
+            return;
+        }
+    }
 }
 
 /** Start song playing from loaded audio groups */

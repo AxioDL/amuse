@@ -7,9 +7,11 @@
 #include <unordered_map>
 #include <unordered_set>
 #include "Emitter.hpp"
+#include "Listener.hpp"
 #include "AudioGroupSampleDirectory.hpp"
 #include "Sequencer.hpp"
 #include "Studio.hpp"
+#include "IBackendVoiceAllocator.hpp"
 
 namespace amuse
 {
@@ -42,6 +44,7 @@ class Engine
     std::unordered_map<const AudioGroupData*, std::unique_ptr<AudioGroup>> m_audioGroups;
     std::list<std::shared_ptr<Voice>> m_activeVoices;
     std::list<std::shared_ptr<Emitter>> m_activeEmitters;
+    std::list<std::shared_ptr<Listener>> m_activeListeners;
     std::list<std::shared_ptr<Sequencer>> m_activeSequencers;
     std::list<std::weak_ptr<Studio>> m_activeStudios; /* lifetime dependent on contributing audio entities */
     bool m_defaultStudioReady = false;
@@ -50,6 +53,7 @@ class Engine
     std::linear_congruential_engine<uint32_t, 0x41c64e6d, 0x3039, UINT32_MAX> m_random;
     int m_nextVid = 0;
     float m_masterVolume = 1.f;
+    AudioChannelSet m_channelSet = AudioChannelSet::Unknown;
 
     AudioGroup* _addAudioGroup(const AudioGroupData& data, std::unique_ptr<AudioGroup>&& grp);
     std::pair<AudioGroup*, const SongGroupIndex*> _findSongGroup(int groupId) const;
@@ -94,12 +98,20 @@ public:
 
     /** Start soundFX playing from loaded audio groups, attach to positional emitter */
     std::shared_ptr<Emitter> addEmitter(const float* pos, const float* dir, float maxDist, float falloff,
-                                        int sfxId, float minVol, float maxVol, std::weak_ptr<Studio> smx);
+                                        int sfxId, float minVol, float maxVol, bool doppler,
+                                        std::weak_ptr<Studio> smx);
     std::shared_ptr<Emitter> addEmitter(const float* pos, const float* dir, float maxDist, float falloff,
-                                        int sfxId, float minVol, float maxVol)
+                                        int sfxId, float minVol, float maxVol, bool doppler)
     {
-        return addEmitter(pos, dir, maxDist, falloff, sfxId, minVol, maxVol, m_defaultStudio);
+        return addEmitter(pos, dir, maxDist, falloff, sfxId, minVol, maxVol, doppler, m_defaultStudio);
     }
+
+    /** Build listener and add to engine's listener list */
+    std::shared_ptr<Listener> addListener(const float* pos, const float* dir, const float* heading, const float* up,
+                                          float frontDiff, float backDiff, float soundSpeed, float volume);
+
+    /** Remove listener from engine's listener list */
+    void removeListener(Listener* listener);
 
     /** Start song playing from loaded audio groups */
     std::shared_ptr<Sequencer> seqPlay(int groupId, int songId, const unsigned char* arrData,

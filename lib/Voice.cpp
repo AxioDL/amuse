@@ -117,7 +117,7 @@ void Voice::_setTotalPitch(int32_t cents, bool slew)
 {
     // fprintf(stderr, "PITCH %d %d  \n", cents, slew);
     int32_t interval = cents - m_curSample->first.m_pitch * 100;
-    double ratio = std::exp2(interval / 1200.0);
+    double ratio = std::exp2(interval / 1200.0) * m_dopplerRatio;
     m_sampleRate = m_curSample->first.m_sampleRate * ratio;
     m_backendVoice->setPitchRatio(ratio, slew);
 }
@@ -947,46 +947,113 @@ void Voice::setVolume(float vol)
         vox->setVolume(vol);
 }
 
+void Voice::_panLaw(float coefs[8], float frontPan, float backPan, float totalSpan) const
+{
+    /* -3dB panning law for various channel configs */
+    switch (m_engine.m_channelSet)
+    {
+    case AudioChannelSet::Stereo:
+    default:
+        /* Left */
+        coefs[0] = -frontPan * 0.5f + 0.5f;
+
+        /* Right */
+        coefs[1] = frontPan * 0.5f + 0.5f;
+
+        break;
+
+    case AudioChannelSet::Quad:
+        /* Left */
+        coefs[0] = -frontPan * 0.5f + 0.5f;
+        coefs[0] *= -totalSpan * 0.5f + 0.5f;
+
+        /* Right */
+        coefs[1] = frontPan * 0.5f + 0.5f;
+        coefs[1] *= -totalSpan * 0.5f + 0.5f;
+
+        /* Back Left */
+        coefs[2] = -backPan * 0.5f + 0.5f;
+        coefs[2] *= totalSpan * 0.5f + 0.5f;
+
+        /* Back Right */
+        coefs[3] = backPan * 0.5f + 0.5f;
+        coefs[3] *= totalSpan * 0.5f + 0.5f;
+
+        break;
+
+    case AudioChannelSet::Surround51:
+        /* Left */
+        coefs[0] = (frontPan <= 0.f) ? -frontPan : 0.f;
+        coefs[0] *= -totalSpan * 0.5f + 0.5f;
+
+        /* Right */
+        coefs[1] = (frontPan >= 0.f) ? frontPan : 0.f;
+        coefs[1] *= -totalSpan * 0.5f + 0.5f;
+
+        /* Back Left */
+        coefs[2] = -backPan * 0.5f + 0.5f;
+        coefs[2] *= totalSpan * 0.5f + 0.5f;
+
+        /* Back Right */
+        coefs[3] = backPan * 0.5f + 0.5f;
+        coefs[3] *= totalSpan * 0.5f + 0.5f;
+
+        /* Center */
+        coefs[4] = 1.f - std::fabs(frontPan);
+        coefs[4] *= -totalSpan * 0.5f + 0.5f;
+
+        /* LFE */
+        coefs[5] = 1.f;
+
+        break;
+
+    case AudioChannelSet::Surround71:
+        /* Left */
+        coefs[0] = (frontPan <= 0.f) ? -frontPan : 0.f;
+        coefs[0] *= (totalSpan <= 0.f) ? -totalSpan : 0.f;
+
+        /* Right */
+        coefs[1] = (frontPan >= 0.f) ? frontPan : 0.f;
+        coefs[1] *= (totalSpan <= 0.f) ? -totalSpan : 0.f;
+
+        /* Back Left */
+        coefs[2] = -backPan * 0.5f + 0.5f;
+        coefs[2] *= (totalSpan >= 0.f) ? totalSpan : 0.f;
+
+        /* Back Right */
+        coefs[3] = backPan * 0.5f + 0.5f;
+        coefs[3] *= (totalSpan >= 0.f) ? totalSpan : 0.f;
+
+        /* Center */
+        coefs[4] = 1.f - std::fabs(frontPan);
+        coefs[4] *= (totalSpan <= 0.f) ? -totalSpan : 0.f;
+
+        /* LFE */
+        coefs[5] = 1.f;
+
+        /* Side Left */
+        coefs[6] = (backPan <= 0.f) ? -backPan : 0.f;
+        coefs[6] *= 1.f - std::fabs(totalSpan);
+
+        /* Side Right */
+        coefs[7] = (backPan >= 0.f) ? backPan : 0.f;
+        coefs[7] *= 1.f - std::fabs(totalSpan);
+
+        break;
+    }
+}
+
 void Voice::_setPan(float pan)
 {
+    if (m_emitter)
+        return;
+
     m_curPan = clamp(-1.f, pan, 1.f);
     float totalPan = clamp(-1.f, m_curPan + m_userPan, 1.f);
     float totalSpan = clamp(-1.f, m_curSpan + m_userSpan, 1.f);
-    float coefs[8];
-
-    /* Left */
-    coefs[0] = (totalPan <= 0.f) ? 1.f : (1.f - totalPan);
-    coefs[0] *= (totalSpan <= 0.f) ? 1.f : (1.f - totalSpan);
-
-    /* Right */
-    coefs[1] = (totalPan >= 0.f) ? 1.f : (1.f + totalPan);
-    coefs[1] *= (totalSpan <= 0.f) ? 1.f : (1.f - totalSpan);
-
-    /* Back Left */
-    coefs[2] = (totalPan <= 0.f) ? 1.f : (1.f - totalPan);
-    coefs[2] *= (totalSpan >= 0.f) ? 1.f : (1.f + totalSpan);
-
-    /* Back Right */
-    coefs[3] = (totalPan >= 0.f) ? 1.f : (1.f + totalPan);
-    coefs[3] *= (totalSpan >= 0.f) ? 1.f : (1.f + totalSpan);
-
-    /* Center */
-    coefs[4] = 1.f - std::fabs(totalPan);
-
-    /* LFE */
-    coefs[5] = 1.f;
-
-    /* Side Left */
-    coefs[6] = (totalPan <= 0.f) ? 1.f : (1.f - totalPan);
-    coefs[6] *= 1.f - std::fabs(totalSpan);
-
-    /* Side Right */
-    coefs[7] = (totalPan >= 0.f) ? 1.f : (1.f + totalPan);
-    coefs[7] *= 1.f - std::fabs(totalSpan);
-
-    m_backendVoice->setChannelLevels(m_studio->getMaster().m_backendSubmix.get(), coefs, true);
-    m_backendVoice->setChannelLevels(m_studio->getAuxA().m_backendSubmix.get(), coefs, true);
-    m_backendVoice->setChannelLevels(m_studio->getAuxB().m_backendSubmix.get(), coefs, true);
+    float coefs[8] = {};
+    _panLaw(coefs, totalPan, totalPan, totalSpan);
+    _setChannelCoefs(coefs);
 }
 
 void Voice::setPan(float pan)
@@ -1009,6 +1076,20 @@ void Voice::setSurroundPan(float span)
     _setSurroundPan(m_curSpan);
     for (std::shared_ptr<Voice>& vox : m_childVoices)
         vox->setSurroundPan(span);
+}
+
+void Voice::_setChannelCoefs(const float coefs[8])
+{
+    m_backendVoice->setChannelLevels(m_studio->getMaster().m_backendSubmix.get(), coefs, true);
+    m_backendVoice->setChannelLevels(m_studio->getAuxA().m_backendSubmix.get(), coefs, true);
+    m_backendVoice->setChannelLevels(m_studio->getAuxB().m_backendSubmix.get(), coefs, true);
+}
+
+void Voice::setChannelCoefs(const float coefs[8])
+{
+    _setChannelCoefs(coefs);
+    for (std::shared_ptr<Voice>& vox : m_childVoices)
+        vox->setChannelCoefs(coefs);
 }
 
 void Voice::startEnvelope(double dur, float vol, const Curve* envCurve)

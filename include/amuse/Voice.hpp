@@ -33,6 +33,7 @@ class Voice : public Entity
     friend class Sequencer;
     friend class SoundMacroState;
     friend class Envelope;
+    friend class Emitter;
     int m_vid;                        /**< VoiceID of this voice instance */
     bool m_emitter;                   /**< Voice is part of an Emitter */
     std::shared_ptr<Studio> m_studio; /**< Studio this voice outputs to */
@@ -62,6 +63,7 @@ class Voice : public Entity
     uint32_t m_lastSamplePos = 0;                   /**< Last sample position (or last loop sample) */
     int16_t m_prev1 = 0;                            /**< DSPADPCM prev sample */
     int16_t m_prev2 = 0;                            /**< DSPADPCM prev-prev sample */
+    double m_dopplerRatio = 1.0;   /**< Current ratio to mix with chromatic pitch for doppler effects */
     double m_sampleRate = NativeSampleRate; /**< Current sample rate computed from relative sample key or SETPITCH */
     double m_voiceTime = 0.0;      /**< Current seconds of voice playback (per-sample resolution) */
     uint64_t m_voiceSamples = 0;   /**< Count of samples processed over voice's lifetime */
@@ -166,8 +168,10 @@ class Voice : public Entity
     std::shared_ptr<Voice> _startChildMacro(ObjectId macroId, int macroStep, double ticksPerSec, uint8_t midiKey,
                                             uint8_t midiVel, uint8_t midiMod, bool pushPc = false);
 
+    void _panLaw(float coefsOut[8], float frontPan, float backPan, float totalSpan) const;
     void _setPan(float pan);
     void _setSurroundPan(float span);
+    void _setChannelCoefs(const float coefs[8]);
     void _setPitchWheel(float pitchWheel);
     void _notifyCtrlChange(uint8_t ctrl, int8_t val);
 
@@ -230,6 +234,9 @@ public:
 
     /** Set current voice surround-panning immediately */
     void setSurroundPan(float span);
+
+    /** Set current voice channel coefficients immediately */
+    void setChannelCoefs(const float coefs[8]);
 
     /** Start volume envelope to specified level */
     void startEnvelope(double dur, float vol, const Curve* envCurve);

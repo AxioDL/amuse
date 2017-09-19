@@ -37,7 +37,6 @@ set(SOURCES
     lib/EffectReverb.cpp
     lib/EffectChorus.cpp
     lib/EffectDelay.cpp
-    lib/SurroundProfiles.cpp
     lib/ContainerRegistry.cpp
     lib/DSPCodec.c
     lib/N64MusyXCodec.c)
@@ -68,7 +67,6 @@ set(HEADERS
     include/amuse/EffectReverb.hpp
     include/amuse/EffectChorus.hpp
     include/amuse/EffectDelay.hpp
-    include/amuse/SurroundProfiles.hpp
     include/amuse/ContainerRegistry.hpp
     include/amuse/Common.hpp
     include/amuse/amuse.hpp
