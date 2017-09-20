@@ -192,7 +192,7 @@ std::list<std::shared_ptr<Voice>>::iterator Voice::_destroyVoice(std::list<std::
 template <typename T>
 static T ApplyVolume(float vol, T samp)
 {
-    return samp * 0.7f * vol;
+    return samp * vol;
 }
 
 void Voice::_procSamplePre(int16_t& samp)
@@ -1003,7 +1003,7 @@ void Voice::_panLaw(float coefs[8], float frontPan, float backPan, float totalSp
         coefs[4] *= -totalSpan * 0.5f + 0.5f;
 
         /* LFE */
-        coefs[5] = 1.f;
+        coefs[5] = 0.35f;
 
         break;
 
@@ -1029,7 +1029,7 @@ void Voice::_panLaw(float coefs[8], float frontPan, float backPan, float totalSp
         coefs[4] *= (totalSpan <= 0.f) ? -totalSpan : 0.f;
 
         /* LFE */
-        coefs[5] = 1.f;
+        coefs[5] = 0.35f;
 
         /* Side Left */
         coefs[6] = (backPan <= 0.f) ? -backPan : 0.f;

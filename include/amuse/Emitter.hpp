@@ -23,6 +23,17 @@ static float Length(const Vector3f& a)
     return std::sqrt(Dot(a, a));
 }
 
+static float Normalize(Vector3f& out)
+{
+    float dist = Length(out);
+    if (dist == 0.f)
+        return 0.f;
+    out[0] /= dist;
+    out[1] /= dist;
+    out[2] /= dist;
+    return dist;
+}
+
 /** Voice wrapper with positional-3D level control */
 class Emitter : public Entity
 {
@@ -34,6 +45,7 @@ class Emitter : public Entity
     float m_minVol;
     float m_falloff;
     bool m_doppler;
+    bool m_dirty = true;
 
     friend class Engine;
     void _destroy();
@@ -42,13 +54,13 @@ class Emitter : public Entity
 
 public:
     ~Emitter();
-    Emitter(Engine& engine, const AudioGroup& group, std::shared_ptr<Voice>&& vox,
+    Emitter(Engine& engine, const AudioGroup& group, const std::shared_ptr<Voice>& vox,
             float maxDist, float minVol, float falloff, bool doppler);
 
     void setVectors(const float* pos, const float* dir);
-    void setMaxVol(float maxVol) { m_maxVol = clamp(0.f, maxVol, 1.f); }
+    void setMaxVol(float maxVol) { m_maxVol = clamp(0.f, maxVol, 1.f); m_dirty = true; }
 
-    std::shared_ptr<Voice>& getVoice() { return m_vox; }
+    const std::shared_ptr<Voice>& getVoice() const { return m_vox; }
 };
 }
 

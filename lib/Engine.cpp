@@ -181,6 +181,8 @@ void Engine::_on5MsInterval(IBackendVoiceAllocator& engine, double dt)
         seq->advance(dt);
     for (std::shared_ptr<Emitter>& emitter : m_activeEmitters)
         emitter->_update();
+    for (std::shared_ptr<Listener>& listener : m_activeListeners)
+        listener->m_dirty = false;
 }
 
 void Engine::_onPumpCycleComplete(IBackendVoiceAllocator& engine)
@@ -338,7 +340,7 @@ std::shared_ptr<Emitter> Engine::addEmitter(const float* pos, const float* dir, 
     std::list<std::shared_ptr<Voice>>::iterator vox =
         _allocateVoice(*grp, std::get<1>(search->second), NativeSampleRate, true, true, smx);
     auto emitIt = m_activeEmitters.emplace(m_activeEmitters.end(),
-        new Emitter(*this, *grp, std::move(*vox), maxDist, minVol, falloff, doppler));
+        new Emitter(*this, *grp, *vox, maxDist, minVol, falloff, doppler));
     Emitter& ret = *(*emitIt);
 
     ObjectId oid = (grp->getDataFormat() == DataFormat::PC) ? entry->objId : SBig(entry->objId);
@@ -346,10 +348,11 @@ std::shared_ptr<Emitter> Engine::addEmitter(const float* pos, const float* dir, 
     {
         ret._destroy();
         m_activeEmitters.erase(emitIt);
+        _destroyVoice(vox);
         return {};
     }
 
-    (*vox)->setPan(entry->panning);
+    ret.getVoice()->setPan(entry->panning);
     ret.setVectors(pos, dir);
     ret.setMaxVol(maxVol);
 

@@ -1,17 +1,10 @@
 #include "amuse/amuse.hpp"
 #include "amuse/BooBackend.hpp"
-#include "athena/FileReader.hpp"
 #include "boo/boo.hpp"
-#include "boo/audiodev/IAudioVoiceEngine.hpp"
 #include "logvisor/logvisor.hpp"
-#include "optional.hpp"
-#include <stdio.h>
-#include <string.h>
 #include <thread>
-#include <map>
-#include <vector>
-#include <unordered_map>
-#include <stdarg.h>
+
+#define EMITTER_TEST 0
 
 static logvisor::Module Log("amuseplay");
 
@@ -92,6 +85,14 @@ struct AppCallback : boo::IApplicationCallback
     bool m_wantsPrev = false;
     bool m_breakout = false;
     int m_panicCount = 0;
+
+#if EMITTER_TEST
+    amuse::Vector3f m_pos = {};
+    amuse::Vector3f m_dir = {0.f, 0.f, 0.f};
+    amuse::Vector3f m_listenerDir = {0.f, 40.f, 0.f};
+    std::shared_ptr<amuse::Emitter> m_emitter;
+    std::shared_ptr<amuse::Listener> m_listener;
+#endif
 
     void UpdateSongDisplay()
     {
@@ -238,10 +239,17 @@ struct AppCallback : boo::IApplicationCallback
     void UpdateSFXDisplay()
     {
         bool playing = m_vox && m_vox->state() == amuse::VoiceState::Playing;
+#if EMITTER_TEST
+        printf(
+            "\r                                                                                "
+            "\r  %c SFX %d, VOL: %d%% POS: (%f,%f)\r",
+            playing ? '>' : ' ', m_sfxId, int(std::rint(m_volume * 100)), m_pos[0], m_pos[1]);
+#else
         printf(
             "\r                                                                                "
             "\r  %c SFX %d, VOL: %d%%\r",
             playing ? '>' : ' ', m_sfxId, int(std::rint(m_volume * 100)));
+#endif
         fflush(stdout);
     }
 
@@ -252,8 +260,15 @@ struct AppCallback : boo::IApplicationCallback
         bool playing = m_vox && m_vox->state() == amuse::VoiceState::Playing;
         if (playing)
         {
+#if EMITTER_TEST
+            if (m_emitter)
+                m_emitter->getVoice()->keyOff();
+            m_emitter = m_engine->addEmitter(m_pos, m_dir, 100.f, 0.f, m_sfxId, 0.f, 1.f, true);
+            m_vox = m_emitter->getVoice();
+#else
             m_vox->keyOff();
             m_vox = m_engine->fxStart(m_sfxId, m_volume, 0.f);
+#endif
         }
 
         UpdateSFXDisplay();
@@ -271,8 +286,26 @@ struct AppCallback : boo::IApplicationCallback
         if (sfxIt != sortEntries.cend())
             SelectSFX(sfxIt->first);
 
+#if EMITTER_TEST
+        float emitterTheta = 0.f;
+        float zeroVec[3] = {};
+        float heading[3] = {0.f, 1.f, 0.f};
+        float up[3] = {0.f, 0.f, 1.f};
+        m_listener = m_engine->addListener(zeroVec, m_listenerDir, heading, up, 5.f, 5.f, 1000.f, 1.f);
+#endif
+
         while (m_running)
         {
+#if EMITTER_TEST
+            //float dist = std::sin(emitterTheta * 0.25f);
+            m_pos[0] = std::cos(emitterTheta) * 5.f;
+            m_pos[1] = std::sin(emitterTheta) * 5.f;
+            if (m_emitter)
+                m_emitter->setVectors(m_pos, m_dir);
+            emitterTheta += 1.f / 60.f;
+            m_updateDisp = true;
+#endif
+
             m_events.dispatchEvents();
 
             if (m_wantsNext)
@@ -310,6 +343,9 @@ struct AppCallback : boo::IApplicationCallback
             if (m_vox && m_vox->state() == amuse::VoiceState::Dead)
             {
                 m_vox.reset();
+#if EMITTER_TEST
+                m_emitter.reset();
+#endif
                 UpdateSFXDisplay();
             }
 
@@ -317,11 +353,19 @@ struct AppCallback : boo::IApplicationCallback
             {
                 m_breakout = false;
                 m_vox.reset();
+#if EMITTER_TEST
+                m_emitter.reset();
+#endif
                 m_seq->allOff(true);
                 m_seq.reset();
                 break;
             }
         }
+
+#if EMITTER_TEST
+        m_engine->removeListener(m_listener.get());
+        m_listener.reset();
+#endif
     }
 
     void charKeyDownRepeat(unsigned long charCode)
@@ -389,7 +433,14 @@ struct AppCallback : boo::IApplicationCallback
                 if (m_vox && m_vox->state() == amuse::VoiceState::Playing)
                     m_vox->keyOff();
                 else if (m_sfxId != -1)
+                {
+#if EMITTER_TEST
+                    m_emitter = m_engine->addEmitter(m_pos, m_dir, 100.f, 0.f, m_sfxId, 0.f, 1.f, true);
+                    m_vox = m_emitter->getVoice();
+#else
                     m_vox = m_engine->fxStart(m_sfxId, m_volume, 0.f);
+#endif
+                }
                 m_updateDisp = true;
             default:
                 break;

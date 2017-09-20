@@ -15,9 +15,9 @@ static void Delta(Vector3f& out, const Vector3f& a, const Vector3f& b)
 
 Emitter::~Emitter() {}
 
-Emitter::Emitter(Engine& engine, const AudioGroup& group, std::shared_ptr<Voice>&& vox,
+Emitter::Emitter(Engine& engine, const AudioGroup& group, const std::shared_ptr<Voice>& vox,
                  float maxDist, float minVol, float falloff, bool doppler)
-: Entity(engine, group, vox->getObjectId()), m_vox(std::move(vox)), m_maxDist(maxDist),
+: Entity(engine, group, vox->getObjectId()), m_vox(vox), m_maxDist(maxDist),
   m_minVol(clamp(0.f, minVol, 1.f)), m_falloff(clamp(-1.f, falloff, 1.f)), m_doppler(doppler)
 {
 }
@@ -53,6 +53,22 @@ float Emitter::_attenuationCurve(float dist) const
 
 void Emitter::_update()
 {
+    if (!m_dirty)
+    {
+        /* Ensure that all listeners are also not dirty */
+        bool dirty = false;
+        for (auto& listener : m_engine.m_activeListeners)
+        {
+            if (listener->m_dirty)
+            {
+                dirty = true;
+                break;
+            }
+        }
+        if (!dirty)
+            return;
+    }
+
     float coefs[8] = {};
     double avgDopplerRatio = 0.0;
 
@@ -85,10 +101,13 @@ void Emitter::_update()
         {
             /* Positive values indicate emitter and listener closing in */
             Vector3f dirDelta;
-            Delta(dirDelta, listener->m_dir, m_dir);
-            float sign = -Dot(listener->m_dir, m_dir);
+            Delta(dirDelta, m_dir, listener->m_dir);
+            Vector3f posDelta;
+            Delta(posDelta, listener->m_pos, m_pos);
+            Normalize(posDelta);
+            float deltaSpeed = Dot(dirDelta, posDelta);
             if (listener->m_soundSpeed != 0.f)
-                avgDopplerRatio += 1.0 + std::copysign(Length(dirDelta), sign) / listener->m_soundSpeed;
+                avgDopplerRatio += 1.0 + deltaSpeed / listener->m_soundSpeed;
             else
                 avgDopplerRatio += 1.0;
         }
@@ -98,8 +117,13 @@ void Emitter::_update()
     {
         m_vox->setChannelCoefs(coefs);
         if (m_doppler)
+        {
             m_vox->m_dopplerRatio = avgDopplerRatio / float(m_engine.m_activeListeners.size());
+            m_vox->m_pitchDirty = true;
+        }
     }
+
+    m_dirty = false;
 }
 
 void Emitter::setVectors(const float* pos, const float* dir)
@@ -109,6 +133,7 @@ void Emitter::setVectors(const float* pos, const float* dir)
         m_pos[i] = pos[i];
         m_dir[i] = dir[i];
     }
+    m_dirty = true;
 }
 
 }
