@@ -632,7 +632,7 @@ struct AppCallback : boo::IApplicationCallback
         boo::ITextureR* tex = nullptr;
         boo::GraphicsDataToken gfxToken =
             m_win->getMainContextDataFactory()->commitTransaction([&](boo::IGraphicsDataFactory::Context& ctx) -> bool {
-                tex = ctx.newRenderTexture(100, 100, false, false);
+                tex = ctx.newRenderTexture(100, 100, boo::TextureClampMode::Repeat, 0, 0);
                 return true;
             });
         boo::IGraphicsCommandQueue* q = m_win->getCommandQueue();
