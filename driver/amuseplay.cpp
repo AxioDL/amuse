@@ -629,12 +629,11 @@ struct AppCallback : boo::IApplicationCallback
         m_win->setWindowFrame(100, 100, 100, 100);
         m_win->setStyle(~boo::EWindowStyle::Resize);
         m_win->showWindow();
-        boo::ITextureR* tex = nullptr;
-        boo::GraphicsDataToken gfxToken =
-            m_win->getMainContextDataFactory()->commitTransaction([&](boo::IGraphicsDataFactory::Context& ctx) -> bool {
-                tex = ctx.newRenderTexture(100, 100, boo::TextureClampMode::Repeat, 0, 0);
-                return true;
-            });
+        boo::ObjToken<boo::ITextureR> tex;
+        m_win->getMainContextDataFactory()->commitTransaction([&](boo::IGraphicsDataFactory::Context& ctx) -> bool {
+            tex = ctx.newRenderTexture(100, 100, boo::TextureClampMode::Repeat, 0, 0);
+            return true;
+        });
         boo::IGraphicsCommandQueue* q = m_win->getCommandQueue();
         q->setRenderTarget(tex);
         q->clearTarget();
