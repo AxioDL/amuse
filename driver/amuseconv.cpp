@@ -55,7 +55,7 @@ static bool ExtractAudioGroup(amuse::SystemStringView inPath, amuse::SystemStrin
     }
 
     auto songs = amuse::ContainerRegistry::LoadSongs(inPath.data());
-    amuse::SystemString songsDir = targetPath + _S("/midifiles");
+    amuse::SystemString songsDir = amuse::SystemString(targetPath) + _S("/midifiles");
     bool madeDir = false;
     for (auto& pair : songs)
     {
