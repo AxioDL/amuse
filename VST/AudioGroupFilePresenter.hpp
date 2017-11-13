@@ -61,7 +61,7 @@ struct AudioGroupDataCollection
     bool loadSamp();
     bool loadMeta();
 
-    AudioGroupDataCollection(const std::wstring& path, const std::wstring& name);
+    AudioGroupDataCollection(std::wstring_view path, std::wstring_view name);
     bool isDataComplete() const
     {
         return m_projData.size() && m_poolData.size() && m_sdirData.size() && m_sampData.size() && m_metaData;
@@ -82,7 +82,7 @@ struct AudioGroupCollection
     std::map<std::wstring, std::unique_ptr<AudioGroupDataCollection>> m_groups;
     std::vector<GroupIterator> m_iteratorVec;
 
-    AudioGroupCollection(const std::wstring& path, const std::wstring& name);
+    AudioGroupCollection(std::wstring_view path, std::wstring_view name);
     void addCollection(std::vector<std::pair<std::wstring, amuse::IntrusiveAudioGroupData>>&& collection);
     void update(AudioGroupFilePresenter& presenter);
     void populateFiles(VSTEditor& editor, HTREEITEM colHandle, size_t parentIdx);
@@ -106,7 +106,7 @@ public:
     void populateCollectionColumn(VSTEditor& editor);
     void populateGroupColumn(VSTEditor& editor, int collectionIdx, int fileIdx);
     void populatePageColumn(VSTEditor& editor, int collectionIdx, int fileIdx, int groupIdx);
-    void addCollection(const std::wstring& name,
+    void addCollection(std::wstring_view name,
                        std::vector<std::pair<std::wstring, amuse::IntrusiveAudioGroupData>>&& collection);
     void removeCollection(unsigned idx);
     VSTBackend& getBackend() { return m_backend; }

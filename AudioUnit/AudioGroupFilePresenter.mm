@@ -161,13 +161,13 @@ void AudioGroupCollection::update(AudioGroupFilePresenter* presenter)
     }
 }
 
-bool AudioGroupCollection::doSearch(const std::string& str)
+bool AudioGroupCollection::doSearch(std::string_view str)
 {
     bool ret = false;
     m_filterGroups.clear();
     m_filterGroups.reserve(m_groups.size());
     for (auto it = m_groups.begin() ; it != m_groups.end() ; ++it)
-        if (str.empty() || StrToLower(it->first).find(str) != std::string::npos)
+        if (str.empty() || StrToLower(it->first).find(str.data()) != std::string::npos)
         {
             m_filterGroups.push_back(it);
             ret = true;

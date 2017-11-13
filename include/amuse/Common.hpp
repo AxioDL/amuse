@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include <string>
+#include <string_view>
 #include <cstring>
 
 #ifndef _WIN32
@@ -47,6 +48,7 @@ static inline int Mkdir(const wchar_t* path, int) { return _wmkdir(path); }
 static inline int Stat(const wchar_t* path, Sstat* statout) { return _wstat(path, statout); }
 #else
 using SystemString = std::string;
+using SystemStringView = std::string_view;
 using SystemChar = char;
 #ifndef _S
 #define _S(val) val

@@ -9,21 +9,21 @@ namespace amuse
 
 struct CaseInsensitiveCompare
 {
-    bool operator()(const std::string& lhs, const std::string& rhs) const
+    bool operator()(std::string_view lhs, std::string_view rhs) const
     {
 #if _WIN32
-        if (_stricmp(lhs.c_str(), rhs.c_str()) < 0)
+        if (_stricmp(lhs.data(), rhs.data()) < 0)
 #else
-        if (strcasecmp(lhs.c_str(), rhs.c_str()) < 0)
+        if (strcasecmp(lhs.data(), rhs.data()) < 0)
 #endif
             return true;
         return false;
     }
 
 #if _WIN32
-    bool operator()(const std::wstring& lhs, const std::wstring& rhs) const
+    bool operator()(std::wstring_view lhs, std::wstring_view rhs) const
     {
-        if (_wcsicmp(lhs.c_str(), rhs.c_str()) < 0)
+        if (_wcsicmp(lhs.data(), rhs.data()) < 0)
             return true;
         return false;
     }
@@ -59,12 +59,7 @@ private:
     std::vector<Entry> m_entries;
 
 public:
-    DirectoryEnumerator(const SystemString& path, Mode mode = Mode::DirsThenFilesSorted, bool sizeSort = false,
-                        bool reverse = false, bool noHidden = false)
-    : DirectoryEnumerator(path.c_str(), mode, sizeSort, reverse, noHidden)
-    {
-    }
-    DirectoryEnumerator(const SystemChar* path, Mode mode = Mode::DirsThenFilesSorted, bool sizeSort = false,
+    DirectoryEnumerator(SystemStringView path, Mode mode = Mode::DirsThenFilesSorted, bool sizeSort = false,
                         bool reverse = false, bool noHidden = false);
 
     operator bool() const { return m_entries.size() != 0; }

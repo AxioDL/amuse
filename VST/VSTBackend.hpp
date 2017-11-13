@@ -59,7 +59,7 @@ public:
     void setBlockSize(VstInt32 blockSize);
 
     amuse::Engine& getAmuseEngine() { return *m_engine; }
-    const std::wstring& getUserDir() const { return m_userDir; }
+    std::wstring_view getUserDir() const { return m_userDir; }
     AudioGroupFilePresenter& getFilePresenter() { return m_filePresenter; }
 
     void loadGroupFile(int collectionIdx, int fileIdx);

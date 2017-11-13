@@ -217,7 +217,7 @@ bool AudioGroupDataCollection::loadMeta()
     return ret.operator bool();
 }
 
-AudioGroupDataCollection::AudioGroupDataCollection(const std::wstring& path, const std::wstring& name)
+AudioGroupDataCollection::AudioGroupDataCollection(std::wstring_view path, std::wstring_view name)
 : m_path(path), m_name(name)
 {
 }
@@ -295,7 +295,7 @@ void AudioGroupDataCollection::addToEngine(amuse::Engine& engine)
 
 void AudioGroupDataCollection::removeFromEngine(amuse::Engine& engine) const { engine.removeAudioGroup(*m_loadedData); }
 
-AudioGroupCollection::AudioGroupCollection(const std::wstring& path, const std::wstring& name)
+AudioGroupCollection::AudioGroupCollection(std::wstring_view path, std::wstring_view name)
 : m_path(path), m_name(name)
 {
 }
@@ -398,7 +398,7 @@ void AudioGroupFilePresenter::update()
 }
 
 void AudioGroupFilePresenter::addCollection(
-    const std::wstring& name, std::vector<std::pair<std::wstring, amuse::IntrusiveAudioGroupData>>&& collection)
+    std::wstring_view name, std::vector<std::pair<std::wstring, amuse::IntrusiveAudioGroupData>>&& collection)
 {
     std::wstring path = m_backend.getUserDir() + L'\\' + name;
     AudioGroupCollection& insert =

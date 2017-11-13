@@ -64,7 +64,7 @@ struct AudioGroupDataCollection
     bool loadSamp(AudioGroupFilePresenter* presenter);
     bool loadMeta(AudioGroupFilePresenter* presenter);
 
-    AudioGroupDataCollection(const std::string& name, NSURL* proj, NSURL* pool, NSURL* sdir, NSURL* samp, NSURL* meta);
+    AudioGroupDataCollection(std::string_view name, NSURL* proj, NSURL* pool, NSURL* sdir, NSURL* samp, NSURL* meta);
     bool isDataComplete() const
     {
         return m_projData.size() && m_poolData.size() && m_sdirData.size() && m_sampData.size() && m_metaData;
@@ -88,7 +88,7 @@ struct AudioGroupCollection
     void addCollection(AudioGroupFilePresenter* presenter,
                        std::vector<std::pair<std::string, amuse::IntrusiveAudioGroupData>>&& collection);
     void update(AudioGroupFilePresenter* presenter);
-    bool doSearch(const std::string& str);
+    bool doSearch(std::string_view str);
     bool doActiveFilter();
     void addSFX(std::vector<AudioGroupSFXToken*>& vecOut);
     void addSamples(std::vector<AudioGroupSampleToken*>& vecOut);

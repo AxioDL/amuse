@@ -31,22 +31,22 @@ static void ReportConvType(ConvType tp)
     }
 }
 
-static bool BuildAudioGroup(const amuse::SystemString& groupBase, const amuse::SystemString& targetPath)
+static bool BuildAudioGroup(amuse::SystemStringView groupBase, amuse::SystemStringView targetPath)
 {
     return true;
 }
 
-static bool ExtractAudioGroup(const amuse::SystemString& inPath, const amuse::SystemString& targetPath)
+static bool ExtractAudioGroup(amuse::SystemStringView inPath, amuse::SystemStringView targetPath)
 {
     amuse::ContainerRegistry::Type type;
-    auto groups = amuse::ContainerRegistry::LoadContainer(inPath.c_str(), type);
+    auto groups = amuse::ContainerRegistry::LoadContainer(inPath.data(), type);
 
     if (groups.size())
     {
         Log.report(logvisor::Info, _S("Found '%s'"), amuse::ContainerRegistry::TypeToName(type));
 
-        amuse::Mkdir(targetPath.c_str(), 0755);
-        Log.report(logvisor::Info, _S("Established directory at %s"), targetPath.c_str());
+        amuse::Mkdir(targetPath.data(), 0755);
+        Log.report(logvisor::Info, _S("Established directory at %s"), targetPath.data());
 
         for (auto& group : groups)
         {
@@ -54,14 +54,14 @@ static bool ExtractAudioGroup(const amuse::SystemString& inPath, const amuse::Sy
         }
     }
 
-    auto songs = amuse::ContainerRegistry::LoadSongs(inPath.c_str());
+    auto songs = amuse::ContainerRegistry::LoadSongs(inPath.data());
     amuse::SystemString songsDir = targetPath + _S("/midifiles");
     bool madeDir = false;
     for (auto& pair : songs)
     {
         if (!madeDir)
         {
-            amuse::Mkdir(targetPath.c_str(), 0755);
+            amuse::Mkdir(targetPath.data(), 0755);
             amuse::Mkdir(songsDir.c_str(), 0755);
             madeDir = true;
         }
@@ -83,9 +83,9 @@ static bool ExtractAudioGroup(const amuse::SystemString& inPath, const amuse::Sy
     return true;
 }
 
-static bool BuildSNG(const amuse::SystemString& inPath, const amuse::SystemString& targetPath, int version, bool big)
+static bool BuildSNG(amuse::SystemStringView inPath, amuse::SystemStringView targetPath, int version, bool big)
 {
-    FILE* fp = amuse::FOpen(inPath.c_str(), _S("rb"));
+    FILE* fp = amuse::FOpen(inPath.data(), _S("rb"));
     if (!fp)
         return false;
 
@@ -100,16 +100,16 @@ static bool BuildSNG(const amuse::SystemString& inPath, const amuse::SystemStrin
     if (out.empty())
         return false;
 
-    fp = amuse::FOpen(targetPath.c_str(), _S("wb"));
+    fp = amuse::FOpen(targetPath.data(), _S("wb"));
     fwrite(out.data(), 1, out.size(), fp);
     fclose(fp);
 
     return true;
 }
 
-static bool ExtractSNG(const amuse::SystemString& inPath, const amuse::SystemString& targetPath)
+static bool ExtractSNG(amuse::SystemStringView inPath, amuse::SystemStringView targetPath)
 {
-    FILE* fp = amuse::FOpen(inPath.c_str(), _S("rb"));
+    FILE* fp = amuse::FOpen(inPath.data(), _S("rb"));
     if (!fp)
         return false;
 
@@ -126,7 +126,7 @@ static bool ExtractSNG(const amuse::SystemString& inPath, const amuse::SystemStr
     if (out.empty())
         return false;
 
-    fp = amuse::FOpen(targetPath.c_str(), _S("wb"));
+    fp = amuse::FOpen(targetPath.data(), _S("wb"));
     fwrite(out.data(), 1, out.size(), fp);
     fclose(fp);
 
