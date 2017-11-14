@@ -39,6 +39,7 @@ namespace amuse
 
 #ifdef _WIN32
 using SystemString = std::wstring;
+using SystemStringView = std::wstring_view;
 using SystemChar = wchar_t;
 #ifndef _S
 #define _S(val) L##val
