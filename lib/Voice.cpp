@@ -855,7 +855,7 @@ void Voice::keyOff()
             loadSoundObject(m_keyoffTrap.macroId, m_keyoffTrap.macroStep, m_state.m_ticksPerSec, m_state.m_initKey,
                             m_state.m_initVel, m_state.m_initMod);
     }
-    else
+    else if (!m_curSample || m_curSample->first.m_loopLengthSamples)
         _macroKeyOff();
 
     for (const std::shared_ptr<Voice>& vox : m_childVoices)
