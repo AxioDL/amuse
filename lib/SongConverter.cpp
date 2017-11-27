@@ -1286,6 +1286,7 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
                         curRegionOff += 12 + region.eventBuf.size() + region.pitchBuf.size() + region.modBuf.size();
                         int paddedRegOff = ((curRegionOff + 3) & ~3);
                         region.padding = paddedRegOff - curRegionOff;
+                        curRegionOff = paddedRegOff;
                         regions.push_back(std::move(region));
                     }
 
