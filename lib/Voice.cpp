@@ -1027,7 +1027,7 @@ void Voice::_panLaw(float coefs[8], float frontPan, float backPan, float totalSp
         coefs[4] *= -totalSpan * 0.5f + 0.5f;
 
         /* LFE */
-        coefs[5] = 0.35f;
+        coefs[5] = 0.25f;
 
         break;
 
@@ -1053,14 +1053,14 @@ void Voice::_panLaw(float coefs[8], float frontPan, float backPan, float totalSp
         coefs[4] *= (totalSpan <= 0.f) ? -totalSpan : 0.f;
 
         /* LFE */
-        coefs[5] = 0.35f;
+        coefs[5] = 0.25f;
 
         /* Side Left */
-        coefs[6] = (backPan <= 0.f) ? -backPan : 0.f;
+        coefs[6] = -backPan * 0.5f + 0.5f;
         coefs[6] *= 1.f - std::fabs(totalSpan);
 
         /* Side Right */
-        coefs[7] = (backPan >= 0.f) ? backPan : 0.f;
+        coefs[7] = backPan * 0.5f + 0.5f;
         coefs[7] *= 1.f - std::fabs(totalSpan);
 
         break;
