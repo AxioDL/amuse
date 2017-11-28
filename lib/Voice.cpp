@@ -814,17 +814,29 @@ bool Voice::_loadLayer(const std::vector<const LayerMapping*>& layer, int macroS
 bool Voice::loadSoundObject(ObjectId objectId, int macroStep, double ticksPerSec, uint8_t midiKey, uint8_t midiVel,
                             uint8_t midiMod, bool pushPc)
 {
+    if (m_destroyed)
+        return false;
+
     const unsigned char* macroData = m_audioGroup.getPool().soundMacro(objectId);
     if (macroData)
+    {
+        m_objectId = objectId;
         return _loadSoundMacro(macroData, macroStep, ticksPerSec, midiKey, midiVel, midiMod, pushPc);
+    }
 
     const Keymap* keymap = m_audioGroup.getPool().keymap(objectId);
     if (keymap)
+    {
+        m_objectId = objectId;
         return _loadKeymap(keymap, macroStep, ticksPerSec, midiKey, midiVel, midiMod, pushPc);
+    }
 
     const std::vector<const LayerMapping*>* layer = m_audioGroup.getPool().layer(objectId);
     if (layer)
+    {
+        m_objectId = objectId;
         return _loadLayer(*layer, macroStep, ticksPerSec, midiKey, midiVel, midiMod, pushPc);
+    }
 
     return false;
 }
@@ -843,6 +855,9 @@ void Voice::_macroKeyOff()
 
 void Voice::keyOff()
 {
+    if (m_destroyed)
+        return;
+
     if (m_keyoffTrap.macroId != 0xffff)
     {
         if (m_keyoffTrap.macroId == m_state.m_header.m_macroId)
@@ -864,6 +879,9 @@ void Voice::keyOff()
 
 void Voice::message(int32_t val)
 {
+    if (m_destroyed)
+        return;
+
     m_messageQueue.push_back(val);
 
     if (m_messageTrap.macroId != 0xffff)
@@ -879,6 +897,9 @@ void Voice::message(int32_t val)
 
 void Voice::startSample(int16_t sampId, int32_t offset)
 {
+    if (m_destroyed)
+        return;
+
     m_curSample = m_audioGroup.getSample(sampId);
     if (m_curSample)
     {
@@ -942,6 +963,9 @@ void Voice::stopSample() { m_curSample = nullptr; }
 
 void Voice::setVolume(float vol)
 {
+    if (m_destroyed)
+        return;
+
     m_targetUserVol = clamp(0.f, vol, 1.f);
     for (std::shared_ptr<Voice>& vox : m_childVoices)
         vox->setVolume(vol);
@@ -1045,7 +1069,7 @@ void Voice::_panLaw(float coefs[8], float frontPan, float backPan, float totalSp
 
 void Voice::_setPan(float pan)
 {
-    if (m_emitter)
+    if (m_destroyed || m_emitter)
         return;
 
     m_curPan = clamp(-1.f, pan, 1.f);
@@ -1058,6 +1082,9 @@ void Voice::_setPan(float pan)
 
 void Voice::setPan(float pan)
 {
+    if (m_destroyed)
+        return;
+
     m_userPan = pan;
     _setPan(m_curPan);
     for (std::shared_ptr<Voice>& vox : m_childVoices)
@@ -1072,6 +1099,9 @@ void Voice::_setSurroundPan(float span)
 
 void Voice::setSurroundPan(float span)
 {
+    if (m_destroyed)
+        return;
+
     m_userSpan = span;
     _setSurroundPan(m_curSpan);
     for (std::shared_ptr<Voice>& vox : m_childVoices)
@@ -1087,6 +1117,9 @@ void Voice::_setChannelCoefs(const float coefs[8])
 
 void Voice::setChannelCoefs(const float coefs[8])
 {
+    if (m_destroyed)
+        return;
+
     _setChannelCoefs(coefs);
     for (std::shared_ptr<Voice>& vox : m_childVoices)
         vox->setChannelCoefs(coefs);
@@ -1134,6 +1167,9 @@ void Voice::setPitchKey(int32_t cents)
 
 void Voice::setPedal(bool pedal)
 {
+    if (m_destroyed)
+        return;
+
     if (m_sustained && !pedal && m_sustainKeyOff)
     {
         m_sustainKeyOff = false;
@@ -1180,6 +1216,9 @@ void Voice::setPitchSweep2(uint8_t times, int16_t add)
 
 void Voice::setReverbVol(float rvol)
 {
+    if (m_destroyed)
+        return;
+
     m_curReverbVol = clamp(0.f, rvol, 1.f);
     for (std::shared_ptr<Voice>& vox : m_childVoices)
         vox->setReverbVol(rvol);
@@ -1187,6 +1226,9 @@ void Voice::setReverbVol(float rvol)
 
 void Voice::setAuxBVol(float bvol)
 {
+    if (m_destroyed)
+        return;
+
     m_curAuxBVol = clamp(0.f, bvol, 1.f);
     for (std::shared_ptr<Voice>& vox : m_childVoices)
         vox->setAuxBVol(bvol);
@@ -1194,6 +1236,9 @@ void Voice::setAuxBVol(float bvol)
 
 void Voice::setAdsr(ObjectId adsrId, bool dls)
 {
+    if (m_destroyed)
+        return;
+
     if (dls)
     {
         const ADSRDLS* adsr = m_audioGroup.getPool().tableAsAdsrDLS(adsrId);
@@ -1218,6 +1263,9 @@ void Voice::setAdsr(ObjectId adsrId, bool dls)
 
 void Voice::setPitchFrequency(uint32_t hz, uint16_t fine)
 {
+    if (m_destroyed)
+        return;
+
     m_sampleRate = hz + fine / 65536.0;
     m_backendVoice->setPitchRatio(1.0, false);
     m_backendVoice->resetSampleRate(m_sampleRate);
@@ -1225,6 +1273,9 @@ void Voice::setPitchFrequency(uint32_t hz, uint16_t fine)
 
 void Voice::setPitchAdsr(ObjectId adsrId, int32_t cents)
 {
+    if (m_destroyed)
+        return;
+
     const ADSRDLS* adsr = m_audioGroup.getPool().tableAsAdsrDLS(adsrId);
     if (adsr)
     {
@@ -1236,6 +1287,9 @@ void Voice::setPitchAdsr(ObjectId adsrId, int32_t cents)
 
 void Voice::_setPitchWheel(float pitchWheel)
 {
+    if (m_destroyed)
+        return;
+
     if (pitchWheel > 0.f)
         m_pitchWheelVal = m_pitchWheelUp * m_curPitchWheel;
     else if (pitchWheel < 0.f)
@@ -1247,6 +1301,9 @@ void Voice::_setPitchWheel(float pitchWheel)
 
 void Voice::setPitchWheel(float pitchWheel)
 {
+    if (m_destroyed)
+        return;
+
     m_curPitchWheel = amuse::clamp(-1.f, pitchWheel, 1.f);
     _setPitchWheel(m_curPitchWheel);
 
@@ -1256,6 +1313,9 @@ void Voice::setPitchWheel(float pitchWheel)
 
 void Voice::setPitchWheelRange(int8_t up, int8_t down)
 {
+    if (m_destroyed)
+        return;
+
     m_pitchWheelUp = up * 100;
     m_pitchWheelDown = down * 100;
     _setPitchWheel(m_curPitchWheel);
@@ -1263,6 +1323,9 @@ void Voice::setPitchWheelRange(int8_t up, int8_t down)
 
 void Voice::setAftertouch(uint8_t aftertouch)
 {
+    if (m_destroyed)
+        return;
+
     m_curAftertouch = aftertouch;
     for (std::shared_ptr<Voice>& vox : m_childVoices)
         vox->setAftertouch(aftertouch);
@@ -1327,6 +1390,9 @@ size_t Voice::getTotalVoices() const
 
 void Voice::kill()
 {
+    if (m_destroyed)
+        return;
+
     m_voxState = VoiceState::Dead;
     m_backendVoice->stop();
     for (const std::shared_ptr<Voice>& vox : m_childVoices)

@@ -17,7 +17,7 @@ Emitter::~Emitter() {}
 
 Emitter::Emitter(Engine& engine, const AudioGroup& group, const std::shared_ptr<Voice>& vox,
                  float maxDist, float minVol, float falloff, bool doppler)
-: Entity(engine, group, vox->getObjectId()), m_vox(vox), m_maxDist(maxDist),
+: Entity(engine, group, vox->getGroupId(), vox->getObjectId()), m_vox(vox), m_maxDist(maxDist),
   m_minVol(clamp(0.f, minVol, 1.f)), m_falloff(clamp(-1.f, falloff, 1.f)), m_doppler(doppler)
 {
 }
@@ -86,15 +86,18 @@ void Emitter::_update()
 
         /* Calculate attenuation */
         float att = _attenuationCurve(dist);
-        att = (1.f - att) * m_minVol + att * m_maxVol;
+        if (att > FLT_EPSILON)
+        {
+            att = (1.f - att) * m_minVol + att * m_maxVol;
 
-        /* Apply pan law */
-        float thisCoefs[8] = {};
-        m_vox->_panLaw(thisCoefs, frontPan, backPan, span);
+            /* Apply pan law */
+            float thisCoefs[8] = {};
+            m_vox->_panLaw(thisCoefs, frontPan, backPan, span);
 
-        /* Take maximum coefficient across listeners */
-        for (int i=0 ; i<8 ; ++i)
-            coefs[i] = std::max(coefs[i], thisCoefs[i] * att * listener->m_volume);
+            /* Take maximum coefficient across listeners */
+            for (int i = 0; i < 8; ++i)
+                coefs[i] = std::max(coefs[i], thisCoefs[i] * att * listener->m_volume);
+        }
 
         /* Calculate doppler */
         if (m_doppler)

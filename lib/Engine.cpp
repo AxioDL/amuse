@@ -339,18 +339,17 @@ std::shared_ptr<Emitter> Engine::addEmitter(const float* pos, const float* dir, 
 
     std::list<std::shared_ptr<Voice>>::iterator vox =
         _allocateVoice(*grp, std::get<1>(search->second), NativeSampleRate, true, true, smx);
-    auto emitIt = m_activeEmitters.emplace(m_activeEmitters.end(),
-        new Emitter(*this, *grp, *vox, maxDist, minVol, falloff, doppler));
-    Emitter& ret = *(*emitIt);
 
     ObjectId oid = (grp->getDataFormat() == DataFormat::PC) ? entry->objId : SBig(entry->objId);
-    if (!ret.getVoice()->loadSoundObject(oid, 0, 1000.f, entry->defKey, entry->defVel, 0))
+    if (!(*vox)->loadSoundObject(oid, 0, 1000.f, entry->defKey, entry->defVel, 0))
     {
-        ret._destroy();
-        m_activeEmitters.erase(emitIt);
         _destroyVoice(vox);
         return {};
     }
+
+    auto emitIt = m_activeEmitters.emplace(m_activeEmitters.end(),
+                                           new Emitter(*this, *grp, *vox, maxDist, minVol, falloff, doppler));
+    Emitter& ret = *(*emitIt);
 
     ret.getVoice()->setPan(entry->panning);
     ret.setVectors(pos, dir);
