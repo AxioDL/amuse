@@ -82,8 +82,8 @@ class Voice : public Entity
     float m_curAuxBVol = 0.f;       /**< Current AuxB volume of voice */
     float m_userPan = 0.f;          /**< User pan of voice */
     float m_curPan = 0.f;           /**< Current pan of voice */
-    float m_userSpan = 0.f;         /**< User span of voice */
-    float m_curSpan = 0.f;          /**< Current surround pan of voice */
+    float m_userSpan = -1.f;        /**< User span of voice */
+    float m_curSpan = -1.f;         /**< Current surround pan of voice */
     float m_curPitchWheel = 0.f;    /**< Current normalized wheel value for control */
     int32_t m_pitchWheelUp = 600;   /**< Up range for pitchwheel control in cents */
     int32_t m_pitchWheelDown = 600; /**< Down range for pitchwheel control in cents */

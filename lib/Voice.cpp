@@ -979,10 +979,10 @@ void Voice::_panLaw(float coefs[8], float frontPan, float backPan, float totalSp
     case AudioChannelSet::Stereo:
     default:
         /* Left */
-        coefs[0] = -frontPan * 0.5f + 0.5f;
+        coefs[0] = std::sqrt(-frontPan * 0.5f + 0.5f);
 
         /* Right */
-        coefs[1] = frontPan * 0.5f + 0.5f;
+        coefs[1] = std::sqrt(frontPan * 0.5f + 0.5f);
 
         break;
 
@@ -990,18 +990,22 @@ void Voice::_panLaw(float coefs[8], float frontPan, float backPan, float totalSp
         /* Left */
         coefs[0] = -frontPan * 0.5f + 0.5f;
         coefs[0] *= -totalSpan * 0.5f + 0.5f;
+        coefs[0] = std::sqrt(coefs[0]);
 
         /* Right */
         coefs[1] = frontPan * 0.5f + 0.5f;
         coefs[1] *= -totalSpan * 0.5f + 0.5f;
+        coefs[1] = std::sqrt(coefs[1]);
 
         /* Back Left */
         coefs[2] = -backPan * 0.5f + 0.5f;
         coefs[2] *= totalSpan * 0.5f + 0.5f;
+        coefs[2] = std::sqrt(coefs[2]);
 
         /* Back Right */
         coefs[3] = backPan * 0.5f + 0.5f;
         coefs[3] *= totalSpan * 0.5f + 0.5f;
+        coefs[3] = std::sqrt(coefs[3]);
 
         break;
 
@@ -1009,22 +1013,27 @@ void Voice::_panLaw(float coefs[8], float frontPan, float backPan, float totalSp
         /* Left */
         coefs[0] = (frontPan <= 0.f) ? -frontPan : 0.f;
         coefs[0] *= -totalSpan * 0.5f + 0.5f;
+        coefs[0] = std::sqrt(coefs[0]);
 
         /* Right */
         coefs[1] = (frontPan >= 0.f) ? frontPan : 0.f;
         coefs[1] *= -totalSpan * 0.5f + 0.5f;
+        coefs[1] = std::sqrt(coefs[1]);
 
         /* Back Left */
         coefs[2] = -backPan * 0.5f + 0.5f;
         coefs[2] *= totalSpan * 0.5f + 0.5f;
+        coefs[2] = std::sqrt(coefs[2]);
 
         /* Back Right */
         coefs[3] = backPan * 0.5f + 0.5f;
         coefs[3] *= totalSpan * 0.5f + 0.5f;
+        coefs[3] = std::sqrt(coefs[3]);
 
         /* Center */
         coefs[4] = 1.f - std::fabs(frontPan);
         coefs[4] *= -totalSpan * 0.5f + 0.5f;
+        coefs[4] = std::sqrt(coefs[4]);
 
         /* LFE */
         coefs[5] = 0.25f;
@@ -1035,22 +1044,27 @@ void Voice::_panLaw(float coefs[8], float frontPan, float backPan, float totalSp
         /* Left */
         coefs[0] = (frontPan <= 0.f) ? -frontPan : 0.f;
         coefs[0] *= (totalSpan <= 0.f) ? -totalSpan : 0.f;
+        coefs[0] = std::sqrt(coefs[0]);
 
         /* Right */
         coefs[1] = (frontPan >= 0.f) ? frontPan : 0.f;
         coefs[1] *= (totalSpan <= 0.f) ? -totalSpan : 0.f;
+        coefs[1] = std::sqrt(coefs[1]);
 
         /* Back Left */
         coefs[2] = -backPan * 0.5f + 0.5f;
         coefs[2] *= (totalSpan >= 0.f) ? totalSpan : 0.f;
+        coefs[2] = std::sqrt(coefs[2]);
 
         /* Back Right */
         coefs[3] = backPan * 0.5f + 0.5f;
         coefs[3] *= (totalSpan >= 0.f) ? totalSpan : 0.f;
+        coefs[3] = std::sqrt(coefs[3]);
 
         /* Center */
         coefs[4] = 1.f - std::fabs(frontPan);
         coefs[4] *= (totalSpan <= 0.f) ? -totalSpan : 0.f;
+        coefs[4] = std::sqrt(coefs[4]);
 
         /* LFE */
         coefs[5] = 0.25f;
@@ -1058,10 +1072,12 @@ void Voice::_panLaw(float coefs[8], float frontPan, float backPan, float totalSp
         /* Side Left */
         coefs[6] = -backPan * 0.5f + 0.5f;
         coefs[6] *= 1.f - std::fabs(totalSpan);
+        coefs[6] = std::sqrt(coefs[6]);
 
         /* Side Right */
         coefs[7] = backPan * 0.5f + 0.5f;
         coefs[7] *= 1.f - std::fabs(totalSpan);
+        coefs[7] = std::sqrt(coefs[7]);
 
         break;
     }
