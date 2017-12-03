@@ -81,18 +81,18 @@ static inline T clamp(T a, T val, T b)
 template <typename T>
 inline T ClampFull(float in)
 {    
-    if(std::is_floating_point<T>())
+    if (std::is_floating_point<T>())
     {
-        return std::min<T>(std::max<T>(in, -1.0), 1.0);
+        return std::min<T>(std::max<T>(in, -1.f), 1.f);
     }
     else
     {
         constexpr T MAX = std::numeric_limits<T>::max();
         constexpr T MIN = std::numeric_limits<T>::min();
         
-        if(in < MIN)
+        if (in < MIN)
             return MIN;
-        else if(in > MAX)
+        else if (in > MAX)
             return MAX;
         else
             return in;
