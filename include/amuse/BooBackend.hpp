@@ -29,7 +29,7 @@ class BooBackendVoice : public IBackendVoice
         void routeAudio(size_t frames, size_t channels, double dt, int busId, float* in, float* out);
         VoiceCallback(BooBackendVoice& parent) : m_parent(parent) {}
     } m_cb;
-    std::unique_ptr<boo::IAudioVoice> m_booVoice;
+    boo::ObjToken<boo::IAudioVoice> m_booVoice;
 
 public:
     BooBackendVoice(boo::IAudioVoiceEngine& engine, Voice& clientVox, double sampleRate, bool dynamicPitch);
@@ -58,7 +58,7 @@ class BooBackendSubmix : public IBackendSubmix
         void resetOutputSampleRate(double sampleRate);
         SubmixCallback(BooBackendSubmix& parent) : m_parent(parent) {}
     } m_cb;
-    std::unique_ptr<boo::IAudioSubmix> m_booSubmix;
+    boo::ObjToken<boo::IAudioSubmix> m_booSubmix;
 
 public:
     BooBackendSubmix(boo::IAudioVoiceEngine& engine, Submix& clientSmx, bool mainOut, int busId);
