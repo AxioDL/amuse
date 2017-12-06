@@ -88,7 +88,7 @@ add_library(amuse
             ${HEADERS}
             ${EXTRAS})
 
-if(TARGET boo)
+if(TARGET boo AND NOT WINDOWS_STORE)
   # AudioUnit Target (OS X only)
   add_subdirectory(AudioUnit)
 
