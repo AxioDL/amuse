@@ -56,8 +56,8 @@ struct AppCallback : boo::IApplicationCallback
     std::shared_ptr<boo::IWindow> m_win;
 
     /* Amuse engine */
-    std::experimental::optional<amuse::BooBackendVoiceAllocator> m_booBackend;
-    std::experimental::optional<amuse::Engine> m_engine;
+    std::unique_ptr<amuse::BooBackendVoiceAllocator> m_booBackend;
+    std::unique_ptr<amuse::Engine> m_engine;
     int m_groupId = -1;
     bool m_sfxGroup;
 
@@ -910,8 +910,8 @@ struct AppCallback : boo::IApplicationCallback
 
             /* Build voice engine */
             std::unique_ptr<boo::IAudioVoiceEngine> voxEngine = boo::NewAudioVoiceEngine();
-            m_booBackend.emplace(*voxEngine);
-            m_engine.emplace(*m_booBackend, amuse::AmplitudeMode::PerSample);
+            m_booBackend.reset(new amuse::BooBackendVoiceAllocator(*voxEngine));
+            m_engine.reset(new amuse::Engine(*m_booBackend, amuse::AmplitudeMode::PerSample));
 
             /* Load group into engine */
             const amuse::AudioGroup* group = m_engine->addAudioGroup(*selData);
@@ -927,8 +927,8 @@ struct AppCallback : boo::IApplicationCallback
             else
                 SongLoop(*songIndex, *voxEngine);
 
-            m_engine = std::experimental::nullopt;
-            m_booBackend = std::experimental::nullopt;
+            m_engine.reset();
+            m_booBackend.reset();
             printf("\n\n");
         }
 
