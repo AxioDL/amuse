@@ -38,7 +38,7 @@ void Sequencer::_bringOutYourDead()
 {
     for (auto& chan : m_chanStates)
         if (chan)
-            chan->_bringOutYourDead();
+            chan._bringOutYourDead();
 
     if (!m_arrData && m_dieOnEnd && getVoiceCount() == 0)
         m_state = SequencerState::Dead;
@@ -81,18 +81,19 @@ Sequencer::Sequencer(Engine& engine, const AudioGroup& group, int groupId, const
 
 Sequencer::ChannelState::~ChannelState() {}
 
-Sequencer::ChannelState::ChannelState(Sequencer& parent, uint8_t chanId) : m_parent(parent), m_chanId(chanId)
+Sequencer::ChannelState::ChannelState(Sequencer& parent, uint8_t chanId)
+: m_parent(&parent), m_chanId(chanId)
 {
-    if (m_parent.m_songGroup)
+    if (m_parent->m_songGroup)
     {
-        if (m_parent.m_midiSetup)
+        if (m_parent->m_midiSetup)
         {
-            m_setup = &m_parent.m_midiSetup[chanId];
+            m_setup = &m_parent->m_midiSetup[chanId];
 
             if (chanId == 9)
             {
-                auto it = m_parent.m_songGroup->m_drumPages.find(m_setup->programNo);
-                if (it != m_parent.m_songGroup->m_drumPages.cend())
+                auto it = m_parent->m_songGroup->m_drumPages.find(m_setup->programNo);
+                if (it != m_parent->m_songGroup->m_drumPages.cend())
                 {
                     m_page = it->second;
                     m_curProgram = m_setup->programNo;
@@ -100,8 +101,8 @@ Sequencer::ChannelState::ChannelState(Sequencer& parent, uint8_t chanId) : m_par
             }
             else
             {
-                auto it = m_parent.m_songGroup->m_normPages.find(m_setup->programNo);
-                if (it != m_parent.m_songGroup->m_normPages.cend())
+                auto it = m_parent->m_songGroup->m_normPages.find(m_setup->programNo);
+                if (it != m_parent->m_songGroup->m_normPages.cend())
                 {
                     m_page = it->second;
                     m_curProgram = m_setup->programNo;
@@ -117,14 +118,14 @@ Sequencer::ChannelState::ChannelState(Sequencer& parent, uint8_t chanId) : m_par
         {
             if (chanId == 9)
             {
-                auto it = m_parent.m_songGroup->m_drumPages.find(0);
-                if (it != m_parent.m_songGroup->m_drumPages.cend())
+                auto it = m_parent->m_songGroup->m_drumPages.find(0);
+                if (it != m_parent->m_songGroup->m_drumPages.cend())
                     m_page = it->second;
             }
             else
             {
-                auto it = m_parent.m_songGroup->m_normPages.find(0);
-                if (it != m_parent.m_songGroup->m_normPages.cend())
+                auto it = m_parent->m_songGroup->m_normPages.find(0);
+                if (it != m_parent->m_songGroup->m_normPages.cend())
                     m_page = it->second;
             }
 
@@ -134,7 +135,7 @@ Sequencer::ChannelState::ChannelState(Sequencer& parent, uint8_t chanId) : m_par
             m_ctrlVals[0x5d] = 0;
         }
     }
-    else if (m_parent.m_sfxGroup)
+    else if (m_parent->m_sfxGroup)
     {
         m_curVol = 1.f;
         m_curPan = 0.f;
@@ -205,13 +206,13 @@ size_t Sequencer::getVoiceCount() const
     size_t ret = 0;
     for (const auto& chan : m_chanStates)
         if (chan)
-            ret += chan->getVoiceCount();
+            ret += chan.getVoiceCount();
     return ret;
 }
 
 std::shared_ptr<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velocity)
 {
-    if (m_parent.m_songGroup && !m_page)
+    if (m_parent->m_songGroup && !m_page)
         return {};
 
     /* If portamento is enabled for voice, pre-empt spawning new voices */
@@ -238,32 +239,32 @@ std::shared_ptr<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velo
         m_chanVoxs.erase(keySearch);
     }
 
-    std::list<std::shared_ptr<Voice>>::iterator ret = m_parent.m_engine._allocateVoice(
-        m_parent.m_audioGroup, m_parent.m_groupId, NativeSampleRate, true, false, m_parent.m_studio);
+    std::list<std::shared_ptr<Voice>>::iterator ret = m_parent->m_engine._allocateVoice(
+        m_parent->m_audioGroup, m_parent->m_groupId, NativeSampleRate, true, false, m_parent->m_studio);
     if (*ret)
     {
         m_chanVoxs[note] = *ret;
         (*ret)->installCtrlValues(m_ctrlVals);
 
         ObjectId oid;
-        if (m_parent.m_songGroup)
-            oid = (m_parent.m_audioGroup.getDataFormat() == DataFormat::PC) ? m_page->objId : SBig(m_page->objId);
-        else if (m_parent.m_sfxMappings.size())
+        if (m_parent->m_songGroup)
+            oid = (m_parent->m_audioGroup.getDataFormat() == DataFormat::PC) ? m_page->objId : SBig(m_page->objId);
+        else if (m_parent->m_sfxMappings.size())
         {
-            size_t lookupIdx = note % m_parent.m_sfxMappings.size();
-            const SFXGroupIndex::SFXEntry* sfxEntry = m_parent.m_sfxMappings[lookupIdx];
-            oid = (m_parent.m_audioGroup.getDataFormat() == DataFormat::PC) ? sfxEntry->objId : SBig(sfxEntry->objId);
+            size_t lookupIdx = note % m_parent->m_sfxMappings.size();
+            const SFXGroupIndex::SFXEntry* sfxEntry = m_parent->m_sfxMappings[lookupIdx];
+            oid = (m_parent->m_audioGroup.getDataFormat() == DataFormat::PC) ? sfxEntry->objId : SBig(sfxEntry->objId);
             note = sfxEntry->defKey;
         }
         else
             return {};
 
-        if (!(*ret)->loadSoundObject(oid, 0, m_parent.m_ticksPerSec, note, velocity, m_ctrlVals[1]))
+        if (!(*ret)->loadSoundObject(oid, 0, m_parent->m_ticksPerSec, note, velocity, m_ctrlVals[1]))
         {
-            m_parent.m_engine._destroyVoice(ret);
+            m_parent->m_engine._destroyVoice(ret);
             return {};
         }
-        (*ret)->setVolume(m_parent.m_curVol * m_curVol);
+        (*ret)->setVolume(m_parent->m_curVol * m_curVol);
         (*ret)->setReverbVol(m_ctrlVals[0x5b] / 127.f);
         (*ret)->setAuxBVol(m_ctrlVals[0x5d] / 127.f);
         (*ret)->setPan(m_curPan);
@@ -284,9 +285,9 @@ std::shared_ptr<Voice> Sequencer::keyOn(uint8_t chan, uint8_t note, uint8_t velo
         return {};
 
     if (!m_chanStates[chan])
-        m_chanStates[chan].emplace(*this, chan);
+        m_chanStates[chan] = ChannelState(*this, chan);
 
-    return m_chanStates[chan]->keyOn(note, velocity);
+    return m_chanStates[chan].keyOn(note, velocity);
 }
 
 void Sequencer::ChannelState::keyOff(uint8_t note, uint8_t velocity)
@@ -307,7 +308,7 @@ void Sequencer::keyOff(uint8_t chan, uint8_t note, uint8_t velocity)
     if (chan > 15 || !m_chanStates[chan])
         return;
 
-    m_chanStates[chan]->keyOff(note, velocity);
+    m_chanStates[chan].keyOff(note, velocity);
 }
 
 void Sequencer::ChannelState::setCtrlValue(uint8_t ctrl, int8_t val)
@@ -333,12 +334,12 @@ void Sequencer::ChannelState::setCtrlValue(uint8_t ctrl, int8_t val)
 
 bool Sequencer::ChannelState::programChange(int8_t prog)
 {
-    if (m_parent.m_songGroup)
+    if (m_parent->m_songGroup)
     {
         if (m_chanId == 9)
         {
-            auto it = m_parent.m_songGroup->m_drumPages.find(prog);
-            if (it != m_parent.m_songGroup->m_drumPages.cend())
+            auto it = m_parent->m_songGroup->m_drumPages.find(prog);
+            if (it != m_parent->m_songGroup->m_drumPages.cend())
             {
                 m_page = it->second;
                 m_curProgram = prog;
@@ -347,8 +348,8 @@ bool Sequencer::ChannelState::programChange(int8_t prog)
         }
         else
         {
-            auto it = m_parent.m_songGroup->m_normPages.find(prog);
-            if (it != m_parent.m_songGroup->m_normPages.cend())
+            auto it = m_parent->m_songGroup->m_normPages.find(prog);
+            if (it != m_parent->m_songGroup->m_normPages.cend())
             {
                 m_page = it->second;
                 m_curProgram = prog;
@@ -390,9 +391,9 @@ void Sequencer::setCtrlValue(uint8_t chan, uint8_t ctrl, int8_t val)
     }
 
     if (!m_chanStates[chan])
-        m_chanStates[chan].emplace(*this, chan);
+        m_chanStates[chan] = ChannelState(*this, chan);
 
-    m_chanStates[chan]->setCtrlValue(ctrl, val);
+    m_chanStates[chan].setCtrlValue(ctrl, val);
 }
 
 void Sequencer::ChannelState::setPitchWheel(float pitchWheel)
@@ -410,9 +411,9 @@ void Sequencer::setPitchWheel(uint8_t chan, float pitchWheel)
         return;
 
     if (!m_chanStates[chan])
-        m_chanStates[chan].emplace(*this, chan);
+        m_chanStates[chan] = ChannelState(*this, chan);
 
-    m_chanStates[chan]->setPitchWheel(pitchWheel);
+    m_chanStates[chan].setPitchWheel(pitchWheel);
 }
 
 void Sequencer::setTempo(double ticksPerSec) { m_ticksPerSec = ticksPerSec; }
@@ -436,18 +437,18 @@ void Sequencer::allOff(bool now)
         {
             if (chan)
             {
-                for (const auto& vox : chan->m_chanVoxs)
+                for (const auto& vox : chan.m_chanVoxs)
                     vox.second->kill();
-                for (const auto& vox : chan->m_keyoffVoxs)
+                for (const auto& vox : chan.m_keyoffVoxs)
                     vox->kill();
-                chan->m_chanVoxs.clear();
-                chan->m_keyoffVoxs.clear();
+                chan.m_chanVoxs.clear();
+                chan.m_keyoffVoxs.clear();
             }
         }
     else
         for (auto& chan : m_chanStates)
             if (chan)
-                chan->allOff();
+                chan.allOff();
 }
 
 void Sequencer::allOff(uint8_t chan, bool now)
@@ -457,15 +458,15 @@ void Sequencer::allOff(uint8_t chan, bool now)
 
     if (now)
     {
-        for (const auto& vox : m_chanStates[chan]->m_chanVoxs)
+        for (const auto& vox : m_chanStates[chan].m_chanVoxs)
             vox.second->kill();
-        for (const auto& vox : m_chanStates[chan]->m_keyoffVoxs)
+        for (const auto& vox : m_chanStates[chan].m_keyoffVoxs)
             vox->kill();
-        m_chanStates[chan]->m_chanVoxs.clear();
-        m_chanStates[chan]->m_keyoffVoxs.clear();
+        m_chanStates[chan].m_chanVoxs.clear();
+        m_chanStates[chan].m_keyoffVoxs.clear();
     }
     else
-        m_chanStates[chan]->allOff();
+        m_chanStates[chan].allOff();
 }
 
 void Sequencer::ChannelState::killKeygroup(uint8_t kg, bool now)
@@ -509,7 +510,7 @@ void Sequencer::killKeygroup(uint8_t kg, bool now)
 {
     for (auto& chan : m_chanStates)
         if (chan)
-            chan->killKeygroup(kg, now);
+            chan.killKeygroup(kg, now);
 }
 
 std::shared_ptr<Voice> Sequencer::ChannelState::findVoice(int vid)
@@ -529,7 +530,7 @@ std::shared_ptr<Voice> Sequencer::findVoice(int vid)
     {
         if (chan)
         {
-            std::shared_ptr<Voice> ret = chan->findVoice(vid);
+            std::shared_ptr<Voice> ret = chan.findVoice(vid);
             if (ret)
                 return ret;
         }
@@ -557,7 +558,7 @@ void Sequencer::sendMacroMessage(ObjectId macroId, int32_t val)
 {
     for (auto& chan : m_chanStates)
         if (chan)
-            chan->sendMacroMessage(macroId, val);
+            chan.sendMacroMessage(macroId, val);
 }
 
 void Sequencer::playSong(const unsigned char* arrData, bool dieOnEnd)
@@ -587,7 +588,7 @@ void Sequencer::stopSong(float fadeTime, bool now)
 void Sequencer::ChannelState::setVolume(float vol)
 {
     m_curVol = vol;
-    float voxVol = m_parent.m_curVol * m_curVol;
+    float voxVol = m_parent->m_curVol * m_curVol;
     for (const auto& v : m_chanVoxs)
     {
         Voice* vox = v.second.get();
@@ -622,7 +623,7 @@ void Sequencer::setVolume(float vol, float fadeTime)
         m_curVol = vol;
         for (auto& chan : m_chanStates)
             if (chan)
-                chan->setVolume(chan->m_curVol);
+                chan.setVolume(chan.m_curVol);
     }
     else
     {
@@ -644,7 +645,7 @@ int8_t Sequencer::getChanProgram(int8_t chanId) const
         return m_midiSetup[chanId].programNo;
     }
 
-    return m_chanStates[chanId]->m_curProgram;
+    return m_chanStates[chanId].m_curProgram;
 }
 
 bool Sequencer::setChanProgram(int8_t chanId, int8_t prog)
@@ -653,9 +654,9 @@ bool Sequencer::setChanProgram(int8_t chanId, int8_t prog)
         return false;
 
     if (!m_chanStates[chanId])
-        m_chanStates[chanId].emplace(*this, chanId);
+        m_chanStates[chanId] = ChannelState(*this, chanId);
 
-    return m_chanStates[chanId]->programChange(prog);
+    return m_chanStates[chanId].programChange(prog);
 }
 
 void Sequencer::nextChanProgram(int8_t chanId)
@@ -664,9 +665,9 @@ void Sequencer::nextChanProgram(int8_t chanId)
         return;
 
     if (!m_chanStates[chanId])
-        m_chanStates[chanId].emplace(*this, chanId);
+        m_chanStates[chanId] = ChannelState(*this, chanId);
 
-    return m_chanStates[chanId]->nextProgram();
+    return m_chanStates[chanId].nextProgram();
 }
 
 void Sequencer::prevChanProgram(int8_t chanId)
@@ -675,8 +676,8 @@ void Sequencer::prevChanProgram(int8_t chanId)
         return;
 
     if (!m_chanStates[chanId])
-        m_chanStates[chanId].emplace(*this, chanId);
+        m_chanStates[chanId] = ChannelState(*this, chanId);
 
-    return m_chanStates[chanId]->prevProgram();
+    return m_chanStates[chanId].prevProgram();
 }
 }

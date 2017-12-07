@@ -5,7 +5,6 @@
 #include <vector>
 #include <array>
 #include <list>
-#include "optional.hpp"
 #include "Entity.hpp"
 
 namespace amuse
@@ -71,7 +70,7 @@ class SongState
             void swapBig();
         };
 
-        SongState& m_parent;
+        SongState* m_parent = nullptr;
         uint8_t m_midiChan;              /**< MIDI channel number of song channel */
         const TrackRegion* m_curRegion;  /**< Pointer to currently-playing track region */
         const TrackRegion* m_nextRegion; /**< Pointer to next-queued track region */
@@ -89,12 +88,14 @@ class SongState
         int32_t m_lastN64EventTick =
             0; /**< Last command time on this channel (for computing delta times from absolute times in N64 songs) */
 
+        Track() = default;
         Track(SongState& parent, uint8_t midiChan, const TrackRegion* regions);
+        operator bool() const { return m_parent != nullptr; }
         void setRegion(Sequencer* seq, const TrackRegion* region);
         void advanceRegion(Sequencer* seq);
         bool advance(Sequencer& seq, int32_t ticks);
     };
-    std::array<std::experimental::optional<Track>, 64> m_tracks;
+    std::array<Track, 64> m_tracks;
     const uint32_t* m_regionIdx; /**< Table of offsets to song-region data */
 
     /** Current pointer to tempo control, iterated over playback */

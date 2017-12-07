@@ -4,7 +4,6 @@
 #include "Entity.hpp"
 #include "AudioGroupProject.hpp"
 #include "SongState.hpp"
-#include "optional.hpp"
 #include <unordered_map>
 #include <unordered_set>
 #include <memory>
@@ -49,12 +48,14 @@ class Sequencer : public Entity
     /** State of a single MIDI channel */
     struct ChannelState
     {
-        Sequencer& m_parent;
+        Sequencer* m_parent = nullptr;
         uint8_t m_chanId;
         const SongGroupIndex::MIDISetup* m_setup = nullptr; /* Channel defaults to program 0 if null */
         const SongGroupIndex::PageEntry* m_page = nullptr;
         ~ChannelState();
+        ChannelState() = default;
         ChannelState(Sequencer& parent, uint8_t chanId);
+        operator bool() const { return m_parent != nullptr; }
 
         /** Voices corresponding to currently-pressed keys in channel */
         std::unordered_map<uint8_t, std::shared_ptr<Voice>> m_chanVoxs;
@@ -82,7 +83,7 @@ class Sequencer : public Entity
         std::shared_ptr<Voice> findVoice(int vid);
         void sendMacroMessage(ObjectId macroId, int32_t val);
     };
-    std::array<std::experimental::optional<ChannelState>, 16> m_chanStates; /**< Lazily-allocated channel states */
+    std::array<ChannelState, 16> m_chanStates; /**< Lazily-allocated channel states */
 
     void _bringOutYourDead();
     void _destroy();

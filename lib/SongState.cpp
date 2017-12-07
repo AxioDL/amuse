@@ -98,7 +98,7 @@ void SongState::Track::Header::swapBig()
 }
 
 SongState::Track::Track(SongState& parent, uint8_t midiChan, const TrackRegion* regions)
-: m_parent(parent), m_midiChan(midiChan), m_curRegion(nullptr), m_nextRegion(regions)
+: m_parent(&parent), m_midiChan(midiChan), m_curRegion(nullptr), m_nextRegion(regions)
 {
     for (int i = 0; i < 128; ++i)
         m_remNoteLengths[i] = std::numeric_limits<decltype(m_remNoteLengths)::value_type>::min();
@@ -107,37 +107,37 @@ SongState::Track::Track(SongState& parent, uint8_t midiChan, const TrackRegion* 
 void SongState::Track::setRegion(Sequencer* seq, const TrackRegion* region)
 {
     m_curRegion = region;
-    uint32_t regionIdx = (m_parent.m_bigEndian ? SBig(m_curRegion->m_regionIndex) : m_curRegion->m_regionIndex);
+    uint32_t regionIdx = (m_parent->m_bigEndian ? SBig(m_curRegion->m_regionIndex) : m_curRegion->m_regionIndex);
     m_nextRegion = &m_curRegion[1];
 
-    m_data = m_parent.m_songData +
-             (m_parent.m_bigEndian ? SBig(m_parent.m_regionIdx[regionIdx]) : m_parent.m_regionIdx[regionIdx]);
+    m_data = m_parent->m_songData +
+             (m_parent->m_bigEndian ? SBig(m_parent->m_regionIdx[regionIdx]) : m_parent->m_regionIdx[regionIdx]);
 
     Header header = *reinterpret_cast<const Header*>(m_data);
-    if (m_parent.m_bigEndian)
+    if (m_parent->m_bigEndian)
         header.swapBig();
     m_data += 12;
 
     if (header.m_pitchOff)
-        m_pitchWheelData = m_parent.m_songData + header.m_pitchOff;
+        m_pitchWheelData = m_parent->m_songData + header.m_pitchOff;
     if (header.m_modOff)
-        m_modWheelData = m_parent.m_songData + header.m_modOff;
+        m_modWheelData = m_parent->m_songData + header.m_modOff;
 
     m_eventWaitCountdown = 0;
-    m_lastPitchTick = m_parent.m_curTick;
+    m_lastPitchTick = m_parent->m_curTick;
     m_lastPitchVal = 0;
-    m_lastModTick = m_parent.m_curTick;
+    m_lastModTick = m_parent->m_curTick;
     m_lastModVal = 0;
     if (seq)
     {
         seq->setPitchWheel(m_midiChan, clamp(-1.f, m_lastPitchVal / 32768.f, 1.f));
         seq->setCtrlValue(m_midiChan, 1, clamp(0, m_lastModVal * 128 / 16384, 127));
     }
-    if (m_parent.m_sngVersion == 1)
+    if (m_parent->m_sngVersion == 1)
         m_eventWaitCountdown = int32_t(DecodeTimeRLE(m_data));
     else
     {
-        int32_t absTick = (m_parent.m_bigEndian ? SBig(*reinterpret_cast<const int32_t*>(m_data))
+        int32_t absTick = (m_parent->m_bigEndian ? SBig(*reinterpret_cast<const int32_t*>(m_data))
                                                 : *reinterpret_cast<const int32_t*>(m_data));
         m_eventWaitCountdown = absTick;
         m_lastN64EventTick = absTick;
@@ -345,10 +345,10 @@ bool SongState::initialize(const unsigned char* ptr)
         {
             const TrackRegion* region =
                 reinterpret_cast<const TrackRegion*>(ptr + (m_bigEndian ? SBig(trackIdx[i]) : trackIdx[i]));
-            m_tracks[i].emplace(*this, chanMap[i], region);
+            m_tracks[i] = Track(*this, chanMap[i], region);
         }
         else
-            m_tracks[i] = std::experimental::nullopt;
+            m_tracks[i] = Track();
     }
 
     /* Initialize tempo */
@@ -366,12 +366,12 @@ bool SongState::initialize(const unsigned char* ptr)
 
 bool SongState::Track::advance(Sequencer& seq, int32_t ticks)
 {
-    int32_t endTick = m_parent.m_curTick + ticks;
+    int32_t endTick = m_parent->m_curTick + ticks;
 
     /* Advance region if needed */
-    while (m_nextRegion->indexValid(m_parent.m_bigEndian))
+    while (m_nextRegion->indexValid(m_parent->m_bigEndian))
     {
-        uint32_t nextRegTick = (m_parent.m_bigEndian ? SBig(m_nextRegion->m_startTick) : m_nextRegion->m_startTick);
+        uint32_t nextRegTick = (m_parent->m_bigEndian ? SBig(m_nextRegion->m_startTick) : m_nextRegion->m_startTick);
         if (uint32_t(endTick) > nextRegTick)
             advanceRegion(&seq);
         else
@@ -394,12 +394,12 @@ bool SongState::Track::advance(Sequencer& seq, int32_t ticks)
     }
 
     if (!m_data)
-        return !m_nextRegion->indexValid(m_parent.m_bigEndian);
+        return !m_nextRegion->indexValid(m_parent->m_bigEndian);
 
     /* Update continuous pitch data */
     if (m_pitchWheelData)
     {
-        int32_t pitchTick = m_parent.m_curTick;
+        int32_t pitchTick = m_parent->m_curTick;
         int32_t remPitchTicks = ticks;
         while (pitchTick < endTick)
         {
@@ -432,7 +432,7 @@ bool SongState::Track::advance(Sequencer& seq, int32_t ticks)
     /* Update continuous modulation data */
     if (m_modWheelData)
     {
-        int32_t modTick = m_parent.m_curTick;
+        int32_t modTick = m_parent->m_curTick;
         int32_t remModTicks = ticks;
         while (modTick < endTick)
         {
@@ -463,7 +463,7 @@ bool SongState::Track::advance(Sequencer& seq, int32_t ticks)
     }
 
     /* Loop through as many commands as we can for this time period */
-    if (m_parent.m_sngVersion == 1)
+    if (m_parent->m_sngVersion == 1)
     {
         /* Revision */
         while (true)
@@ -482,7 +482,7 @@ bool SongState::Track::advance(Sequencer& seq, int32_t ticks)
             {
                 /* End of channel */
                 m_data = nullptr;
-                return !m_nextRegion->indexValid(m_parent.m_bigEndian);
+                return !m_nextRegion->indexValid(m_parent->m_bigEndian);
             }
             else if (m_data[0] & 0x80 && m_data[1] & 0x80)
             {
@@ -504,7 +504,7 @@ bool SongState::Track::advance(Sequencer& seq, int32_t ticks)
                 /* Note */
                 uint8_t note = m_data[0] & 0x7f;
                 uint8_t vel = m_data[1] & 0x7f;
-                uint16_t length = (m_parent.m_bigEndian ? SBig(*reinterpret_cast<const uint16_t*>(m_data + 2))
+                uint16_t length = (m_parent->m_bigEndian ? SBig(*reinterpret_cast<const uint16_t*>(m_data + 2))
                                                         : *reinterpret_cast<const uint16_t*>(m_data + 2));
                 seq.keyOn(m_midiChan, note, vel);
                 m_remNoteLengths[note] = length;
@@ -534,14 +534,14 @@ bool SongState::Track::advance(Sequencer& seq, int32_t ticks)
             {
                 /* End of channel */
                 m_data = nullptr;
-                return !m_nextRegion->indexValid(m_parent.m_bigEndian);
+                return !m_nextRegion->indexValid(m_parent->m_bigEndian);
             }
             else
             {
                 if ((m_data[2] & 0x80) != 0x80)
                 {
                     /* Note */
-                    uint16_t length = (m_parent.m_bigEndian ? SBig(*reinterpret_cast<const uint16_t*>(m_data))
+                    uint16_t length = (m_parent->m_bigEndian ? SBig(*reinterpret_cast<const uint16_t*>(m_data))
                                                             : *reinterpret_cast<const uint16_t*>(m_data));
                     uint8_t note = m_data[2] & 0x7f;
                     uint8_t vel = m_data[3] & 0x7f;
@@ -565,7 +565,7 @@ bool SongState::Track::advance(Sequencer& seq, int32_t ticks)
             }
 
             /* Set next delta-time */
-            int32_t absTick = (m_parent.m_bigEndian ? SBig(*reinterpret_cast<const int32_t*>(m_data))
+            int32_t absTick = (m_parent->m_bigEndian ? SBig(*reinterpret_cast<const int32_t*>(m_data))
                                                     : *reinterpret_cast<const int32_t*>(m_data));
             m_eventWaitCountdown += absTick - m_lastN64EventTick;
             m_lastN64EventTick = absTick;
@@ -615,9 +615,9 @@ bool SongState::advance(Sequencer& seq, double dt)
         }
 
         /* Advance all tracks */
-        for (std::experimental::optional<Track>& trk : m_tracks)
+        for (Track& trk : m_tracks)
             if (trk)
-                done &= trk->advance(seq, remTicks);
+                done &= trk.advance(seq, remTicks);
 
         m_curTick += remTicks;
 

@@ -632,7 +632,7 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
     isBig = song.m_bigEndian;
 
     size_t trkCount = 1;
-    for (std::experimental::optional<SongState::Track>& trk : song.m_tracks)
+    for (SongState::Track& trk : song.m_tracks)
         if (trk)
             ++trkCount;
 
@@ -695,7 +695,7 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
     }
 
     /* Iterate each SNG track into type-1 MIDI track */
-    for (std::experimental::optional<SongState::Track>& trk : song.m_tracks)
+    for (SongState::Track& trk : song.m_tracks)
     {
         if (trk)
         {
@@ -703,35 +703,35 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
             std::multimap<int, Event> allEvents;
 
             /* Iterate all regions */
-            while (trk->m_nextRegion->indexValid(song.m_bigEndian))
+            while (trk.m_nextRegion->indexValid(song.m_bigEndian))
             {
                 std::multimap<int, Event> events;
-                trk->advanceRegion(nullptr);
+                trk.advanceRegion(nullptr);
                 uint32_t regStart =
-                    song.m_bigEndian ? SBig(trk->m_curRegion->m_startTick) : trk->m_curRegion->m_startTick;
+                    song.m_bigEndian ? SBig(trk.m_curRegion->m_startTick) : trk.m_curRegion->m_startTick;
 
                 /* Initial program change */
-                if (trk->m_curRegion->m_progNum != 0xff)
-                    events.emplace(regStart, Event{ProgEvent{}, trk->m_midiChan, trk->m_curRegion->m_progNum});
+                if (trk.m_curRegion->m_progNum != 0xff)
+                    events.emplace(regStart, Event{ProgEvent{}, trk.m_midiChan, trk.m_curRegion->m_progNum});
 
                 /* Update continuous pitch data */
-                if (trk->m_pitchWheelData)
+                if (trk.m_pitchWheelData)
                 {
                     while (true)
                     {
                         /* See if there's an upcoming pitch change in this interval */
-                        const unsigned char* ptr = trk->m_pitchWheelData;
+                        const unsigned char* ptr = trk.m_pitchWheelData;
                         uint32_t deltaTicks = DecodeRLE(ptr);
                         if (deltaTicks != 0xffffffff)
                         {
-                            int32_t nextTick = trk->m_lastPitchTick + deltaTicks;
+                            int32_t nextTick = trk.m_lastPitchTick + deltaTicks;
                             int32_t pitchDelta = DecodeContinuousRLE(ptr);
-                            trk->m_lastPitchVal += pitchDelta;
-                            trk->m_pitchWheelData = ptr;
-                            trk->m_lastPitchTick = nextTick;
+                            trk.m_lastPitchVal += pitchDelta;
+                            trk.m_pitchWheelData = ptr;
+                            trk.m_lastPitchTick = nextTick;
                             events.emplace(regStart + nextTick,
-                                           Event{PitchEvent{}, trk->m_midiChan,
-                                                 clamp(0, trk->m_lastPitchVal / 2 + 0x2000, 0x4000)});
+                                           Event{PitchEvent{}, trk.m_midiChan,
+                                                 clamp(0, trk.m_lastPitchVal / 2 + 0x2000, 0x4000)});
                         }
                         else
                             break;
@@ -739,23 +739,23 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
                 }
 
                 /* Update continuous modulation data */
-                if (trk->m_modWheelData)
+                if (trk.m_modWheelData)
                 {
                     while (true)
                     {
                         /* See if there's an upcoming modulation change in this interval */
-                        const unsigned char* ptr = trk->m_modWheelData;
+                        const unsigned char* ptr = trk.m_modWheelData;
                         uint32_t deltaTicks = DecodeRLE(ptr);
                         if (deltaTicks != 0xffffffff)
                         {
-                            int32_t nextTick = trk->m_lastModTick + deltaTicks;
+                            int32_t nextTick = trk.m_lastModTick + deltaTicks;
                             int32_t modDelta = DecodeContinuousRLE(ptr);
-                            trk->m_lastModVal += modDelta;
-                            trk->m_modWheelData = ptr;
-                            trk->m_lastModTick = nextTick;
+                            trk.m_lastModVal += modDelta;
+                            trk.m_modWheelData = ptr;
+                            trk.m_lastModTick = nextTick;
                             events.emplace(regStart + nextTick,
-                                           Event{CtrlEvent{}, trk->m_midiChan, 1,
-                                                 uint8_t(clamp(0, trk->m_lastModVal * 128 / 16384, 127)), 0});
+                                           Event{CtrlEvent{}, trk.m_midiChan, 1,
+                                                 uint8_t(clamp(0, trk.m_lastModVal * 128 / 16384, 127)), 0});
                         }
                         else
                             break;
@@ -769,44 +769,44 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
                     while (true)
                     {
                         /* Load next command */
-                        if (*reinterpret_cast<const uint16_t*>(trk->m_data) == 0xffff)
+                        if (*reinterpret_cast<const uint16_t*>(trk.m_data) == 0xffff)
                         {
                             /* End of channel */
-                            trk->m_data = nullptr;
+                            trk.m_data = nullptr;
                             break;
                         }
-                        else if (trk->m_data[0] & 0x80 && trk->m_data[1] & 0x80)
+                        else if (trk.m_data[0] & 0x80 && trk.m_data[1] & 0x80)
                         {
                             /* Control change */
-                            uint8_t val = trk->m_data[0] & 0x7f;
-                            uint8_t ctrl = trk->m_data[1] & 0x7f;
-                            events.emplace(regStart + trk->m_eventWaitCountdown,
-                                           Event{CtrlEvent{}, trk->m_midiChan, ctrl, val, 0});
-                            trk->m_data += 2;
+                            uint8_t val = trk.m_data[0] & 0x7f;
+                            uint8_t ctrl = trk.m_data[1] & 0x7f;
+                            events.emplace(regStart + trk.m_eventWaitCountdown,
+                                           Event{CtrlEvent{}, trk.m_midiChan, ctrl, val, 0});
+                            trk.m_data += 2;
                         }
-                        else if (trk->m_data[0] & 0x80)
+                        else if (trk.m_data[0] & 0x80)
                         {
                             /* Program change */
-                            uint8_t prog = trk->m_data[0] & 0x7f;
-                            events.emplace(regStart + trk->m_eventWaitCountdown,
-                                           Event{ProgEvent{}, trk->m_midiChan, prog});
-                            trk->m_data += 2;
+                            uint8_t prog = trk.m_data[0] & 0x7f;
+                            events.emplace(regStart + trk.m_eventWaitCountdown,
+                                           Event{ProgEvent{}, trk.m_midiChan, prog});
+                            trk.m_data += 2;
                         }
                         else
                         {
                             /* Note */
-                            uint8_t note = trk->m_data[0] & 0x7f;
-                            uint8_t vel = trk->m_data[1] & 0x7f;
+                            uint8_t note = trk.m_data[0] & 0x7f;
+                            uint8_t vel = trk.m_data[1] & 0x7f;
                             uint16_t length =
-                                (song.m_bigEndian ? SBig(*reinterpret_cast<const uint16_t*>(trk->m_data + 2))
-                                                  : *reinterpret_cast<const uint16_t*>(trk->m_data + 2));
-                            events.emplace(regStart + trk->m_eventWaitCountdown,
-                                           Event{NoteEvent{}, trk->m_midiChan, note, vel, length});
-                            trk->m_data += 4;
+                                (song.m_bigEndian ? SBig(*reinterpret_cast<const uint16_t*>(trk.m_data + 2))
+                                                  : *reinterpret_cast<const uint16_t*>(trk.m_data + 2));
+                            events.emplace(regStart + trk.m_eventWaitCountdown,
+                                           Event{NoteEvent{}, trk.m_midiChan, note, vel, length});
+                            trk.m_data += 4;
                         }
 
                         /* Set next delta-time */
-                        trk->m_eventWaitCountdown += int32_t(DecodeTimeRLE(trk->m_data));
+                        trk.m_eventWaitCountdown += int32_t(DecodeTimeRLE(trk.m_data));
                     }
                 }
                 else
@@ -815,49 +815,49 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
                     while (true)
                     {
                         /* Load next command */
-                        if (*reinterpret_cast<const uint16_t*>(&trk->m_data[2]) == 0xffff)
+                        if (*reinterpret_cast<const uint16_t*>(&trk.m_data[2]) == 0xffff)
                         {
                             /* End of channel */
-                            trk->m_data = nullptr;
+                            trk.m_data = nullptr;
                             break;
                         }
                         else
                         {
-                            if ((trk->m_data[2] & 0x80) != 0x80)
+                            if ((trk.m_data[2] & 0x80) != 0x80)
                             {
                                 /* Note */
                                 uint16_t length =
-                                    (song.m_bigEndian ? SBig(*reinterpret_cast<const uint16_t*>(trk->m_data))
-                                                      : *reinterpret_cast<const uint16_t*>(trk->m_data));
-                                uint8_t note = trk->m_data[2] & 0x7f;
-                                uint8_t vel = trk->m_data[3] & 0x7f;
-                                events.emplace(regStart + trk->m_eventWaitCountdown,
-                                               Event{NoteEvent{}, trk->m_midiChan, note, vel, length});
+                                    (song.m_bigEndian ? SBig(*reinterpret_cast<const uint16_t*>(trk.m_data))
+                                                      : *reinterpret_cast<const uint16_t*>(trk.m_data));
+                                uint8_t note = trk.m_data[2] & 0x7f;
+                                uint8_t vel = trk.m_data[3] & 0x7f;
+                                events.emplace(regStart + trk.m_eventWaitCountdown,
+                                               Event{NoteEvent{}, trk.m_midiChan, note, vel, length});
                             }
-                            else if (trk->m_data[2] & 0x80 && trk->m_data[3] & 0x80)
+                            else if (trk.m_data[2] & 0x80 && trk.m_data[3] & 0x80)
                             {
                                 /* Control change */
-                                uint8_t val = trk->m_data[2] & 0x7f;
-                                uint8_t ctrl = trk->m_data[3] & 0x7f;
-                                events.emplace(regStart + trk->m_eventWaitCountdown,
-                                               Event{CtrlEvent{}, trk->m_midiChan, ctrl, val, 0});
+                                uint8_t val = trk.m_data[2] & 0x7f;
+                                uint8_t ctrl = trk.m_data[3] & 0x7f;
+                                events.emplace(regStart + trk.m_eventWaitCountdown,
+                                               Event{CtrlEvent{}, trk.m_midiChan, ctrl, val, 0});
                             }
-                            else if (trk->m_data[2] & 0x80)
+                            else if (trk.m_data[2] & 0x80)
                             {
                                 /* Program change */
-                                uint8_t prog = trk->m_data[2] & 0x7f;
-                                events.emplace(regStart + trk->m_eventWaitCountdown,
-                                               Event{ProgEvent{}, trk->m_midiChan, prog});
+                                uint8_t prog = trk.m_data[2] & 0x7f;
+                                events.emplace(regStart + trk.m_eventWaitCountdown,
+                                               Event{ProgEvent{}, trk.m_midiChan, prog});
                             }
-                            trk->m_data += 4;
+                            trk.m_data += 4;
                         }
 
                         /* Set next delta-time */
-                        int32_t absTick = (song.m_bigEndian ? SBig(*reinterpret_cast<const int32_t*>(trk->m_data))
-                                                            : *reinterpret_cast<const int32_t*>(trk->m_data));
-                        trk->m_eventWaitCountdown += absTick - trk->m_lastN64EventTick;
-                        trk->m_lastN64EventTick = absTick;
-                        trk->m_data += 4;
+                        int32_t absTick = (song.m_bigEndian ? SBig(*reinterpret_cast<const int32_t*>(trk.m_data))
+                                                            : *reinterpret_cast<const int32_t*>(trk.m_data));
+                        trk.m_eventWaitCountdown += absTick - trk.m_lastN64EventTick;
+                        trk.m_lastN64EventTick = absTick;
+                        trk.m_data += 4;
                     }
                 }
 
@@ -888,10 +888,10 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
                     encoder.controlChange(pair.second.channel, pair.second.noteOrCtrl, pair.second.velOrVal);
                     break;
                 case Event::Type::Program:
-                    encoder.programChange(trk->m_midiChan, pair.second.program);
+                    encoder.programChange(trk.m_midiChan, pair.second.program);
                     break;
                 case Event::Type::Pitch:
-                    encoder.pitchBend(trk->m_midiChan, pair.second.pitchBend);
+                    encoder.pitchBend(trk.m_midiChan, pair.second.pitchBend);
                     break;
                 case Event::Type::Note:
                     if (pair.second.endEvent)
