@@ -87,6 +87,9 @@ add_library(amuse
             ${SOURCES}
             ${HEADERS}
             ${EXTRAS})
+if(COMMAND add_sanitizers)
+  add_sanitizers(amuse)
+endif()
 
 if(TARGET boo AND NOT WINDOWS_STORE)
   # AudioUnit Target (OS X only)
