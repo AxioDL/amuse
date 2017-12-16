@@ -112,11 +112,13 @@ struct AudioUnitVoiceEngine : boo::BaseAudioVoiceEngine
         m_mixInfo.m_periodFrames = periodFrames;
         m_mixInfo.m_sampleRate = sampleRate;
         _buildAudioRenderClient();
-        
-        for (boo::AudioVoice* vox : m_activeVoices)
-            vox->_resetSampleRate(vox->m_sampleRateIn);
-        for (boo::AudioSubmix* smx : m_activeSubmixes)
-            smx->_resetOutputSampleRate();
+
+        if (m_voiceHead)
+            for (boo::AudioVoice& vox : *m_voiceHead)
+                vox._resetSampleRate(vox.m_sampleRateIn);
+        if (m_submixHead)
+            for (boo::AudioSubmix& smx : *m_submixHead)
+                smx._resetOutputSampleRate();
     }
 
     void pumpAndMixVoices()
@@ -281,7 +283,7 @@ struct AudioUnitVoiceEngine : boo::BaseAudioVoiceEngine
         /* Output buffers */
         voxEngine.m_renderFrames = frameCount;
         voxEngine.m_outputData = outputData;
-        amuseEngine.pumpEngine();
+        voxEngine.pumpAndMixVoices();
         return noErr;
     };
 }

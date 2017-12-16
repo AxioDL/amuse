@@ -218,7 +218,7 @@
 
 - (void)pumpTimer:(NSTimer*)timer
 {
-    amuseEngine->pumpEngine();
+    booEngine->pumpAndMixVoices();
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender
@@ -251,7 +251,7 @@
 {
     __block NSOpenPanel* panel = [NSOpenPanel openPanel];
     [panel beginSheetModalForWindow:mainWindow completionHandler:^(NSInteger result) {
-        if (result == NSFileHandlingPanelOKButton)
+        if (result == NSModalResponseOK)
         {
             [self importURL:panel.URL];
         }

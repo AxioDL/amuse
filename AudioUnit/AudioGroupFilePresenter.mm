@@ -239,7 +239,7 @@ void AudioGroupCollection::addSamples(std::vector<AudioGroupSampleToken*>& vecOu
     }
 }
 
-AudioGroupDataCollection::AudioGroupDataCollection(const std::string& name, NSURL* proj, NSURL* pool,
+AudioGroupDataCollection::AudioGroupDataCollection(std::string_view name, NSURL* proj, NSURL* pool,
                                                    NSURL* sdir, NSURL* samp, NSURL* meta)
 : m_name(name), m_proj(proj), m_pool(pool), m_sdir(sdir), m_samp(samp), m_meta(meta),
   m_token([[AudioGroupDataToken alloc] initWithDataCollection:this]) {}
