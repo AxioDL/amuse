@@ -26,9 +26,7 @@ protected:
     bool m_destroyed = false;
     void _destroy()
     {
-#ifndef NDEBUG
         assert(!m_destroyed);
-#endif
         m_destroyed = true;
     }
     Engine& m_engine;
@@ -42,10 +40,8 @@ public:
     }
     ~Entity()
     {
-#ifndef NDEBUG
         /* Ensure proper destruction procedure followed */
         assert(m_destroyed);
-#endif
     }
 
     Engine& getEngine() { return m_engine; }

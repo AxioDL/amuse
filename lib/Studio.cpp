@@ -27,10 +27,8 @@ void Studio::addStudioSend(std::weak_ptr<Studio> studio, float dry, float auxA, 
 {
     m_studiosOut.emplace_back(studio, dry, auxA, auxB);
 
-#ifndef NDEBUG
     /* Cyclic check */
     assert(!_cyclicCheck(this));
-#endif
 }
 
 void Studio::resetOutputSampleRate(double sampleRate)

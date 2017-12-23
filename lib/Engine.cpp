@@ -103,9 +103,7 @@ std::shared_ptr<Studio> Engine::_allocateStudio(bool mainOut)
 
 std::list<std::shared_ptr<Voice>>::iterator Engine::_destroyVoice(std::list<std::shared_ptr<Voice>>::iterator it)
 {
-#ifndef NDEBUG
     assert(this == &(*it)->getEngine());
-#endif
     if ((*it)->m_destroyed)
         return m_activeVoices.begin();
     (*it)->_destroy();
@@ -115,9 +113,7 @@ std::list<std::shared_ptr<Voice>>::iterator Engine::_destroyVoice(std::list<std:
 std::list<std::shared_ptr<Sequencer>>::iterator
 Engine::_destroySequencer(std::list<std::shared_ptr<Sequencer>>::iterator it)
 {
-#ifndef NDEBUG
     assert(this == &(*it)->getEngine());
-#endif
     if ((*it)->m_destroyed)
         return m_activeSequencers.begin();
     (*it)->_destroy();
