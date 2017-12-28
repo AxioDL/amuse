@@ -9,7 +9,7 @@
     <key>CFBundleExecutable</key>
     <string>amuse-au</string>
     <key>CFBundleIdentifier</key>
-    <string>io.github.axiodl.Amuse.AudioUnit</string>
+    <string>com.axiodl.Amuse.AudioUnit</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>

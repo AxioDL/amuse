@@ -849,7 +849,7 @@ bool AudioGroupDataCollection::loadMeta(AudioGroupFilePresenter* presenter)
 - (id)initWithAudioGroupClient:(id<AudioGroupClient>)client
 {
     m_audioGroupClient = client;
-    m_groupURL = [[NSFileManager defaultManager] containerURLForSecurityApplicationGroupIdentifier:@"group.io.github.axiodl.Amuse.AudioGroups"];
+    m_groupURL = [[NSFileManager defaultManager] containerURLForSecurityApplicationGroupIdentifier:@"group.com.axiodl.Amuse.AudioGroups"];
     if (!m_groupURL)
         return nil;
     [NSFileCoordinator addFilePresenter:self];

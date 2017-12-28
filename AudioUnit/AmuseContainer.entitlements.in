@@ -12,7 +12,7 @@
   <true/>
   <key>com.apple.security.application-groups</key>
   <array>
-    <string>group.io.github.axiodl.Amuse.AudioGroups</string>
+    <string>group.com.axiodl.Amuse.AudioGroups</string>
   </array>
 </dict>
 </plist>

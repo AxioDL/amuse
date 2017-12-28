@@ -35,7 +35,7 @@ if (APPLE AND (NOT CMAKE_OSX_DEPLOYMENT_TARGET OR CMAKE_OSX_DEPLOYMENT_TARGET VE
                        AudioGroupFilePresenter.hpp AudioGroupFilePresenter.mm
                        AudioUnitViewController.nib)
 
-        set(APPLE_BUNDLE_ID "io.github.axiodl.Amuse.AudioUnit")
+        set(APPLE_BUNDLE_ID "com.axiodl.Amuse.AudioUnit")
         configure_file(${CMAKE_CURRENT_SOURCE_DIR}/AmuseExtension.entitlements.in
                        ${CMAKE_CURRENT_BINARY_DIR}/AmuseExtension.entitlements)
 
@@ -69,7 +69,7 @@ if (APPLE AND (NOT CMAKE_OSX_DEPLOYMENT_TARGET OR CMAKE_OSX_DEPLOYMENT_TARGET VE
         target_link_libraries(amuse-au-container amuse boo soxr ${AUDIOUNIT_LIBRARY} ${COREAUDIOKIT_LIBRARY}
                               ${AVFOUNDATION_LIBRARY} ${ZLIB_LIBRARIES} ${LZO_LIB} ${BOO_SYS_LIBS} logvisor athena-core)
 
-        set(APPLE_BUNDLE_ID "io.github.axiodl.Amuse")
+        set(APPLE_BUNDLE_ID "com.axiodl.Amuse")
         configure_file(${CMAKE_CURRENT_SOURCE_DIR}/AmuseContainer.entitlements.in
                        ${CMAKE_CURRENT_BINARY_DIR}/AmuseContainer.entitlements)
 
