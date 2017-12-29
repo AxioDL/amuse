@@ -1,8 +1,8 @@
 #include "amuse/ContainerRegistry.hpp"
 #include "amuse/Common.hpp"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <string>
 #include <memory>
 #include <unordered_map>

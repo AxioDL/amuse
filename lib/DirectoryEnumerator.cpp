@@ -1,6 +1,6 @@
 #ifdef _WIN32
 #include <windows.h>
-#include <stdio.h>
+#include <cstdio>
 #else
 #include <dirent.h>
 #endif

@@ -1,7 +1,7 @@
 #include "amuse/SongConverter.hpp"
 #include "amuse/SongState.hpp"
 #include "amuse/Common.hpp"
-#include <stdlib.h>
+#include <cstdlib>
 #include <map>
 
 namespace amuse

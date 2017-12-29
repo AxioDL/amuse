@@ -2,7 +2,7 @@
 #define __AMUSE_AUDIOGROUPSAMPLEDIR_HPP__
 
 #include <unordered_map>
-#include <stdint.h>
+#include <cstdint>
 #include "Common.hpp"
 
 namespace amuse

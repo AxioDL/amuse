@@ -1,8 +1,8 @@
 #ifndef __AMUSE_EFFECTBASE_HPP__
 #define __AMUSE_EFFECTBASE_HPP__
 
-#include <stdint.h>
-#include <stdlib.h>
+#include <cstdint>
+#include <cstdlib>
 
 namespace amuse
 {

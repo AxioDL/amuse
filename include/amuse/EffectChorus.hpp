@@ -3,7 +3,7 @@
 
 #include "EffectBase.hpp"
 #include "Common.hpp"
-#include <stdint.h>
+#include <cstdint>
 
 namespace amuse
 {

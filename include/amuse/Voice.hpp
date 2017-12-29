@@ -1,8 +1,8 @@
 #ifndef __AMUSE_VOICE_HPP__
 #define __AMUSE_VOICE_HPP__
 
-#include <stdint.h>
-#include <stdlib.h>
+#include <cstdint>
+#include <cstdlib>
 #include <memory>
 #include <list>
 #include "SoundMacroState.hpp"

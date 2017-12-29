@@ -3,9 +3,9 @@
 
 #include <algorithm>
 #include <limits>
-#include <stdio.h>
-#include <stdint.h>
-#include <stdarg.h>
+#include <cstdio>
+#include <cstdint>
+#include <cstdarg>
 #include <string>
 #include <string_view>
 #include <cstring>

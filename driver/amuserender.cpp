@@ -5,15 +5,15 @@
 #include "boo/audiodev/IAudioVoiceEngine.hpp"
 #include "logvisor/logvisor.hpp"
 #include "optional.hpp"
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 #include <signal.h>
 #include <thread>
 #include <map>
 #include <set>
 #include <vector>
 #include <unordered_map>
-#include <stdarg.h>
+#include <cstdarg>
 
 static logvisor::Module Log("amuserender");
 

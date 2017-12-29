@@ -2,7 +2,7 @@
 #define __AMUSE_SONGCONVERTER_HPP__
 
 #include <vector>
-#include <stdint.h>
+#include <cstdint>
 
 namespace amuse
 {

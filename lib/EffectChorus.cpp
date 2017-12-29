@@ -1,7 +1,7 @@
 #include "amuse/EffectChorus.hpp"
 #include "amuse/Common.hpp"
 #include "amuse/IBackendVoice.hpp"
-#include <string.h>
+#include <cstring>
 #include <cmath>
 
 namespace amuse

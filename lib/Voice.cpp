@@ -8,7 +8,7 @@
 #include "amuse/DSPCodec.h"
 #include "amuse/N64MusyXCodec.h"
 #include <cmath>
-#include <string.h>
+#include <cstring>
 
 namespace amuse
 {

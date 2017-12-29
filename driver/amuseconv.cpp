@@ -2,8 +2,8 @@
 #include "athena/FileReader.hpp"
 #include "athena/DNAYaml.hpp"
 #include "logvisor/logvisor.hpp"
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 static logvisor::Module Log("amuseconv");
 

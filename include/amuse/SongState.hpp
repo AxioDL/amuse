@@ -1,7 +1,7 @@
 #ifndef __AMUSE_SONGSTATE_HPP__
 #define __AMUSE_SONGSTATE_HPP__
 
-#include <stdint.h>
+#include <cstdint>
 #include <vector>
 #include <array>
 #include <list>

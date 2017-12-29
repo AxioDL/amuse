@@ -4,7 +4,7 @@
 #include "amuse/Common.hpp"
 #include "amuse/AudioGroup.hpp"
 #include "amuse/AudioGroupPool.hpp"
-#include <string.h>
+#include <cstring>
 
 /* Squelch Win32 macro pollution >.< */
 #undef SendMessage

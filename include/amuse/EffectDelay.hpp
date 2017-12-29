@@ -4,7 +4,7 @@
 #include "EffectBase.hpp"
 #include "IBackendVoice.hpp"
 #include "Common.hpp"
-#include <stdint.h>
+#include <cstdint>
 #include <memory>
 
 namespace amuse

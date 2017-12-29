@@ -1,7 +1,7 @@
 #ifndef __AMUSE_SOUNDMACROSTATE_HPP__
 #define __AMUSE_SOUNDMACROSTATE_HPP__
 
-#include <stdint.h>
+#include <cstdint>
 #include <vector>
 #include <list>
 #include "Entity.hpp"

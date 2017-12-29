@@ -1,6 +1,6 @@
 #include "amuse/AudioGroupSampleDirectory.hpp"
 #include "amuse/Common.hpp"
-#include <string.h>
+#include <cstring>
 
 namespace amuse
 {

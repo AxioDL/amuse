@@ -1,9 +1,9 @@
 #ifndef __AMUSE_ENTITY_HPP__
 #define __AMUSE_ENTITY_HPP__
 
-#include <stdint.h>
+#include <cstdint>
 #include <functional>
-#include <assert.h>
+#include <cassert>
 
 namespace amuse
 {

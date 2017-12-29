@@ -1,7 +1,7 @@
 #ifndef __AMUSE_AUDIOGROUPPOOL_HPP__
 #define __AMUSE_AUDIOGROUPPOOL_HPP__
 
-#include <stdint.h>
+#include <cstdint>
 #include <vector>
 #include <cmath>
 #include <unordered_map>
