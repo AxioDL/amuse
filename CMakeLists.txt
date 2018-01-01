@@ -91,6 +91,7 @@ if(COMMAND add_sanitizers)
   add_sanitizers(amuse)
 endif()
 if(COMMAND cotire)
+  set_target_properties(amuse PROPERTIES COTIRE_ADD_UNITY_BUILD FALSE)
   cotire(amuse)
 endif()
 
