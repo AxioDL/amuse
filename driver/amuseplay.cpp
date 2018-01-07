@@ -624,7 +624,7 @@ struct AppCallback : boo::IApplicationCallback
     int appMain(boo::IApplication* app)
     {
         /* Event window */
-        m_win = app->newWindow(_S("amuseplay"), 1);
+        m_win = app->newWindow(_S("amuseplay"));
         m_win->setCallback(&m_events);
         m_win->setWindowFrame(100, 100, 100, 100);
         m_win->setStyle(~boo::EWindowStyle::Resize);
