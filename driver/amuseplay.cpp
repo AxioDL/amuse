@@ -1031,8 +1031,9 @@ int main(int argc, const boo::SystemChar** argv)
     logvisor::RegisterConsoleLogger();
     logvisor::RegisterStandardExceptions();
     AppCallback app(argc, argv);
-    int ret = boo::ApplicationRun(boo::IApplication::EPlatformType::Auto, app, _S("amuseplay"), _S("Amuse Player"),
-                                  argc, argv, 1, 1, false);
+    int ret = boo::ApplicationRun(boo::IApplication::EPlatformType::Auto, app,
+                                  _S("amuseplay"), _S("Amuse Player"),
+                                  argc, argv, {}, 1, 1, false);
     printf("IM DYING!!\n");
     return ret;
 }
