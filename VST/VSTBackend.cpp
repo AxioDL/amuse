@@ -1,7 +1,7 @@
 #include "VSTBackend.hpp"
 #include "audiodev/AudioVoiceEngine.hpp"
+#include "logvisor/logvisor.hpp"
 #include <Shlobj.h>
-#include <logvisor/logvisor.hpp>
 
 #undef min
 #undef max
