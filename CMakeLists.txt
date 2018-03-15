@@ -115,4 +115,13 @@ if(TARGET boo AND NOT WINDOWS_STORE)
   # Renderer
   add_executable(amuserender driver/amuserender.cpp)
   target_link_libraries(amuserender amuse boo ${BOO_SYS_LIBS} logvisor athena-core athena-libyaml ${ZLIB_LIBRARIES} ${LZO_LIB})
+
+  # Editor
+  find_package(Qt5Widgets)
+  if (Qt5Widgets_FOUND)
+    message(STATUS "Qt5 found, amuse-gui will be built")
+    add_subdirectory(Editor)
+  else()
+    message(STATUS "Qt5 not found, amuse-gui will not be built")
+  endif()
 endif()
