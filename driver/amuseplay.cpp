@@ -631,7 +631,7 @@ struct AppCallback : boo::IApplicationCallback
         m_win->showWindow();
         boo::ObjToken<boo::ITextureR> tex;
         m_win->getMainContextDataFactory()->commitTransaction([&](boo::IGraphicsDataFactory::Context& ctx) -> bool {
-            tex = ctx.newRenderTexture(100, 100, boo::TextureClampMode::Repeat, 0, 0);
+            tex = ctx.newRenderTexture(100, 100, boo::TextureClampMode::Repeat, 1, 0);
             return true;
         });
         boo::IGraphicsCommandQueue* q = m_win->getCommandQueue();
@@ -927,6 +927,8 @@ struct AppCallback : boo::IApplicationCallback
             else
                 SongLoop(*songIndex, *voxEngine);
 
+            m_vox.reset();
+            m_seq.reset();
             m_engine.reset();
             m_booBackend.reset();
             printf("\n\n");
