@@ -116,6 +116,12 @@ if(TARGET boo AND NOT WINDOWS_STORE)
   add_executable(amuserender driver/amuserender.cpp)
   target_link_libraries(amuserender amuse boo ${BOO_SYS_LIBS} logvisor athena-core athena-libyaml ${ZLIB_LIBRARIES} ${LZO_LIB})
 
+  if(COMMAND add_sanitizers)
+    add_sanitizers(amuseplay)
+    add_sanitizers(amuseconv)
+    add_sanitizers(amuserender)
+  endif()
+
   # Editor
   find_package(Qt5Widgets)
   if (Qt5Widgets_FOUND)
