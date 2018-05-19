@@ -689,12 +689,12 @@ bool SoundMacroState::advance(Voice& vox, double dt)
         case Op::Vibrato:
         {
             int32_t level = cmd.m_data[0] * 100 + cmd.m_data[1];
-            int32_t modLevel = cmd.m_data[2];
+            bool modScale = cmd.m_data[2] != 0;
             int8_t ms = cmd.m_data[4];
             int16_t timeMs = *reinterpret_cast<int16_t*>(&cmd.m_data[5]);
 
             float q = ms ? 1000.f : m_ticksPerSec;
-            vox.setVibrato(level, modLevel, timeMs / q);
+            vox.setVibrato(level, modScale, timeMs / q);
             break;
         }
         case Op::PitchSweep1:

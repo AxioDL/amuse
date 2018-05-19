@@ -81,7 +81,7 @@ class SoundMacroState
         SetAgeCount,        /* unimplemented */
         SendFlag,           /* unimplemented */
         PitchWheelR,
-        SetPriority, /* unimplemented */
+        SetPriority = 0x36, /* unimplemented */
         AddPriority, /* unimplemented */
         AgeCntSpeed, /* unimplemented */
         AgeCntVel,   /* unimplemented */

@@ -106,8 +106,8 @@ class Voice : public Entity
     float m_portamentoTime = -1.f; /**< time since last portamento invocation, -1 for no active portamento-glide */
     int32_t m_portamentoTarget;    /**< destination pitch for latest portamento invocation */
 
-    uint32_t m_pitchSweep1 = 0;     /**< Current value of PITCHSWEEP1 controller (in cents) */
-    uint32_t m_pitchSweep2 = 0;     /**< Current value of PITCHSWEEP2 controller (in cents) */
+    int32_t m_pitchSweep1 = 0;     /**< Current value of PITCHSWEEP1 controller (in cents) */
+    int32_t m_pitchSweep2 = 0;     /**< Current value of PITCHSWEEP2 controller (in cents) */
     int16_t m_pitchSweep1Add = 0;   /**< Value to add to PITCHSWEEP1 controller each cycle */
     int16_t m_pitchSweep2Add = 0;   /**< Value to add to PITCHSWEEP2 controller each cycle */
     uint8_t m_pitchSweep1Times = 0; /**< Remaining times to advance PITCHSWEEP1 controller */
@@ -125,6 +125,7 @@ class Voice : public Entity
     uint8_t m_spanPos;           /**< initial pan value of last SPANNING command */
     int8_t m_spanWidth;          /**< delta pan value to target of last SPANNING command */
 
+    float m_vibratoTime = -1.f;     /**< time since last VIBRATO command, -1 for no active vibrato */
     int32_t m_vibratoLevel = 0;     /**< scale of vibrato effect (in cents) */
     int32_t m_vibratoModLevel = 0;  /**< scale of vibrato mod-wheel influence (in cents) */
     float m_vibratoPeriod = 0.f;    /**< vibrato wave period-time, 0.f will disable vibrato */
@@ -260,7 +261,7 @@ public:
     void setDoppler(float doppler);
 
     /** Set vibrato parameters for voice */
-    void setVibrato(int32_t level, int32_t modLevel, float period);
+    void setVibrato(int32_t level, bool modScale, float period);
 
     /** Configure modwheel influence range over vibrato */
     void setMod2VibratoRange(int32_t modLevel);

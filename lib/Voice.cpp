@@ -448,6 +448,18 @@ void Voice::preSupplyAudio(double dt)
         refresh = true;
     }
 
+    /* Process vibrato */
+    if (m_vibratoTime >= 0.f)
+    {
+        m_vibratoTime += dt;
+        float vibrato = std::sin(m_vibratoTime / m_vibratoPeriod * (2.f * M_PIF));
+        if (m_vibratoModWheel)
+            newPitch += m_vibratoModLevel * vibrato;
+        else
+            newPitch += m_vibratoLevel * vibrato;
+        refresh = true;
+    }
+
     /* Process pitch sweep 1 */
     if (m_pitchSweep1It < m_pitchSweep1Times)
     {
@@ -1199,10 +1211,11 @@ void Voice::setPedal(bool pedal)
 
 void Voice::setDoppler(float) {}
 
-void Voice::setVibrato(int32_t level, int32_t modLevel, float period)
+void Voice::setVibrato(int32_t level, bool modScale, float period)
 {
+    m_vibratoTime = std::fabs(period) < FLT_EPSILON ? -1.f : 0.f;
     m_vibratoLevel = level;
-    m_vibratoModLevel = modLevel;
+    m_vibratoModWheel = modScale;
     m_vibratoPeriod = period;
 }
 
