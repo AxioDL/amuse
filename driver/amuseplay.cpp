@@ -630,7 +630,7 @@ struct AppCallback : boo::IApplicationCallback
         m_win->setStyle(~boo::EWindowStyle::Resize);
         m_win->showWindow();
         boo::ObjToken<boo::ITextureR> tex;
-        m_win->getMainContextDataFactory()->commitTransaction([&](boo::IGraphicsDataFactory::Context& ctx) -> bool {
+        m_win->getMainContextDataFactory()->BooCommitTransaction([&](boo::IGraphicsDataFactory::Context& ctx) {
             tex = ctx.newRenderTexture(100, 100, boo::TextureClampMode::Repeat, 1, 0);
             return true;
         });
