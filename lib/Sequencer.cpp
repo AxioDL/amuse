@@ -174,7 +174,7 @@ void Sequencer::advance(double dt)
             float vol;
             if (m_curVol < m_volFadeTarget)
                 vol = std::min(m_volFadeTarget, m_curVol + step);
-            else if (m_curVol >= m_volFadeTarget)
+            else
                 vol = std::max(m_volFadeTarget, m_curVol - step);
             if (vol == m_volFadeTarget)
                 m_volFadeTime = 0.f;

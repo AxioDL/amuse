@@ -320,7 +320,7 @@ public:
         if (!m_extCtrlVals)
         {
             if (m_ctrlValsSelf)
-                m_ctrlValsSelf[ctrl];
+                return m_ctrlValsSelf[ctrl];
             return 0;
         }
         return m_extCtrlVals[ctrl];

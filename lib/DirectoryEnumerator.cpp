@@ -60,7 +60,7 @@ DirectoryEnumerator::DirectoryEnumerator(SystemStringView path, Mode mode, bool 
             else
                 continue;
 
-            m_entries.push_back(std::move(Entry(std::move(fp), d.cFileName, sz, isDir)));
+            m_entries.emplace_back(fp, d.cFileName, sz, isDir);
         } while (FindNextFileW(dir, &d));
         break;
     case Mode::DirsThenFilesSorted:
@@ -79,7 +79,7 @@ DirectoryEnumerator::DirectoryEnumerator(SystemStringView path, Mode mode, bool 
             Sstat st;
             if (Stat(fp.c_str(), &st) || !S_ISDIR(st.st_mode))
                 continue;
-            sort.emplace(std::make_pair(d.cFileName, Entry(std::move(fp), d.cFileName, 0, true)));
+            sort.emplace(std::make_pair(d.cFileName, Entry(fp, d.cFileName, 0, true)));
         } while (FindNextFileW(dir, &d));
 
         m_entries.reserve(sort.size());
@@ -115,7 +115,7 @@ DirectoryEnumerator::DirectoryEnumerator(SystemStringView path, Mode mode, bool 
                 Sstat st;
                 if (Stat(fp.c_str(), &st) || !S_ISREG(st.st_mode))
                     continue;
-                sort.emplace(std::make_pair(st.st_size, Entry(std::move(fp), d.cFileName, st.st_size, false)));
+                sort.emplace(std::make_pair(st.st_size, Entry(fp, d.cFileName, st.st_size, false)));
             } while (FindNextFileW(dir, &d));
 
             m_entries.reserve(sort.size());
@@ -141,7 +141,7 @@ DirectoryEnumerator::DirectoryEnumerator(SystemStringView path, Mode mode, bool 
                 Sstat st;
                 if (Stat(fp.c_str(), &st) || !S_ISREG(st.st_mode))
                     continue;
-                sort.emplace(std::make_pair(d.cFileName, Entry(std::move(fp), d.cFileName, st.st_size, false)));
+                sort.emplace(std::make_pair(d.cFileName, Entry(fp, d.cFileName, st.st_size, false)));
             } while (FindNextFileW(dir, &d));
 
             m_entries.reserve(sort.size());
@@ -189,7 +189,7 @@ DirectoryEnumerator::DirectoryEnumerator(SystemStringView path, Mode mode, bool 
             else
                 continue;
 
-            m_entries.push_back(Entry(std::move(fp), d->d_name, sz, isDir));
+            m_entries.emplace_back(fp, d->d_name, sz, isDir);
         }
         break;
     case Mode::DirsThenFilesSorted:
@@ -208,7 +208,7 @@ DirectoryEnumerator::DirectoryEnumerator(SystemStringView path, Mode mode, bool 
             Sstat st;
             if (Stat(fp.c_str(), &st) || !S_ISDIR(st.st_mode))
                 continue;
-            sort.emplace(std::make_pair(d->d_name, Entry(std::move(fp), d->d_name, 0, true)));
+            sort.emplace(std::make_pair(d->d_name, Entry(fp, d->d_name, 0, true)));
         }
 
         m_entries.reserve(sort.size());
@@ -243,7 +243,7 @@ DirectoryEnumerator::DirectoryEnumerator(SystemStringView path, Mode mode, bool 
                 Sstat st;
                 if (Stat(fp.c_str(), &st) || !S_ISREG(st.st_mode))
                     continue;
-                sort.emplace(std::make_pair(st.st_size, Entry(std::move(fp), d->d_name, st.st_size, false)));
+                sort.emplace(std::make_pair(st.st_size, Entry(fp, d->d_name, st.st_size, false)));
             }
 
             m_entries.reserve(sort.size());
@@ -269,7 +269,7 @@ DirectoryEnumerator::DirectoryEnumerator(SystemStringView path, Mode mode, bool 
                 Sstat st;
                 if (Stat(fp.c_str(), &st) || !S_ISREG(st.st_mode))
                     continue;
-                sort.emplace(std::make_pair(d->d_name, Entry(std::move(fp), d->d_name, st.st_size, false)));
+                sort.emplace(std::make_pair(d->d_name, Entry(fp, d->d_name, st.st_size, false)));
             }
 
             m_entries.reserve(sort.size());

@@ -1802,7 +1802,6 @@ static std::vector<std::pair<SystemString, ContainerRegistry::SongData>> LoadPap
         if (songDesc.name[0] == 0)
             break;
 
-        uint32_t i = 0;
         songDescs.push_back(songDesc);
     }
     size_t endPos = FileLength(midifp);

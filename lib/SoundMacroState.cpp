@@ -891,8 +891,8 @@ bool SoundMacroState::advance(Voice& vox, double dt)
         }
         case Op::SendFlag:
         {
-            int8_t id = cmd.m_data[0];
-            int8_t val = cmd.m_data[1];
+            //int8_t id = cmd.m_data[0];
+            //int8_t val = cmd.m_data[1];
             break; /* TODO: figure out a good API */
         }
         case Op::PitchWheelR:

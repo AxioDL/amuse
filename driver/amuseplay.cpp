@@ -36,7 +36,7 @@ public:
     void charKeyUp(unsigned long charCode, boo::EModifierKey mods);
     void specialKeyDown(boo::ESpecialKey key, boo::EModifierKey mods, bool isRepeat);
     void specialKeyUp(boo::ESpecialKey key, boo::EModifierKey mods);
-    void resized(const boo::SWindowRect&, const boo::SWindowRect&) {}
+    void resized(const boo::SWindowRect&, bool) {}
 
     void mouseDown(const boo::SWindowCoord&, boo::EMouseButton, boo::EModifierKey);
     void mouseUp(const boo::SWindowCoord&, boo::EMouseButton, boo::EModifierKey);
@@ -630,10 +630,10 @@ struct AppCallback : boo::IApplicationCallback
         m_win->setStyle(~boo::EWindowStyle::Resize);
         m_win->showWindow();
         boo::ObjToken<boo::ITextureR> tex;
-        m_win->getMainContextDataFactory()->BooCommitTransaction([&](boo::IGraphicsDataFactory::Context& ctx) {
+        m_win->getMainContextDataFactory()->commitTransaction([&](boo::IGraphicsDataFactory::Context& ctx) {
             tex = ctx.newRenderTexture(100, 100, boo::TextureClampMode::Repeat, 1, 0);
             return true;
-        });
+        } BooTrace);
         boo::IGraphicsCommandQueue* q = m_win->getCommandQueue();
         q->setRenderTarget(tex);
         q->clearTarget();

@@ -47,12 +47,8 @@ public:
         size_t m_fileSz;
         bool m_isDir;
 
-    private:
-        friend class DirectoryEnumerator;
-        Entry(SystemString&& path, const SystemChar* name, size_t sz, bool isDir)
-        : m_path(std::move(path)), m_name(name), m_fileSz(sz), m_isDir(isDir)
-        {
-        }
+        Entry(const SystemString& path, const SystemChar* name, size_t sz, bool isDir)
+        : m_path(path), m_name(name), m_fileSz(sz), m_isDir(isDir) {}
     };
 
 private:
