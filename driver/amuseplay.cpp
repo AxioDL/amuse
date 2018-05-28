@@ -644,14 +644,14 @@ struct AppCallback : boo::IApplicationCallback
         if (m_argc < 2)
         {
             Log.report(logvisor::Error, "needs group path argument");
-            exit(1);
+            return 1;
         }
 
         amuse::ContainerRegistry::Type cType = amuse::ContainerRegistry::DetectContainerType(m_argv[1]);
         if (cType == amuse::ContainerRegistry::Type::Invalid)
         {
             Log.report(logvisor::Error, "invalid/no data at path argument");
-            exit(1);
+            return 1;
         }
         Log.report(logvisor::Info, _S("Found '%s' Audio Group data"), amuse::ContainerRegistry::TypeToName(cType));
 
@@ -660,7 +660,7 @@ struct AppCallback : boo::IApplicationCallback
         if (data.empty())
         {
             Log.report(logvisor::Error, "invalid/no data at path argument");
-            exit(1);
+            return 1;
         }
 
         std::list<amuse::AudioGroupProject> m_projs;
@@ -764,7 +764,7 @@ struct AppCallback : boo::IApplicationCallback
                         if (scanf("%d", &userSel) <= 0)
                         {
                             Log.report(logvisor::Error, "unable to parse prompt");
-                            exit(1);
+                            return 1;
                         }
 
                         if (userSel < songs.size())
@@ -776,7 +776,7 @@ struct AppCallback : boo::IApplicationCallback
                         else
                         {
                             Log.report(logvisor::Error, "unable to find Song %d", userSel);
-                            exit(1);
+                            return 1;
                         }
                     }
                     else if (songs.size() == 1)
@@ -816,7 +816,7 @@ struct AppCallback : boo::IApplicationCallback
                 else
                 {
                     Log.report(logvisor::Error, "unable to find Group %d", m_groupId);
-                    exit(1);
+                    return 1;
                 }
             }
             else if (totalGroups > 1)
@@ -841,7 +841,7 @@ struct AppCallback : boo::IApplicationCallback
                 if (scanf("%d", &userSel) <= 0)
                 {
                     Log.report(logvisor::Error, "unable to parse prompt");
-                    exit(1);
+                    return 1;
                 }
 
                 if (allSongGroups.find(userSel) != allSongGroups.end())
@@ -857,7 +857,7 @@ struct AppCallback : boo::IApplicationCallback
                 else
                 {
                     Log.report(logvisor::Error, "unable to find Group %d", userSel);
-                    exit(1);
+                    return 1;
                 }
             }
             else if (totalGroups == 1)
@@ -879,7 +879,7 @@ struct AppCallback : boo::IApplicationCallback
             else
             {
                 Log.report(logvisor::Error, "empty project");
-                exit(1);
+                return 1;
             }
 
             /* Make final group selection */
@@ -905,7 +905,7 @@ struct AppCallback : boo::IApplicationCallback
             if (!selData)
             {
                 Log.report(logvisor::Error, "unable to select audio group data");
-                exit(1);
+                return 1;
             }
 
             /* Build voice engine */
@@ -918,7 +918,7 @@ struct AppCallback : boo::IApplicationCallback
             if (!group)
             {
                 Log.report(logvisor::Error, "unable to add audio group");
-                exit(1);
+                return 1;
             }
 
             /* Enter playback loop */
@@ -1045,13 +1045,15 @@ int main(int argc, const boo::SystemChar** argv)
 int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR lpCmdLine, int)
 {
     int argc = 0;
-    const boo::SystemChar** argv = (const wchar_t**)(CommandLineToArgvW(lpCmdLine, &argc));
+    const boo::SystemChar** argv;
+    if (lpCmdLine[0])
+        argv = (const wchar_t**)(CommandLineToArgvW(lpCmdLine, &argc));
     static boo::SystemChar selfPath[1024];
     GetModuleFileNameW(nullptr, selfPath, 1024);
     static const boo::SystemChar* booArgv[32] = {};
     booArgv[0] = selfPath;
-    for (int i = 0; i < argc; ++i)
-        booArgv[i + 1] = argv[i];
+    for (int i=0 ; i<argc ; ++i)
+        booArgv[i+1] = argv[i];
 
     logvisor::CreateWin32Console();
     SetConsoleOutputCP(65001);
