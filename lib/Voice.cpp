@@ -454,7 +454,7 @@ void Voice::preSupplyAudio(double dt)
         m_vibratoTime += dt;
         float vibrato = std::sin(m_vibratoTime / m_vibratoPeriod * (2.f * M_PIF));
         if (m_vibratoModWheel)
-            newPitch += m_vibratoModLevel * vibrato;
+            newPitch += m_vibratoModLevel * vibrato * (m_state.m_curMod / 127.f);
         else
             newPitch += m_vibratoLevel * vibrato;
         refresh = true;
@@ -1403,6 +1403,10 @@ void Voice::_notifyCtrlChange(uint8_t ctrl, int8_t val)
     else if (ctrl == 0x5d)
     {
         setAuxBVol(val / 127.f);
+    }
+    else if (ctrl == 0x1)
+    {
+        m_state.m_curMod = uint8_t(val);
     }
 
     for (std::shared_ptr<Voice>& vox : m_childVoices)
