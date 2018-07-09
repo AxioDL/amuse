@@ -1,10 +1,8 @@
-<ui version="4.0" >
- <author></author>
- <comment></comment>
- <exportmacro></exportmacro>
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
  <class>MainWindow</class>
- <widget class="QMainWindow" name="MainWindow" >
-  <property name="geometry" >
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
@@ -12,13 +10,376 @@
     <height>600</height>
    </rect>
   </property>
-  <property name="windowTitle" >
-   <string>MainWindow</string>
+  <property name="windowTitle">
+   <string>Amuse</string>
   </property>
-  <widget class="QMenuBar" name="menubar" />
-  <widget class="QWidget" name="centralwidget" />
-  <widget class="QStatusBar" name="statusbar" />
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QGridLayout" name="gridLayout">
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
+     <number>0</number>
+    </property>
+    <property name="spacing">
+     <number>0</number>
+    </property>
+    <item row="0" column="0">
+     <widget class="QSplitter" name="splitter">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <widget class="QSplitter" name="leftSplitter">
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
+       </property>
+       <widget class="QTreeView" name="projectOutline">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>3</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>200</width>
+          <height>0</height>
+         </size>
+        </property>
+       </widget>
+       <widget class="QTableView" name="propertyEditor">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>2</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>200</width>
+          <height>0</height>
+         </size>
+        </property>
+       </widget>
+      </widget>
+      <widget class="QSplitter" name="rightSplitter">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+         <horstretch>1</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
+       </property>
+       <widget class="QScrollArea" name="editorScrollArea">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>500</width>
+          <height>400</height>
+         </size>
+        </property>
+        <property name="widgetResizable">
+         <bool>true</bool>
+        </property>
+        <widget class="QWidget" name="editorContents">
+         <property name="geometry">
+          <rect>
+           <x>0</x>
+           <y>0</y>
+           <width>538</width>
+           <height>450</height>
+          </rect>
+         </property>
+        </widget>
+       </widget>
+       <widget class="QScrollArea" name="keyboardScrollArea">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>500</width>
+          <height>100</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
+          <height>100</height>
+         </size>
+        </property>
+        <property name="widgetResizable">
+         <bool>true</bool>
+        </property>
+        <widget class="KeyboardWidget" name="keyboardContents">
+         <property name="geometry">
+          <rect>
+           <x>0</x>
+           <y>0</y>
+           <width>538</width>
+           <height>98</height>
+          </rect>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>16777215</height>
+          </size>
+         </property>
+        </widget>
+       </widget>
+      </widget>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>800</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <addaction name="actionNew_Project"/>
+    <addaction name="actionOpen_Project"/>
+    <addaction name="actionImport_Project"/>
+    <addaction name="separator"/>
+   </widget>
+   <widget class="QMenu" name="menuProject">
+    <property name="title">
+     <string>Project</string>
+    </property>
+    <addaction name="actionNew_Sound_Group"/>
+    <addaction name="actionNew_Song_Group"/>
+    <addaction name="separator"/>
+    <addaction name="actionNew_Sound_Macro"/>
+    <addaction name="actionNew_Keymap"/>
+    <addaction name="actionNew_Layers"/>
+   </widget>
+   <widget class="QMenu" name="menuAudio">
+    <property name="title">
+     <string>Audio</string>
+    </property>
+    <addaction name="actionAuto_Play"/>
+    <addaction name="separator"/>
+    <addaction name="actionSelect_Output_Device"/>
+   </widget>
+   <widget class="QMenu" name="menuMIDI">
+    <property name="title">
+     <string>MIDI</string>
+    </property>
+    <addaction name="separator"/>
+    <addaction name="actionInput_Device"/>
+   </widget>
+   <widget class="QMenu" name="menuEdit">
+    <property name="title">
+     <string>Edit</string>
+    </property>
+    <addaction name="actionUndo"/>
+    <addaction name="actionRedo"/>
+    <addaction name="separator"/>
+    <addaction name="actionCut"/>
+    <addaction name="actionCopy"/>
+    <addaction name="actionPaste"/>
+    <addaction name="actionDelete"/>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuEdit"/>
+   <addaction name="menuProject"/>
+   <addaction name="menuAudio"/>
+   <addaction name="menuMIDI"/>
+  </widget>
+  <widget class="StatusBarWidget" name="statusbar"/>
+  <action name="actionNew_Project">
+   <property name="text">
+    <string>New Project</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+N</string>
+   </property>
+  </action>
+  <action name="actionOpen_Project">
+   <property name="text">
+    <string>Open Project</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+O</string>
+   </property>
+  </action>
+  <action name="actionDuplicate_Project">
+   <property name="text">
+    <string>Duplicate Project</string>
+   </property>
+  </action>
+  <action name="actionQuit">
+   <property name="text">
+    <string>Quit</string>
+   </property>
+  </action>
+  <action name="actionUndo">
+   <property name="text">
+    <string>Undo</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Z</string>
+   </property>
+  </action>
+  <action name="actionRedo">
+   <property name="text">
+    <string>Redo</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+Z</string>
+   </property>
+  </action>
+  <action name="actionCut">
+   <property name="text">
+    <string>Cut</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+X</string>
+   </property>
+  </action>
+  <action name="actionCopy">
+   <property name="text">
+    <string>Copy</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+C</string>
+   </property>
+  </action>
+  <action name="actionPaste">
+   <property name="text">
+    <string>Paste</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+V</string>
+   </property>
+  </action>
+  <action name="actionDelete">
+   <property name="text">
+    <string>Delete</string>
+   </property>
+   <property name="shortcut">
+    <string>Del</string>
+   </property>
+  </action>
+  <action name="actionImport_Project">
+   <property name="text">
+    <string>Import Project</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+I</string>
+   </property>
+  </action>
+  <action name="actionNew_Sound_Group">
+   <property name="icon">
+    <iconset>
+     <normaloff>:/icons/IconNewSoundGroup.svg</normaloff>:/icons/IconNewSoundGroup.svg</iconset>
+   </property>
+   <property name="text">
+    <string>New Sound Group</string>
+   </property>
+  </action>
+  <action name="actionNew_Song_Group">
+   <property name="icon">
+    <iconset>
+     <normaloff>:/icons/IconNewSongGroup.svg</normaloff>:/icons/IconNewSongGroup.svg</iconset>
+   </property>
+   <property name="text">
+    <string>New Song Group</string>
+   </property>
+  </action>
+  <action name="actionNew_Sound_Macro">
+   <property name="icon">
+    <iconset>
+     <normaloff>:/icons/IconNewSoundMacro.svg</normaloff>:/icons/IconNewSoundMacro.svg</iconset>
+   </property>
+   <property name="text">
+    <string>New Sound Macro</string>
+   </property>
+  </action>
+  <action name="actionNew_Keymap">
+   <property name="icon">
+    <iconset>
+     <normaloff>:/icons/IconNewKeymap.svg</normaloff>:/icons/IconNewKeymap.svg</iconset>
+   </property>
+   <property name="text">
+    <string>New Keymap</string>
+   </property>
+  </action>
+  <action name="actionNew_Layers">
+   <property name="icon">
+    <iconset>
+     <normaloff>:/icons/IconNewLayers.svg</normaloff>:/icons/IconNewLayers.svg</iconset>
+   </property>
+   <property name="text">
+    <string>New Layers</string>
+   </property>
+  </action>
+  <action name="actionAuto_Play">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Auto-Play</string>
+   </property>
+  </action>
+  <action name="actionSelect_Output_Device">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Output Device:</string>
+   </property>
+  </action>
+  <action name="actionInput_Device">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Input Device:</string>
+   </property>
+  </action>
  </widget>
- <pixmapfunction></pixmapfunction>
+ <customwidgets>
+  <customwidget>
+   <class>KeyboardWidget</class>
+   <extends>QWidget</extends>
+   <header>KeyboardWidget.hpp</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>StatusBarWidget</class>
+   <extends>QStatusBar</extends>
+   <header>StatusBarWidget.hpp</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
  <connections/>
 </ui>

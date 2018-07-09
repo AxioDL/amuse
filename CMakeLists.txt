@@ -38,8 +38,8 @@ set(SOURCES
     lib/EffectChorus.cpp
     lib/EffectDelay.cpp
     lib/ContainerRegistry.cpp
-    lib/DSPCodec.c
-    lib/N64MusyXCodec.c)
+    lib/DSPCodec.cpp
+    lib/N64MusyXCodec.cpp)
 
 set(HEADERS
     include/amuse/AudioGroup.hpp
@@ -70,8 +70,8 @@ set(HEADERS
     include/amuse/ContainerRegistry.hpp
     include/amuse/Common.hpp
     include/amuse/amuse.hpp
-    include/amuse/DSPCodec.h
-    include/amuse/N64MusyXCodec.h)
+    include/amuse/DSPCodec.hpp
+    include/amuse/N64MusyXCodec.hpp)
 
 unset(EXTRAS)
 if(TARGET boo)

@@ -1,4 +1,4 @@
-#include "amuse/N64MusyXCodec.h"
+#include "amuse/N64MusyXCodec.hpp"
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>

@@ -1,0 +1,17 @@
+<RCC>
+    <qresource prefix="/icons">
+        <file>IconImport.svg</file>
+        <file>IconKeymap.svg</file>
+        <file>IconLayers.svg</file>
+        <file>IconNew.svg</file>
+        <file>IconNewKeymap.svg</file>
+        <file>IconNewLayers.svg</file>
+        <file>IconNewSongGroup.svg</file>
+        <file>IconNewSoundGroup.svg</file>
+        <file>IconNewSoundMacro.svg</file>
+        <file>IconOpen.svg</file>
+        <file>IconSongGroup.svg</file>
+        <file>IconSoundGroup.svg</file>
+        <file>IconSoundMacro.svg</file>
+    </qresource>
+</RCC>

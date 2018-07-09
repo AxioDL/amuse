@@ -1,11 +1,7 @@
 #ifndef _N64MUSYXCODEC_h
 #define _N64MUSYXCODEC_h
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include <stdint.h>
+#include <cstdint>
 
 static inline int16_t N64MusyXSampClamp(int32_t val)
 {
@@ -21,9 +17,5 @@ unsigned N64MusyXDecompressFrame(int16_t* out, const uint8_t* in,
 unsigned N64MusyXDecompressFrameRanged(int16_t* out, const uint8_t* in,
                                        const int16_t coefs[8][2][8],
                                        unsigned firstSample, unsigned lastSample);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // _N64MUSYXCODEC_h

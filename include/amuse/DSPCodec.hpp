@@ -1,11 +1,7 @@
 #ifndef _DSPCODEC_h
 #define _DSPCODEC_h
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include <stdint.h>
+#include <cstdint>
 
 static inline int16_t DSPSampClamp(int32_t val)
 {
@@ -31,9 +27,5 @@ unsigned DSPDecompressFrameRanged(int16_t* out, const uint8_t* in,
 unsigned DSPDecompressFrameStateOnly(const uint8_t* in,
                                      const int16_t coefs[8][2], int16_t* prev1, int16_t* prev2,
                                      unsigned lastSample);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // _DSPCODEC_h

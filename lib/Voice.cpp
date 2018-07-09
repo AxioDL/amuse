@@ -5,8 +5,8 @@
 #include "amuse/AudioGroup.hpp"
 #include "amuse/Common.hpp"
 #include "amuse/Engine.hpp"
-#include "amuse/DSPCodec.h"
-#include "amuse/N64MusyXCodec.h"
+#include "amuse/DSPCodec.hpp"
+#include "amuse/N64MusyXCodec.hpp"
 #include <cmath>
 #include <cstring>
 

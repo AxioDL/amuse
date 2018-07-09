@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="16"
+   height="16"
+   viewBox="0 0 4.2333332 4.2333335"
+   id="svg2"
+   version="1.1"
+   inkscape:version="0.91+devel+osxmenu r12922"
+   sodipodi:docname="IconSoundMacro.svg">
+  <defs
+     id="defs4" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#393939"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="30.33"
+     inkscape:cx="8.5002398"
+     inkscape:cy="8.6348884"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="true"
+     units="px"
+     inkscape:window-width="1260"
+     inkscape:window-height="787"
+     inkscape:window-x="0"
+     inkscape:window-y="23"
+     inkscape:window-maximized="0"
+     showborder="false"
+     objecttolerance="4"
+     gridtolerance="4"
+     guidetolerance="5">
+    <inkscape:grid
+       type="xygrid"
+       id="grid4173"
+       empspacing="1"
+       visible="false" />
+  </sodipodi:namedview>
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(0,-292.76665)">
+    <path
+       style="opacity:1;fill:#62ff04;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:0.30031049;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 0.96793039,292.83382 2.60268711,1.68348 c 0.392506,0.24382 0.3952842,0.49652 0,0.73535 l -2.60268711,1.69163 C 0.68893458,297.12561 0.3672936,296.82502 0.3672936,296.49227 l 0,-3.29415 c 0,-0.33276 0.32123894,-0.54502 0.60063679,-0.3643 z"
+       id="rect5899"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="sccssss" />
+  </g>
+</svg>
