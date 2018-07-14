@@ -43,10 +43,9 @@ void Voice::_macroSampleEnd()
 {
     if (m_sampleEndTrap.macroId != 0xffff)
     {
-        if (m_sampleEndTrap.macroId == m_state.m_header.m_macroId)
+        if (m_sampleEndTrap.macroId == std::get<0>(m_state.m_pc.back()))
         {
-            m_state.m_pc.back().second = SoundMacroState::_assertPC(m_sampleEndTrap.macroStep,
-                                                                    m_state.m_header.m_size);
+            std::get<2>(m_state.m_pc.back()) = std::get<1>(m_state.m_pc.back())->assertPC(m_sampleEndTrap.macroStep);
             m_state.m_inWait = false;
         }
         else
@@ -238,7 +237,7 @@ void Voice::_procSamplePre(int16_t& samp)
         float end = m_envelopeEnd;
         float t = clamp(0.f, float(m_envelopeTime / m_envelopeDur), 1.f);
         if (m_envelopeCurve)
-            t = (*m_envelopeCurve)[int(t * 127.f)] / 127.f;
+            t = m_envelopeCurve->data.at(t * 127.f) / 127.f;
         m_curVol = clamp(0.f, (start * (1.0f - t)) + (end * t), 1.f);
 
         // printf("%d %f\n", m_vid, m_curVol);
@@ -752,22 +751,16 @@ std::shared_ptr<Voice> Voice::startChildMacro(int8_t addNote, ObjectId macroId, 
                             m_state.m_initMod);
 }
 
-bool Voice::_loadSoundMacro(const unsigned char* macroData, int macroStep, double ticksPerSec, uint8_t midiKey,
-                            uint8_t midiVel, uint8_t midiMod, bool pushPc)
+bool Voice::_loadSoundMacro(ObjectId id, const SoundMacro* macroData, int macroStep, double ticksPerSec,
+                            uint8_t midiKey, uint8_t midiVel, uint8_t midiMod, bool pushPc)
 {
     if (m_state.m_pc.empty())
-        m_state.initialize(macroData, macroStep, ticksPerSec, midiKey, midiVel, midiMod,
-                           m_audioGroup.getDataFormat() != DataFormat::PC);
+        m_state.initialize(id, macroData, macroStep, ticksPerSec, midiKey, midiVel, midiMod);
     else
     {
         if (!pushPc)
             m_state.m_pc.clear();
-        const SoundMacroState::Header& header = reinterpret_cast<const SoundMacroState::Header&>(macroData);
-        const bool swapData = m_audioGroup.getDataFormat() != DataFormat::PC;
-        m_state.m_pc.push_back({macroData, SoundMacroState::_assertPC(macroStep, header.m_size, swapData)});
-        m_state.m_header = header;
-        if (swapData)
-            m_state.m_header.swapBig();
+        m_state.m_pc.emplace_back(id, macroData, macroData->assertPC(macroStep));
     }
 
     m_voxState = VoiceState::Playing;
@@ -775,46 +768,43 @@ bool Voice::_loadSoundMacro(const unsigned char* macroData, int macroStep, doubl
     return true;
 }
 
-bool Voice::_loadKeymap(const Keymap* keymap, int macroStep, double ticksPerSec, uint8_t midiKey, uint8_t midiVel,
-                        uint8_t midiMod, bool pushPc)
+bool Voice::_loadKeymap(ObjectId id, const Keymap* keymap, int macroStep, double ticksPerSec,
+                        uint8_t midiKey, uint8_t midiVel, uint8_t midiMod, bool pushPc)
 {
     const Keymap& km = keymap[midiKey];
-    ObjectId oid = (m_audioGroup.getDataFormat() == DataFormat::PC) ? km.objectId : SBig(km.objectId);
     midiKey += km.transpose;
-    bool ret = loadSoundObject(oid, macroStep, ticksPerSec, midiKey, midiVel, midiMod, pushPc);
+    bool ret = loadSoundObject(id, macroStep, ticksPerSec, midiKey, midiVel, midiMod, pushPc);
     m_curVol = 1.f;
     _setPan((km.pan - 64) / 64.f);
     _setSurroundPan(-1.f);
     return ret;
 }
 
-bool Voice::_loadLayer(const std::vector<const LayerMapping*>& layer, int macroStep, double ticksPerSec,
+bool Voice::_loadLayer(ObjectId id, const std::vector<LayerMapping>& layer, int macroStep, double ticksPerSec,
                        uint8_t midiKey, uint8_t midiVel, uint8_t midiMod, bool pushPc)
 {
     bool ret = false;
-    for (const LayerMapping* mapping : layer)
+    for (const LayerMapping& mapping : layer)
     {
-        if (midiKey >= mapping->keyLo && midiKey <= mapping->keyHi)
+        if (midiKey >= mapping.keyLo && midiKey <= mapping.keyHi)
         {
-            ObjectId oid =
-                (m_audioGroup.getDataFormat() == DataFormat::PC) ? mapping->objectId : SBig(mapping->objectId);
-            uint8_t mappingKey = midiKey + mapping->transpose;
+            uint8_t mappingKey = midiKey + mapping.transpose;
             if (m_voxState != VoiceState::Playing)
             {
-                ret |= loadSoundObject(oid, macroStep, ticksPerSec, mappingKey, midiVel, midiMod, pushPc);
-                m_curVol = mapping->volume / 127.f;
-                _setPan((mapping->pan - 64) / 64.f);
-                _setSurroundPan((mapping->span - 64) / 64.f);
+                ret |= loadSoundObject(id, macroStep, ticksPerSec, mappingKey, midiVel, midiMod, pushPc);
+                m_curVol = mapping.volume / 127.f;
+                _setPan((mapping.pan - 64) / 64.f);
+                _setSurroundPan((mapping.span - 64) / 64.f);
             }
             else
             {
                 std::shared_ptr<Voice> vox =
-                    _startChildMacro(oid, macroStep, ticksPerSec, mappingKey, midiVel, midiMod, pushPc);
+                    _startChildMacro(id, macroStep, ticksPerSec, mappingKey, midiVel, midiMod, pushPc);
                 if (vox)
                 {
-                    vox->m_curVol = mapping->volume / 127.f;
-                    vox->_setPan((mapping->pan - 64) / 64.f);
-                    vox->_setSurroundPan((mapping->span - 64) / 64.f);
+                    vox->m_curVol = mapping.volume / 127.f;
+                    vox->_setPan((mapping.pan - 64) / 64.f);
+                    vox->_setSurroundPan((mapping.span - 64) / 64.f);
                     ret = true;
                 }
             }
@@ -829,25 +819,25 @@ bool Voice::loadSoundObject(ObjectId objectId, int macroStep, double ticksPerSec
     if (m_destroyed)
         return false;
 
-    const unsigned char* macroData = m_audioGroup.getPool().soundMacro(objectId);
+    const SoundMacro* macroData = m_audioGroup.getPool().soundMacro(objectId);
     if (macroData)
     {
         m_objectId = objectId;
-        return _loadSoundMacro(macroData, macroStep, ticksPerSec, midiKey, midiVel, midiMod, pushPc);
+        return _loadSoundMacro(objectId, macroData, macroStep, ticksPerSec, midiKey, midiVel, midiMod, pushPc);
     }
 
     const Keymap* keymap = m_audioGroup.getPool().keymap(objectId);
     if (keymap)
     {
         m_objectId = objectId;
-        return _loadKeymap(keymap, macroStep, ticksPerSec, midiKey, midiVel, midiMod, pushPc);
+        return _loadKeymap(objectId, keymap, macroStep, ticksPerSec, midiKey, midiVel, midiMod, pushPc);
     }
 
-    const std::vector<const LayerMapping*>* layer = m_audioGroup.getPool().layer(objectId);
+    const std::vector<LayerMapping>* layer = m_audioGroup.getPool().layer(objectId);
     if (layer)
     {
         m_objectId = objectId;
-        return _loadLayer(*layer, macroStep, ticksPerSec, midiKey, midiVel, midiMod, pushPc);
+        return _loadLayer(objectId, *layer, macroStep, ticksPerSec, midiKey, midiVel, midiMod, pushPc);
     }
 
     return false;
@@ -872,10 +862,9 @@ void Voice::keyOff()
 
     if (m_keyoffTrap.macroId != 0xffff)
     {
-        if (m_keyoffTrap.macroId == m_state.m_header.m_macroId)
+        if (m_keyoffTrap.macroId == std::get<0>(m_state.m_pc.back()))
         {
-            m_state.m_pc.back().second = SoundMacroState::_assertPC(m_keyoffTrap.macroStep,
-                                                                    m_state.m_header.m_size);
+            std::get<2>(m_state.m_pc.back()) = std::get<1>(m_state.m_pc.back())->assertPC(m_keyoffTrap.macroStep);
             m_state.m_inWait = false;
         }
         else
@@ -898,9 +887,8 @@ void Voice::message(int32_t val)
 
     if (m_messageTrap.macroId != 0xffff)
     {
-        if (m_messageTrap.macroId == m_state.m_header.m_macroId)
-            m_state.m_pc.back().second = SoundMacroState::_assertPC(m_messageTrap.macroStep,
-                                                                    m_state.m_header.m_size);
+        if (m_messageTrap.macroId == std::get<0>(m_state.m_pc.back()))
+            std::get<2>(m_state.m_pc.back()) = std::get<1>(m_state.m_pc.back())->assertPC(m_messageTrap.macroStep);
         else
             loadSoundObject(m_messageTrap.macroId, m_messageTrap.macroStep, m_state.m_ticksPerSec, m_state.m_initKey,
                             m_state.m_initVel, m_state.m_initMod);

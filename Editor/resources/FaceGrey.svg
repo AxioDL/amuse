@@ -10,13 +10,13 @@
    xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="1024"
-   height="1024"
-   viewBox="0 0 270.93 270.93333"
+   width="247.54231"
+   height="247.54233"
+   viewBox="0 0 261.98227 261.98229"
    id="svg2"
    version="1.1"
-   inkscape:version="0.92.2 5c3e80d, 2017-08-06"
-   sodipodi:docname="faceGrey.svg"
+   inkscape:version="0.92.2 2405546, 2018-03-11"
+   sodipodi:docname="FaceGrey.svg"
    inkscape:export-filename="/Users/jacko/Desktop/amuse-logo/face1024.png"
    inkscape:export-xdpi="96.000008"
    inkscape:export-ydpi="96.000008">
@@ -27,19 +27,19 @@
       <stop
          id="stop4353"
          offset="0"
-         style="stop-color:#5f5f5f;stop-opacity:1;" />
+         style="stop-color:#858585;stop-opacity:1;" />
       <stop
-         style="stop-color:#424242;stop-opacity:1;"
+         style="stop-color:#4f4f4f;stop-opacity:1;"
          offset="0.27903292"
          id="stop4351" />
       <stop
          id="stop4349"
          offset="0.56446373"
-         style="stop-color:#4e4e4e;stop-opacity:1;" />
+         style="stop-color:#606060;stop-opacity:1;" />
       <stop
          id="stop4347"
          offset="1"
-         style="stop-color:#212121;stop-opacity:1;" />
+         style="stop-color:#484848;stop-opacity:1;" />
     </linearGradient>
     <linearGradient
        id="linearGradient4315">
@@ -334,23 +334,28 @@
   </defs>
   <sodipodi:namedview
      id="base"
-     pagecolor="#2a2a2a"
+     pagecolor="#3a3a3a"
      bordercolor="#666666"
      borderopacity="1.0"
-     inkscape:pageopacity="0"
+     inkscape:pageopacity="0.00392157"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.63234634"
-     inkscape:cx="247.50409"
-     inkscape:cy="571.18657"
+     inkscape:zoom="2.5293854"
+     inkscape:cx="57.159723"
+     inkscape:cy="115.45029"
      inkscape:document-units="mm"
      inkscape:current-layer="layer3"
      showgrid="false"
      units="px"
-     inkscape:window-width="1680"
-     inkscape:window-height="1005"
-     inkscape:window-x="0"
-     inkscape:window-y="0"
-     inkscape:window-maximized="0" />
+     inkscape:window-width="1555"
+     inkscape:window-height="1280"
+     inkscape:window-x="1890"
+     inkscape:window-y="286"
+     inkscape:window-maximized="0"
+     scale-x="4"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0" />
   <metadata
      id="metadata7">
     <rdf:RDF>
@@ -367,7 +372,7 @@
      inkscape:label="source"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(0,-26.06665)"
+     transform="translate(-4.3711946,-30.440026)"
      style="display:none"
      sodipodi:insensitive="true">
     <text
@@ -412,7 +417,8 @@
      id="layer2"
      inkscape:label="path"
      style="display:inline;opacity:0.76700003"
-     sodipodi:insensitive="true">
+     sodipodi:insensitive="true"
+     transform="translate(-4.3711946,-4.3733763)">
     <g
        id="g4360"
        style="fill:url(#linearGradient4375);fill-opacity:1"
@@ -453,7 +459,8 @@
      id="layer5"
      inkscape:label="path 1"
      style="display:inline;opacity:0.24734982"
-     sodipodi:insensitive="true">
+     sodipodi:insensitive="true"
+     transform="translate(-4.3711946,-4.3733763)">
     <path
        inkscape:connector-curvature="0"
        id="path4439"
@@ -466,7 +473,8 @@
      inkscape:label="path 2"
      id="g4512"
      inkscape:groupmode="layer"
-     sodipodi:insensitive="true">
+     sodipodi:insensitive="true"
+     transform="translate(-4.3711946,-4.3733763)">
     <g
        transform="matrix(1.0065636,0,0,1.0065636,-0.88913164,-0.88914604)"
        style="fill:url(#linearGradient4530);fill-opacity:1"
@@ -507,7 +515,8 @@
      inkscape:label="path 3"
      id="g4538"
      inkscape:groupmode="layer"
-     sodipodi:insensitive="true">
+     sodipodi:insensitive="true"
+     transform="translate(-4.3711946,-4.3733763)">
     <g
        transform="matrix(1.0065636,0,0,1.0065636,-0.88913164,-0.88914604)"
        style="fill:url(#linearGradient4556);fill-opacity:1"
@@ -547,19 +556,20 @@
      inkscape:groupmode="layer"
      id="layer3"
      inkscape:label="light"
-     style="display:inline;opacity:1">
+     style="display:inline;opacity:1"
+     transform="translate(-4.3711946,-4.3733763)">
     <g
        id="g4360-5"
-       style="display:inline;fill:url(#linearGradient4332);fill-opacity:1.0"
+       style="display:inline;fill:url(#linearGradient4332);fill-opacity:1"
        transform="matrix(1.002648,0,0,1.002648,-1.0727108,-1.0727166)">
       <g
          id="text4141-2-9"
          aria-label=":D"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10.58333302px;line-height:125%;font-family:'Fira Code';-inkscape-font-specification:'Fira Code';letter-spacing:0px;word-spacing:0px;fill:url(#linearGradient4187);fill-opacity:1.0;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10.58333302px;line-height:125%;font-family:'Fira Code';-inkscape-font-specification:'Fira Code';letter-spacing:0px;word-spacing:0px;fill:url(#linearGradient4187);fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
          transform="rotate(90)">
         <path
            inkscape:connector-curvature="0"
-           style="font-size:176.3888855px;letter-spacing:-26.45833206px;fill:url(#linearGradient4184);fill-opacity:1.0;stroke-width:0.99999994px"
+           style="font-size:176.3888855px;letter-spacing:-26.45833206px;fill:url(#linearGradient4184);fill-opacity:1;stroke-width:0.99999994px"
            d="M 512,20.529297 C 240.58464,20.529297 20.527344,240.58461 20.527344,512 c 0,271.41536 220.057296,491.4727 491.472656,491.4727 271.4154,0 491.4707,-220.05734 491.4707,-491.4727 C 1003.4707,240.58461 783.4154,20.529297 512,20.529297 Z m 0,2.605469 c 270.00802,0 488.8652,218.857204 488.8652,488.865234 0,270.00802 -218.85718,488.8652 -488.8652,488.8652 C 241.992,1000.8652 23.132813,782.00802 23.132812,512 23.132812,241.99197 241.992,23.134766 512,23.134766 Z m 0,32.326172 C 259.91593,55.460938 55.458984,259.9159 55.458984,512 55.458984,764.08406 259.91593,968.54102 512,968.54102 764.0841,968.54102 968.53906,764.08406 968.53906,512 968.53906,259.9159 764.0841,55.460938 512,55.460938 Z m 0,9.367187 C 759.02055,64.828125 959.17188,264.97946 959.17188,512 959.17188,759.02051 759.02055,959.17383 512,959.17383 264.97949,959.17383 64.826172,759.02051 64.826172,512 64.826172,264.97946 264.97949,64.828125 512,64.828125 Z M 512,96.5625 C 282.67144,96.5625 96.568359,282.67142 96.568359,512 96.568359,741.32854 282.67144,927.43164 512,927.43164 741.32858,927.43164 927.4375,741.32854 927.4375,512 927.4375,282.67142 741.32858,96.5625 512,96.5625 Z m 0,18.47656 C 731.34481,115.03906 908.96094,292.6552 908.96094,512 908.96094,731.34477 731.34481,908.96094 512,908.96094 292.65523,908.96094 115.03906,731.34477 115.03906,512 115.03906,292.6552 292.65523,115.03906 512,115.03906 Z m 0,32.90235 C 311.12038,147.94141 147.93945,311.12036 147.93945,512 147.93945,712.87962 311.12038,876.06055 512,876.06055 712.87966,876.06055 876.05859,712.87962 876.05859,512 876.05859,311.12036 712.87966,147.94141 512,147.94141 Z m 0,31.16601 c 184.03556,0 332.89258,148.85702 332.89258,332.89258 0,184.03552 -148.85702,332.89453 -332.89258,332.89453 -184.03553,0 -332.89453,-148.85901 -332.89453,-332.89453 0,-184.03556 148.859,-332.89258 332.89453,-332.89258 z m -129.66602,71.68946 c -15.55555,0 -28.44574,5.11176 -38.66796,15.33398 -10.22223,10.22222 -15.33204,22.88889 -15.33204,38 0,15.55555 5.10981,28.44379 15.33204,38.66602 10.22222,10.22222 23.11241,15.33398 38.66796,15.33398 15.11111,0 27.77777,-5.11176 38,-15.33398 10.66666,-10.22223 16,-23.11047 16,-38.66602 0,-15.11111 -5.33334,-27.77778 -16,-38 -10.66668,-10.22222 -23.33334,-15.33398 -38,-15.33398 z m 240.66602,0 c -15.11111,0 -27.99933,5.11176 -38.66602,15.33398 -10.66665,10.22222 -16,22.88889 -16,38 0,15.55555 5.33335,28.44379 16,38.66602 10.66669,10.22222 23.55491,15.33398 38.66602,15.33398 14.66666,0 27.11175,-5.11176 37.33398,-15.33398 10.66666,-10.22223 16,-23.11047 16,-38.66602 0,-15.11111 -5.33334,-27.77778 -16,-38 C 650.11175,255.90864 637.66666,250.79688 623,250.79688 Z M 282.33398,459.86914 v 105.33398 c 0,58.66666 16.88824,108 50.66602,148 33.77778,40.00001 94.22288,60 181.33398,60 86.66666,0 146.22157,-19.77843 178.66602,-59.33398 32.44445,-39.55555 48.66602,-91.55555 48.66602,-156 v -98 z m 46.66602,58 h 365.33398 v 54 c 0,25.77779 -4.44509,48.66797 -13.33398,68.66797 -8.44445,20 -25.99936,36.66668 -52.66602,50 -26.22221,13.77779 -64.22221,20.66601 -114,20.66601 -68.88889,0 -117.11242,-13.33331 -144.66796,-40 C 342.5549,644.98091 329,612.09266 329,572.53711 Z"
            transform="matrix(0,-0.26458333,0.26458333,0,0,0.001665)"
            id="path4247-2" />

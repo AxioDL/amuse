@@ -1,9 +1,9 @@
 #ifndef AMUSE_LAYERS_EDITOR_HPP
 #define AMUSE_LAYERS_EDITOR_HPP
 
-#include <QWidget>
+#include "EditorWidget.hpp"
 
-class LayersEditor : public QWidget
+class LayersEditor : public EditorWidget
 {
     Q_OBJECT
 public:

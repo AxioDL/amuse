@@ -91,6 +91,18 @@
           <height>400</height>
          </size>
         </property>
+        <property name="frameShape">
+         <enum>QFrame::NoFrame</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Plain</enum>
+        </property>
+        <property name="lineWidth">
+         <number>0</number>
+        </property>
+        <property name="midLineWidth">
+         <number>-2</number>
+        </property>
         <property name="widgetResizable">
          <bool>true</bool>
         </property>
@@ -99,10 +111,28 @@
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>538</width>
-           <height>450</height>
+           <width>540</width>
+           <height>442</height>
           </rect>
          </property>
+         <layout class="QGridLayout" name="gridLayout_2">
+          <item row="0" column="0">
+           <widget class="QSvgWidget" name="editorSvg" native="true">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>256</width>
+              <height>256</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </widget>
        </widget>
        <widget class="QScrollArea" name="keyboardScrollArea">
@@ -124,6 +154,15 @@
           <height>100</height>
          </size>
         </property>
+        <property name="frameShape">
+         <enum>QFrame::NoFrame</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Plain</enum>
+        </property>
+        <property name="lineWidth">
+         <number>0</number>
+        </property>
         <property name="widgetResizable">
          <bool>true</bool>
         </property>
@@ -132,8 +171,8 @@
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>538</width>
-           <height>98</height>
+           <width>540</width>
+           <height>100</height>
           </rect>
          </property>
          <property name="maximumSize">
@@ -155,23 +194,23 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>22</height>
+     <height>27</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
     <property name="title">
-     <string>File</string>
+     <string>Fi&amp;le</string>
     </property>
     <addaction name="actionNew_Project"/>
     <addaction name="actionOpen_Project"/>
-    <addaction name="actionImport_Project"/>
-    <addaction name="separator"/>
+    <addaction name="actionImport"/>
+    <addaction name="actionExport_GameCube_Groups"/>
    </widget>
    <widget class="QMenu" name="menuProject">
     <property name="title">
-     <string>Project</string>
+     <string>P&amp;roject</string>
     </property>
-    <addaction name="actionNew_Sound_Group"/>
+    <addaction name="actionNew_SFX_Group"/>
     <addaction name="actionNew_Song_Group"/>
     <addaction name="separator"/>
     <addaction name="actionNew_Sound_Macro"/>
@@ -180,7 +219,7 @@
    </widget>
    <widget class="QMenu" name="menuAudio">
     <property name="title">
-     <string>Audio</string>
+     <string>A&amp;udio</string>
     </property>
     <addaction name="actionAuto_Play"/>
     <addaction name="separator"/>
@@ -188,7 +227,7 @@
    </widget>
    <widget class="QMenu" name="menuMIDI">
     <property name="title">
-     <string>MIDI</string>
+     <string>&amp;MIDI</string>
     </property>
     <addaction name="separator"/>
     <addaction name="actionInput_Device"/>
@@ -214,129 +253,128 @@
   <widget class="StatusBarWidget" name="statusbar"/>
   <action name="actionNew_Project">
    <property name="text">
-    <string>New Project</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+N</string>
+    <string>&amp;New Project</string>
    </property>
   </action>
   <action name="actionOpen_Project">
    <property name="text">
-    <string>Open Project</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+O</string>
-   </property>
-  </action>
-  <action name="actionDuplicate_Project">
-   <property name="text">
-    <string>Duplicate Project</string>
-   </property>
-  </action>
-  <action name="actionQuit">
-   <property name="text">
-    <string>Quit</string>
+    <string>&amp;Open Project</string>
    </property>
   </action>
   <action name="actionUndo">
-   <property name="text">
-    <string>Undo</string>
+   <property name="enabled">
+    <bool>false</bool>
    </property>
-   <property name="shortcut">
-    <string>Ctrl+Z</string>
+   <property name="text">
+    <string>&amp;Undo</string>
    </property>
   </action>
   <action name="actionRedo">
-   <property name="text">
-    <string>Redo</string>
+   <property name="enabled">
+    <bool>false</bool>
    </property>
-   <property name="shortcut">
-    <string>Ctrl+Shift+Z</string>
+   <property name="text">
+    <string>&amp;Redo</string>
    </property>
   </action>
   <action name="actionCut">
-   <property name="text">
-    <string>Cut</string>
+   <property name="enabled">
+    <bool>false</bool>
    </property>
-   <property name="shortcut">
-    <string>Ctrl+X</string>
+   <property name="text">
+    <string>&amp;Cut</string>
    </property>
   </action>
   <action name="actionCopy">
-   <property name="text">
-    <string>Copy</string>
+   <property name="enabled">
+    <bool>false</bool>
    </property>
-   <property name="shortcut">
-    <string>Ctrl+C</string>
+   <property name="text">
+    <string>C&amp;opy</string>
    </property>
   </action>
   <action name="actionPaste">
-   <property name="text">
-    <string>Paste</string>
+   <property name="enabled">
+    <bool>false</bool>
    </property>
-   <property name="shortcut">
-    <string>Ctrl+V</string>
+   <property name="text">
+    <string>&amp;Paste</string>
    </property>
   </action>
   <action name="actionDelete">
-   <property name="text">
-    <string>Delete</string>
+   <property name="enabled">
+    <bool>false</bool>
    </property>
-   <property name="shortcut">
-    <string>Del</string>
+   <property name="text">
+    <string>&amp;Delete</string>
    </property>
   </action>
-  <action name="actionImport_Project">
+  <action name="actionImport">
    <property name="text">
-    <string>Import Project</string>
+    <string>&amp;Import</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+I</string>
    </property>
   </action>
-  <action name="actionNew_Sound_Group">
+  <action name="actionNew_SFX_Group">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset>
      <normaloff>:/icons/IconNewSoundGroup.svg</normaloff>:/icons/IconNewSoundGroup.svg</iconset>
    </property>
    <property name="text">
-    <string>New Sound Group</string>
+    <string>&amp;New SFX Group</string>
    </property>
   </action>
   <action name="actionNew_Song_Group">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset>
      <normaloff>:/icons/IconNewSongGroup.svg</normaloff>:/icons/IconNewSongGroup.svg</iconset>
    </property>
    <property name="text">
-    <string>New Song Group</string>
+    <string>New &amp;Song Group</string>
    </property>
   </action>
   <action name="actionNew_Sound_Macro">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset>
      <normaloff>:/icons/IconNewSoundMacro.svg</normaloff>:/icons/IconNewSoundMacro.svg</iconset>
    </property>
    <property name="text">
-    <string>New Sound Macro</string>
+    <string>New Sound &amp;Macro</string>
    </property>
   </action>
   <action name="actionNew_Keymap">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset>
      <normaloff>:/icons/IconNewKeymap.svg</normaloff>:/icons/IconNewKeymap.svg</iconset>
    </property>
    <property name="text">
-    <string>New Keymap</string>
+    <string>New &amp;Keymap</string>
    </property>
   </action>
   <action name="actionNew_Layers">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset>
      <normaloff>:/icons/IconNewLayers.svg</normaloff>:/icons/IconNewLayers.svg</iconset>
    </property>
    <property name="text">
-    <string>New Layers</string>
+    <string>New &amp;Layers</string>
    </property>
   </action>
   <action name="actionAuto_Play">
@@ -347,7 +385,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Auto-Play</string>
+    <string>&amp;Auto-Play</string>
    </property>
   </action>
   <action name="actionSelect_Output_Device">
@@ -355,7 +393,7 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Output Device:</string>
+    <string>&amp;Output Device:</string>
    </property>
   </action>
   <action name="actionInput_Device">
@@ -363,7 +401,18 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Input Device:</string>
+    <string>&amp;Input Device:</string>
+   </property>
+  </action>
+  <action name="actionExport_GameCube_Groups">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Export GameCube Groups</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+E</string>
    </property>
   </action>
  </widget>
@@ -378,6 +427,12 @@
    <class>StatusBarWidget</class>
    <extends>QStatusBar</extends>
    <header>StatusBarWidget.hpp</header>
+  </customwidget>
+  <customwidget>
+   <class>QSvgWidget</class>
+   <extends>QWidget</extends>
+   <header location="global">QSvgWidget</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources/>

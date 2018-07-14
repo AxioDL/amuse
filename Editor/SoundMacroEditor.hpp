@@ -1,9 +1,9 @@
 #ifndef AMUSE_SOUND_MACRO_EDITOR_HPP
 #define AMUSE_SOUND_MACRO_EDITOR_HPP
 
-#include <QWidget>
+#include "EditorWidget.hpp"
 
-class SoundMacroEditor : public QWidget
+class SoundMacroEditor : public EditorWidget
 {
     Q_OBJECT
 public:

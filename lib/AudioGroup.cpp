@@ -5,8 +5,8 @@ namespace amuse
 {
 
 AudioGroup::AudioGroup(const AudioGroupData& data, GCNDataTag)
-: m_proj(data.getProj(), GCNDataTag{})
-, m_pool(data.getPool())
+: m_proj(AudioGroupProject::CreateAudioGroupProject(data))
+, m_pool(AudioGroupPool::CreateAudioGroupPool(data))
 , m_sdir(data.getSdir(), GCNDataTag{})
 , m_samp(data.getSamp())
 , m_fmt(DataFormat::GCN)
@@ -14,8 +14,8 @@ AudioGroup::AudioGroup(const AudioGroupData& data, GCNDataTag)
 }
 
 AudioGroup::AudioGroup(const AudioGroupData& data, bool absOffs, N64DataTag)
-: m_proj(data.getProj(), absOffs, N64DataTag{})
-, m_pool(data.getPool())
+: m_proj(AudioGroupProject::CreateAudioGroupProject(data))
+, m_pool(AudioGroupPool::CreateAudioGroupPool(data))
 , m_sdir(data.getSdir(), data.getSamp(), absOffs, N64DataTag{})
 , m_samp(data.getSamp())
 , m_fmt(DataFormat::N64)
@@ -23,8 +23,8 @@ AudioGroup::AudioGroup(const AudioGroupData& data, bool absOffs, N64DataTag)
 }
 
 AudioGroup::AudioGroup(const AudioGroupData& data, bool absOffs, PCDataTag)
-: m_proj(data.getProj(), absOffs, PCDataTag{})
-, m_pool(data.getPool(), PCDataTag{})
+: m_proj(AudioGroupProject::CreateAudioGroupProject(data))
+, m_pool(AudioGroupPool::CreateAudioGroupPool(data))
 , m_sdir(data.getSdir(), absOffs, PCDataTag{})
 , m_samp(data.getSamp())
 , m_fmt(DataFormat::PC)

@@ -203,7 +203,7 @@ AudioGroup* Engine::_addAudioGroup(const AudioGroupData& data, std::unique_ptr<A
         const SFXGroupIndex& sfxGroup = grp.second;
         m_sfxLookup.reserve(m_sfxLookup.size() + sfxGroup.m_sfxEntries.size());
         for (const auto& ent : sfxGroup.m_sfxEntries)
-            m_sfxLookup[ent.first] = std::make_tuple(ret, grp.first, ent.second);
+            m_sfxLookup[ent.first] = std::make_tuple(ret, grp.first, &ent.second);
     }
 
     return ret;
@@ -307,8 +307,7 @@ std::shared_ptr<Voice> Engine::fxStart(int sfxId, float vol, float pan, std::wea
     std::list<std::shared_ptr<Voice>>::iterator ret =
         _allocateVoice(*grp, std::get<1>(search->second), NativeSampleRate, true, false, smx);
 
-    ObjectId oid = (grp->getDataFormat() == DataFormat::PC) ? entry->objId : SBig(entry->objId);
-    if (!(*ret)->loadSoundObject(oid, 0, 1000.f, entry->defKey, entry->defVel, 0))
+    if (!(*ret)->loadSoundObject(entry->objId, 0, 1000.f, entry->defKey, entry->defVel, 0))
     {
         _destroyVoice(ret);
         return {};
@@ -336,8 +335,7 @@ std::shared_ptr<Emitter> Engine::addEmitter(const float* pos, const float* dir, 
     std::list<std::shared_ptr<Voice>>::iterator vox =
         _allocateVoice(*grp, std::get<1>(search->second), NativeSampleRate, true, true, smx);
 
-    ObjectId oid = (grp->getDataFormat() == DataFormat::PC) ? entry->objId : SBig(entry->objId);
-    if (!(*vox)->loadSoundObject(oid, 0, 1000.f, entry->defKey, entry->defVel, 0))
+    if (!(*vox)->loadSoundObject(entry->objId, 0, 1000.f, entry->defKey, entry->defVel, 0))
     {
         _destroyVoice(vox);
         return {};

@@ -16,6 +16,9 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/boo AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}
   include_directories(athena/include)
 endif()
 
+atdna(atdna_AudioGroupPool.cpp include/amuse/AudioGroupPool.hpp)
+atdna(atdna_AudioGroupProject.cpp include/amuse/AudioGroupProject.hpp)
+
 set(SOURCES
     lib/AudioGroup.cpp
     lib/AudioGroupData.cpp
@@ -38,8 +41,11 @@ set(SOURCES
     lib/EffectChorus.cpp
     lib/EffectDelay.cpp
     lib/ContainerRegistry.cpp
+    lib/Common.cpp
     lib/DSPCodec.cpp
-    lib/N64MusyXCodec.cpp)
+    lib/N64MusyXCodec.cpp
+    atdna_AudioGroupPool.cpp
+    atdna_AudioGroupProject.cpp)
 
 set(HEADERS
     include/amuse/AudioGroup.hpp

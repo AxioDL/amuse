@@ -9,6 +9,7 @@
 #include <string>
 #include <string_view>
 #include <cstring>
+#include "athena/DNA.hpp"
 
 #ifndef _WIN32
 #include <strings.h>
@@ -28,6 +29,95 @@ constexpr float NativeSampleRate = 32000.0f;
 
 namespace amuse
 {
+struct NameDB;
+
+using BigDNA = athena::io::DNA<athena::Big>;
+using LittleDNA = athena::io::DNA<athena::Little>;
+using BigDNAV = athena::io::DNAVYaml<athena::Big>;
+using LittleDNAV = athena::io::DNAVYaml<athena::Little>;
+
+/** Common ID structure statically tagging
+ *  SoundMacros, Tables, Keymaps, Layers */
+struct ObjectId
+{
+    uint16_t id = 0xffff;
+    operator uint16_t() const { return id; }
+    ObjectId() = default;
+    ObjectId(uint16_t idIn) : id(idIn) {}
+    ObjectId& operator=(uint16_t idIn) { id = idIn; return *this; }
+    static thread_local NameDB* CurNameDB;
+};
+
+template <athena::Endian DNAEn>
+struct AT_SPECIALIZE_PARMS(athena::Endian::Big, athena::Endian::Little)
+ObjectIdDNA : BigDNA
+{
+    AT_DECL_EXPLICIT_DNA_YAML
+    void _read(athena::io::YAMLDocReader& r);
+    void _write(athena::io::YAMLDocWriter& w);
+    ObjectId id;
+};
+
+struct SampleId : ObjectId
+{
+    using ObjectId::ObjectId;
+    SampleId(const ObjectId& id) : ObjectId(id) {}
+    static thread_local NameDB* CurNameDB;
+};
+
+template <athena::Endian DNAEn>
+struct AT_SPECIALIZE_PARMS(athena::Endian::Big, athena::Endian::Little)
+SampleIdDNA : BigDNA
+{
+    AT_DECL_EXPLICIT_DNA_YAML
+    void _read(athena::io::YAMLDocReader& r);
+    void _write(athena::io::YAMLDocWriter& w);
+    SampleId id;
+};
+
+struct SongId : ObjectId
+{
+    using ObjectId::ObjectId;
+    SongId(const ObjectId& id) : ObjectId(id) {}
+    static thread_local NameDB* CurNameDB;
+};
+
+template <athena::Endian DNAEn>
+struct AT_SPECIALIZE_PARMS(athena::Endian::Big, athena::Endian::Little)
+SongIdDNA : BigDNA
+{
+    AT_DECL_EXPLICIT_DNA_YAML
+    void _read(athena::io::YAMLDocReader& r);
+    void _write(athena::io::YAMLDocWriter& w);
+    SongId id;
+};
+
+struct SFXId : ObjectId
+{
+    using ObjectId::ObjectId;
+    SFXId(const ObjectId& id) : ObjectId(id) {}
+    static thread_local NameDB* CurNameDB;
+};
+
+template <athena::Endian DNAEn>
+struct AT_SPECIALIZE_PARMS(athena::Endian::Big, athena::Endian::Little)
+SFXIdDNA : BigDNA
+{
+    AT_DECL_EXPLICIT_DNA_YAML
+    void _read(athena::io::YAMLDocReader& r);
+    void _write(athena::io::YAMLDocWriter& w);
+    SFXId id;
+};
+
+struct LittleUInt24 : LittleDNA
+{
+    AT_DECL_EXPLICIT_DNA_YAML
+    atUint32 val;
+    operator uint32_t() const { return val; }
+    LittleUInt24() = default;
+    LittleUInt24(uint32_t valIn) : val(valIn) {}
+    LittleUInt24& operator=(uint32_t valIn) { val = valIn; return *this; }
+};
 
 #ifndef PRISize
 #ifdef _MSC_VER
@@ -331,6 +421,53 @@ struct N64DataTag
 /** Meta-type for selecting PC (MusyX 1.0) data formats */
 struct PCDataTag
 {
+};
+}
+
+namespace std
+{
+template<>
+struct hash<amuse::ObjectId>
+{
+    size_t operator()(const amuse::ObjectId& val) const noexcept { return val.id; }
+};
+template<>
+struct hash<amuse::SampleId>
+{
+    size_t operator()(const amuse::SampleId& val) const noexcept { return val.id; }
+};
+template<>
+struct hash<amuse::SongId>
+{
+    size_t operator()(const amuse::SongId& val) const noexcept { return val.id; }
+};
+template<>
+struct hash<amuse::SFXId>
+{
+    size_t operator()(const amuse::SFXId& val) const noexcept { return val.id; }
+};
+}
+
+namespace amuse
+{
+struct NameDB
+{
+    enum class Type
+    {
+        SoundMacro = 0,
+        Table = 1,
+        Keymap = 4,
+        Layer = 8
+    };
+
+    std::unordered_map<std::string, ObjectId> m_stringToId;
+    std::unordered_map<ObjectId, std::string> m_idToString;
+
+    ObjectId generateId(Type tp);
+    static std::string generateName(ObjectId id);
+    std::string_view registerPair(std::string_view str, ObjectId id);
+    std::string_view resolveNameFromId(ObjectId id) const;
+    ObjectId resolveIdFromName(std::string_view str) const;
 };
 }
 

@@ -7,6 +7,7 @@
 
 namespace amuse
 {
+class AudioGroupData;
 
 /** Indexes individual samples in SAMP chunk */
 class AudioGroupSampleDirectory
@@ -52,6 +53,7 @@ public:
     AudioGroupSampleDirectory(const unsigned char* data, GCNDataTag);
     AudioGroupSampleDirectory(const unsigned char* data, const unsigned char* sampData, bool absOffs, N64DataTag);
     AudioGroupSampleDirectory(const unsigned char* data, bool absOffs, PCDataTag);
+    static AudioGroupSampleDirectory CreateAudioGroupSampleDirectory(const AudioGroupData& data);
 
     const std::unordered_map<uint16_t, std::pair<Entry, ADPCMParms>>& sampleEntries() const { return m_entries; }
 };

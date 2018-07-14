@@ -6,6 +6,7 @@
 #include <list>
 #include "Entity.hpp"
 #include "Common.hpp"
+#include "AudioGroupPool.hpp"
 
 /* Squelch Win32 macro pollution >.< */
 #undef SendMessage
@@ -16,123 +17,13 @@ namespace amuse
 class Voice;
 
 /** Real-time state of SoundMacro execution */
-class SoundMacroState
+struct SoundMacroState
 {
-    friend class Voice;
-    friend class Envelope;
-
-    /** SoundMacro header */
-    struct Header
-    {
-        uint32_t m_size;
-        ObjectId m_macroId;
-        uint8_t m_volume;
-        uint8_t m_pan;
-        void swapBig();
-    } m_header;
-
-    /** SoundMacro command operations */
-    enum class Op : uint8_t
-    {
-        End,
-        Stop,
-        SplitKey,
-        SplitVel,
-        WaitTicks,
-        Loop,
-        Goto,
-        WaitMs,
-        PlayMacro,
-        SendKeyOff,
-        SplitMod,
-        PianoPan,
-        SetAdsr,
-        ScaleVolume,
-        Panning,
-        Envelope,
-        StartSample,
-        StopSample,
-        KeyOff,
-        SplitRnd,
-        FadeIn,
-        Spanning,
-        SetAdsrCtrl,
-        RndNote,
-        AddNote,
-        SetNote,
-        LastNote,
-        Portamento,
-        Vibrato,
-        PitchSweep1,
-        PitchSweep2,
-        SetPitch,
-        SetPitchAdsr,
-        ScaleVolumeDLS,
-        Mod2Vibrange,
-        SetupTremolo,
-        Return,
-        GoSub,
-        TrapEvent = 0x28,
-        UntrapEvent,
-        SendMessage,
-        GetMessage,
-        GetVid,
-        AddAgeCount = 0x30, /* unimplemented */
-        SetAgeCount,        /* unimplemented */
-        SendFlag,           /* unimplemented */
-        PitchWheelR,
-        SetPriority = 0x36, /* unimplemented */
-        AddPriority, /* unimplemented */
-        AgeCntSpeed, /* unimplemented */
-        AgeCntVel,   /* unimplemented */
-        VolSelect = 0x40,
-        PanSelect,
-        PitchWheelSelect,
-        ModWheelSelect,
-        PedalSelect,
-        PortamentoSelect,
-        ReverbSelect, /* serves as PostASelect */
-        SpanSelect,
-        DopplerSelect,
-        TremoloSelect,
-        PreASelect,
-        PreBSelect,
-        PostBSelect,
-        AuxAFXSelect, /* unimplemented */
-        AuxBFXSelect, /* unimplemented */
-        SetupLFO = 0x50,
-        ModeSelect = 0x58,
-        SetKeygroup,
-        SRCmodeSelect, /* unimplemented */
-        AddVars = 0x60,
-        SubVars,
-        MulVars,
-        DivVars,
-        AddIVars,
-        IfEqual = 0x70,
-        IfLess,
-    };
-
-    /** SoundMacro command structure */
-    struct Command
-    {
-        Op m_op;
-        char m_data[7];
-        void swapBig();
-    };
-
     /** 'program counter' stack for the active SoundMacro */
-    std::vector<std::pair<const unsigned char*, int>> m_pc;
-
-    static int _assertPC(int pc, uint32_t size);
-    static int _assertPC(int pc, uint32_t size, bool swapSize)
-    {
-        return _assertPC(pc, swapSize ? SBig(size) : size);
-    }
-
+    std::vector<std::tuple<ObjectId, const SoundMacro*, int>> m_pc;
     void _setPC(int pc)
     {
-        m_pc.back().second = _assertPC(pc, m_header.m_size);
+        std::get<2>(m_pc.back()) = std::get<1>(m_pc.back())->assertPC(pc);
     }
 
     double m_ticksPerSec; /**< ratio for resolving ticks in commands that use them */
@@ -233,9 +124,9 @@ class SoundMacroState
 
 public:
     /** initialize state for SoundMacro data at `ptr` */
-    void initialize(const unsigned char* ptr, int step, bool swapData);
-    void initialize(const unsigned char* ptr, int step, double ticksPerSec, uint8_t midiKey, uint8_t midiVel,
-                    uint8_t midiMod, bool swapData);
+    void initialize(ObjectId id, const SoundMacro* macro, int step);
+    void initialize(ObjectId id, const SoundMacro* macro, int step, double ticksPerSec,
+                    uint8_t midiKey, uint8_t midiVel, uint8_t midiMod);
 
     /** advances `dt` seconds worth of commands in the SoundMacro
      *  @return `true` if END reached

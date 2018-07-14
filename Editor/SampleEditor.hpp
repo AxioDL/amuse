@@ -1,9 +1,9 @@
 #ifndef AMUSE_SAMPLE_EDITOR_HPP
 #define AMUSE_SAMPLE_EDITOR_HPP
 
-#include <QWidget>
+#include "EditorWidget.hpp"
 
-class SampleEditor : public QWidget
+class SampleEditor : public EditorWidget
 {
     Q_OBJECT
 public:

@@ -14,4 +14,7 @@
         <file>IconSoundGroup.svg</file>
         <file>IconSoundMacro.svg</file>
     </qresource>
+    <qresource prefix="/bg">
+        <file>FaceGrey.svg</file>
+    </qresource>
 </RCC>

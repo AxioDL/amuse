@@ -12,58 +12,167 @@ namespace amuse
 {
 class AudioGroupData;
 
-/** Common index members of SongGroups and SFXGroups */
-struct AudioGroupIndex
+enum class GroupType : atUint16
 {
-    const uint16_t* m_soundMacroIndex;
-    const uint16_t* m_tablesIndex;
-    const uint16_t* m_keymapsIndex;
-    const uint16_t* m_layersIndex;
+    Song,
+    SFX
 };
+
+/** Header at top of project file */
+template <athena::Endian DNAEn>
+struct AT_SPECIALIZE_PARMS(athena::Endian::Big, athena::Endian::Little)
+GroupHeader : BigDNA
+{
+    AT_DECL_DNA
+    Value<atUint32, DNAEn> groupEndOff;
+    Value<atUint16, DNAEn> groupId;
+    Value<GroupType, DNAEn> type;
+    Value<atUint32, DNAEn> soundMacroIdsOff;
+    Value<atUint32, DNAEn> samplIdsOff;
+    Value<atUint32, DNAEn> tableIdsOff;
+    Value<atUint32, DNAEn> keymapIdsOff;
+    Value<atUint32, DNAEn> layerIdsOff;
+    Value<atUint32, DNAEn> pageTableOff;
+    Value<atUint32, DNAEn> drumTableOff;
+    Value<atUint32, DNAEn> midiSetupsOff;
+};
+
+/** Common index members of SongGroups and SFXGroups */
+struct AudioGroupIndex {};
 
 /** Root index of SongGroup */
 struct SongGroupIndex : AudioGroupIndex
 {
     /** Maps GM program numbers to sound entities */
+    template <athena::Endian DNAEn>
+    struct AT_SPECIALIZE_PARMS(athena::Endian::Big, athena::Endian::Little)
+    PageEntryDNA : BigDNA
+    {
+        AT_DECL_DNA_YAML
+        ObjectIdDNA<DNAEn> objId;
+        Value<atUint8> priority;
+        Value<atUint8> maxVoices;
+        Value<atUint8> programNo;
+        Seek<1, athena::Current> pad;
+    };
+    template <athena::Endian DNAEn>
+    struct AT_SPECIALIZE_PARMS(athena::Endian::Big, athena::Endian::Little)
+    MusyX1PageEntryDNA : BigDNA
+    {
+        AT_DECL_DNA_YAML
+        ObjectIdDNA<DNAEn> objId;
+        Value<atUint8> priority;
+        Value<atUint8> maxVoices;
+        Value<atUint8> unk;
+        Value<atUint8> programNo;
+        Seek<2, athena::Current> pad;
+    };
     struct PageEntry
     {
         ObjectId objId;
-        uint8_t priority;
-        uint8_t maxVoices;
-        uint8_t programNo;
-        uint8_t pad;
+        atUint8 priority;
+        atUint8 maxVoices;
+
+        PageEntry() = default;
+
+        template <athena::Endian DNAE>
+        PageEntry(const PageEntryDNA<DNAE>& in)
+        : objId(in.objId.id), priority(in.priority), maxVoices(in.maxVoices) {}
+
+        template <athena::Endian DNAE>
+        PageEntry(const MusyX1PageEntryDNA<DNAE>& in)
+        : objId(in.objId.id), priority(in.priority), maxVoices(in.maxVoices) {}
+
+        template <athena::Endian DNAEn>
+        PageEntryDNA<DNAEn> toDNA(uint8_t programNo) const
+        {
+            PageEntryDNA<DNAEn> ret;
+            ret.objId.id = objId;
+            ret.priority = priority;
+            ret.maxVoices = maxVoices;
+            ret.programNo = programNo;
+            return ret;
+        }
     };
-    std::unordered_map<uint8_t, const PageEntry*> m_normPages;
-    std::unordered_map<uint8_t, const PageEntry*> m_drumPages;
+    std::unordered_map<uint8_t, PageEntry> m_normPages;
+    std::unordered_map<uint8_t, PageEntry> m_drumPages;
 
     /** Maps SongID to 16 MIDI channel numbers to GM program numbers and settings */
-    struct MIDISetup
+    struct MusyX1MIDISetup : BigDNA
     {
-        uint8_t programNo;
-        uint8_t volume;
-        uint8_t panning;
-        uint8_t reverb;
-        uint8_t chorus;
+        AT_DECL_DNA_YAML
+        Value<atUint8> programNo;
+        Value<atUint8> volume;
+        Value<atUint8> panning;
+        Value<atUint8> reverb;
+        Value<atUint8> chorus;
+        Seek<3, athena::Current> pad;
     };
-    std::unordered_map<int, const std::array<MIDISetup, 16>*> m_midiSetups;
+    struct MIDISetup : BigDNA
+    {
+        AT_DECL_DNA_YAML
+        Value<atUint8> programNo;
+        Value<atUint8> volume;
+        Value<atUint8> panning;
+        Value<atUint8> reverb;
+        Value<atUint8> chorus;
+        MIDISetup() = default;
+        MIDISetup(const MusyX1MIDISetup& setup)
+        : programNo(setup.programNo), volume(setup.volume), panning(setup.panning),
+          reverb(setup.reverb), chorus(setup.chorus) {}
+    };
+    std::unordered_map<SongId, std::array<MIDISetup, 16>> m_midiSetups;
 };
 
 /** Root index of SFXGroup */
 struct SFXGroupIndex : AudioGroupIndex
 {
     /** Maps game-side SFX define IDs to sound entities */
+    template <athena::Endian DNAEn>
+    struct AT_SPECIALIZE_PARMS(athena::Endian::Big, athena::Endian::Little)
+    SFXEntryDNA : BigDNA
+    {
+        AT_DECL_DNA_YAML
+        SFXIdDNA<DNAEn> defineId;
+        ObjectIdDNA<DNAEn> objId;
+        Value<atUint8> priority;
+        Value<atUint8> maxVoices;
+        Value<atUint8> defVel;
+        Value<atUint8> panning;
+        Value<atUint8> defKey;
+        Seek<1, athena::Current> pad;
+    };
     struct SFXEntry
     {
-        uint16_t defineId;
         ObjectId objId;
-        uint8_t priority;
-        uint8_t maxVoices;
-        uint8_t defVel;
-        uint8_t panning;
-        uint8_t defKey;
-        uint8_t pad;
+        atUint8 priority;
+        atUint8 maxVoices;
+        atUint8 defVel;
+        atUint8 panning;
+        atUint8 defKey;
+
+        SFXEntry() = default;
+
+        template <athena::Endian DNAE>
+        SFXEntry(const SFXEntryDNA<DNAE>& in)
+        : objId(in.objId.id), priority(in.priority), maxVoices(in.maxVoices),
+          defVel(in.defVel), panning(in.panning), defKey(in.defKey) {}
+
+        template <athena::Endian DNAEn>
+        SFXEntryDNA<DNAEn> toDNA(SFXId defineId) const
+        {
+            SFXEntryDNA<DNAEn> ret;
+            ret.defineId.id = defineId;
+            ret.objId.id = objId;
+            ret.priority = priority;
+            ret.maxVoices = maxVoices;
+            ret.defVel = defVel;
+            ret.panning = panning;
+            ret.defKey = defKey;
+            return ret;
+        }
     };
-    std::unordered_map<uint16_t, const SFXEntry*> m_sfxEntries;
+    std::unordered_map<SFXId, SFXEntry> m_sfxEntries;
 };
 
 /** Collection of SongGroup and SFXGroup indexes */
@@ -72,17 +181,11 @@ class AudioGroupProject
     std::unordered_map<int, SongGroupIndex> m_songGroups;
     std::unordered_map<int, SFXGroupIndex> m_sfxGroups;
 
-    /* MusyX 1.0 structures converted to MusyX 2.0 structures for pointer-compatible access */
-    std::unique_ptr<SongGroupIndex::PageEntry[]> m_convNormalPages;
-    std::unique_ptr<SongGroupIndex::PageEntry[]> m_convDrumPages;
-    std::unique_ptr<std::array<SongGroupIndex::MIDISetup, 16>[]> m_convMidiSetups;
-    void _allocateConvBuffers(const unsigned char* data, N64DataTag);
-    void _allocateConvBuffers(const unsigned char* data, PCDataTag);
-
+    AudioGroupProject() = default;
+    AudioGroupProject(athena::io::IStreamReader& r, GCNDataTag);
+    template <athena::Endian DNAE>
+    static AudioGroupProject _AudioGroupProject(athena::io::IStreamReader& r, bool absOffs);
 public:
-    AudioGroupProject(const unsigned char* data, GCNDataTag);
-    AudioGroupProject(const unsigned char* data, bool absOffs, N64DataTag);
-    AudioGroupProject(const unsigned char* data, bool absOffs, PCDataTag);
     static AudioGroupProject CreateAudioGroupProject(const AudioGroupData& data);
 
     const SongGroupIndex* getSongGroupIndex(int groupId) const;

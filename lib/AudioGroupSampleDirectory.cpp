@@ -1,5 +1,6 @@
 #include "amuse/AudioGroupSampleDirectory.hpp"
 #include "amuse/Common.hpp"
+#include "amuse/AudioGroupData.hpp"
 #include <cstring>
 
 namespace amuse
@@ -193,6 +194,20 @@ AudioGroupSampleDirectory::AudioGroupSampleDirectory(const unsigned char* data, 
 
             cur += 24;
         }
+    }
+}
+
+AudioGroupSampleDirectory AudioGroupSampleDirectory::CreateAudioGroupSampleDirectory(const AudioGroupData& data)
+{
+    switch (data.getDataFormat())
+    {
+    case DataFormat::GCN:
+    default:
+        return AudioGroupSampleDirectory(data.getSdir(), GCNDataTag{});
+    case DataFormat::N64:
+        return AudioGroupSampleDirectory(data.getSdir(), data.getSamp(), data.getAbsoluteProjOffsets(), N64DataTag{});
+    case DataFormat::PC:
+        return AudioGroupSampleDirectory(data.getSdir(), data.getAbsoluteProjOffsets(), PCDataTag{});
     }
 }
 }

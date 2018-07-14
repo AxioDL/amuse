@@ -2,6 +2,9 @@
 #include <QApplication>
 #include <QStyleFactory>
 #include "MainWindow.hpp"
+#include "boo/IApplication.hpp"
+
+using namespace std::literals;
 
 #ifdef __APPLE__
 void MacOSSetDarkAppearance();
@@ -28,6 +31,24 @@ static QIcon MakeAppIcon()
     return ret;
 }
 
+/* This is for adapting the get*Name methods */
+class BooInterface : public boo::IApplication
+{
+    std::vector<boo::SystemString> m_args;
+    void _deletedWindow(boo::IWindow* window) {}
+public:
+    EPlatformType getPlatformType() const { return EPlatformType::Qt; }
+
+    int run() { return 0; }
+    boo::SystemStringView getUniqueName() const { return _S("amuse-gui"sv); }
+    boo::SystemStringView getFriendlyName() const { return _S("Amuse"sv); }
+    boo::SystemStringView getProcessName() const { return _S("amuse-gui"sv); }
+    const std::vector<boo::SystemString>& getArgs() const { return m_args; }
+
+    /* Constructors/initializers for sub-objects */
+    std::shared_ptr<boo::IWindow> newWindow(boo::SystemStringView title) { return {}; }
+};
+
 int main(int argc, char* argv[])
 {
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 6, 0))
@@ -48,6 +69,7 @@ int main(int argc, char* argv[])
     darkPalette.setColor(QPalette::ToolTipText, Qt::white);
     darkPalette.setColor(QPalette::Text, Qt::white);
     darkPalette.setColor(QPalette::Disabled, QPalette::Text, QColor(255,255,255,120));
+    darkPalette.setColor(QPalette::Disabled, QPalette::Light, QColor(0,0,0,0));
     darkPalette.setColor(QPalette::Button, QColor(53,53,53));
     darkPalette.setColor(QPalette::Disabled, QPalette::Button, QColor(53,53,53,53));
     darkPalette.setColor(QPalette::ButtonText, Qt::white);
@@ -63,6 +85,9 @@ int main(int argc, char* argv[])
 #ifdef __APPLE__
     MacOSSetDarkAppearance();
 #endif
+
+    BooInterface booApp;
+    boo::APP = &booApp;
 
     MainWindow w;
     w.show();

@@ -1,9 +1,9 @@
 #ifndef AMUSE_KEYMAP_EDITOR_HPP
 #define AMUSE_KEYMAP_EDITOR_HPP
 
-#include <QWidget>
+#include "EditorWidget.hpp"
 
-class KeymapEditor : public QWidget
+class KeymapEditor : public EditorWidget
 {
     Q_OBJECT
 public:

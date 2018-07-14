@@ -4,15 +4,12 @@
 #include <cstdint>
 #include <functional>
 #include <cassert>
+#include "Common.hpp"
 
 namespace amuse
 {
 class Engine;
 class AudioGroup;
-
-/** Common ID structure statically tagging
- *  SoundMacros, Tables, Keymaps, Layers */
-using ObjectId = uint16_t;
 
 /** Common 'engine child' class */
 class Entity
@@ -20,7 +17,7 @@ class Entity
     /* Only the Engine will manage Entity lifetimes,
      * but shared_ptrs are issued to the client so it can safely track state */
     friend class Engine;
-    friend class SoundMacroState;
+    friend struct SoundMacroState;
 
 protected:
     bool m_destroyed = false;
@@ -32,7 +29,7 @@ protected:
     Engine& m_engine;
     const AudioGroup& m_audioGroup;
     int m_groupId;
-    ObjectId m_objectId = 0xffff; /* if applicable */
+    ObjectId m_objectId; /* if applicable */
 public:
     Entity(Engine& engine, const AudioGroup& group, int groupId, ObjectId oid = ObjectId())
     : m_engine(engine), m_audioGroup(group), m_groupId(groupId), m_objectId(oid)
@@ -50,9 +47,6 @@ public:
     ObjectId getObjectId() const { return m_objectId; }
 };
 
-/** Curves for mapping velocity to volume and other functional mappings
- *  (defined here for visibility)*/
-using Curve = uint8_t[128];
 }
 
 #endif // __AMUSE_ENTITY_HPP__

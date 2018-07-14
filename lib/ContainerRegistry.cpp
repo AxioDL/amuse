@@ -1960,6 +1960,9 @@ std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> ContainerRegistry:
     {
         std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> ret;
 
+        const SystemChar* sep = std::max(StrRChr(path, _S('/')), StrRChr(path, _S('\\')));
+        SystemString baseName(sep + 1, dot - sep - 1);
+
         /* Project */
         SystemChar projPath[1024];
         SNPrintf(projPath, 1024, _S("%.*s.pro"), int(dot - path), path);
@@ -2044,15 +2047,15 @@ std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> ContainerRegistry:
 
         /* SDIR-based format detection */
         if (*reinterpret_cast<uint32_t*>(sdir.get() + 8) == 0x0)
-            ret.emplace_back(_S("Group"),
+            ret.emplace_back(baseName,
                              IntrusiveAudioGroupData{proj.release(), projLen, pool.release(), poolLen, sdir.release(),
                                                      sdirLen, samp.release(), sampLen, GCNDataTag{}});
         else if (sdir[9] == 0x0)
-            ret.emplace_back(_S("Group"),
+            ret.emplace_back(baseName,
                              IntrusiveAudioGroupData{proj.release(), projLen, pool.release(), poolLen, sdir.release(),
                                                      sdirLen, samp.release(), sampLen, false, N64DataTag{}});
         else
-            ret.emplace_back(_S("Group"),
+            ret.emplace_back(baseName,
                              IntrusiveAudioGroupData{proj.release(), projLen, pool.release(), poolLen, sdir.release(),
                                                      sdirLen, samp.release(), sampLen, false, PCDataTag{}});
 

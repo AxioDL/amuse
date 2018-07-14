@@ -63,7 +63,7 @@ Sequencer::Sequencer(Engine& engine, const AudioGroup& group, int groupId, const
 {
     auto it = m_songGroup->m_midiSetups.find(setupId);
     if (it != m_songGroup->m_midiSetups.cend())
-        m_midiSetup = it->second->data();
+        m_midiSetup = it->second.data();
 }
 
 Sequencer::Sequencer(Engine& engine, const AudioGroup& group, int groupId, const SFXGroupIndex* sfxGroup,
@@ -72,7 +72,7 @@ Sequencer::Sequencer(Engine& engine, const AudioGroup& group, int groupId, const
 {
     std::map<uint16_t, const SFXGroupIndex::SFXEntry*> sortSFX;
     for (const auto& sfx : sfxGroup->m_sfxEntries)
-        sortSFX[sfx.first] = sfx.second;
+        sortSFX[sfx.first] = &sfx.second;
 
     m_sfxMappings.reserve(sortSFX.size());
     for (const auto& sfx : sortSFX)
@@ -95,7 +95,7 @@ Sequencer::ChannelState::ChannelState(Sequencer& parent, uint8_t chanId)
                 auto it = m_parent->m_songGroup->m_drumPages.find(m_setup->programNo);
                 if (it != m_parent->m_songGroup->m_drumPages.cend())
                 {
-                    m_page = it->second;
+                    m_page = &it->second;
                     m_curProgram = m_setup->programNo;
                 }
             }
@@ -104,7 +104,7 @@ Sequencer::ChannelState::ChannelState(Sequencer& parent, uint8_t chanId)
                 auto it = m_parent->m_songGroup->m_normPages.find(m_setup->programNo);
                 if (it != m_parent->m_songGroup->m_normPages.cend())
                 {
-                    m_page = it->second;
+                    m_page = &it->second;
                     m_curProgram = m_setup->programNo;
                 }
             }
@@ -120,13 +120,13 @@ Sequencer::ChannelState::ChannelState(Sequencer& parent, uint8_t chanId)
             {
                 auto it = m_parent->m_songGroup->m_drumPages.find(0);
                 if (it != m_parent->m_songGroup->m_drumPages.cend())
-                    m_page = it->second;
+                    m_page = &it->second;
             }
             else
             {
                 auto it = m_parent->m_songGroup->m_normPages.find(0);
                 if (it != m_parent->m_songGroup->m_normPages.cend())
-                    m_page = it->second;
+                    m_page = &it->second;
             }
 
             m_curVol = 1.f;
@@ -248,12 +248,12 @@ std::shared_ptr<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velo
 
         ObjectId oid;
         if (m_parent->m_songGroup)
-            oid = (m_parent->m_audioGroup.getDataFormat() == DataFormat::PC) ? m_page->objId : SBig(m_page->objId);
+            oid = m_page->objId;
         else if (m_parent->m_sfxMappings.size())
         {
             size_t lookupIdx = note % m_parent->m_sfxMappings.size();
             const SFXGroupIndex::SFXEntry* sfxEntry = m_parent->m_sfxMappings[lookupIdx];
-            oid = (m_parent->m_audioGroup.getDataFormat() == DataFormat::PC) ? sfxEntry->objId : SBig(sfxEntry->objId);
+            oid = sfxEntry->objId;
             note = sfxEntry->defKey;
         }
         else
@@ -341,7 +341,7 @@ bool Sequencer::ChannelState::programChange(int8_t prog)
             auto it = m_parent->m_songGroup->m_drumPages.find(prog);
             if (it != m_parent->m_songGroup->m_drumPages.cend())
             {
-                m_page = it->second;
+                m_page = &it->second;
                 m_curProgram = prog;
                 return true;
             }
@@ -351,7 +351,7 @@ bool Sequencer::ChannelState::programChange(int8_t prog)
             auto it = m_parent->m_songGroup->m_normPages.find(prog);
             if (it != m_parent->m_songGroup->m_normPages.cend())
             {
-                m_page = it->second;
+                m_page = &it->second;
                 m_curProgram = prog;
                 return true;
             }

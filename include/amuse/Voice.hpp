@@ -31,9 +31,20 @@ class Voice : public Entity
 {
     friend class Engine;
     friend class Sequencer;
-    friend class SoundMacroState;
+    friend struct SoundMacroState;
     friend class Envelope;
     friend class Emitter;
+    friend class SoundMacro::CmdScaleVolume;
+    friend class SoundMacro::CmdKeyOff;
+    friend class SoundMacro::CmdScaleVolumeDLS;
+    friend class SoundMacro::CmdReturn;
+    friend class SoundMacro::CmdGoSub;
+    friend class SoundMacro::CmdTrapEvent;
+    friend class SoundMacro::CmdUntrapEvent;
+    friend class SoundMacro::CmdGetMessage;
+
+    void _setObjectId(ObjectId id) { m_objectId = id; }
+
     int m_vid;                        /**< VoiceID of this voice instance */
     bool m_emitter;                   /**< Voice is part of an Emitter */
     std::shared_ptr<Studio> m_studio; /**< Studio this voice outputs to */
@@ -160,12 +171,12 @@ class Voice : public Entity
     std::list<std::shared_ptr<Voice>>::iterator _allocateVoice(double sampleRate, bool dynamicPitch);
     std::list<std::shared_ptr<Voice>>::iterator _destroyVoice(std::list<std::shared_ptr<Voice>>::iterator it);
 
-    bool _loadSoundMacro(const unsigned char* macroData, int macroStep, double ticksPerSec, uint8_t midiKey,
-                         uint8_t midiVel, uint8_t midiMod, bool pushPc = false);
-    bool _loadKeymap(const Keymap* keymap, int macroStep, double ticksPerSec, uint8_t midiKey, uint8_t midiVel,
-                     uint8_t midiMod, bool pushPc = false);
-    bool _loadLayer(const std::vector<const LayerMapping*>& layer, int macroStep, double ticksPerSec, uint8_t midiKey,
-                    uint8_t midiVel, uint8_t midiMod, bool pushPc = false);
+    bool _loadSoundMacro(ObjectId id, const SoundMacro* macroData, int macroStep, double ticksPerSec,
+                         uint8_t midiKey, uint8_t midiVel, uint8_t midiMod, bool pushPc = false);
+    bool _loadKeymap(ObjectId id, const Keymap* keymap, int macroStep, double ticksPerSec, uint8_t midiKey,
+                     uint8_t midiVel, uint8_t midiMod, bool pushPc = false);
+    bool _loadLayer(ObjectId id, const std::vector<LayerMapping>& layer, int macroStep, double ticksPerSec,
+                    uint8_t midiKey, uint8_t midiVel, uint8_t midiMod, bool pushPc = false);
     std::shared_ptr<Voice> _startChildMacro(ObjectId macroId, int macroStep, double ticksPerSec, uint8_t midiKey,
                                             uint8_t midiVel, uint8_t midiMod, bool pushPc = false);
 

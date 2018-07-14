@@ -13,32 +13,6 @@
 namespace amuse
 {
 
-int SoundMacroState::_assertPC(int pc, uint32_t size)
-{
-    if (pc == -1)
-        return -1;
-    int cmdCount = (size - sizeof(Header)) / sizeof(Command);
-    if (pc >= cmdCount)
-    {
-        fprintf(stderr, "SoundMacro PC bounds exceeded [%d/%d]\n", pc, cmdCount);
-        abort();
-    }
-    return pc;
-}
-
-void SoundMacroState::Header::swapBig()
-{
-    m_size = SBig(m_size);
-    m_macroId = SBig(m_macroId);
-}
-
-void SoundMacroState::Command::swapBig()
-{
-    uint32_t* words = reinterpret_cast<uint32_t*>(this);
-    words[0] = SBig(words[0]);
-    words[1] = SBig(words[1]);
-}
-
 void SoundMacroState::Evaluator::addComponent(uint8_t midiCtrl, float scale, Combine combine, VarType varType)
 {
     m_comps.push_back({midiCtrl, scale, combine, varType});
@@ -130,13 +104,13 @@ float SoundMacroState::Evaluator::evaluate(double time, const Voice& vox, const 
     return value;
 }
 
-void SoundMacroState::initialize(const unsigned char* ptr, int step, bool swapData)
+void SoundMacroState::initialize(ObjectId id, const SoundMacro* macro, int step)
 {
-    initialize(ptr, step, 1000.f, 0, 0, 0, swapData);
+    initialize(id, macro, step, 1000.f, 0, 0, 0);
 }
 
-void SoundMacroState::initialize(const unsigned char* ptr, int step, double ticksPerSec, uint8_t midiKey,
-                                 uint8_t midiVel, uint8_t midiMod, bool swapData)
+void SoundMacroState::initialize(ObjectId id, const SoundMacro* macro, int step, double ticksPerSec,
+                                 uint8_t midiKey, uint8_t midiVel, uint8_t midiMod)
 {
     m_ticksPerSec = ticksPerSec;
     m_initKey = midiKey;
@@ -146,8 +120,7 @@ void SoundMacroState::initialize(const unsigned char* ptr, int step, double tick
     m_curMod = midiMod;
     m_curPitch = midiKey * 100;
     m_pc.clear();
-    const Header& header = reinterpret_cast<const Header&>(ptr);
-    m_pc.push_back({ptr, _assertPC(step, header.m_size, swapData)});
+    m_pc.emplace_back(id, macro, macro->assertPC(step));
     m_inWait = false;
     m_execTime = 0.f;
     m_keyoff = false;
@@ -157,15 +130,945 @@ void SoundMacroState::initialize(const unsigned char* ptr, int step, double tick
     m_useAdsrControllers = false;
     m_portamentoMode = 2;
     m_portamentoTime = 0.5f;
-    m_header = header;
-    if (swapData)
-        m_header.swapBig();
+}
+
+bool SoundMacro::CmdEnd::Do(SoundMacroState& st, Voice& vox) const
+{
+    st._setPC(-1);
+    return true;
+}
+
+bool SoundMacro::CmdStop::Do(SoundMacroState& st, Voice& vox) const
+{
+    st._setPC(-1);
+    return true;
+}
+
+bool SoundMacro::CmdSplitKey::Do(SoundMacroState& st, Voice& vox) const
+{
+    if (st.m_initKey >= key)
+    {
+        /* Do Branch */
+        if (macro.id == std::get<0>(st.m_pc.back()))
+            st._setPC(macroStep);
+        else
+            vox.loadSoundObject(macro.id, macroStep, st.m_ticksPerSec, st.m_initKey, st.m_initVel, st.m_initMod);
+    }
+
+    return false;
+}
+
+bool SoundMacro::CmdSplitVel::Do(SoundMacroState& st, Voice& vox) const
+{
+    if (st.m_curVel >= velocity)
+    {
+        /* Do Branch */
+        if (macro.id == std::get<0>(st.m_pc.back()))
+            st._setPC(macroStep);
+        else
+            vox.loadSoundObject(macro.id, macroStep, st.m_ticksPerSec, st.m_initKey, st.m_initVel, st.m_initMod);
+    }
+
+    return false;
+}
+
+bool SoundMacro::CmdWaitTicks::Do(SoundMacroState& st, Voice& vox) const
+{
+    /* Set wait state */
+    if (ticksPerMs >= 0)
+    {
+        float q = msSwitch ? 1000.f : st.m_ticksPerSec;
+        float secTime = ticksPerMs / q;
+        /* Randomize at the proper resolution */
+        if (random)
+            secTime = std::fmod(vox.getEngine().nextRandom() / q, secTime);
+
+        if (absolute)
+        {
+            if (secTime <= st.m_execTime)
+                return false;
+            st.m_waitCountdown = secTime - st.m_execTime;
+        }
+        else
+            st.m_waitCountdown = secTime;
+
+        st.m_indefiniteWait = false;
+    }
+    else
+        st.m_indefiniteWait = true;
+
+    st.m_inWait = true;
+    st.m_keyoffWait = keyOff;
+    st.m_sampleEndWait = sampleEnd;
+
+    return false;
+}
+
+bool SoundMacro::CmdLoop::Do(SoundMacroState& st, Voice& vox) const
+{
+    if ((keyOff && st.m_keyoff) || (sampleEnd && st.m_sampleEnd))
+    {
+        /* Break out of loop */
+        st.m_loopCountdown = -1;
+        return false;
+    }
+
+    uint32_t useTimes = times;
+    if (random)
+        useTimes = vox.getEngine().nextRandom() % times;
+
+    if (st.m_loopCountdown == -1 && useTimes != -1)
+        st.m_loopCountdown = useTimes;
+
+    if (st.m_loopCountdown > 0)
+    {
+        /* Loop back to step */
+        --st.m_loopCountdown;
+        st._setPC(macroStep);
+    }
+    else /* Break out of loop */
+        st.m_loopCountdown = -1;
+
+    return false;
+}
+
+bool SoundMacro::CmdGoto::Do(SoundMacroState& st, Voice& vox) const
+{
+    /* Do Branch */
+    if (macro.id == std::get<0>(st.m_pc.back()))
+        st._setPC(macroStep);
+    else
+        vox.loadSoundObject(macro.id, macroStep, st.m_ticksPerSec, st.m_initKey, st.m_initVel, st.m_initMod);
+
+    return false;
+}
+
+bool SoundMacro::CmdWaitMs::Do(SoundMacroState& st, Voice& vox) const
+{
+    /* Set wait state */
+    if (ms >= 0)
+    {
+        float secTime = ms / 1000.f;
+        /* Randomize at the proper resolution */
+        if (random)
+            secTime = std::fmod(vox.getEngine().nextRandom() / 1000.f, secTime);
+
+        if (absolute)
+        {
+            if (secTime <= st.m_execTime)
+                return false;
+            st.m_waitCountdown = secTime - st.m_execTime;
+        }
+        else
+            st.m_waitCountdown = secTime;
+
+        st.m_indefiniteWait = false;
+    }
+    else
+        st.m_indefiniteWait = true;
+
+    st.m_inWait = true;
+    st.m_keyoffWait = keyOff;
+    st.m_sampleEndWait = sampleEnd;
+
+    return false;
+}
+
+bool SoundMacro::CmdPlayMacro::Do(SoundMacroState& st, Voice& vox) const
+{
+    std::shared_ptr<Voice> sibVox = vox.startChildMacro(addNote, macro.id, macroStep);
+    if (sibVox)
+        st.m_lastPlayMacroVid = sibVox->vid();
+
+    return false;
+}
+
+bool SoundMacro::CmdSendKeyOff::Do(SoundMacroState& st, Voice& vox) const
+{
+    if (lastStarted)
+    {
+        if (st.m_lastPlayMacroVid != -1)
+        {
+            std::shared_ptr<Voice> otherVox = vox.getEngine().findVoice(st.m_lastPlayMacroVid);
+            if (otherVox)
+                otherVox->keyOff();
+        }
+    }
+    else
+    {
+        std::shared_ptr<Voice> otherVox = vox.getEngine().findVoice(st.m_variables[variable]);
+        if (otherVox)
+            otherVox->keyOff();
+    }
+
+    return false;
+}
+
+bool SoundMacro::CmdSplitMod::Do(SoundMacroState& st, Voice& vox) const
+{
+    if (st.m_curMod >= modValue)
+    {
+        /* Do Branch */
+        if (macro.id == std::get<0>(st.m_pc.back()))
+            st._setPC(macroStep);
+        else
+            vox.loadSoundObject(macro.id, macroStep, st.m_ticksPerSec, st.m_initKey, st.m_initVel, st.m_initMod);
+    }
+
+    return false;
+}
+
+bool SoundMacro::CmdPianoPan::Do(SoundMacroState& st, Voice& vox) const
+{
+    int32_t pan = int32_t(st.m_initKey - centerKey) * scale / 127 + centerPan;
+    pan = std::max(-127, std::min(127, pan));
+    vox.setPan(pan / 127.f);
+
+    return false;
+}
+
+bool SoundMacro::CmdSetAdsr::Do(SoundMacroState& st, Voice& vox) const
+{
+    vox.setAdsr(table.id, dlsMode);
+    return false;
+}
+
+bool SoundMacro::CmdScaleVolume::Do(SoundMacroState& st, Voice& vox) const
+{
+    int32_t eval = int32_t(originalVol ? st.m_initVel : st.m_curVel) * scale / 127 + add;
+    eval = clamp(0, eval, 127);
+
+    if (table.id != 0)
+    {
+        const Curve* curveData = vox.getAudioGroup().getPool().tableAsCurves(table.id);
+        if (curveData)
+        {
+            vox.m_curVol = curveData->data.at(eval) / 127.f;
+            return false;
+        }
+    }
+
+    vox.m_curVol = eval / 127.f;
+
+    return false;
+}
+
+bool SoundMacro::CmdPanning::Do(SoundMacroState& st, Voice& vox) const
+{
+    vox.startPanning(timeMs / 1000.0, panPosition, width);
+    return false;
+}
+
+bool SoundMacro::CmdEnvelope::Do(SoundMacroState& st, Voice& vox) const
+{
+    double q = msSwitch ? 1000.0 : st.m_ticksPerSec;
+    double secTime = fadeTime / q;
+
+    int32_t eval = int32_t(st.m_curVel) * scale / 127 + add;
+    eval = clamp(0, eval, 127);
+
+    const Curve* curveData;
+    if (table.id != 0)
+        curveData = vox.getAudioGroup().getPool().tableAsCurves(table.id);
+    else
+        curveData = nullptr;
+
+    vox.startEnvelope(secTime, eval, curveData);
+
+    return false;
+}
+
+bool SoundMacro::CmdStartSample::Do(SoundMacroState& st, Voice& vox) const
+{
+    uint32_t useOffset = offset;
+
+    switch (mode)
+    {
+    case 1:
+        useOffset = offset * (127 - st.m_curVel) / 127;
+        break;
+    case 2:
+        useOffset = offset * st.m_curVel / 127;
+        break;
+    default:
+        break;
+    }
+
+    vox.startSample(sample.id, useOffset);
+    vox.setPitchKey(st.m_curPitch);
+
+    return false;
+}
+
+bool SoundMacro::CmdStopSample::Do(SoundMacroState& st, Voice& vox) const
+{
+    vox.stopSample();
+    return false;
+}
+
+bool SoundMacro::CmdKeyOff::Do(SoundMacroState& st, Voice& vox) const
+{
+    vox._macroKeyOff();
+    return false;
+}
+
+bool SoundMacro::CmdSplitRnd::Do(SoundMacroState& st, Voice& vox) const
+{
+    if (rnd <= vox.getEngine().nextRandom() % 256)
+    {
+        /* Do branch */
+        if (macro.id == std::get<0>(st.m_pc.back()))
+            st._setPC(macroStep);
+        else
+            vox.loadSoundObject(macro.id, macroStep, st.m_ticksPerSec, st.m_initKey, st.m_initVel, st.m_initMod);
+    }
+
+    return false;
+}
+
+bool SoundMacro::CmdFadeIn::Do(SoundMacroState& st, Voice& vox) const
+{
+    float q = msSwitch ? 1000.f : st.m_ticksPerSec;
+    float secTime = ticksPerMs / q;
+
+    int32_t eval = int32_t(st.m_curVel) * scale / 127 + add;
+    eval = clamp(0, eval, 127);
+
+    const Curve* curveData;
+    if (table.id != 0)
+        curveData = vox.getAudioGroup().getPool().tableAsCurves(table.id);
+    else
+        curveData = nullptr;
+
+    vox.startFadeIn(secTime, eval, curveData);
+
+    return false;
+}
+
+bool SoundMacro::CmdSpanning::Do(SoundMacroState& st, Voice& vox) const
+{
+    vox.startSpanning(timeMs / 1000.0, spanPosition, width);
+    return false;
+}
+
+bool SoundMacro::CmdSetAdsrCtrl::Do(SoundMacroState& st, Voice& vox) const
+{
+    st.m_useAdsrControllers = true;
+    st.m_midiAttack = attack;
+    st.m_midiDecay = decay;
+    st.m_midiSustain = sustain;
+    st.m_midiRelease = release;
+
+    /* Bootstrap ADSR defaults here */
+    if (!vox.getCtrlValue(st.m_midiSustain))
+    {
+        vox.setCtrlValue(st.m_midiAttack, 10);
+        vox.setCtrlValue(st.m_midiSustain, 127);
+        vox.setCtrlValue(st.m_midiRelease, 10);
+    }
+
+    return false;
+}
+
+bool SoundMacro::CmdRndNote::Do(SoundMacroState& st, Voice& vox) const
+{
+    int32_t useNoteLo = noteLo;
+    int32_t useNoteHi = noteHi;
+
+    if (absRel)
+    {
+        useNoteLo = st.m_initKey - noteLo;
+        useNoteHi = noteLo + noteHi;
+    }
+
+    useNoteLo *= 100;
+    useNoteHi *= 100;
+
+    if (useNoteHi == useNoteLo)
+        st.m_curPitch = useNoteHi;
+    else
+        st.m_curPitch = (vox.getEngine().nextRandom() % (useNoteHi - useNoteLo)) + useNoteLo;
+
+    if (!fixedFree)
+        st.m_curPitch = st.m_curPitch / 100 * 100 + detune;
+
+    vox.setPitchKey(st.m_curPitch);
+
+    return false;
+}
+
+bool SoundMacro::CmdAddNote::Do(SoundMacroState& st, Voice& vox) const
+{
+    /* Set wait state */
+    if (msSwitch)
+    {
+        float q = msSwitch ? 1000.f : st.m_ticksPerSec;
+        float secTime = ticksPerMs / q;
+        st.m_waitCountdown = secTime;
+        st.m_inWait = true;
+    }
+
+    vox.setPitchKey(st.m_curPitch);
+
+    return false;
+}
+
+bool SoundMacro::CmdSetNote::Do(SoundMacroState& st, Voice& vox) const
+{
+    st.m_curPitch = key * 100 + detune;
+
+    /* Set wait state */
+    if (ticksPerMs)
+    {
+        float q = msSwitch ? 1000.f : st.m_ticksPerSec;
+        float secTime = ticksPerMs / q;
+        st.m_waitCountdown = secTime;
+        st.m_inWait = true;
+    }
+
+    vox.setPitchKey(st.m_curPitch);
+
+    return false;
+}
+
+bool SoundMacro::CmdLastNote::Do(SoundMacroState& st, Voice& vox) const
+{
+    st.m_curPitch = (add + vox.getLastNote()) * 100 + detune;
+
+    /* Set wait state */
+    if (msSwitch)
+    {
+        float q = msSwitch ? 1000.f : st.m_ticksPerSec;
+        float secTime = ticksPerMs / q;
+        st.m_waitCountdown = secTime;
+        st.m_inWait = true;
+    }
+
+    vox.setPitchKey(st.m_curPitch);
+
+    return false;
+}
+
+bool SoundMacro::CmdPortamento::Do(SoundMacroState& st, Voice& vox) const
+{
+    float q = msSwitch ? 1000.f : st.m_ticksPerSec;
+    st.m_portamentoTime = ticksPerMs / q;
+    return false;
+}
+
+bool SoundMacro::CmdVibrato::Do(SoundMacroState& st, Voice& vox) const
+{
+    float q = msSwitch ? 1000.f : st.m_ticksPerSec;
+    vox.setVibrato(levelNote * 100 + levelFine, modwheelFlag, ticksPerMs / q);
+    return false;
+}
+
+bool SoundMacro::CmdPitchSweep1::Do(SoundMacroState& st, Voice& vox) const
+{
+    /* Set wait state */
+    if (msSwitch)
+    {
+        float q = msSwitch ? 1000.f : st.m_ticksPerSec;
+        float secTime = ticksPerMs / q;
+        st.m_waitCountdown = secTime;
+        st.m_inWait = true;
+    }
+
+    vox.setPitchSweep1(times, add);
+
+    return false;
+}
+
+bool SoundMacro::CmdPitchSweep2::Do(SoundMacroState& st, Voice& vox) const
+{
+    /* Set wait state */
+    if (msSwitch)
+    {
+        float q = msSwitch ? 1000.f : st.m_ticksPerSec;
+        float secTime = ticksPerMs / q;
+        st.m_waitCountdown = secTime;
+        st.m_inWait = true;
+    }
+
+    vox.setPitchSweep2(times, add);
+
+    return false;
+}
+
+bool SoundMacro::CmdSetPitch::Do(SoundMacroState& st, Voice& vox) const
+{
+    vox.setPitchFrequency(hz, fine);
+    return false;
+}
+
+bool SoundMacro::CmdSetPitchAdsr::Do(SoundMacroState& st, Voice& vox) const
+{
+    vox.setPitchAdsr(table.id, keys * 100 + cents);
+    return false;
+}
+
+bool SoundMacro::CmdScaleVolumeDLS::Do(SoundMacroState& st, Voice& vox) const
+{
+    vox.m_curVol = int32_t(originalVol ? st.m_initVel : st.m_curVel) * scale / 4096.f / 127.f;
+    return false;
+}
+
+bool SoundMacro::CmdMod2Vibrange::Do(SoundMacroState& st, Voice& vox) const
+{
+    vox.setMod2VibratoRange(keys * 100 + cents);
+    return false;
+}
+
+bool SoundMacro::CmdSetupTremolo::Do(SoundMacroState& st, Voice& vox) const
+{
+    vox.setTremolo(scale / 4096.f, scale / 4096.f);
+    return false;
+}
+
+bool SoundMacro::CmdReturn::Do(SoundMacroState& st, Voice& vox) const
+{
+    if (st.m_pc.size() > 1)
+    {
+        st.m_pc.pop_back();
+        vox._setObjectId(std::get<0>(st.m_pc.back()));
+    }
+    return false;
+}
+
+bool SoundMacro::CmdGoSub::Do(SoundMacroState& st, Voice& vox) const
+{
+    if (macro.id == std::get<0>(st.m_pc.back()))
+        st.m_pc.emplace_back(std::get<0>(st.m_pc.back()), std::get<1>(st.m_pc.back()),
+            std::get<1>(st.m_pc.back())->assertPC(macroStep));
+    else
+        vox.loadSoundObject(macro.id, macroStep, st.m_ticksPerSec, st.m_initKey, st.m_initVel, st.m_initMod, true);
+
+
+    vox._setObjectId(std::get<0>(st.m_pc.back()));
+
+    return false;
+}
+
+bool SoundMacro::CmdTrapEvent::Do(SoundMacroState& st, Voice& vox) const
+{
+    switch (event)
+    {
+    case 0:
+        vox.m_keyoffTrap.macroId = macro.id;
+        vox.m_keyoffTrap.macroStep = macroStep;
+        break;
+    case 1:
+        vox.m_sampleEndTrap.macroId = macro.id;
+        vox.m_sampleEndTrap.macroStep = macroStep;
+        break;
+    case 2:
+        vox.m_messageTrap.macroId = macro.id;
+        vox.m_messageTrap.macroStep = macroStep;
+        break;
+    default:
+        break;
+    }
+
+    return false;
+}
+
+bool SoundMacro::CmdUntrapEvent::Do(SoundMacroState& st, Voice& vox) const
+{
+    switch (event)
+    {
+    case 0:
+        vox.m_keyoffTrap.macroId = 0xffff;
+        vox.m_keyoffTrap.macroStep = 0xffff;
+        break;
+    case 1:
+        vox.m_sampleEndTrap.macroId = 0xffff;
+        vox.m_sampleEndTrap.macroStep = 0xffff;
+        break;
+    case 2:
+        vox.m_messageTrap.macroId = 0xffff;
+        vox.m_messageTrap.macroStep = 0xffff;
+        break;
+    default:
+        break;
+    }
+
+    return false;
+}
+
+bool SoundMacro::CmdSendMessage::Do(SoundMacroState& st, Voice& vox) const
+{
+    if (isVar)
+    {
+        std::shared_ptr<Voice> findVox = vox.getEngine().findVoice(st.m_variables[vid]);
+        if (findVox)
+            findVox->message(variable);
+    }
+    else
+        vox.getEngine().sendMacroMessage(macro.id, variable);
+
+    return false;
+}
+
+bool SoundMacro::CmdGetMessage::Do(SoundMacroState& st, Voice& vox) const
+{
+    if (vox.m_messageQueue.size())
+    {
+        st.m_variables[variable] = vox.m_messageQueue.front();
+        vox.m_messageQueue.pop_front();
+    }
+    else
+        st.m_variables[variable] = 0;
+
+    return false;
+}
+
+bool SoundMacro::CmdGetVid::Do(SoundMacroState& st, Voice& vox) const
+{
+    st.m_variables[variable] = playMacro ? st.m_lastPlayMacroVid : vox.vid();
+    return false;
+}
+
+bool SoundMacro::CmdAddAgeCount::Do(SoundMacroState& st, Voice& vox) const
+{
+    return false;
+}
+
+bool SoundMacro::CmdSetAgeCount::Do(SoundMacroState& st, Voice& vox) const
+{
+    return false;
+}
+
+bool SoundMacro::CmdSendFlag::Do(SoundMacroState& st, Voice& vox) const
+{
+    /* TODO: figure out a good API */
+    return false;
+}
+
+bool SoundMacro::CmdPitchWheelR::Do(SoundMacroState& st, Voice& vox) const
+{
+    vox.setPitchWheelRange(rangeUp, rangeDown);
+    return false;
+}
+
+bool SoundMacro::CmdSetPriority::Do(SoundMacroState& st, Voice& vox) const
+{
+    return false;
+}
+
+bool SoundMacro::CmdAddPriority::Do(SoundMacroState& st, Voice& vox) const
+{
+    return false;
+}
+
+bool SoundMacro::CmdAgeCntSpeed::Do(SoundMacroState& st, Voice& vox) const
+{
+    return false;
+}
+
+bool SoundMacro::CmdAgeCntVel::Do(SoundMacroState& st, Voice& vox) const
+{
+    return false;
+}
+
+bool SoundMacro::CmdVolSelect::Do(SoundMacroState& st, Voice& vox) const
+{
+    st.m_volumeSel.addComponent(midiControl, (scalingPercentage + fineScaling / 100.f) / 100.f,
+                                SoundMacroState::Evaluator::Combine(combine),
+                                SoundMacroState::Evaluator::VarType(isVar));
+    return false;
+}
+
+bool SoundMacro::CmdPanSelect::Do(SoundMacroState& st, Voice& vox) const
+{
+    st.m_panSel.addComponent(midiControl, (scalingPercentage + fineScaling / 100.f) / 100.f,
+                             SoundMacroState::Evaluator::Combine(combine),
+                             SoundMacroState::Evaluator::VarType(isVar));
+    return false;
+}
+
+bool SoundMacro::CmdPitchWheelSelect::Do(SoundMacroState& st, Voice& vox) const
+{
+    st.m_pitchWheelSel.addComponent(midiControl, (scalingPercentage + fineScaling / 100.f) / 100.f,
+                                    SoundMacroState::Evaluator::Combine(combine),
+                                    SoundMacroState::Evaluator::VarType(isVar));
+    return false;
+}
+
+bool SoundMacro::CmdModWheelSelect::Do(SoundMacroState& st, Voice& vox) const
+{
+    st.m_modWheelSel.addComponent(midiControl, (scalingPercentage + fineScaling / 100.f) / 100.f,
+                                  SoundMacroState::Evaluator::Combine(combine),
+                                  SoundMacroState::Evaluator::VarType(isVar));
+    return false;
+}
+
+bool SoundMacro::CmdPedalSelect::Do(SoundMacroState& st, Voice& vox) const
+{
+    st.m_pedalSel.addComponent(midiControl, (scalingPercentage + fineScaling / 100.f) / 100.f,
+                               SoundMacroState::Evaluator::Combine(combine),
+                               SoundMacroState::Evaluator::VarType(isVar));
+    return false;
+}
+
+bool SoundMacro::CmdPortamentoSelect::Do(SoundMacroState& st, Voice& vox) const
+{
+    st.m_portamentoSel.addComponent(midiControl, (scalingPercentage + fineScaling / 100.f) / 100.f,
+                                    SoundMacroState::Evaluator::Combine(combine),
+                                    SoundMacroState::Evaluator::VarType(isVar));
+    return false;
+}
+
+bool SoundMacro::CmdReverbSelect::Do(SoundMacroState& st, Voice& vox) const
+{
+    st.m_reverbSel.addComponent(midiControl, (scalingPercentage + fineScaling / 100.f) / 100.f,
+                                SoundMacroState::Evaluator::Combine(combine),
+                                SoundMacroState::Evaluator::VarType(isVar));
+    return false;
+}
+
+bool SoundMacro::CmdSpanSelect::Do(SoundMacroState& st, Voice& vox) const
+{
+    st.m_spanSel.addComponent(midiControl, (scalingPercentage + fineScaling / 100.f) / 100.f,
+                              SoundMacroState::Evaluator::Combine(combine),
+                              SoundMacroState::Evaluator::VarType(isVar));
+    return false;
+}
+
+bool SoundMacro::CmdDopplerSelect::Do(SoundMacroState& st, Voice& vox) const
+{
+    st.m_dopplerSel.addComponent(midiControl, (scalingPercentage + fineScaling / 100.f) / 100.f,
+                                 SoundMacroState::Evaluator::Combine(combine),
+                                 SoundMacroState::Evaluator::VarType(isVar));
+    return false;
+}
+
+bool SoundMacro::CmdTremoloSelect::Do(SoundMacroState& st, Voice& vox) const
+{
+    st.m_tremoloSel.addComponent(midiControl, (scalingPercentage + fineScaling / 100.f) / 100.f,
+                                 SoundMacroState::Evaluator::Combine(combine),
+                                 SoundMacroState::Evaluator::VarType(isVar));
+    return false;
+}
+
+bool SoundMacro::CmdPreASelect::Do(SoundMacroState& st, Voice& vox) const
+{
+    st.m_preAuxASel.addComponent(midiControl, (scalingPercentage + fineScaling / 100.f) / 100.f,
+                                 SoundMacroState::Evaluator::Combine(combine),
+                                 SoundMacroState::Evaluator::VarType(isVar));
+    return false;
+}
+
+bool SoundMacro::CmdPreBSelect::Do(SoundMacroState& st, Voice& vox) const
+{
+    st.m_preAuxBSel.addComponent(midiControl, (scalingPercentage + fineScaling / 100.f) / 100.f,
+                                 SoundMacroState::Evaluator::Combine(combine),
+                                 SoundMacroState::Evaluator::VarType(isVar));
+    return false;
+}
+
+bool SoundMacro::CmdPostBSelect::Do(SoundMacroState& st, Voice& vox) const
+{
+    st.m_postAuxB.addComponent(midiControl, (scalingPercentage + fineScaling / 100.f) / 100.f,
+                               SoundMacroState::Evaluator::Combine(combine),
+                               SoundMacroState::Evaluator::VarType(isVar));
+    return false;
+}
+
+bool SoundMacro::CmdAuxAFXSelect::Do(SoundMacroState& st, Voice& vox) const
+{
+    st.m_auxAFxSel.addComponent(midiControl, (scalingPercentage + fineScaling / 100.f) / 100.f,
+                                SoundMacroState::Evaluator::Combine(combine),
+                                SoundMacroState::Evaluator::VarType(isVar));
+    return false;
+}
+
+bool SoundMacro::CmdAuxBFXSelect::Do(SoundMacroState& st, Voice& vox) const
+{
+    st.m_auxBFxSel.addComponent(midiControl, (scalingPercentage + fineScaling / 100.f) / 100.f,
+                                SoundMacroState::Evaluator::Combine(combine),
+                                SoundMacroState::Evaluator::VarType(isVar));
+    return false;
+}
+
+bool SoundMacro::CmdSetupLFO::Do(SoundMacroState& st, Voice& vox) const
+{
+    if (lfoNumber == 0)
+        vox.setLFO1Period(periodInMs / 1000.f);
+    else if (lfoNumber == 1)
+        vox.setLFO2Period(periodInMs / 1000.f);
+    return false;
+}
+
+bool SoundMacro::CmdModeSelect::Do(SoundMacroState& st, Voice& vox) const
+{
+    return false;
+}
+
+bool SoundMacro::CmdSetKeygroup::Do(SoundMacroState& st, Voice& vox) const
+{
+    vox.setKeygroup(0);
+    if (group)
+    {
+        vox.getEngine().killKeygroup(group, killNow);
+        vox.setKeygroup(group);
+    }
+    return false;
+}
+
+bool SoundMacro::CmdSRCmodeSelect::Do(SoundMacroState& st, Voice& vox) const
+{
+    return false;
+}
+
+bool SoundMacro::CmdAddVars::Do(SoundMacroState& st, Voice& vox) const
+{
+    int32_t useB, useC;
+
+    if (varCtrlB)
+        useB = vox.getCtrlValue(b);
+    else
+        useB = st.m_variables[b];
+
+    if (varCtrlC)
+        useC = vox.getCtrlValue(c);
+    else
+        useC = st.m_variables[c];
+
+    if (varCtrlA)
+        vox.setCtrlValue(a, useB + useC);
+    else
+        st.m_variables[a] = useB + useC;
+
+    return false;
+}
+
+bool SoundMacro::CmdSubVars::Do(SoundMacroState& st, Voice& vox) const
+{
+    int32_t useB, useC;
+
+    if (varCtrlB)
+        useB = vox.getCtrlValue(b);
+    else
+        useB = st.m_variables[b];
+
+    if (varCtrlC)
+        useC = vox.getCtrlValue(c);
+    else
+        useC = st.m_variables[c];
+
+    if (varCtrlA)
+        vox.setCtrlValue(a, useB - useC);
+    else
+        st.m_variables[a] = useB - useC;
+
+    return false;
+}
+
+bool SoundMacro::CmdMulVars::Do(SoundMacroState& st, Voice& vox) const
+{
+    int32_t useB, useC;
+
+    if (varCtrlB)
+        useB = vox.getCtrlValue(b);
+    else
+        useB = st.m_variables[b];
+
+    if (varCtrlC)
+        useC = vox.getCtrlValue(c);
+    else
+        useC = st.m_variables[c];
+
+    if (varCtrlA)
+        vox.setCtrlValue(a, useB * useC);
+    else
+        st.m_variables[a] = useB * useC;
+
+    return false;
+}
+
+bool SoundMacro::CmdDivVars::Do(SoundMacroState& st, Voice& vox) const
+{
+    int32_t useB, useC;
+
+    if (varCtrlB)
+        useB = vox.getCtrlValue(b);
+    else
+        useB = st.m_variables[b];
+
+    if (varCtrlC)
+        useC = vox.getCtrlValue(c);
+    else
+        useC = st.m_variables[c];
+
+    if (varCtrlA)
+        vox.setCtrlValue(a, useB / useC);
+    else
+        st.m_variables[a] = useB / useC;
+
+    return false;
+}
+
+bool SoundMacro::CmdAddIVars::Do(SoundMacroState& st, Voice& vox) const
+{
+    int32_t useB;
+
+    if (varCtrlB)
+        useB = vox.getCtrlValue(b);
+    else
+        useB = st.m_variables[b];
+
+    if (varCtrlA)
+        vox.setCtrlValue(a, useB + imm);
+    else
+        st.m_variables[a] = useB + imm;
+
+    return false;
+}
+
+bool SoundMacro::CmdIfEqual::Do(SoundMacroState& st, Voice& vox) const
+{
+    int32_t useA, useB;
+
+    if (varCtrlA)
+        useA = vox.getCtrlValue(a);
+    else
+        useA = st.m_variables[a];
+
+    if (varCtrlB)
+        useB = vox.getCtrlValue(b);
+    else
+        useB = st.m_variables[b];
+
+    if ((useA == useB) ^ notEq)
+        st._setPC(macroStep);
+
+    return false;
+}
+
+bool SoundMacro::CmdIfLess::Do(SoundMacroState& st, Voice& vox) const
+{
+    int32_t useA, useB;
+
+    if (varCtrlA)
+        useA = vox.getCtrlValue(a);
+    else
+        useA = st.m_variables[a];
+
+    if (varCtrlB)
+        useB = vox.getCtrlValue(b);
+    else
+        useB = st.m_variables[b];
+
+    if ((useA < useB) ^ notLt)
+        st._setPC(macroStep);
+
+    return false;
 }
 
 bool SoundMacroState::advance(Voice& vox, double dt)
 {
     /* Nothing if uninitialized or finished */
-    if (m_pc.empty() || m_pc.back().first == nullptr || m_pc.back().second == -1)
+    if (m_pc.empty() || std::get<1>(m_pc.back()) == nullptr || std::get<2>(m_pc.back()) == -1)
         return true;
 
     /* Loop through as many commands as we can for this time period */
@@ -193,1064 +1096,11 @@ bool SoundMacroState::advance(Voice& vox, double dt)
         }
 
         /* Load next command based on counter */
-        const Command* commands = reinterpret_cast<const Command*>(m_pc.back().first + sizeof(Header));
-        _assertPC(m_pc.back().second, m_header.m_size);
-        Command cmd = commands[m_pc.back().second++];
-        if (vox.getAudioGroup().getDataFormat() != DataFormat::PC)
-            cmd.swapBig();
+        const SoundMacro::ICmd& cmd = std::get<1>(m_pc.back())->getCmd(std::get<2>(m_pc.back())++);
 
         /* Perform function of command */
-        switch (cmd.m_op)
-        {
-        case Op::End:
-        case Op::Stop:
-            _setPC(-1);
+        if (cmd.Do(*this, vox))
             return true;
-        case Op::SplitKey:
-        {
-            uint8_t keyNumber = cmd.m_data[0];
-            ObjectId macroId = *reinterpret_cast<ObjectId*>(&cmd.m_data[1]);
-            int16_t macroStep = *reinterpret_cast<int16_t*>(&cmd.m_data[3]);
-
-            if (m_initKey >= keyNumber)
-            {
-                /* Do Branch */
-                if (macroId == m_header.m_macroId)
-                    _setPC(macroStep);
-                else
-                    vox.loadSoundObject(macroId, macroStep, m_ticksPerSec, m_initKey, m_initVel, m_initMod);
-            }
-
-            break;
-        }
-        case Op::SplitVel:
-        {
-            uint8_t velocity = cmd.m_data[0];
-            ObjectId macroId = *reinterpret_cast<ObjectId*>(&cmd.m_data[1]);
-            int16_t macroStep = *reinterpret_cast<int16_t*>(&cmd.m_data[3]);
-
-            if (m_curVel >= velocity)
-            {
-                /* Do Branch */
-                if (macroId == m_header.m_macroId)
-                    _setPC(macroStep);
-                else
-                    vox.loadSoundObject(macroId, macroStep, m_ticksPerSec, m_initKey, m_initVel, m_initMod);
-            }
-
-            break;
-        }
-        case Op::WaitTicks:
-        {
-            bool keyRelease = cmd.m_data[0];
-            bool random = cmd.m_data[1];
-            bool sampleEnd = cmd.m_data[2];
-            bool absolute = cmd.m_data[3];
-            bool ms = cmd.m_data[4];
-            int16_t time = *reinterpret_cast<int16_t*>(&cmd.m_data[5]);
-
-            /* Set wait state */
-            if (time >= 0)
-            {
-                float q = ms ? 1000.f : m_ticksPerSec;
-                float secTime = time / q;
-                if (absolute)
-                {
-                    if (secTime <= m_execTime)
-                        break;
-                    m_waitCountdown = secTime - m_execTime;
-                }
-                else
-                    m_waitCountdown = secTime;
-
-                /* Randomize at the proper resolution */
-                if (random)
-                    secTime = std::fmod(vox.getEngine().nextRandom() / q, secTime);
-
-                m_indefiniteWait = false;
-            }
-            else
-                m_indefiniteWait = true;
-
-            m_inWait = true;
-            m_keyoffWait = keyRelease;
-            m_sampleEndWait = sampleEnd;
-            break;
-        }
-        case Op::Loop:
-        {
-            bool keyRelease = cmd.m_data[0];
-            bool random = cmd.m_data[1];
-            bool sampleEnd = cmd.m_data[2];
-            int16_t step = *reinterpret_cast<int16_t*>(&cmd.m_data[3]);
-            int16_t times = *reinterpret_cast<int16_t*>(&cmd.m_data[5]);
-
-            if ((keyRelease && m_keyoff) || (sampleEnd && m_sampleEnd))
-            {
-                /* Break out of loop */
-                m_loopCountdown = -1;
-                break;
-            }
-
-            if (random)
-                times = vox.getEngine().nextRandom() % times;
-
-            if (m_loopCountdown == -1 && times != -1)
-                m_loopCountdown = times;
-
-            if (m_loopCountdown > 0)
-            {
-                /* Loop back to step */
-                --m_loopCountdown;
-                _setPC(step);
-            }
-            else /* Break out of loop */
-                m_loopCountdown = -1;
-
-            break;
-        }
-        case Op::Goto:
-        {
-            ObjectId macroId = *reinterpret_cast<ObjectId*>(&cmd.m_data[1]);
-            int16_t macroStep = *reinterpret_cast<int16_t*>(&cmd.m_data[3]);
-
-            /* Do Branch */
-            if (macroId == m_header.m_macroId)
-                _setPC(macroStep);
-            else
-                vox.loadSoundObject(macroId, macroStep, m_ticksPerSec, m_initKey, m_initVel, m_initMod);
-
-            break;
-        }
-        case Op::WaitMs:
-        {
-            bool keyRelease = cmd.m_data[0];
-            bool random = cmd.m_data[1];
-            bool sampleEnd = cmd.m_data[2];
-            bool absolute = cmd.m_data[3];
-            int16_t time = *reinterpret_cast<int16_t*>(&cmd.m_data[5]);
-
-            /* Set wait state */
-            if (time >= 0)
-            {
-                float secTime = time / 1000.f;
-                if (absolute)
-                {
-                    if (secTime <= m_execTime)
-                        break;
-                    m_waitCountdown = secTime - m_execTime;
-                }
-                else
-                    m_waitCountdown = secTime;
-
-                /* Randomize at the proper resolution */
-                if (random)
-                    secTime = std::fmod(vox.getEngine().nextRandom() / 1000.f, secTime);
-
-                m_indefiniteWait = false;
-            }
-            else
-                m_indefiniteWait = true;
-
-            m_inWait = true;
-            m_keyoffWait = keyRelease;
-            m_sampleEndWait = sampleEnd;
-            break;
-        }
-        case Op::PlayMacro:
-        {
-            int8_t addNote = cmd.m_data[0];
-            ObjectId macroId = *reinterpret_cast<ObjectId*>(&cmd.m_data[1]);
-            int16_t macroStep = *reinterpret_cast<int16_t*>(&cmd.m_data[3]);
-            // int8_t priority = cmd.m_data[5];
-            // int8_t maxVoices = cmd.m_data[6];
-
-            std::shared_ptr<Voice> sibVox = vox.startChildMacro(addNote, macroId, macroStep);
-            if (sibVox)
-                m_lastPlayMacroVid = sibVox->vid();
-
-            break;
-        }
-        case Op::SendKeyOff:
-        {
-            uint8_t vid = cmd.m_data[0];
-            bool lastStarted = cmd.m_data[1];
-
-            if (lastStarted)
-            {
-                if (m_lastPlayMacroVid != -1)
-                {
-                    std::shared_ptr<Voice> otherVox = vox.getEngine().findVoice(m_lastPlayMacroVid);
-                    if (otherVox)
-                        otherVox->keyOff();
-                }
-            }
-            else
-            {
-                std::shared_ptr<Voice> otherVox = vox.getEngine().findVoice(m_variables[vid]);
-                if (otherVox)
-                    otherVox->keyOff();
-            }
-
-            break;
-        }
-        case Op::SplitMod:
-        {
-            uint8_t mod = cmd.m_data[0];
-            ObjectId macroId = *reinterpret_cast<ObjectId*>(&cmd.m_data[1]);
-            int16_t macroStep = *reinterpret_cast<int16_t*>(&cmd.m_data[3]);
-
-            if (m_curMod >= mod)
-            {
-                /* Do Branch */
-                if (macroId == m_header.m_macroId)
-                    _setPC(macroStep);
-                else
-                    vox.loadSoundObject(macroId, macroStep, m_ticksPerSec, m_initKey, m_initVel, m_initMod);
-            }
-
-            break;
-        }
-        case Op::PianoPan:
-        {
-            int8_t scale = cmd.m_data[0];
-            int8_t cenKey = cmd.m_data[1];
-            int8_t cenPan = cmd.m_data[2];
-
-            int32_t pan = int32_t(m_initKey - cenKey) * scale / 127 + cenPan;
-            pan = std::max(-127, std::min(127, pan));
-            vox.setPan(pan / 127.f);
-            break;
-        }
-        case Op::SetAdsr:
-        {
-            ObjectId tableId = *reinterpret_cast<ObjectId*>(&cmd.m_data[0]);
-            bool dlsMode = cmd.m_data[2];
-            vox.setAdsr(tableId, dlsMode);
-            break;
-        }
-        case Op::ScaleVolume:
-        {
-            int8_t scale = cmd.m_data[0];
-            int8_t add = cmd.m_data[1];
-            ObjectId curve = *reinterpret_cast<ObjectId*>(&cmd.m_data[2]);
-            bool orgVel = cmd.m_data[4];
-
-            int32_t eval = int32_t(orgVel ? m_initVel : m_curVel) * scale / 127 + add;
-            eval = clamp(0, eval, 127);
-
-            if (curve != 0)
-            {
-                const Curve* curveData = vox.getAudioGroup().getPool().tableAsCurves(curve);
-                if (curveData)
-                {
-                    vox.m_curVol = (*curveData)[eval] / 127.f;
-                    break;
-                }
-            }
-
-            vox.m_curVol = eval / 127.f;
-            break;
-        }
-        case Op::Panning:
-        {
-            int8_t panPos = cmd.m_data[0];
-            int16_t timeMs = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
-            int8_t width = cmd.m_data[3];
-
-            vox.startPanning(timeMs / 1000.0, panPos, width);
-            break;
-        }
-        case Op::Envelope:
-        {
-            int8_t scale = cmd.m_data[0];
-            int8_t add = cmd.m_data[1];
-            ObjectId curve = *reinterpret_cast<ObjectId*>(&cmd.m_data[2]);
-            bool ms = cmd.m_data[4];
-            int16_t fadeTime = *reinterpret_cast<int16_t*>(&cmd.m_data[5]);
-
-            double q = ms ? 1000.0 : m_ticksPerSec;
-            double secTime = fadeTime / q;
-
-            int32_t eval = int32_t(m_curVel) * scale / 127 + add;
-            eval = clamp(0, eval, 127);
-
-            const Curve* curveData;
-            if (curve != 0)
-                curveData = vox.getAudioGroup().getPool().tableAsCurves(curve);
-            else
-                curveData = nullptr;
-
-            vox.startEnvelope(secTime, eval, curveData);
-            break;
-        }
-        case Op::StartSample:
-        {
-            int16_t smpId = *reinterpret_cast<int16_t*>(&cmd.m_data[0]);
-            int8_t mode = cmd.m_data[2];
-            int32_t offset = *reinterpret_cast<int32_t*>(&cmd.m_data[3]);
-
-            switch (mode)
-            {
-            case 1:
-                offset = offset * (127 - m_curVel) / 127;
-                break;
-            case 2:
-                offset = offset * m_curVel / 127;
-                break;
-            default:
-                break;
-            }
-
-            vox.startSample(smpId, offset);
-            vox.setPitchKey(m_curPitch);
-            break;
-        }
-        case Op::StopSample:
-        {
-            vox.stopSample();
-            break;
-        }
-        case Op::KeyOff:
-        {
-            vox._macroKeyOff();
-            break;
-        }
-        case Op::SplitRnd:
-        {
-            uint8_t rndVal = cmd.m_data[0];
-            ObjectId macroId = *reinterpret_cast<ObjectId*>(&cmd.m_data[1]);
-            int16_t macroStep = *reinterpret_cast<int16_t*>(&cmd.m_data[3]);
-
-            if (rndVal <= vox.getEngine().nextRandom() % 256)
-            {
-                /* Do branch */
-                if (macroId == m_header.m_macroId)
-                    _setPC(macroStep);
-                else
-                    vox.loadSoundObject(macroId, macroStep, m_ticksPerSec, m_initKey, m_initVel, m_initMod);
-            }
-
-            break;
-        }
-        case Op::FadeIn:
-        {
-            int8_t scale = cmd.m_data[0];
-            int8_t add = cmd.m_data[1];
-            ObjectId curve = *reinterpret_cast<ObjectId*>(&cmd.m_data[2]);
-            bool ms = cmd.m_data[4];
-            int16_t fadeTime = *reinterpret_cast<int16_t*>(&cmd.m_data[5]);
-
-            float q = ms ? 1000.f : m_ticksPerSec;
-            float secTime = fadeTime / q;
-
-            int32_t eval = int32_t(m_curVel) * scale / 127 + add;
-            eval = clamp(0, eval, 127);
-
-            const Curve* curveData;
-            if (curve != 0)
-                curveData = vox.getAudioGroup().getPool().tableAsCurves(curve);
-            else
-                curveData = nullptr;
-
-            vox.startFadeIn(secTime, eval, curveData);
-            break;
-        }
-        case Op::Spanning:
-        {
-            int8_t panPos = cmd.m_data[0];
-            int16_t timeMs = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
-            int8_t width = cmd.m_data[3];
-
-            vox.startSpanning(timeMs / 1000.0, panPos, width);
-            break;
-        }
-        case Op::SetAdsrCtrl:
-        {
-            m_useAdsrControllers = true;
-            m_midiAttack = cmd.m_data[0];
-            m_midiDecay = cmd.m_data[1];
-            m_midiSustain = cmd.m_data[2];
-            m_midiRelease = cmd.m_data[3];
-
-            /* Bootstrap ADSR defaults here */
-            if (!vox.getCtrlValue(m_midiSustain))
-            {
-                vox.setCtrlValue(m_midiAttack, 10);
-                vox.setCtrlValue(m_midiSustain, 127);
-                vox.setCtrlValue(m_midiRelease, 10);
-            }
-
-            break;
-        }
-        case Op::RndNote:
-        {
-            int32_t noteLo = int32_t(cmd.m_data[0]);
-            int8_t detune = cmd.m_data[1];
-            int32_t noteHi = int32_t(cmd.m_data[2]);
-            int8_t free = cmd.m_data[3];
-            int8_t rel = cmd.m_data[4];
-
-            if (rel)
-            {
-                noteLo = m_initKey - noteLo;
-                noteHi = noteLo + noteHi;
-            }
-
-            noteLo *= 100;
-            noteHi *= 100;
-
-            if (noteHi == noteLo)
-                m_curPitch = noteHi;
-            else
-                m_curPitch = (vox.getEngine().nextRandom() % (noteHi - noteLo)) + noteLo;
-
-            if (!free)
-                m_curPitch = m_curPitch / 100 * 100 + detune;
-
-            vox.setPitchKey(m_curPitch);
-            break;
-        }
-        case Op::AddNote:
-        {
-            int32_t add = int32_t(cmd.m_data[0]);
-            int8_t detune = cmd.m_data[1];
-            int8_t orgKey = cmd.m_data[2];
-            int8_t ms = cmd.m_data[4];
-            int16_t timeMs = *reinterpret_cast<int16_t*>(&cmd.m_data[5]);
-
-            m_curPitch = (orgKey ? (m_initKey * 100) : m_curPitch) + add * 100 + detune;
-
-            /* Set wait state */
-            if (timeMs)
-            {
-                float q = ms ? 1000.f : m_ticksPerSec;
-                float secTime = timeMs / q;
-                m_waitCountdown = secTime;
-                m_inWait = true;
-            }
-
-            vox.setPitchKey(m_curPitch);
-            break;
-        }
-        case Op::SetNote:
-        {
-            int32_t key = int32_t(cmd.m_data[0]);
-            int8_t detune = cmd.m_data[1];
-            int8_t ms = cmd.m_data[4];
-            int16_t timeMs = *reinterpret_cast<int16_t*>(&cmd.m_data[5]);
-
-            m_curPitch = key * 100 + detune;
-
-            /* Set wait state */
-            if (timeMs)
-            {
-                float q = ms ? 1000.f : m_ticksPerSec;
-                float secTime = timeMs / q;
-                m_waitCountdown = secTime;
-                m_inWait = true;
-            }
-
-            vox.setPitchKey(m_curPitch);
-            break;
-        }
-        case Op::LastNote:
-        {
-            int32_t add = int32_t(cmd.m_data[0]);
-            int8_t detune = cmd.m_data[1];
-            int8_t ms = cmd.m_data[4];
-            int16_t timeMs = *reinterpret_cast<int16_t*>(&cmd.m_data[5]);
-
-            m_curPitch = (add + vox.getLastNote()) * 100 + detune;
-
-            /* Set wait state */
-            if (timeMs)
-            {
-                float q = ms ? 1000.f : m_ticksPerSec;
-                float secTime = timeMs / q;
-                m_waitCountdown = secTime;
-                m_inWait = true;
-            }
-
-            vox.setPitchKey(m_curPitch);
-            break;
-        }
-        case Op::Portamento:
-        {
-            m_portamentoMode = cmd.m_data[0];
-            m_portamentoType = cmd.m_data[1];
-            int8_t ms = cmd.m_data[4];
-            int16_t timeMs = *reinterpret_cast<int16_t*>(&cmd.m_data[5]);
-
-            float q = ms ? 1000.f : m_ticksPerSec;
-            m_portamentoTime = timeMs / q;
-            break;
-        }
-        case Op::Vibrato:
-        {
-            int32_t level = cmd.m_data[0] * 100 + cmd.m_data[1];
-            bool modScale = cmd.m_data[2] != 0;
-            int8_t ms = cmd.m_data[4];
-            int16_t timeMs = *reinterpret_cast<int16_t*>(&cmd.m_data[5]);
-
-            float q = ms ? 1000.f : m_ticksPerSec;
-            vox.setVibrato(level, modScale, timeMs / q);
-            break;
-        }
-        case Op::PitchSweep1:
-        {
-            int32_t times = int32_t(cmd.m_data[0]);
-            int16_t add = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
-
-            int8_t ms = cmd.m_data[4];
-            int16_t timeMs = *reinterpret_cast<int16_t*>(&cmd.m_data[5]);
-
-            /* Set wait state */
-            if (timeMs)
-            {
-                float q = ms ? 1000.f : m_ticksPerSec;
-                float secTime = timeMs / q;
-                m_waitCountdown = secTime;
-                m_inWait = true;
-            }
-
-            vox.setPitchSweep1(times, add);
-            break;
-        }
-        case Op::PitchSweep2:
-        {
-            int32_t times = int32_t(cmd.m_data[0]);
-            int16_t add = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
-
-            int8_t ms = cmd.m_data[4];
-            int16_t timeMs = *reinterpret_cast<int16_t*>(&cmd.m_data[5]);
-
-            /* Set wait state */
-            if (timeMs)
-            {
-                float q = ms ? 1000.f : m_ticksPerSec;
-                float secTime = timeMs / q;
-                m_waitCountdown = secTime;
-                m_inWait = true;
-            }
-
-            vox.setPitchSweep2(times, add);
-            break;
-        }
-        case Op::SetPitch:
-        {
-            uint32_t hz = *reinterpret_cast<uint32_t*>(&cmd.m_data[0]) >> 8;
-            uint16_t fine = *reinterpret_cast<uint16_t*>(&cmd.m_data[3]);
-            vox.setPitchFrequency(hz, fine);
-            break;
-        }
-        case Op::SetPitchAdsr:
-        {
-            ObjectId adsr = *reinterpret_cast<ObjectId*>(&cmd.m_data[0]);
-            int8_t keys = cmd.m_data[3];
-            int8_t cents = cmd.m_data[4];
-            vox.setPitchAdsr(adsr, keys * 100 + cents);
-            break;
-        }
-        case Op::ScaleVolumeDLS:
-        {
-            int16_t scale = *reinterpret_cast<int16_t*>(&cmd.m_data[0]);
-            bool orgVel = cmd.m_data[2];
-            vox.m_curVol = int32_t(orgVel ? m_initVel : m_curVel) * scale / 4096.f / 127.f;
-            break;
-        }
-        case Op::Mod2Vibrange:
-        {
-            int8_t keys = cmd.m_data[0];
-            int8_t cents = cmd.m_data[1];
-            vox.setMod2VibratoRange(keys * 100 + cents);
-            break;
-        }
-        case Op::SetupTremolo:
-        {
-            int16_t scale = *reinterpret_cast<int16_t*>(&cmd.m_data[0]);
-            int16_t modScale = *reinterpret_cast<int16_t*>(&cmd.m_data[3]);
-            vox.setTremolo(scale / 4096.f, modScale / 4096.f);
-            break;
-        }
-        case Op::Return:
-        {
-            if (m_pc.size() > 1)
-            {
-                m_pc.pop_back();
-                m_header = *reinterpret_cast<const Header*>(m_pc.back().first);
-                if (vox.getAudioGroup().getDataFormat() != DataFormat::PC)
-                    m_header.swapBig();
-                vox.m_objectId = m_header.m_macroId;
-            }
-            break;
-        }
-        case Op::GoSub:
-        {
-            ObjectId macroId = *reinterpret_cast<ObjectId*>(&cmd.m_data[1]);
-            int16_t macroStep = *reinterpret_cast<int16_t*>(&cmd.m_data[3]);
-
-            if (macroId == m_header.m_macroId)
-                m_pc.push_back({m_pc.back().first, _assertPC(macroStep, m_header.m_size)});
-            else
-                vox.loadSoundObject(macroId, macroStep, m_ticksPerSec, m_initKey, m_initVel, m_initMod, true);
-
-            m_header = *reinterpret_cast<const Header*>(m_pc.back().first);
-            if (vox.getAudioGroup().getDataFormat() != DataFormat::PC)
-                m_header.swapBig();
-            vox.m_objectId = m_header.m_macroId;
-
-            break;
-        }
-        case Op::TrapEvent:
-        {
-            uint8_t event = cmd.m_data[0];
-            ObjectId macroId = *reinterpret_cast<ObjectId*>(&cmd.m_data[1]);
-            int16_t macroStep = *reinterpret_cast<int16_t*>(&cmd.m_data[3]);
-
-            switch (event)
-            {
-            case 0:
-                vox.m_keyoffTrap.macroId = macroId;
-                vox.m_keyoffTrap.macroStep = macroStep;
-                break;
-            case 1:
-                vox.m_sampleEndTrap.macroId = macroId;
-                vox.m_sampleEndTrap.macroStep = macroStep;
-                break;
-            case 2:
-                vox.m_messageTrap.macroId = macroId;
-                vox.m_messageTrap.macroStep = macroStep;
-                break;
-            default:
-                break;
-            }
-
-            break;
-        }
-        case Op::UntrapEvent:
-        {
-            uint8_t event = cmd.m_data[0];
-
-            switch (event)
-            {
-            case 0:
-                vox.m_keyoffTrap.macroId = 0xffff;
-                vox.m_keyoffTrap.macroStep = -1;
-                break;
-            case 1:
-                vox.m_sampleEndTrap.macroId = 0xffff;
-                vox.m_sampleEndTrap.macroStep = -1;
-                break;
-            case 2:
-                vox.m_messageTrap.macroId = 0xffff;
-                vox.m_messageTrap.macroStep = -1;
-                break;
-            default:
-                break;
-            }
-
-            break;
-        }
-        case Op::SendMessage:
-        {
-            bool isVar = cmd.m_data[0];
-            ObjectId macroId = *reinterpret_cast<ObjectId*>(&cmd.m_data[1]);
-            uint8_t vid = cmd.m_data[3];
-            uint8_t val = cmd.m_data[4];
-
-            if (isVar)
-            {
-                std::shared_ptr<Voice> findVox = vox.getEngine().findVoice(m_variables[vid]);
-                if (findVox)
-                    findVox->message(val);
-            }
-            else
-                vox.getEngine().sendMacroMessage(macroId, val);
-
-            break;
-        }
-        case Op::GetMessage:
-        {
-            uint8_t vid = cmd.m_data[0];
-            if (vox.m_messageQueue.size())
-            {
-                m_variables[vid] = vox.m_messageQueue.front();
-                vox.m_messageQueue.pop_front();
-            }
-            else
-                m_variables[vid] = 0;
-            break;
-        }
-        case Op::GetVid:
-        {
-            uint8_t vid = cmd.m_data[0];
-            bool lastPlayMacro = cmd.m_data[1];
-            m_variables[vid] = lastPlayMacro ? m_lastPlayMacroVid : vox.vid();
-            break;
-        }
-        case Op::SendFlag:
-        {
-            //int8_t id = cmd.m_data[0];
-            //int8_t val = cmd.m_data[1];
-            break; /* TODO: figure out a good API */
-        }
-        case Op::PitchWheelR:
-        {
-            int8_t up = cmd.m_data[0];
-            int8_t down = cmd.m_data[1];
-            vox.setPitchWheelRange(up, down);
-            break;
-        }
-        case Op::VolSelect:
-        {
-            uint8_t ctrl = cmd.m_data[0];
-            int16_t perc = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
-            Evaluator::Combine combine = Evaluator::Combine(cmd.m_data[3]);
-            Evaluator::VarType vtype = Evaluator::VarType(cmd.m_data[4]);
-            uint8_t fine = cmd.m_data[5];
-            m_volumeSel.addComponent(ctrl, (perc + fine / 100.f) / 100.f, combine, vtype);
-            break;
-        }
-        case Op::PanSelect:
-        {
-            uint8_t ctrl = cmd.m_data[0];
-            int16_t perc = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
-            Evaluator::Combine combine = Evaluator::Combine(cmd.m_data[3]);
-            Evaluator::VarType vtype = Evaluator::VarType(cmd.m_data[4]);
-            uint8_t fine = cmd.m_data[5];
-            m_panSel.addComponent(ctrl, (perc + fine / 100.f) / 100.f, combine, vtype);
-            break;
-        }
-        case Op::PitchWheelSelect:
-        {
-            uint8_t ctrl = cmd.m_data[0];
-            int16_t perc = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
-            Evaluator::Combine combine = Evaluator::Combine(cmd.m_data[3]);
-            Evaluator::VarType vtype = Evaluator::VarType(cmd.m_data[4]);
-            uint8_t fine = cmd.m_data[5];
-            m_pitchWheelSel.addComponent(ctrl, (perc + fine / 100.f) / 100.f, combine, vtype);
-            break;
-        }
-        case Op::ModWheelSelect:
-        {
-            uint8_t ctrl = cmd.m_data[0];
-            int16_t perc = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
-            Evaluator::Combine combine = Evaluator::Combine(cmd.m_data[3]);
-            Evaluator::VarType vtype = Evaluator::VarType(cmd.m_data[4]);
-            uint8_t fine = cmd.m_data[5];
-            m_modWheelSel.addComponent(ctrl, (perc + fine / 100.f) / 100.f, combine, vtype);
-            break;
-        }
-        case Op::PedalSelect:
-        {
-            uint8_t ctrl = cmd.m_data[0];
-            int16_t perc = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
-            Evaluator::Combine combine = Evaluator::Combine(cmd.m_data[3]);
-            Evaluator::VarType vtype = Evaluator::VarType(cmd.m_data[4]);
-            uint8_t fine = cmd.m_data[5];
-            m_pedalSel.addComponent(ctrl, (perc + fine / 100.f) / 100.f, combine, vtype);
-            break;
-        }
-        case Op::PortamentoSelect:
-        {
-            uint8_t ctrl = cmd.m_data[0];
-            int16_t perc = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
-            Evaluator::Combine combine = Evaluator::Combine(cmd.m_data[3]);
-            Evaluator::VarType vtype = Evaluator::VarType(cmd.m_data[4]);
-            uint8_t fine = cmd.m_data[5];
-            m_portamentoSel.addComponent(ctrl, (perc + fine / 100.f) / 100.f, combine, vtype);
-            break;
-        }
-        case Op::ReverbSelect:
-        {
-            uint8_t ctrl = cmd.m_data[0];
-            int16_t perc = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
-            Evaluator::Combine combine = Evaluator::Combine(cmd.m_data[3]);
-            Evaluator::VarType vtype = Evaluator::VarType(cmd.m_data[4]);
-            uint8_t fine = cmd.m_data[5];
-            m_reverbSel.addComponent(ctrl, (perc + fine / 100.f) / 100.f, combine, vtype);
-            break;
-        }
-        case Op::SpanSelect:
-        {
-            uint8_t ctrl = cmd.m_data[0];
-            int16_t perc = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
-            Evaluator::Combine combine = Evaluator::Combine(cmd.m_data[3]);
-            Evaluator::VarType vtype = Evaluator::VarType(cmd.m_data[4]);
-            uint8_t fine = cmd.m_data[5];
-            m_spanSel.addComponent(ctrl, (perc + fine / 100.f) / 100.f, combine, vtype);
-            break;
-        }
-        case Op::DopplerSelect:
-        {
-            uint8_t ctrl = cmd.m_data[0];
-            int16_t perc = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
-            Evaluator::Combine combine = Evaluator::Combine(cmd.m_data[3]);
-            Evaluator::VarType vtype = Evaluator::VarType(cmd.m_data[4]);
-            uint8_t fine = cmd.m_data[5];
-            m_dopplerSel.addComponent(ctrl, (perc + fine / 100.f) / 100.f, combine, vtype);
-            break;
-        }
-        case Op::TremoloSelect:
-        {
-            uint8_t ctrl = cmd.m_data[0];
-            int16_t perc = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
-            Evaluator::Combine combine = Evaluator::Combine(cmd.m_data[3]);
-            Evaluator::VarType vtype = Evaluator::VarType(cmd.m_data[4]);
-            uint8_t fine = cmd.m_data[5];
-            m_tremoloSel.addComponent(ctrl, (perc + fine / 100.f) / 100.f, combine, vtype);
-            break;
-        }
-        case Op::PreASelect:
-        {
-            uint8_t ctrl = cmd.m_data[0];
-            int16_t perc = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
-            Evaluator::Combine combine = Evaluator::Combine(cmd.m_data[3]);
-            Evaluator::VarType vtype = Evaluator::VarType(cmd.m_data[4]);
-            uint8_t fine = cmd.m_data[5];
-            m_preAuxASel.addComponent(ctrl, (perc + fine / 100.f) / 100.f, combine, vtype);
-            break;
-        }
-        case Op::PreBSelect:
-        {
-            uint8_t ctrl = cmd.m_data[0];
-            int16_t perc = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
-            Evaluator::Combine combine = Evaluator::Combine(cmd.m_data[3]);
-            Evaluator::VarType vtype = Evaluator::VarType(cmd.m_data[4]);
-            uint8_t fine = cmd.m_data[5];
-            m_preAuxBSel.addComponent(ctrl, (perc + fine / 100.f) / 100.f, combine, vtype);
-            break;
-        }
-        case Op::PostBSelect:
-        {
-            uint8_t ctrl = cmd.m_data[0];
-            int16_t perc = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
-            Evaluator::Combine combine = Evaluator::Combine(cmd.m_data[3]);
-            Evaluator::VarType vtype = Evaluator::VarType(cmd.m_data[4]);
-            uint8_t fine = cmd.m_data[5];
-            m_postAuxB.addComponent(ctrl, (perc + fine / 100.f) / 100.f, combine, vtype);
-            break;
-        }
-        case Op::AuxAFXSelect:
-        {
-            uint8_t ctrl = cmd.m_data[0];
-            int16_t perc = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
-            Evaluator::Combine combine = Evaluator::Combine(cmd.m_data[3]);
-            Evaluator::VarType vtype = Evaluator::VarType(cmd.m_data[4]);
-            uint8_t fine = cmd.m_data[5];
-            m_auxAFxSel.addComponent(ctrl, (perc + fine / 100.f) / 100.f, combine, vtype);
-            break;
-        }
-        case Op::AuxBFXSelect:
-        {
-            uint8_t ctrl = cmd.m_data[0];
-            int16_t perc = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
-            Evaluator::Combine combine = Evaluator::Combine(cmd.m_data[3]);
-            Evaluator::VarType vtype = Evaluator::VarType(cmd.m_data[4]);
-            uint8_t fine = cmd.m_data[5];
-            m_auxBFxSel.addComponent(ctrl, (perc + fine / 100.f) / 100.f, combine, vtype);
-            break;
-        }
-        case Op::SetupLFO:
-        {
-            uint8_t number = cmd.m_data[0];
-            int16_t period = *reinterpret_cast<int16_t*>(&cmd.m_data[1]);
-            if (number == 0)
-                vox.setLFO1Period(period / 1000.f);
-            else if (number == 1)
-                vox.setLFO2Period(period / 1000.f);
-            break;
-        }
-        case Op::SetKeygroup:
-        {
-            uint8_t id = cmd.m_data[0];
-            uint8_t flag = cmd.m_data[1];
-
-            vox.setKeygroup(0);
-            if (id)
-            {
-                vox.getEngine().killKeygroup(id, flag);
-                vox.setKeygroup(id);
-            }
-
-            break;
-        }
-        case Op::AddVars:
-        {
-            bool aCtrl = cmd.m_data[0];
-            int8_t a = cmd.m_data[1];
-            bool bCtrl = cmd.m_data[2];
-            int8_t b = cmd.m_data[3];
-            bool cCtrl = cmd.m_data[4];
-            int8_t c = cmd.m_data[5];
-
-            if (bCtrl)
-                b = vox.getCtrlValue(b);
-            else
-                b = m_variables[b];
-
-            if (cCtrl)
-                c = vox.getCtrlValue(c);
-            else
-                c = m_variables[c];
-
-            if (aCtrl)
-                vox.setCtrlValue(a, b + c);
-            else
-                m_variables[a] = b + c;
-
-            break;
-        }
-        case Op::SubVars:
-        {
-            bool aCtrl = cmd.m_data[0];
-            int8_t a = cmd.m_data[1];
-            bool bCtrl = cmd.m_data[2];
-            int8_t b = cmd.m_data[3];
-            bool cCtrl = cmd.m_data[4];
-            int8_t c = cmd.m_data[5];
-
-            if (bCtrl)
-                b = vox.getCtrlValue(b);
-            else
-                b = m_variables[b];
-
-            if (cCtrl)
-                c = vox.getCtrlValue(c);
-            else
-                c = m_variables[c];
-
-            if (aCtrl)
-                vox.setCtrlValue(a, b - c);
-            else
-                m_variables[a] = b - c;
-
-            break;
-        }
-        case Op::MulVars:
-        {
-            bool aCtrl = cmd.m_data[0];
-            int8_t a = cmd.m_data[1];
-            bool bCtrl = cmd.m_data[2];
-            int8_t b = cmd.m_data[3];
-            bool cCtrl = cmd.m_data[4];
-            int8_t c = cmd.m_data[5];
-
-            if (bCtrl)
-                b = vox.getCtrlValue(b);
-            else
-                b = m_variables[b];
-
-            if (cCtrl)
-                c = vox.getCtrlValue(c);
-            else
-                c = m_variables[c];
-
-            if (aCtrl)
-                vox.setCtrlValue(a, b * c);
-            else
-                m_variables[a] = b * c;
-
-            break;
-        }
-        case Op::DivVars:
-        {
-            bool aCtrl = cmd.m_data[0];
-            int8_t a = cmd.m_data[1];
-            bool bCtrl = cmd.m_data[2];
-            int8_t b = cmd.m_data[3];
-            bool cCtrl = cmd.m_data[4];
-            int8_t c = cmd.m_data[5];
-
-            if (bCtrl)
-                b = vox.getCtrlValue(b);
-            else
-                b = m_variables[b];
-
-            if (cCtrl)
-                c = vox.getCtrlValue(c);
-            else
-                c = m_variables[c];
-
-            if (aCtrl)
-                vox.setCtrlValue(a, b / c);
-            else
-                m_variables[a] = b / c;
-
-            break;
-        }
-        case Op::AddIVars:
-        {
-            bool aCtrl = cmd.m_data[0];
-            int8_t a = cmd.m_data[1];
-            bool bCtrl = cmd.m_data[2];
-            int8_t b = cmd.m_data[3];
-            int16_t imm = *reinterpret_cast<int16_t*>(&cmd.m_data[4]);
-
-            if (bCtrl)
-                b = vox.getCtrlValue(b);
-            else
-                b = m_variables[b];
-
-            if (aCtrl)
-                vox.setCtrlValue(a, b + imm);
-            else
-                m_variables[a] = b + imm;
-
-            break;
-        }
-        case Op::IfEqual:
-        {
-            bool aCtrl = cmd.m_data[0];
-            int8_t a = cmd.m_data[1];
-            bool bCtrl = cmd.m_data[2];
-            int8_t b = cmd.m_data[3];
-            bool lnot = cmd.m_data[4];
-            int16_t macroStep = *reinterpret_cast<int16_t*>(&cmd.m_data[5]);
-
-            if (aCtrl)
-                a = vox.getCtrlValue(a);
-            else
-                a = m_variables[a];
-
-            if (bCtrl)
-                b = vox.getCtrlValue(b);
-            else
-                b = m_variables[b];
-
-            if ((a == b) ^ lnot)
-                _setPC(macroStep);
-
-            break;
-        }
-        case Op::IfLess:
-        {
-            bool aCtrl = cmd.m_data[0];
-            int8_t a = cmd.m_data[1];
-            bool bCtrl = cmd.m_data[2];
-            int8_t b = cmd.m_data[3];
-            bool lnot = cmd.m_data[4];
-            int16_t macroStep = *reinterpret_cast<int16_t*>(&cmd.m_data[5]);
-
-            if (aCtrl)
-                a = vox.getCtrlValue(a);
-            else
-                a = m_variables[a];
-
-            if (bCtrl)
-                b = vox.getCtrlValue(b);
-            else
-                b = m_variables[b];
-
-            if ((a < b) ^ lnot)
-                _setPC(macroStep);
-
-            break;
-        }
-        default:
-            break;
-        }
     }
 
     m_execTime += dt;

@@ -1,9 +1,9 @@
 #ifndef AMUSE_SONG_GROUP_EDITOR_HPP
 #define AMUSE_SONG_GROUP_EDITOR_HPP
 
-#include <QWidget>
+#include "EditorWidget.hpp"
 
-class SongGroupEditor : public QWidget
+class SongGroupEditor : public EditorWidget
 {
     Q_OBJECT
 public:
