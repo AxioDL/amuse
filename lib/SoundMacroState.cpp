@@ -152,7 +152,7 @@ bool SoundMacro::CmdSplitKey::Do(SoundMacroState& st, Voice& vox) const
         if (macro.id == std::get<0>(st.m_pc.back()))
             st._setPC(macroStep);
         else
-            vox.loadSoundObject(macro.id, macroStep, st.m_ticksPerSec, st.m_initKey, st.m_initVel, st.m_initMod);
+            vox.loadMacroObject(macro.id, macroStep, st.m_ticksPerSec, st.m_initKey, st.m_initVel, st.m_initMod);
     }
 
     return false;
@@ -166,7 +166,7 @@ bool SoundMacro::CmdSplitVel::Do(SoundMacroState& st, Voice& vox) const
         if (macro.id == std::get<0>(st.m_pc.back()))
             st._setPC(macroStep);
         else
-            vox.loadSoundObject(macro.id, macroStep, st.m_ticksPerSec, st.m_initKey, st.m_initVel, st.m_initMod);
+            vox.loadMacroObject(macro.id, macroStep, st.m_ticksPerSec, st.m_initKey, st.m_initVel, st.m_initMod);
     }
 
     return false;
@@ -238,7 +238,7 @@ bool SoundMacro::CmdGoto::Do(SoundMacroState& st, Voice& vox) const
     if (macro.id == std::get<0>(st.m_pc.back()))
         st._setPC(macroStep);
     else
-        vox.loadSoundObject(macro.id, macroStep, st.m_ticksPerSec, st.m_initKey, st.m_initVel, st.m_initMod);
+        vox.loadMacroObject(macro.id, macroStep, st.m_ticksPerSec, st.m_initKey, st.m_initVel, st.m_initMod);
 
     return false;
 }
@@ -312,7 +312,7 @@ bool SoundMacro::CmdSplitMod::Do(SoundMacroState& st, Voice& vox) const
         if (macro.id == std::get<0>(st.m_pc.back()))
             st._setPC(macroStep);
         else
-            vox.loadSoundObject(macro.id, macroStep, st.m_ticksPerSec, st.m_initKey, st.m_initVel, st.m_initMod);
+            vox.loadMacroObject(macro.id, macroStep, st.m_ticksPerSec, st.m_initKey, st.m_initVel, st.m_initMod);
     }
 
     return false;
@@ -420,7 +420,7 @@ bool SoundMacro::CmdSplitRnd::Do(SoundMacroState& st, Voice& vox) const
         if (macro.id == std::get<0>(st.m_pc.back()))
             st._setPC(macroStep);
         else
-            vox.loadSoundObject(macro.id, macroStep, st.m_ticksPerSec, st.m_initKey, st.m_initVel, st.m_initMod);
+            vox.loadMacroObject(macro.id, macroStep, st.m_ticksPerSec, st.m_initKey, st.m_initVel, st.m_initMod);
     }
 
     return false;
@@ -641,8 +641,7 @@ bool SoundMacro::CmdGoSub::Do(SoundMacroState& st, Voice& vox) const
         st.m_pc.emplace_back(std::get<0>(st.m_pc.back()), std::get<1>(st.m_pc.back()),
             std::get<1>(st.m_pc.back())->assertPC(macroStep));
     else
-        vox.loadSoundObject(macro.id, macroStep, st.m_ticksPerSec, st.m_initKey, st.m_initVel, st.m_initMod, true);
-
+        vox.loadMacroObject(macro.id, macroStep, st.m_ticksPerSec, st.m_initKey, st.m_initVel, st.m_initMod, true);
 
     vox._setObjectId(std::get<0>(st.m_pc.back()));
 

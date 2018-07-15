@@ -49,7 +49,7 @@ struct SongGroupIndex : AudioGroupIndex
     PageEntryDNA : BigDNA
     {
         AT_DECL_DNA_YAML
-        ObjectIdDNA<DNAEn> objId;
+        PageObjectIdDNA<DNAEn> objId;
         Value<atUint8> priority;
         Value<atUint8> maxVoices;
         Value<atUint8> programNo;
@@ -59,19 +59,20 @@ struct SongGroupIndex : AudioGroupIndex
     struct AT_SPECIALIZE_PARMS(athena::Endian::Big, athena::Endian::Little)
     MusyX1PageEntryDNA : BigDNA
     {
-        AT_DECL_DNA_YAML
-        ObjectIdDNA<DNAEn> objId;
+        AT_DECL_DNA
+        PageObjectIdDNA<DNAEn> objId;
         Value<atUint8> priority;
         Value<atUint8> maxVoices;
         Value<atUint8> unk;
         Value<atUint8> programNo;
         Seek<2, athena::Current> pad;
     };
-    struct PageEntry
+    struct PageEntry : BigDNA
     {
-        ObjectId objId;
-        atUint8 priority;
-        atUint8 maxVoices;
+        AT_DECL_DNA_YAML
+        PageObjectIdDNA<athena::Big> objId;
+        Value<atUint8> priority;
+        Value<atUint8> maxVoices;
 
         PageEntry() = default;
 
@@ -87,7 +88,7 @@ struct SongGroupIndex : AudioGroupIndex
         PageEntryDNA<DNAEn> toDNA(uint8_t programNo) const
         {
             PageEntryDNA<DNAEn> ret;
-            ret.objId.id = objId;
+            ret.objId = objId;
             ret.priority = priority;
             ret.maxVoices = maxVoices;
             ret.programNo = programNo;
@@ -132,9 +133,9 @@ struct SFXGroupIndex : AudioGroupIndex
     struct AT_SPECIALIZE_PARMS(athena::Endian::Big, athena::Endian::Little)
     SFXEntryDNA : BigDNA
     {
-        AT_DECL_DNA_YAML
-        SFXIdDNA<DNAEn> defineId;
-        ObjectIdDNA<DNAEn> objId;
+        AT_DECL_DNA
+        SFXIdDNA<DNAEn> sfxId;
+        SoundMacroIdDNA<DNAEn> macro;
         Value<atUint8> priority;
         Value<atUint8> maxVoices;
         Value<atUint8> defVel;
@@ -142,28 +143,29 @@ struct SFXGroupIndex : AudioGroupIndex
         Value<atUint8> defKey;
         Seek<1, athena::Current> pad;
     };
-    struct SFXEntry
+    struct SFXEntry : BigDNA
     {
-        ObjectId objId;
-        atUint8 priority;
-        atUint8 maxVoices;
-        atUint8 defVel;
-        atUint8 panning;
-        atUint8 defKey;
+        AT_DECL_DNA_YAML
+        SoundMacroIdDNA<athena::Big> macro;
+        Value<atUint8> priority;
+        Value<atUint8> maxVoices;
+        Value<atUint8> defVel;
+        Value<atUint8> panning;
+        Value<atUint8> defKey;
 
         SFXEntry() = default;
 
         template <athena::Endian DNAE>
         SFXEntry(const SFXEntryDNA<DNAE>& in)
-        : objId(in.objId.id), priority(in.priority), maxVoices(in.maxVoices),
+        : macro(in.macro.id), priority(in.priority), maxVoices(in.maxVoices),
           defVel(in.defVel), panning(in.panning), defKey(in.defKey) {}
 
         template <athena::Endian DNAEn>
-        SFXEntryDNA<DNAEn> toDNA(SFXId defineId) const
+        SFXEntryDNA<DNAEn> toDNA(SFXId id) const
         {
             SFXEntryDNA<DNAEn> ret;
-            ret.defineId.id = defineId;
-            ret.objId.id = objId;
+            ret.sfxId.id = id;
+            ret.macro = macro;
             ret.priority = priority;
             ret.maxVoices = maxVoices;
             ret.defVel = defVel;
@@ -185,14 +187,21 @@ class AudioGroupProject
     AudioGroupProject(athena::io::IStreamReader& r, GCNDataTag);
     template <athena::Endian DNAE>
     static AudioGroupProject _AudioGroupProject(athena::io::IStreamReader& r, bool absOffs);
+
+    static void BootstrapObjectIDs(athena::io::IStreamReader& r, GCNDataTag);
+    template <athena::Endian DNAE>
+    static void BootstrapObjectIDs(athena::io::IStreamReader& r, bool absOffs);
 public:
     static AudioGroupProject CreateAudioGroupProject(const AudioGroupData& data);
+    static void BootstrapObjectIDs(const AudioGroupData& data);
 
     const SongGroupIndex* getSongGroupIndex(int groupId) const;
     const SFXGroupIndex* getSFXGroupIndex(int groupId) const;
 
     const std::unordered_map<int, SongGroupIndex>& songGroups() const { return m_songGroups; }
     const std::unordered_map<int, SFXGroupIndex>& sfxGroups() const { return m_sfxGroups; }
+
+    bool toYAML(athena::io::IStreamWriter& w) const;
 };
 }
 

@@ -17,111 +17,40 @@ ProjectModel::ProjectGroup::ProjectGroup(amuse::IntrusiveAudioGroupData&& data)
   m_sdir(amuse::AudioGroupSampleDirectory::CreateAudioGroupSampleDirectory(m_data))
 {}
 
-bool ProjectModel::importGroupData(const QString& groupName,
-                                   amuse::IntrusiveAudioGroupData&& data,
-                                   ImportMode mode, QWidget* parent)
+bool ProjectModel::importGroupData(const QString& groupName, amuse::IntrusiveAudioGroupData&& data, ImportMode mode)
 {
-    amuse::SongId::CurNameDB = &m_songDb;
-    amuse::SongId::CurNameDB = &m_sfxDb;
+    setIdDatabases();
 
     ProjectGroup& grp = m_groups.insert(std::make_pair(groupName, std::move(data))).first->second;
-
-    for (const auto& p : grp.m_proj.songGroups())
-    {
-        for (const auto& song : p.second.m_midiSetups)
-        {
-            char name[16];
-            snprintf(name, 16, "song%d", song.first.id);
-            m_songDb.registerPair(name, song.first);
-        }
-    }
-
-    for (const auto& p : grp.m_proj.sfxGroups())
-    {
-        for (const auto& sfx : p.second.m_sfxEntries)
-        {
-            char name[16];
-            snprintf(name, 16, "sfx%d", sfx.first.id);
-            m_sfxDb.registerPair(name, sfx.first);
-        }
-    }
+    grp.setIdDatabases();
+    amuse::AudioGroupProject::BootstrapObjectIDs(grp.m_data);
 
     return true;
 }
 
 bool ProjectModel::saveToFile(QWidget* parent)
 {
-    amuse::SongId::CurNameDB = &m_songDb;
-    amuse::SongId::CurNameDB = &m_sfxDb;
+    setIdDatabases();
 
     if (!MkPath(m_dir.path(), parent))
         return false;
 
     for (auto& g : m_groups)
     {
-        athena::io::YAMLDocWriter w("amuse::Group");
-
         QDir dir(QFileInfo(m_dir, g.first).filePath());
         if (!MkPath(dir.path(), parent))
             return false;
 
-        if (auto __v = w.enterSubVector("songGroups"))
+        g.second.setIdDatabases();
         {
-            for (const auto& p : g.second.m_proj.songGroups())
-            {
-                if (auto __r = w.enterSubRecord(nullptr))
-                {
-                    if (auto __v2 = w.enterSubRecord("normPages"))
-                    {
-                        for (const auto& pg : p.second.m_normPages)
-                        {
-                            char name[16];
-                            snprintf(name, 16, "%d", pg.first);
-                            if (auto __r2 = w.enterSubRecord(name))
-                                pg.second.toDNA<athena::Big>(pg.first).write(w);
-                        }
-                    }
-                    if (auto __v2 = w.enterSubRecord("drumPages"))
-                    {
-                        for (const auto& pg : p.second.m_drumPages)
-                        {
-                            char name[16];
-                            snprintf(name, 16, "%d", pg.first);
-                            if (auto __r2 = w.enterSubRecord(name))
-                                pg.second.toDNA<athena::Big>(pg.first).write(w);
-                        }
-                    }
-                    if (auto __v2 = w.enterSubRecord("songs"))
-                    {
-                        for (const auto& song : p.second.m_midiSetups)
-                        {
-                            if (auto __v3 = w.enterSubVector(m_songDb.resolveNameFromId(song.first).data()))
-                                for (int i = 0; i < 16; ++i)
-                                    if (auto __r2 = w.enterSubRecord(nullptr))
-                                        song.second[i].write(w);
-                        }
-                    }
-                }
-            }
+            athena::io::FileWriter fo(QStringToSysString(dir.filePath("!project.yaml")));
+            g.second.m_proj.toYAML(fo);
         }
-
-        if (auto __v = w.enterSubVector("sfxGroups"))
         {
-            for (const auto& p : g.second.m_proj.sfxGroups())
-            {
-                if (auto __r = w.enterSubRecord(nullptr))
-                {
-                    for (const auto& sfx : p.second.m_sfxEntries)
-                    {
-                        if (auto __r2 = w.enterSubRecord(m_sfxDb.resolveNameFromId(sfx.first).data()))
-                            sfx.second.toDNA<athena::Big>(sfx.first).write(w);
-                    }
-                }
-            }
+            athena::io::FileWriter fo(QStringToSysString(dir.filePath("!pool.yaml")));
+            g.second.m_pool.toYAML(fo);
         }
-
-        athena::io::FileWriter fo(QStringToSysString(dir.filePath("project.yaml")));
-        w.finish(&fo);
+        //g.second.m_sdir.sampleEntries()
     }
 
     return true;

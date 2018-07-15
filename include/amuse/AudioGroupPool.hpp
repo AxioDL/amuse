@@ -119,7 +119,11 @@ struct SoundMacro
         AddIVars,
         IfEqual = 0x70,
         IfLess,
+        Invalid = 0xff
     };
+
+    static std::string_view CmdOpToStr(CmdOp op);
+    static CmdOp CmdStrToOp(std::string_view op);
 
     /** Base command interface. All versions of MusyX encode little-endian parameters */
     struct ICmd : LittleDNAV
@@ -148,7 +152,7 @@ struct SoundMacro
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
         Value<atInt8> key;
-        ObjectIdDNA<athena::Little> macro;
+        SoundMacroIdDNA<athena::Little> macro;
         Value<atUint16> macroStep;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::SplitKey; }
@@ -158,7 +162,7 @@ struct SoundMacro
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
         Value<atInt8> velocity;
-        ObjectIdDNA<athena::Little> macro;
+        SoundMacroIdDNA<athena::Little> macro;
         Value<atUint16> macroStep;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::SplitVel; }
@@ -193,7 +197,7 @@ struct SoundMacro
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
         Seek<1, athena::SeekOrigin::Current> dummy;
-        ObjectIdDNA<athena::Little> macro;
+        SoundMacroIdDNA<athena::Little> macro;
         Value<atUint16> macroStep;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::Goto; }
@@ -216,7 +220,7 @@ struct SoundMacro
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
         Value<atInt8> addNote;
-        ObjectIdDNA<athena::Little> macro;
+        SoundMacroIdDNA<athena::Little> macro;
         Value<atUint16> macroStep;
         Value<atUint8> priority;
         Value<atUint8> maxVoices;
@@ -237,7 +241,7 @@ struct SoundMacro
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
         Value<atInt8> modValue;
-        ObjectIdDNA<athena::Little> macro;
+        SoundMacroIdDNA<athena::Little> macro;
         Value<atUint16> macroStep;
         Value<atUint8> priority;
         Value<atUint8> maxVoices;
@@ -258,7 +262,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
-        ObjectIdDNA<athena::Little> table;
+        TableIdDNA<athena::Little> table;
         Value<bool> dlsMode;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::SetAdsr; }
@@ -269,7 +273,7 @@ struct SoundMacro
         AT_DECL_DNAV
         Value<atInt8> scale;
         Value<atInt8> add;
-        ObjectIdDNA<athena::Little> table;
+        TableIdDNA<athena::Little> table;
         Value<bool> originalVol;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::ScaleVolume; }
@@ -290,7 +294,7 @@ struct SoundMacro
         AT_DECL_DNAV
         Value<atInt8> scale;
         Value<atInt8> add;
-        ObjectIdDNA<athena::Little> table;
+        TableIdDNA<athena::Little> table;
         Value<bool> msSwitch;
         Value<atUint16> fadeTime;
         bool Do(SoundMacroState& st, Voice& vox) const;
@@ -325,7 +329,7 @@ struct SoundMacro
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
         Value<atUint8> rnd;
-        ObjectIdDNA<athena::Little> macro;
+        SoundMacroIdDNA<athena::Little> macro;
         Value<atUint16> macroStep;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::SplitRnd; }
@@ -336,7 +340,7 @@ struct SoundMacro
         AT_DECL_DNAV
         Value<atInt8> scale;
         Value<atInt8> add;
-        ObjectIdDNA<athena::Little> table;
+        TableIdDNA<athena::Little> table;
         Value<bool> msSwitch;
         Value<atUint16> ticksPerMs;
         bool Do(SoundMacroState& st, Voice& vox) const;
@@ -474,7 +478,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
-        ObjectIdDNA<athena::Little> table;
+        TableIdDNA<athena::Little> table;
         Seek<1, athena::SeekOrigin::Current> seek;
         Value<atInt8> keys;
         Value<atInt8> cents;
@@ -521,7 +525,7 @@ struct SoundMacro
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
         Seek<1, athena::SeekOrigin::Current> seek;
-        ObjectIdDNA<athena::Little> macro;
+        SoundMacroIdDNA<athena::Little> macro;
         Value<atUint16> macroStep;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::GoSub; }
@@ -531,7 +535,7 @@ struct SoundMacro
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
         Value<atUint8> event;
-        ObjectIdDNA<athena::Little> macro;
+        SoundMacroIdDNA<athena::Little> macro;
         Value<atUint16> macroStep;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::TrapEvent; }
@@ -549,7 +553,7 @@ struct SoundMacro
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
         Value<bool> isVar;
-        ObjectIdDNA<athena::Little> macro;
+        SoundMacroIdDNA<athena::Little> macro;
         Value<atUint8> vid;
         Value<atUint8> variable;
         bool Do(SoundMacroState& st, Voice& vox) const;
@@ -1031,19 +1035,51 @@ struct Curve : ITable
 
 /** Maps individual MIDI keys to sound-entity as indexed in table
  *  (macro-voice, keymap, layer) */
-struct Keymap : LittleDNA
+template <athena::Endian DNAEn>
+struct AT_SPECIALIZE_PARMS(athena::Endian::Big, athena::Endian::Little)
+KeymapDNA : BigDNA
 {
-    AT_DECL_DNA_YAML
+    AT_DECL_DNA
+    SoundMacroIdDNA<DNAEn> macro;
     Value<atInt8> transpose;
     Value<atInt8> pan; /* -128 for surround-channel only */
     Value<atInt8> prioOffset;
     Seek<3, athena::Current> pad;
 };
-
-/** Maps ranges of MIDI keys to sound-entity (macro-voice, keymap, layer) */
-struct LayerMapping : LittleDNA
+struct Keymap : BigDNA
 {
     AT_DECL_DNA_YAML
+    SoundMacroIdDNA<athena::Big> macro;
+    Value<atInt8> transpose;
+    Value<atInt8> pan; /* -128 for surround-channel only */
+    Value<atInt8> prioOffset;
+
+    Keymap() = default;
+
+    template <athena::Endian DNAE>
+    Keymap(const KeymapDNA<DNAE>& in)
+        : macro(in.macro.id), transpose(in.transpose), pan(in.pan),
+          prioOffset(in.prioOffset) {}
+
+    template <athena::Endian DNAEn>
+    KeymapDNA<DNAEn> toDNA() const
+    {
+        KeymapDNA<DNAEn> ret;
+        ret.macro.id = macro;
+        ret.transpose = transpose;
+        ret.pan = pan;
+        ret.prioOffset = prioOffset;
+        return ret;
+    }
+};
+
+/** Maps ranges of MIDI keys to sound-entity (macro-voice, keymap, layer) */
+template <athena::Endian DNAEn>
+struct AT_SPECIALIZE_PARMS(athena::Endian::Big, athena::Endian::Little)
+LayerMappingDNA : BigDNA
+{
+    AT_DECL_DNA
+    SoundMacroIdDNA<DNAEn> macro;
     Value<atInt8> keyLo;
     Value<atInt8> keyHi;
     Value<atInt8> transpose;
@@ -1051,6 +1087,42 @@ struct LayerMapping : LittleDNA
     Value<atInt8> prioOffset;
     Value<atInt8> span;
     Value<atInt8> pan;
+    Seek<3, athena::Current> pad;
+};
+struct LayerMapping : BigDNA
+{
+    AT_DECL_DNA_YAML
+    SoundMacroIdDNA<athena::Big> macro;
+    Value<atInt8> keyLo;
+    Value<atInt8> keyHi;
+    Value<atInt8> transpose;
+    Value<atInt8> volume;
+    Value<atInt8> prioOffset;
+    Value<atInt8> span;
+    Value<atInt8> pan;
+
+    LayerMapping() = default;
+
+    template <athena::Endian DNAE>
+    LayerMapping(const LayerMappingDNA<DNAE>& in)
+        : macro(in.macro.id), keyLo(in.keyLo), keyHi(in.keyHi),
+          transpose(in.transpose), volume(in.volume), prioOffset(in.prioOffset),
+          span(in.span), pan(in.pan) {}
+
+    template <athena::Endian DNAEn>
+    LayerMappingDNA<DNAEn> toDNA() const
+    {
+        LayerMappingDNA<DNAEn> ret;
+        ret.macro.id = macro;
+        ret.keyLo = keyLo;
+        ret.keyHi = keyHi;
+        ret.transpose = transpose;
+        ret.volume = volume;
+        ret.prioOffset = prioOffset;
+        ret.span = span;
+        ret.pan = pan;
+        return ret;
+    }
 };
 
 /** Database of functional objects within Audio Group */
@@ -1073,6 +1145,8 @@ public:
     const ADSR* tableAsAdsr(ObjectId id) const;
     const ADSRDLS* tableAsAdsrDLS(ObjectId id) const { return reinterpret_cast<const ADSRDLS*>(tableAsAdsr(id)); }
     const Curve* tableAsCurves(ObjectId id) const { return reinterpret_cast<const Curve*>(tableAsAdsr(id)); }
+
+    bool toYAML(athena::io::IStreamWriter& w) const;
 };
 }
 

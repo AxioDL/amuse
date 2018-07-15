@@ -18,6 +18,7 @@ endif()
 
 atdna(atdna_AudioGroupPool.cpp include/amuse/AudioGroupPool.hpp)
 atdna(atdna_AudioGroupProject.cpp include/amuse/AudioGroupProject.hpp)
+atdna(atdna_AudioGroupSampleDirectory.cpp include/amuse/AudioGroupSampleDirectory.hpp)
 
 set(SOURCES
     lib/AudioGroup.cpp
@@ -45,7 +46,8 @@ set(SOURCES
     lib/DSPCodec.cpp
     lib/N64MusyXCodec.cpp
     atdna_AudioGroupPool.cpp
-    atdna_AudioGroupProject.cpp)
+    atdna_AudioGroupProject.cpp
+    atdna_AudioGroupSampleDirectory.cpp)
 
 set(HEADERS
     include/amuse/AudioGroup.hpp

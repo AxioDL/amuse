@@ -247,19 +247,24 @@ std::shared_ptr<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velo
         (*ret)->installCtrlValues(m_ctrlVals);
 
         ObjectId oid;
+        bool res;
         if (m_parent->m_songGroup)
+        {
             oid = m_page->objId;
+            res = (*ret)->loadPageObject(oid, m_parent->m_ticksPerSec, note, velocity, m_ctrlVals[1]);
+        }
         else if (m_parent->m_sfxMappings.size())
         {
             size_t lookupIdx = note % m_parent->m_sfxMappings.size();
             const SFXGroupIndex::SFXEntry* sfxEntry = m_parent->m_sfxMappings[lookupIdx];
-            oid = sfxEntry->objId;
+            oid = sfxEntry->macro;
             note = sfxEntry->defKey;
+            res = (*ret)->loadMacroObject(oid, 0, m_parent->m_ticksPerSec, note, velocity, m_ctrlVals[1]);
         }
         else
             return {};
 
-        if (!(*ret)->loadSoundObject(oid, 0, m_parent->m_ticksPerSec, note, velocity, m_ctrlVals[1]))
+        if (!res)
         {
             m_parent->m_engine._destroyVoice(ret);
             return {};

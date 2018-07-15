@@ -5,374 +5,228 @@ namespace amuse
 {
 static logvisor::Module Log("amuse");
 
-thread_local NameDB* ObjectId::CurNameDB = nullptr;
-thread_local NameDB* SampleId::CurNameDB = nullptr;
-thread_local NameDB* SongId::CurNameDB = nullptr;
-thread_local NameDB* SFXId::CurNameDB = nullptr;
+#define DEFINE_ID_TYPE(type, typeName) \
+thread_local NameDB* type::CurNameDB = nullptr; \
+template<> template<> \
+void type##DNA<athena::Little>::Enumerate<BigDNA::Read>(athena::io::IStreamReader& reader) \
+{ \
+    id = reader.readUint16Little(); \
+} \
+template<> template<> \
+void type##DNA<athena::Little>::Enumerate<BigDNA::Write>(athena::io::IStreamWriter& writer) \
+{ \
+    writer.writeUint16Little(id); \
+} \
+template<> template<> \
+void type##DNA<athena::Little>::Enumerate<BigDNA::BinarySize>(size_t& sz) \
+{ \
+    sz += 2; \
+} \
+template<> template<> \
+void type##DNA<athena::Little>::Enumerate<BigDNA::ReadYaml>(athena::io::YAMLDocReader& reader) \
+{ \
+    _read(reader); \
+} \
+template<> template<> \
+void type##DNA<athena::Little>::Enumerate<BigDNA::WriteYaml>(athena::io::YAMLDocWriter& writer) \
+{ \
+    _write(writer); \
+} \
+template<> template<> \
+void type##DNA<athena::Big>::Enumerate<BigDNA::Read>(athena::io::IStreamReader& reader) \
+{ \
+    id = reader.readUint16Big(); \
+} \
+template<> template<> \
+void type##DNA<athena::Big>::Enumerate<BigDNA::Write>(athena::io::IStreamWriter& writer) \
+{ \
+    writer.writeUint16Big(id); \
+} \
+template<> template<> \
+void type##DNA<athena::Big>::Enumerate<BigDNA::BinarySize>(size_t& sz) \
+{ \
+    sz += 2; \
+} \
+template<> template<> \
+void type##DNA<athena::Big>::Enumerate<BigDNA::ReadYaml>(athena::io::YAMLDocReader& reader) \
+{ \
+    _read(reader); \
+} \
+template<> template<> \
+void type##DNA<athena::Big>::Enumerate<BigDNA::WriteYaml>(athena::io::YAMLDocWriter& writer) \
+{ \
+    _write(writer); \
+} \
+template <athena::Endian DNAE> \
+void type##DNA<DNAE>::_read(athena::io::YAMLDocReader& r) \
+{ \
+    std::string name = r.readString(nullptr); \
+    if (!type::CurNameDB) \
+        Log.report(logvisor::Fatal, "Unable to resolve " typeName " name %s, no database present", name.c_str()); \
+    if (name.empty()) \
+    { \
+        id.id = 0xffff; \
+        return; \
+    } \
+    id = type::CurNameDB->resolveIdFromName(name); \
+} \
+template <athena::Endian DNAE> \
+void type##DNA<DNAE>::_write(athena::io::YAMLDocWriter& w) \
+{ \
+    if (!type::CurNameDB) \
+        Log.report(logvisor::Fatal, "Unable to resolve " typeName " ID %d, no database present", id.id); \
+    if (id.id == 0xffff) \
+        return; \
+    std::string_view name = type::CurNameDB->resolveNameFromId(id); \
+    w.writeString(nullptr, name); \
+} \
+template <athena::Endian DNAE> \
+const char* type##DNA<DNAE>::DNAType() \
+{ \
+    return "amuse::" #type "DNA"; \
+} \
+template struct type##DNA<athena::Big>; \
+template struct type##DNA<athena::Little>;
+
+DEFINE_ID_TYPE(ObjectId, "object")
+DEFINE_ID_TYPE(SoundMacroId, "SoundMacro")
+DEFINE_ID_TYPE(SampleId, "sample")
+DEFINE_ID_TYPE(TableId, "table")
+DEFINE_ID_TYPE(KeymapId, "keymap")
+DEFINE_ID_TYPE(LayersId, "layers")
+DEFINE_ID_TYPE(SongId, "song")
+DEFINE_ID_TYPE(SFXId, "sfx")
 
 template<> template<>
-void ObjectIdDNA<athena::Little>::Enumerate<BigDNA::Read>(athena::io::IStreamReader& reader)
+void PageObjectIdDNA<athena::Little>::Enumerate<BigDNA::Read>(athena::io::IStreamReader& reader)
 {
     id = reader.readUint16Little();
 }
-
 template<> template<>
-void ObjectIdDNA<athena::Little>::Enumerate<BigDNA::Write>(athena::io::IStreamWriter& writer)
+void PageObjectIdDNA<athena::Little>::Enumerate<BigDNA::Write>(athena::io::IStreamWriter& writer)
 {
     writer.writeUint16Little(id);
 }
-
 template<> template<>
-void ObjectIdDNA<athena::Little>::Enumerate<BigDNA::BinarySize>(size_t& sz)
+void PageObjectIdDNA<athena::Little>::Enumerate<BigDNA::BinarySize>(size_t& sz)
 {
     sz += 2;
 }
-
 template<> template<>
-void ObjectIdDNA<athena::Little>::Enumerate<BigDNA::ReadYaml>(athena::io::YAMLDocReader& reader)
+void PageObjectIdDNA<athena::Little>::Enumerate<BigDNA::ReadYaml>(athena::io::YAMLDocReader& reader)
 {
     _read(reader);
 }
-
 template<> template<>
-void ObjectIdDNA<athena::Little>::Enumerate<BigDNA::WriteYaml>(athena::io::YAMLDocWriter& writer)
+void PageObjectIdDNA<athena::Little>::Enumerate<BigDNA::WriteYaml>(athena::io::YAMLDocWriter& writer)
 {
     _write(writer);
 }
-
 template<> template<>
-void ObjectIdDNA<athena::Big>::Enumerate<BigDNA::Read>(athena::io::IStreamReader& reader)
+void PageObjectIdDNA<athena::Big>::Enumerate<BigDNA::Read>(athena::io::IStreamReader& reader)
 {
     id = reader.readUint16Big();
 }
-
 template<> template<>
-void ObjectIdDNA<athena::Big>::Enumerate<BigDNA::Write>(athena::io::IStreamWriter& writer)
+void PageObjectIdDNA<athena::Big>::Enumerate<BigDNA::Write>(athena::io::IStreamWriter& writer)
 {
     writer.writeUint16Big(id);
 }
-
 template<> template<>
-void ObjectIdDNA<athena::Big>::Enumerate<BigDNA::BinarySize>(size_t& sz)
+void PageObjectIdDNA<athena::Big>::Enumerate<BigDNA::BinarySize>(size_t& sz)
 {
     sz += 2;
 }
-
 template<> template<>
-void ObjectIdDNA<athena::Big>::Enumerate<BigDNA::ReadYaml>(athena::io::YAMLDocReader& reader)
+void PageObjectIdDNA<athena::Big>::Enumerate<BigDNA::ReadYaml>(athena::io::YAMLDocReader& reader)
 {
     _read(reader);
 }
-
 template<> template<>
-void ObjectIdDNA<athena::Big>::Enumerate<BigDNA::WriteYaml>(athena::io::YAMLDocWriter& writer)
+void PageObjectIdDNA<athena::Big>::Enumerate<BigDNA::WriteYaml>(athena::io::YAMLDocWriter& writer)
 {
     _write(writer);
 }
-
 template <athena::Endian DNAE>
-void ObjectIdDNA<DNAE>::_read(athena::io::YAMLDocReader& r)
+void PageObjectIdDNA<DNAE>::_read(athena::io::YAMLDocReader& r)
 {
     std::string name = r.readString(nullptr);
-    if (!ObjectId::CurNameDB)
-        Log.report(logvisor::Fatal, "Unable to resolve object name %s, no database present", name.c_str());
-    id = ObjectId::CurNameDB->resolveIdFromName(name);
+    if (!KeymapId::CurNameDB || !LayersId::CurNameDB)
+        Log.report(logvisor::Fatal, "Unable to resolve keymap or layers name %s, no database present", name.c_str());
+    if (name.empty())
+    {
+        id.id = 0xffff;
+        return;
+    }
+    auto search = KeymapId::CurNameDB->m_stringToId.find(name);
+    if (search == KeymapId::CurNameDB->m_stringToId.cend())
+    {
+        search = LayersId::CurNameDB->m_stringToId.find(name);
+        if (search == LayersId::CurNameDB->m_stringToId.cend())
+            Log.report(logvisor::Fatal, "Unable to resolve name %s", name.c_str());
+    }
+    id = search->second;
 }
-
 template <athena::Endian DNAE>
-void ObjectIdDNA<DNAE>::_write(athena::io::YAMLDocWriter& w)
+void PageObjectIdDNA<DNAE>::_write(athena::io::YAMLDocWriter& w)
 {
-    if (!ObjectId::CurNameDB)
-        Log.report(logvisor::Fatal, "Unable to resolve object ID %d, no database present", id.id);
-    std::string_view name = ObjectId::CurNameDB->resolveNameFromId(id);
-    w.writeString(nullptr, name);
+    if (!KeymapId::CurNameDB || !LayersId::CurNameDB)
+        Log.report(logvisor::Fatal, "Unable to resolve keymap or layers ID %d, no database present", id.id);
+    if (id.id == 0xffff)
+        return;
+    if (id.id & 0x8000)
+    {
+        std::string_view name = LayersId::CurNameDB->resolveNameFromId(id);
+        w.writeString(nullptr, name);
+    }
+    else
+    {
+        std::string_view name = KeymapId::CurNameDB->resolveNameFromId(id);
+        w.writeString(nullptr, name);
+    }
 }
-
 template <athena::Endian DNAE>
-const char* ObjectIdDNA<DNAE>::DNAType()
+const char* PageObjectIdDNA<DNAE>::DNAType()
 {
-    return "amuse::ObjectId";
+    return "amuse::PageObjectIdDNA";
 }
-
-template<> template<>
-void SampleIdDNA<athena::Little>::Enumerate<BigDNA::Read>(athena::io::IStreamReader& reader)
-{
-    id = reader.readUint16Little();
-}
-
-template<> template<>
-void SampleIdDNA<athena::Little>::Enumerate<BigDNA::Write>(athena::io::IStreamWriter& writer)
-{
-    writer.writeUint16Little(id);
-}
-
-template<> template<>
-void SampleIdDNA<athena::Little>::Enumerate<BigDNA::BinarySize>(size_t& sz)
-{
-    sz += 2;
-}
-
-template<> template<>
-void SampleIdDNA<athena::Little>::Enumerate<BigDNA::ReadYaml>(athena::io::YAMLDocReader& reader)
-{
-    _read(reader);
-}
-
-template<> template<>
-void SampleIdDNA<athena::Little>::Enumerate<BigDNA::WriteYaml>(athena::io::YAMLDocWriter& writer)
-{
-    _write(writer);
-}
-
-template<> template<>
-void SampleIdDNA<athena::Big>::Enumerate<BigDNA::Read>(athena::io::IStreamReader& reader)
-{
-    id = reader.readUint16Big();
-}
-
-template<> template<>
-void SampleIdDNA<athena::Big>::Enumerate<BigDNA::Write>(athena::io::IStreamWriter& writer)
-{
-    writer.writeUint16Big(id);
-}
-
-template<> template<>
-void SampleIdDNA<athena::Big>::Enumerate<BigDNA::BinarySize>(size_t& sz)
-{
-    sz += 2;
-}
-
-template<> template<>
-void SampleIdDNA<athena::Big>::Enumerate<BigDNA::ReadYaml>(athena::io::YAMLDocReader& reader)
-{
-    _read(reader);
-}
-
-template<> template<>
-void SampleIdDNA<athena::Big>::Enumerate<BigDNA::WriteYaml>(athena::io::YAMLDocWriter& writer)
-{
-    _write(writer);
-}
-
-template <athena::Endian DNAE>
-void SampleIdDNA<DNAE>::_read(athena::io::YAMLDocReader& r)
-{
-    std::string name = r.readString(nullptr);
-    if (!SampleId::CurNameDB)
-        Log.report(logvisor::Fatal, "Unable to resolve sample name %s, no database present", name.c_str());
-    id = SampleId::CurNameDB->resolveIdFromName(name);
-}
-
-template <athena::Endian DNAE>
-void SampleIdDNA<DNAE>::_write(athena::io::YAMLDocWriter& w)
-{
-    if (!SampleId::CurNameDB)
-        Log.report(logvisor::Fatal, "Unable to resolve sample ID %d, no database present", id.id);
-    std::string_view name = SampleId::CurNameDB->resolveNameFromId(id);
-    w.writeString(nullptr, name);
-}
-
-template <athena::Endian DNAE>
-const char* SampleIdDNA<DNAE>::DNAType()
-{
-    return "amuse::SampleId";
-}
-
-template<> template<>
-void SongIdDNA<athena::Little>::Enumerate<BigDNA::Read>(athena::io::IStreamReader& reader)
-{
-    id = reader.readUint16Little();
-}
-
-template<> template<>
-void SongIdDNA<athena::Little>::Enumerate<BigDNA::Write>(athena::io::IStreamWriter& writer)
-{
-    writer.writeUint16Little(id);
-}
-
-template<> template<>
-void SongIdDNA<athena::Little>::Enumerate<BigDNA::BinarySize>(size_t& sz)
-{
-    sz += 2;
-}
-
-template<> template<>
-void SongIdDNA<athena::Little>::Enumerate<BigDNA::ReadYaml>(athena::io::YAMLDocReader& reader)
-{
-    _read(reader);
-}
-
-template<> template<>
-void SongIdDNA<athena::Little>::Enumerate<BigDNA::WriteYaml>(athena::io::YAMLDocWriter& writer)
-{
-    _write(writer);
-}
-
-template<> template<>
-void SongIdDNA<athena::Big>::Enumerate<BigDNA::Read>(athena::io::IStreamReader& reader)
-{
-    id = reader.readUint16Big();
-}
-
-template<> template<>
-void SongIdDNA<athena::Big>::Enumerate<BigDNA::Write>(athena::io::IStreamWriter& writer)
-{
-    writer.writeUint16Big(id);
-}
-
-template<> template<>
-void SongIdDNA<athena::Big>::Enumerate<BigDNA::BinarySize>(size_t& sz)
-{
-    sz += 2;
-}
-
-template<> template<>
-void SongIdDNA<athena::Big>::Enumerate<BigDNA::ReadYaml>(athena::io::YAMLDocReader& reader)
-{
-    _read(reader);
-}
-
-template<> template<>
-void SongIdDNA<athena::Big>::Enumerate<BigDNA::WriteYaml>(athena::io::YAMLDocWriter& writer)
-{
-    _write(writer);
-}
-
-template <athena::Endian DNAE>
-void SongIdDNA<DNAE>::_read(athena::io::YAMLDocReader& r)
-{
-    std::string name = r.readString(nullptr);
-    if (!SongId::CurNameDB)
-        Log.report(logvisor::Fatal, "Unable to resolve song name %s, no database present", name.c_str());
-    id = SongId::CurNameDB->resolveIdFromName(name);
-}
-
-template <athena::Endian DNAE>
-void SongIdDNA<DNAE>::_write(athena::io::YAMLDocWriter& w)
-{
-    if (!SongId::CurNameDB)
-        Log.report(logvisor::Fatal, "Unable to resolve song ID %d, no database present", id.id);
-    std::string_view name = SongId::CurNameDB->resolveNameFromId(id);
-    w.writeString(nullptr, name);
-}
-
-template <athena::Endian DNAE>
-const char* SongIdDNA<DNAE>::DNAType()
-{
-    return "amuse::SongId";
-}
-
-template<> template<>
-void SFXIdDNA<athena::Little>::Enumerate<BigDNA::Read>(athena::io::IStreamReader& reader)
-{
-    id = reader.readUint16Little();
-}
-
-template<> template<>
-void SFXIdDNA<athena::Little>::Enumerate<BigDNA::Write>(athena::io::IStreamWriter& writer)
-{
-    writer.writeUint16Little(id);
-}
-
-template<> template<>
-void SFXIdDNA<athena::Little>::Enumerate<BigDNA::BinarySize>(size_t& sz)
-{
-    sz += 2;
-}
-
-template<> template<>
-void SFXIdDNA<athena::Little>::Enumerate<BigDNA::ReadYaml>(athena::io::YAMLDocReader& reader)
-{
-    _read(reader);
-}
-
-template<> template<>
-void SFXIdDNA<athena::Little>::Enumerate<BigDNA::WriteYaml>(athena::io::YAMLDocWriter& writer)
-{
-    _write(writer);
-}
-
-template<> template<>
-void SFXIdDNA<athena::Big>::Enumerate<BigDNA::Read>(athena::io::IStreamReader& reader)
-{
-    id = reader.readUint16Big();
-}
-
-template<> template<>
-void SFXIdDNA<athena::Big>::Enumerate<BigDNA::Write>(athena::io::IStreamWriter& writer)
-{
-    writer.writeUint16Big(id);
-}
-
-template<> template<>
-void SFXIdDNA<athena::Big>::Enumerate<BigDNA::BinarySize>(size_t& sz)
-{
-    sz += 2;
-}
-
-template<> template<>
-void SFXIdDNA<athena::Big>::Enumerate<BigDNA::ReadYaml>(athena::io::YAMLDocReader& reader)
-{
-    _read(reader);
-}
-
-template<> template<>
-void SFXIdDNA<athena::Big>::Enumerate<BigDNA::WriteYaml>(athena::io::YAMLDocWriter& writer)
-{
-    _write(writer);
-}
-
-template <athena::Endian DNAE>
-void SFXIdDNA<DNAE>::_read(athena::io::YAMLDocReader& r)
-{
-    std::string name = r.readString(nullptr);
-    if (!SFXId::CurNameDB)
-        Log.report(logvisor::Fatal, "Unable to resolve song name %s, no database present", name.c_str());
-    id = SFXId::CurNameDB->resolveIdFromName(name);
-}
-
-template <athena::Endian DNAE>
-void SFXIdDNA<DNAE>::_write(athena::io::YAMLDocWriter& w)
-{
-    if (!SFXId::CurNameDB)
-        Log.report(logvisor::Fatal, "Unable to resolve song ID %d, no database present", id.id);
-    std::string_view name = SFXId::CurNameDB->resolveNameFromId(id);
-    w.writeString(nullptr, name);
-}
-
-template <athena::Endian DNAE>
-const char* SFXIdDNA<DNAE>::DNAType()
-{
-    return "amuse::SFXId";
-}
+template struct PageObjectIdDNA<athena::Big>;
+template struct PageObjectIdDNA<athena::Little>;
 
 ObjectId NameDB::generateId(Type tp)
 {
-    uint16_t upperMatch = uint16_t(tp) << 8;
-    uint16_t maxMatch = 0;
+    uint16_t maxMatch = uint16_t(tp == Type::Layer ? 0x8000 : 0);
     for (const auto& p : m_idToString)
-        if ((p.first & 0xff00) == upperMatch && (p.first & 0xff) >= maxMatch)
-            maxMatch = (p.first & 0xff) + 1;
-    return upperMatch | maxMatch;
+        if (p.first >= maxMatch)
+            maxMatch = p.first + 1;
+    return maxMatch;
 }
 
-std::string NameDB::generateName(ObjectId id)
+std::string NameDB::generateName(ObjectId id, Type tp)
 {
-    Type tp = Type(id.id >> 8);
     char name[32];
     switch (tp)
     {
     case Type::SoundMacro:
-        snprintf(name, 32, "macro%d", id.id & 0xff);
+        snprintf(name, 32, "macro%04X", id.id);
         break;
     case Type::Table:
-        snprintf(name, 32, "table%d", id.id & 0xff);
+        snprintf(name, 32, "table%04X", id.id);
         break;
     case Type::Keymap:
-        snprintf(name, 32, "keymap%d", id.id & 0xff);
+        snprintf(name, 32, "keymap%04X", id.id);
         break;
     case Type::Layer:
-        snprintf(name, 32, "layers%d", id.id & 0xff);
+        snprintf(name, 32, "layers%04X", id.id);
+        break;
+    case Type::Song:
+        snprintf(name, 32, "song%04X", id.id);
+        break;
+    case Type::SFX:
+        snprintf(name, 32, "sfx%04X", id.id);
+        break;
+    case Type::Sample:
+        snprintf(name, 32, "sample%04X", id.id);
         break;
     default:
         snprintf(name, 32, "obj%04X", id.id);
@@ -391,7 +245,7 @@ std::string_view NameDB::resolveNameFromId(ObjectId id) const
 {
     auto search = m_idToString.find(id);
     if (search == m_idToString.cend())
-        Log.report(logvisor::Fatal, "Unable to resolve ID %d", id.id);
+        Log.report(logvisor::Fatal, "Unable to resolve ID 0x%04X", id.id);
     return search->second;
 }
 
@@ -402,12 +256,6 @@ ObjectId NameDB::resolveIdFromName(std::string_view str) const
         Log.report(logvisor::Fatal, "Unable to resolve name %s", str.data());
     return search->second;
 }
-
-template struct ObjectIdDNA<athena::Big>;
-template struct ObjectIdDNA<athena::Little>;
-
-template struct SampleIdDNA<athena::Big>;
-template struct SampleIdDNA<athena::Little>;
 
 template<>
 void LittleUInt24::Enumerate<LittleDNA::Read>(athena::io::IStreamReader& reader)

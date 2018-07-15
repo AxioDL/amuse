@@ -171,11 +171,11 @@ class Voice : public Entity
     std::list<std::shared_ptr<Voice>>::iterator _allocateVoice(double sampleRate, bool dynamicPitch);
     std::list<std::shared_ptr<Voice>>::iterator _destroyVoice(std::list<std::shared_ptr<Voice>>::iterator it);
 
-    bool _loadSoundMacro(ObjectId id, const SoundMacro* macroData, int macroStep, double ticksPerSec,
+    bool _loadSoundMacro(SoundMacroId id, const SoundMacro* macroData, int macroStep, double ticksPerSec,
                          uint8_t midiKey, uint8_t midiVel, uint8_t midiMod, bool pushPc = false);
-    bool _loadKeymap(ObjectId id, const Keymap* keymap, int macroStep, double ticksPerSec, uint8_t midiKey,
+    bool _loadKeymap(const Keymap* keymap, double ticksPerSec, uint8_t midiKey,
                      uint8_t midiVel, uint8_t midiMod, bool pushPc = false);
-    bool _loadLayer(ObjectId id, const std::vector<LayerMapping>& layer, int macroStep, double ticksPerSec,
+    bool _loadLayer(const std::vector<LayerMapping>& layer, double ticksPerSec,
                     uint8_t midiKey, uint8_t midiVel, uint8_t midiMod, bool pushPc = false);
     std::shared_ptr<Voice> _startChildMacro(ObjectId macroId, int macroStep, double ticksPerSec, uint8_t midiKey,
                                             uint8_t midiVel, uint8_t midiMod, bool pushPc = false);
@@ -222,9 +222,12 @@ public:
     /** Allocate parallel macro and tie to voice for possible emitter influence */
     std::shared_ptr<Voice> startChildMacro(int8_t addNote, ObjectId macroId, int macroStep);
 
-    /** Load specified Sound Object from within group into voice */
-    bool loadSoundObject(ObjectId objectId, int macroStep, double ticksPerSec, uint8_t midiKey, uint8_t midiVel,
+    /** Load specified SoundMacro Object from within group into voice */
+    bool loadMacroObject(SoundMacroId macroId, int macroStep, double ticksPerSec, uint8_t midiKey, uint8_t midiVel,
                          uint8_t midiMod, bool pushPc = false);
+
+    /** Load specified song page object (Keymap/Layer) from within group into voice */
+    bool loadPageObject(ObjectId objectId, double ticksPerSec, uint8_t midiKey, uint8_t midiVel, uint8_t midiMod);
 
     /** Signals voice to begin fade-out (or defer if sustained), eventually reaching silence */
     void keyOff();

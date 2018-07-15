@@ -25,8 +25,21 @@ public:
         amuse::AudioGroupProject m_proj;
         amuse::AudioGroupPool m_pool;
         amuse::AudioGroupSampleDirectory m_sdir;
+        amuse::NameDB m_soundMacroDb;
+        amuse::NameDB m_sampleDb;
+        amuse::NameDB m_tableDb;
+        amuse::NameDB m_keymapDb;
+        amuse::NameDB m_layersDb;
 
         explicit ProjectGroup(amuse::IntrusiveAudioGroupData&& data);
+        void setIdDatabases()
+        {
+            amuse::SoundMacroId::CurNameDB = &m_soundMacroDb;
+            amuse::SampleId::CurNameDB = &m_sampleDb;
+            amuse::TableId::CurNameDB = &m_tableDb;
+            amuse::KeymapId::CurNameDB = &m_keymapDb;
+            amuse::LayersId::CurNameDB = &m_layersDb;
+        }
     };
 
 private:
@@ -36,11 +49,16 @@ private:
     amuse::NameDB m_sfxDb;
     std::map<QString, ProjectGroup> m_groups;
 
+    void setIdDatabases()
+    {
+        amuse::SongId::CurNameDB = &m_songDb;
+        amuse::SFXId::CurNameDB = &m_sfxDb;
+    }
+
 public:
     explicit ProjectModel(const QString& path, QObject* parent = Q_NULLPTR);
 
-    bool importGroupData(const QString& groupName, amuse::IntrusiveAudioGroupData&& data,
-                         ImportMode mode, QWidget* parent);
+    bool importGroupData(const QString& groupName, amuse::IntrusiveAudioGroupData&& data, ImportMode mode);
     bool saveToFile(QWidget* parent);
 
     QModelIndex index(int row, int column, const QModelIndex& parent = QModelIndex()) const;

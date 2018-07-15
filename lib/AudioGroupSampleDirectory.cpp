@@ -2,20 +2,16 @@
 #include "amuse/Common.hpp"
 #include "amuse/AudioGroupData.hpp"
 #include <cstring>
+#include <athena/MemoryReader.hpp>
 
 namespace amuse
 {
 
-void AudioGroupSampleDirectory::Entry::swapBig()
+static bool AtEnd32(athena::io::IStreamReader& r)
 {
-    m_sfxId = SBig(m_sfxId);
-    m_sampleOff = SBig(m_sampleOff);
-    m_unk = SBig(m_unk);
-    m_sampleRate = SBig(m_sampleRate);
-    m_numSamples = SBig(m_numSamples);
-    m_loopStartSample = SBig(m_loopStartSample);
-    m_loopLengthSamples = SBig(m_loopLengthSamples);
-    m_adpcmParmOffset = SBig(m_adpcmParmOffset);
+    uint32_t v = r.readUint32Big();
+    r.seek(-4, athena::Current);
+    return v == 0xffffffff;
 }
 
 void AudioGroupSampleDirectory::ADPCMParms::swapBigDSP()
@@ -37,177 +33,94 @@ void AudioGroupSampleDirectory::ADPCMParms::swapBigVADPCM()
         allCoefs[i] = SBig(allCoefs[i]);
 }
 
-AudioGroupSampleDirectory::AudioGroupSampleDirectory(const unsigned char* data, GCNDataTag)
+AudioGroupSampleDirectory::AudioGroupSampleDirectory(athena::io::IStreamReader& r, GCNDataTag)
 {
-    const unsigned char* cur = data;
-    while (*reinterpret_cast<const uint32_t*>(cur) != 0xffffffff)
+    while (!AtEnd32(r))
     {
-        const AudioGroupSampleDirectory::Entry* ent = reinterpret_cast<const AudioGroupSampleDirectory::Entry*>(cur);
+        EntryDNA<athena::Big> ent;
+        ent.read(r);
+        std::pair<Entry, ADPCMParms>& store = m_entries[ent.m_sfxId];
+        store.first = ent;
+    }
 
-        std::pair<Entry, ADPCMParms>& store = m_entries[SBig(ent->m_sfxId)];
-        store.first = *ent;
-        store.first.swapBig();
-
-        if (store.first.m_adpcmParmOffset)
+    for (auto& p : m_entries)
+    {
+        if (p.second.first.m_adpcmParmOffset)
         {
-            const AudioGroupSampleDirectory::ADPCMParms* adpcm =
-                reinterpret_cast<const AudioGroupSampleDirectory::ADPCMParms*>(data + store.first.m_adpcmParmOffset);
-            store.second.dsp = adpcm->dsp;
-            store.second.swapBigDSP();
+            r.seek(p.second.first.m_adpcmParmOffset, athena::Begin);
+            r.readUBytesToBuf(&p.second.second, sizeof(ADPCMParms::DSPParms));
+            p.second.second.swapBigDSP();
         }
-
-        cur += 32;
     }
 }
 
-struct MusyX1SdirEntry
-{
-    uint16_t m_sfxId;
-    uint32_t m_sampleOff;
-    uint32_t m_pitchSampleRate;
-    uint32_t m_numSamples;
-    uint32_t m_loopStartSample;
-    uint32_t m_loopLengthSamples;
-
-    void swapBig()
-    {
-        m_sfxId = SBig(m_sfxId);
-        m_sampleOff = SBig(m_sampleOff);
-        m_pitchSampleRate = SBig(m_pitchSampleRate);
-        m_numSamples = SBig(m_numSamples);
-        m_loopStartSample = SBig(m_loopStartSample);
-        m_loopLengthSamples = SBig(m_loopLengthSamples);
-    }
-
-    void setIntoMusyX2(AudioGroupSampleDirectory::Entry& ent) const
-    {
-        ent.m_sfxId = m_sfxId;
-        ent.m_sampleOff = m_sampleOff;
-        ent.m_unk = 0;
-        ent.m_pitch = m_pitchSampleRate >> 24;
-        ent.m_sampleRate = m_pitchSampleRate & 0xffff;
-        ent.m_numSamples = m_numSamples;
-        ent.m_loopStartSample = m_loopStartSample;
-        ent.m_loopLengthSamples = m_loopLengthSamples;
-        ent.m_adpcmParmOffset = 0;
-    }
-};
-
-struct MusyX1AbsSdirEntry
-{
-    uint16_t m_sfxId;
-    uint32_t m_sampleOff;
-    uint32_t m_unk;
-    uint32_t m_pitchSampleRate;
-    uint32_t m_numSamples;
-    uint32_t m_loopStartSample;
-    uint32_t m_loopLengthSamples;
-
-    void swapBig()
-    {
-        m_sfxId = SBig(m_sfxId);
-        m_sampleOff = SBig(m_sampleOff);
-        m_unk = SBig(m_unk);
-        m_pitchSampleRate = SBig(m_pitchSampleRate);
-        m_numSamples = SBig(m_numSamples);
-        m_loopStartSample = SBig(m_loopStartSample);
-        m_loopLengthSamples = SBig(m_loopLengthSamples);
-    }
-
-    void setIntoMusyX2(AudioGroupSampleDirectory::Entry& ent) const
-    {
-        ent.m_sfxId = m_sfxId;
-        ent.m_sampleOff = m_sampleOff;
-        ent.m_unk = m_unk;
-        ent.m_pitch = m_pitchSampleRate >> 24;
-        ent.m_sampleRate = m_pitchSampleRate & 0xffff;
-        ent.m_numSamples = m_numSamples;
-        ent.m_loopStartSample = m_loopStartSample;
-        ent.m_loopLengthSamples = m_loopLengthSamples;
-        ent.m_adpcmParmOffset = 0;
-    }
-};
-
-AudioGroupSampleDirectory::AudioGroupSampleDirectory(const unsigned char* data, const unsigned char* sampData,
+AudioGroupSampleDirectory::AudioGroupSampleDirectory(athena::io::IStreamReader& r, const unsigned char* sampData,
                                                      bool absOffs, N64DataTag)
 {
-    const unsigned char* cur = data;
-
     if (absOffs)
     {
-        while (*reinterpret_cast<const uint32_t*>(cur) != 0xffffffff)
+        while (!AtEnd32(r))
         {
-            MusyX1AbsSdirEntry ent = *reinterpret_cast<const MusyX1AbsSdirEntry*>(cur);
-            ent.swapBig();
-
+            MusyX1AbsSdirEntry<athena::Big> ent;
+            ent.read(r);
             std::pair<Entry, ADPCMParms>& store = m_entries[ent.m_sfxId];
-            ent.setIntoMusyX2(store.first);
-
-            memmove(&store.second.vadpcm.m_coefs, sampData + ent.m_sampleOff, 256);
-            store.second.swapBigVADPCM();
-
-            cur += 28;
+            store.first = ent;
         }
     }
     else
     {
-        while (*reinterpret_cast<const uint32_t*>(cur) != 0xffffffff)
+        while (!AtEnd32(r))
         {
-            MusyX1SdirEntry ent = *reinterpret_cast<const MusyX1SdirEntry*>(cur);
-            ent.swapBig();
-
+            MusyX1SdirEntry<athena::Big> ent;
+            ent.read(r);
             std::pair<Entry, ADPCMParms>& store = m_entries[ent.m_sfxId];
-            ent.setIntoMusyX2(store.first);
-
-            memmove(&store.second.vadpcm.m_coefs, sampData + ent.m_sampleOff, 256);
-            store.second.swapBigVADPCM();
-
-            cur += 24;
+            store.first = ent;
         }
+    }
+
+    for (auto& p : m_entries)
+    {
+        memcpy(&p.second.second, sampData + p.second.first.m_sampleOff, sizeof(ADPCMParms::VADPCMParms));
+        p.second.second.swapBigVADPCM();
     }
 }
 
-AudioGroupSampleDirectory::AudioGroupSampleDirectory(const unsigned char* data, bool absOffs, PCDataTag)
+AudioGroupSampleDirectory::AudioGroupSampleDirectory(athena::io::IStreamReader& r, bool absOffs, PCDataTag)
 {
-    const unsigned char* cur = data;
-
     if (absOffs)
     {
-        while (*reinterpret_cast<const uint32_t*>(cur) != 0xffffffff)
+        while (!AtEnd32(r))
         {
-            const MusyX1AbsSdirEntry* ent = reinterpret_cast<const MusyX1AbsSdirEntry*>(cur);
-
-            std::pair<Entry, ADPCMParms>& store = m_entries[ent->m_sfxId];
-            ent->setIntoMusyX2(store.first);
-
-            cur += 28;
+            MusyX1AbsSdirEntry<athena::Little> ent;
+            ent.read(r);
+            std::pair<Entry, ADPCMParms>& store = m_entries[ent.m_sfxId];
+            store.first = ent;
         }
     }
     else
     {
-        while (*reinterpret_cast<const uint32_t*>(cur) != 0xffffffff)
+        while (!AtEnd32(r))
         {
-            const MusyX1SdirEntry* ent = reinterpret_cast<const MusyX1SdirEntry*>(cur);
-
-            std::pair<Entry, ADPCMParms>& store = m_entries[ent->m_sfxId];
-            ent->setIntoMusyX2(store.first);
-
-            cur += 24;
+            MusyX1SdirEntry<athena::Little> ent;
+            ent.read(r);
+            std::pair<Entry, ADPCMParms>& store = m_entries[ent.m_sfxId];
+            store.first = ent;
         }
     }
 }
 
 AudioGroupSampleDirectory AudioGroupSampleDirectory::CreateAudioGroupSampleDirectory(const AudioGroupData& data)
 {
+    athena::io::MemoryReader r(data.getSdir(), data.getSdirSize());
     switch (data.getDataFormat())
     {
     case DataFormat::GCN:
     default:
-        return AudioGroupSampleDirectory(data.getSdir(), GCNDataTag{});
+        return AudioGroupSampleDirectory(r, GCNDataTag{});
     case DataFormat::N64:
-        return AudioGroupSampleDirectory(data.getSdir(), data.getSamp(), data.getAbsoluteProjOffsets(), N64DataTag{});
+        return AudioGroupSampleDirectory(r, data.getSamp(), data.getAbsoluteProjOffsets(), N64DataTag{});
     case DataFormat::PC:
-        return AudioGroupSampleDirectory(data.getSdir(), data.getAbsoluteProjOffsets(), PCDataTag{});
+        return AudioGroupSampleDirectory(r, data.getAbsoluteProjOffsets(), PCDataTag{});
     }
 }
 }

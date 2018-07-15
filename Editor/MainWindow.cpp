@@ -211,7 +211,6 @@ void MainWindow::importAction()
 
                 QFileInfo fInfo(path);
                 QString newPath = QFileInfo(fInfo.dir(), newName).filePath();
-                printf("%s\n", newPath.toUtf8().data());
                 if (!MkPath(fInfo.dir(), newName, this))
                     return;
                 if (!setProjectPath(newPath))
@@ -227,7 +226,7 @@ void MainWindow::importAction()
                 auto data = amuse::ContainerRegistry::LoadContainer(QStringToSysString(dir.filePath(fPath)).c_str());
                 for (auto& p : data)
                     if (!m_projectModel->importGroupData(SysStringToQString(p.first), std::move(p.second),
-                                                         ProjectModel::ImportMode(impMode), this))
+                                                         ProjectModel::ImportMode(impMode)))
                         return;
             }
             m_projectModel->saveToFile(this);
@@ -256,7 +255,7 @@ void MainWindow::importAction()
     auto data = amuse::ContainerRegistry::LoadContainer(QStringToSysString(path).c_str());
     for (auto& p : data)
         if (!m_projectModel->importGroupData(SysStringToQString(p.first), std::move(p.second),
-                                             ProjectModel::ImportMode(impMode), this))
+                                             ProjectModel::ImportMode(impMode)))
             return;
 
     m_projectModel->saveToFile(this);
@@ -328,7 +327,7 @@ void MainWindow::onFocusChanged(QWidget* old, QWidget* now)
     if (QLineEdit* le = qobject_cast<QLineEdit*>(now))
     {
         m_undoConn = connect(m_ui.actionUndo, SIGNAL(triggered()), le, SLOT(undo()));
-        m_canUndoConn = connect(le, SIGNAL(textChanged()), this, SLOT(onTextEdited()));
+        m_canUndoConn = connect(le, SIGNAL(textChanged(const QString&)), this, SLOT(onTextEdited()));
         m_ui.actionUndo->setEnabled(le->isUndoAvailable());
         m_redoConn = connect(m_ui.actionRedo, SIGNAL(triggered()), le, SLOT(redo()));
         m_ui.actionRedo->setEnabled(le->isRedoAvailable());

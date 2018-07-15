@@ -307,7 +307,7 @@ std::shared_ptr<Voice> Engine::fxStart(int sfxId, float vol, float pan, std::wea
     std::list<std::shared_ptr<Voice>>::iterator ret =
         _allocateVoice(*grp, std::get<1>(search->second), NativeSampleRate, true, false, smx);
 
-    if (!(*ret)->loadSoundObject(entry->objId, 0, 1000.f, entry->defKey, entry->defVel, 0))
+    if (!(*ret)->loadMacroObject(entry->macro.id, 0, 1000.f, entry->defKey, entry->defVel, 0))
     {
         _destroyVoice(ret);
         return {};
@@ -335,7 +335,7 @@ std::shared_ptr<Emitter> Engine::addEmitter(const float* pos, const float* dir, 
     std::list<std::shared_ptr<Voice>>::iterator vox =
         _allocateVoice(*grp, std::get<1>(search->second), NativeSampleRate, true, true, smx);
 
-    if (!(*vox)->loadSoundObject(entry->objId, 0, 1000.f, entry->defKey, entry->defVel, 0))
+    if (!(*vox)->loadMacroObject(entry->macro, 0, 1000.f, entry->defKey, entry->defVel, 0))
     {
         _destroyVoice(vox);
         return {};

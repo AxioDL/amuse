@@ -37,7 +37,7 @@ using BigDNAV = athena::io::DNAVYaml<athena::Big>;
 using LittleDNAV = athena::io::DNAVYaml<athena::Little>;
 
 /** Common ID structure statically tagging
- *  SoundMacros, Tables, Keymaps, Layers */
+ *  SoundMacros, Tables, Keymaps, Layers, Samples, SFX, Songs */
 struct ObjectId
 {
     uint16_t id = 0xffff;
@@ -47,7 +47,6 @@ struct ObjectId
     ObjectId& operator=(uint16_t idIn) { id = idIn; return *this; }
     static thread_local NameDB* CurNameDB;
 };
-
 template <athena::Endian DNAEn>
 struct AT_SPECIALIZE_PARMS(athena::Endian::Big, athena::Endian::Little)
 ObjectIdDNA : BigDNA
@@ -56,57 +55,52 @@ ObjectIdDNA : BigDNA
     void _read(athena::io::YAMLDocReader& r);
     void _write(athena::io::YAMLDocWriter& w);
     ObjectId id;
+    ObjectIdDNA() = default;
+    ObjectIdDNA(ObjectId idIn) : id(idIn) {}
+    operator ObjectId() const { return id; }
 };
 
-struct SampleId : ObjectId
-{
-    using ObjectId::ObjectId;
-    SampleId(const ObjectId& id) : ObjectId(id) {}
-    static thread_local NameDB* CurNameDB;
+#define DECL_ID_TYPE(type) \
+struct type : ObjectId \
+{ \
+    using ObjectId::ObjectId; \
+    type(const ObjectId& id) : ObjectId(id) {} \
+    static thread_local NameDB* CurNameDB; \
+}; \
+template <athena::Endian DNAEn> \
+struct AT_SPECIALIZE_PARMS(athena::Endian::Big, athena::Endian::Little) \
+type##DNA : BigDNA \
+{ \
+    AT_DECL_EXPLICIT_DNA_YAML \
+    void _read(athena::io::YAMLDocReader& r); \
+    void _write(athena::io::YAMLDocWriter& w); \
+    type id; \
+    type##DNA() = default; \
+    type##DNA(type idIn) : id(idIn) {} \
+    operator type() const { return id; } \
 };
+DECL_ID_TYPE(SoundMacroId)
+DECL_ID_TYPE(SampleId)
+DECL_ID_TYPE(TableId)
+DECL_ID_TYPE(KeymapId)
+DECL_ID_TYPE(LayersId)
+DECL_ID_TYPE(SongId)
+DECL_ID_TYPE(SFXId)
 
+/* MusyX has object polymorphism between Keymaps and Layers when
+ * referenced by a song group's page object. When the upper bit is set,
+ * this indicates a layer type. */
 template <athena::Endian DNAEn>
 struct AT_SPECIALIZE_PARMS(athena::Endian::Big, athena::Endian::Little)
-SampleIdDNA : BigDNA
+PageObjectIdDNA : BigDNA
 {
     AT_DECL_EXPLICIT_DNA_YAML
     void _read(athena::io::YAMLDocReader& r);
     void _write(athena::io::YAMLDocWriter& w);
-    SampleId id;
-};
-
-struct SongId : ObjectId
-{
-    using ObjectId::ObjectId;
-    SongId(const ObjectId& id) : ObjectId(id) {}
-    static thread_local NameDB* CurNameDB;
-};
-
-template <athena::Endian DNAEn>
-struct AT_SPECIALIZE_PARMS(athena::Endian::Big, athena::Endian::Little)
-SongIdDNA : BigDNA
-{
-    AT_DECL_EXPLICIT_DNA_YAML
-    void _read(athena::io::YAMLDocReader& r);
-    void _write(athena::io::YAMLDocWriter& w);
-    SongId id;
-};
-
-struct SFXId : ObjectId
-{
-    using ObjectId::ObjectId;
-    SFXId(const ObjectId& id) : ObjectId(id) {}
-    static thread_local NameDB* CurNameDB;
-};
-
-template <athena::Endian DNAEn>
-struct AT_SPECIALIZE_PARMS(athena::Endian::Big, athena::Endian::Little)
-SFXIdDNA : BigDNA
-{
-    AT_DECL_EXPLICIT_DNA_YAML
-    void _read(athena::io::YAMLDocReader& r);
-    void _write(athena::io::YAMLDocWriter& w);
-    SFXId id;
+    ObjectId id;
+    PageObjectIdDNA() = default;
+    PageObjectIdDNA(ObjectId idIn) : id(idIn) {}
+    operator ObjectId() const { return id; }
 };
 
 struct LittleUInt24 : LittleDNA
@@ -422,30 +416,34 @@ struct N64DataTag
 struct PCDataTag
 {
 };
+
+template <class T>
+static std::vector<std::pair<typename T::key_type,
+    std::reference_wrapper<const typename T::mapped_type>>> SortUnorderedMap(const T& um)
+{
+    std::vector<std::pair<typename T::key_type,
+        std::reference_wrapper<const typename T::mapped_type>>> ret(um.cbegin(), um.cend());
+    std::sort(ret.begin(), ret.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+    return ret;
+}
 }
 
 namespace std
 {
-template<>
-struct hash<amuse::ObjectId>
-{
-    size_t operator()(const amuse::ObjectId& val) const noexcept { return val.id; }
+#define DECL_ID_HASH(type) \
+template<> \
+struct hash<amuse::type> \
+{ \
+    size_t operator()(const amuse::type& val) const noexcept { return val.id; } \
 };
-template<>
-struct hash<amuse::SampleId>
-{
-    size_t operator()(const amuse::SampleId& val) const noexcept { return val.id; }
-};
-template<>
-struct hash<amuse::SongId>
-{
-    size_t operator()(const amuse::SongId& val) const noexcept { return val.id; }
-};
-template<>
-struct hash<amuse::SFXId>
-{
-    size_t operator()(const amuse::SFXId& val) const noexcept { return val.id; }
-};
+DECL_ID_HASH(ObjectId)
+DECL_ID_HASH(SoundMacroId)
+DECL_ID_HASH(SampleId)
+DECL_ID_HASH(TableId)
+DECL_ID_HASH(KeymapId)
+DECL_ID_HASH(LayersId)
+DECL_ID_HASH(SongId)
+DECL_ID_HASH(SFXId)
 }
 
 namespace amuse
@@ -454,17 +452,20 @@ struct NameDB
 {
     enum class Type
     {
-        SoundMacro = 0,
-        Table = 1,
-        Keymap = 4,
-        Layer = 8
+        SoundMacro,
+        Table,
+        Keymap,
+        Layer,
+        Song,
+        SFX,
+        Sample
     };
 
     std::unordered_map<std::string, ObjectId> m_stringToId;
     std::unordered_map<ObjectId, std::string> m_idToString;
 
     ObjectId generateId(Type tp);
-    static std::string generateName(ObjectId id);
+    static std::string generateName(ObjectId id, Type tp);
     std::string_view registerPair(std::string_view str, ObjectId id);
     std::string_view resolveNameFromId(ObjectId id) const;
     ObjectId resolveIdFromName(std::string_view str) const;

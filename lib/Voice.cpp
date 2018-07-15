@@ -49,7 +49,7 @@ void Voice::_macroSampleEnd()
             m_state.m_inWait = false;
         }
         else
-            loadSoundObject(m_sampleEndTrap.macroId, m_sampleEndTrap.macroStep, m_state.m_ticksPerSec,
+            loadMacroObject(m_sampleEndTrap.macroId, m_sampleEndTrap.macroStep, m_state.m_ticksPerSec,
                             m_state.m_initKey, m_state.m_initVel, m_state.m_initMod);
     }
     else
@@ -734,7 +734,7 @@ std::shared_ptr<Voice> Voice::_startChildMacro(ObjectId macroId, int macroStep, 
                                                uint8_t midiVel, uint8_t midiMod, bool pushPc)
 {
     std::list<std::shared_ptr<Voice>>::iterator vox = _allocateVoice(NativeSampleRate, true);
-    if (!(*vox)->loadSoundObject(macroId, macroStep, ticksPerSec, midiKey, midiVel, midiMod, pushPc))
+    if (!(*vox)->loadMacroObject(macroId, macroStep, ticksPerSec, midiKey, midiVel, midiMod, pushPc))
     {
         _destroyVoice(vox);
         return {};
@@ -751,9 +751,11 @@ std::shared_ptr<Voice> Voice::startChildMacro(int8_t addNote, ObjectId macroId, 
                             m_state.m_initMod);
 }
 
-bool Voice::_loadSoundMacro(ObjectId id, const SoundMacro* macroData, int macroStep, double ticksPerSec,
+bool Voice::_loadSoundMacro(SoundMacroId id, const SoundMacro* macroData, int macroStep, double ticksPerSec,
                             uint8_t midiKey, uint8_t midiVel, uint8_t midiMod, bool pushPc)
 {
+    m_objectId = id;
+
     if (m_state.m_pc.empty())
         m_state.initialize(id, macroData, macroStep, ticksPerSec, midiKey, midiVel, midiMod);
     else
@@ -768,19 +770,19 @@ bool Voice::_loadSoundMacro(ObjectId id, const SoundMacro* macroData, int macroS
     return true;
 }
 
-bool Voice::_loadKeymap(ObjectId id, const Keymap* keymap, int macroStep, double ticksPerSec,
+bool Voice::_loadKeymap(const Keymap* keymap, double ticksPerSec,
                         uint8_t midiKey, uint8_t midiVel, uint8_t midiMod, bool pushPc)
 {
     const Keymap& km = keymap[midiKey];
     midiKey += km.transpose;
-    bool ret = loadSoundObject(id, macroStep, ticksPerSec, midiKey, midiVel, midiMod, pushPc);
+    bool ret = loadMacroObject(km.macro.id, 0, ticksPerSec, midiKey, midiVel, midiMod, pushPc);
     m_curVol = 1.f;
     _setPan((km.pan - 64) / 64.f);
     _setSurroundPan(-1.f);
     return ret;
 }
 
-bool Voice::_loadLayer(ObjectId id, const std::vector<LayerMapping>& layer, int macroStep, double ticksPerSec,
+bool Voice::_loadLayer(const std::vector<LayerMapping>& layer, double ticksPerSec,
                        uint8_t midiKey, uint8_t midiVel, uint8_t midiMod, bool pushPc)
 {
     bool ret = false;
@@ -791,7 +793,7 @@ bool Voice::_loadLayer(ObjectId id, const std::vector<LayerMapping>& layer, int 
             uint8_t mappingKey = midiKey + mapping.transpose;
             if (m_voxState != VoiceState::Playing)
             {
-                ret |= loadSoundObject(id, macroStep, ticksPerSec, mappingKey, midiVel, midiMod, pushPc);
+                ret |= loadMacroObject(mapping.macro.id, 0, ticksPerSec, mappingKey, midiVel, midiMod, pushPc);
                 m_curVol = mapping.volume / 127.f;
                 _setPan((mapping.pan - 64) / 64.f);
                 _setSurroundPan((mapping.span - 64) / 64.f);
@@ -799,7 +801,7 @@ bool Voice::_loadLayer(ObjectId id, const std::vector<LayerMapping>& layer, int 
             else
             {
                 std::shared_ptr<Voice> vox =
-                    _startChildMacro(id, macroStep, ticksPerSec, mappingKey, midiVel, midiMod, pushPc);
+                    _startChildMacro(mapping.macro.id, 0, ticksPerSec, mappingKey, midiVel, midiMod, pushPc);
                 if (vox)
                 {
                     vox->m_curVol = mapping.volume / 127.f;
@@ -813,31 +815,35 @@ bool Voice::_loadLayer(ObjectId id, const std::vector<LayerMapping>& layer, int 
     return ret;
 }
 
-bool Voice::loadSoundObject(ObjectId objectId, int macroStep, double ticksPerSec, uint8_t midiKey, uint8_t midiVel,
+bool Voice::loadMacroObject(SoundMacroId macroId, int macroStep, double ticksPerSec, uint8_t midiKey, uint8_t midiVel,
                             uint8_t midiMod, bool pushPc)
 {
     if (m_destroyed)
         return false;
 
-    const SoundMacro* macroData = m_audioGroup.getPool().soundMacro(objectId);
+    const SoundMacro* macroData = m_audioGroup.getPool().soundMacro(macroId);
     if (macroData)
-    {
-        m_objectId = objectId;
-        return _loadSoundMacro(objectId, macroData, macroStep, ticksPerSec, midiKey, midiVel, midiMod, pushPc);
-    }
+        return _loadSoundMacro(macroId, macroData, macroStep, ticksPerSec, midiKey, midiVel, midiMod, pushPc);
 
-    const Keymap* keymap = m_audioGroup.getPool().keymap(objectId);
-    if (keymap)
-    {
-        m_objectId = objectId;
-        return _loadKeymap(objectId, keymap, macroStep, ticksPerSec, midiKey, midiVel, midiMod, pushPc);
-    }
+    return false;
+}
 
-    const std::vector<LayerMapping>* layer = m_audioGroup.getPool().layer(objectId);
-    if (layer)
+bool Voice::loadPageObject(ObjectId objectId, double ticksPerSec, uint8_t midiKey, uint8_t midiVel, uint8_t midiMod)
+{
+    if (m_destroyed)
+        return false;
+
+    if (objectId.id & 0x8000)
     {
-        m_objectId = objectId;
-        return _loadLayer(objectId, *layer, macroStep, ticksPerSec, midiKey, midiVel, midiMod, pushPc);
+        const std::vector<LayerMapping>* layer = m_audioGroup.getPool().layer(objectId);
+        if (layer)
+            return _loadLayer(*layer, ticksPerSec, midiKey, midiVel, midiMod);
+    }
+    else
+    {
+        const Keymap* keymap = m_audioGroup.getPool().keymap(objectId);
+        if (keymap)
+            return _loadKeymap(keymap, ticksPerSec, midiKey, midiVel, midiMod);
     }
 
     return false;
@@ -868,7 +874,7 @@ void Voice::keyOff()
             m_state.m_inWait = false;
         }
         else
-            loadSoundObject(m_keyoffTrap.macroId, m_keyoffTrap.macroStep, m_state.m_ticksPerSec, m_state.m_initKey,
+            loadMacroObject(m_keyoffTrap.macroId, m_keyoffTrap.macroStep, m_state.m_ticksPerSec, m_state.m_initKey,
                             m_state.m_initVel, m_state.m_initMod);
     }
     else if (!m_curSample || m_curSample->first.m_loopLengthSamples)
@@ -890,7 +896,7 @@ void Voice::message(int32_t val)
         if (m_messageTrap.macroId == std::get<0>(m_state.m_pc.back()))
             std::get<2>(m_state.m_pc.back()) = std::get<1>(m_state.m_pc.back())->assertPC(m_messageTrap.macroStep);
         else
-            loadSoundObject(m_messageTrap.macroId, m_messageTrap.macroStep, m_state.m_ticksPerSec, m_state.m_initKey,
+            loadMacroObject(m_messageTrap.macroId, m_messageTrap.macroStep, m_state.m_ticksPerSec, m_state.m_initKey,
                             m_state.m_initVel, m_state.m_initMod);
     }
 }
