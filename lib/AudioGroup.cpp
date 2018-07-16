@@ -4,34 +4,21 @@
 namespace amuse
 {
 
-AudioGroup::AudioGroup(const AudioGroupData& data, GCNDataTag)
+AudioGroup::AudioGroup(const AudioGroupData& data)
 : m_proj(AudioGroupProject::CreateAudioGroupProject(data))
 , m_pool(AudioGroupPool::CreateAudioGroupPool(data))
 , m_sdir(AudioGroupSampleDirectory::CreateAudioGroupSampleDirectory(data))
 , m_samp(data.getSamp())
-, m_fmt(DataFormat::GCN)
-{
-}
+{}
 
-AudioGroup::AudioGroup(const AudioGroupData& data, bool absOffs, N64DataTag)
-: m_proj(AudioGroupProject::CreateAudioGroupProject(data))
-, m_pool(AudioGroupPool::CreateAudioGroupPool(data))
-, m_sdir(AudioGroupSampleDirectory::CreateAudioGroupSampleDirectory(data))
-, m_samp(data.getSamp())
-, m_fmt(DataFormat::N64)
-{
-}
+AudioGroup::AudioGroup(SystemStringView groupPath)
+: m_proj(AudioGroupProject::CreateAudioGroupProject(groupPath))
+, m_pool(AudioGroupPool::CreateAudioGroupPool(groupPath))
+, m_sdir(AudioGroupSampleDirectory::CreateAudioGroupSampleDirectory(groupPath))
+, m_groupPath(groupPath)
+{}
 
-AudioGroup::AudioGroup(const AudioGroupData& data, bool absOffs, PCDataTag)
-: m_proj(AudioGroupProject::CreateAudioGroupProject(data))
-, m_pool(AudioGroupPool::CreateAudioGroupPool(data))
-, m_sdir(AudioGroupSampleDirectory::CreateAudioGroupSampleDirectory(data))
-, m_samp(data.getSamp())
-, m_fmt(DataFormat::PC)
-{
-}
-
-const Sample* AudioGroup::getSample(int sfxId) const
+const AudioGroupSampleDirectory::Entry* AudioGroup::getSample(SampleId sfxId) const
 {
     auto search = m_sdir.m_entries.find(sfxId);
     if (search == m_sdir.m_entries.cend())
@@ -39,5 +26,20 @@ const Sample* AudioGroup::getSample(int sfxId) const
     return &search->second;
 }
 
-const unsigned char* AudioGroup::getSampleData(uint32_t offset) const { return m_samp + offset; }
+const unsigned char* AudioGroup::getSampleData(SampleId sfxId, const AudioGroupSampleDirectory::Entry* sample) const
+{
+    if (sample->m_looseData)
+    {
+#if _WIN32
+        SystemString basePath = m_groupPath + _S('/') +
+            athena::utility::utf8ToWide(SampleId::CurNameDB->resolveNameFromId(sfxId));
+#else
+        SystemString basePath = m_groupPath + _S('/') +
+            SampleId::CurNameDB->resolveNameFromId(sfxId).data();
+#endif
+        const_cast<AudioGroupSampleDirectory::Entry*>(sample)->loadLooseData(basePath);
+        return sample->m_looseData.get();
+    }
+    return m_samp + sample->m_sampleOff;
+}
 }

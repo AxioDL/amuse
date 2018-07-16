@@ -58,7 +58,8 @@ private:
 public:
     explicit ProjectModel(const QString& path, QObject* parent = Q_NULLPTR);
 
-    bool importGroupData(const QString& groupName, amuse::IntrusiveAudioGroupData&& data, ImportMode mode);
+    bool importGroupData(const QString& groupName, amuse::IntrusiveAudioGroupData&& data);
+    bool extractSamples(ImportMode mode, QWidget* parent);
     bool saveToFile(QWidget* parent);
 
     QModelIndex index(int row, int column, const QModelIndex& parent = QModelIndex()) const;

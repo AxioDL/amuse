@@ -17,13 +17,49 @@ ProjectModel::ProjectGroup::ProjectGroup(amuse::IntrusiveAudioGroupData&& data)
   m_sdir(amuse::AudioGroupSampleDirectory::CreateAudioGroupSampleDirectory(m_data))
 {}
 
-bool ProjectModel::importGroupData(const QString& groupName, amuse::IntrusiveAudioGroupData&& data, ImportMode mode)
+bool ProjectModel::importGroupData(const QString& groupName, amuse::IntrusiveAudioGroupData&& data)
 {
     setIdDatabases();
 
     ProjectGroup& grp = m_groups.insert(std::make_pair(groupName, std::move(data))).first->second;
     grp.setIdDatabases();
     amuse::AudioGroupProject::BootstrapObjectIDs(grp.m_data);
+
+    return true;
+}
+
+bool ProjectModel::extractSamples(ImportMode mode, QWidget* parent)
+{
+    setIdDatabases();
+
+    if (!MkPath(m_dir.path(), parent))
+        return false;
+
+    for (auto& g : m_groups)
+    {
+        g.second.setIdDatabases();
+
+        QDir dir(QFileInfo(m_dir, g.first).filePath());
+        if (!MkPath(dir.path(), parent))
+            return false;
+
+        amuse::SystemString sysDir = QStringToSysString(dir.path());
+        switch (mode)
+        {
+        case ImportMode::Original:
+            g.second.m_sdir.extractAllCompressed(sysDir, g.second.m_data.getSamp());
+            break;
+        case ImportMode::WAVs:
+            g.second.m_sdir.extractAllWAV(sysDir, g.second.m_data.getSamp());
+            break;
+        case ImportMode::Both:
+            g.second.m_sdir.extractAllCompressed(sysDir, g.second.m_data.getSamp());
+            g.second.m_sdir.extractAllWAV(sysDir, g.second.m_data.getSamp());
+            break;
+        default:
+            break;
+        }
+    }
 
     return true;
 }
@@ -42,15 +78,9 @@ bool ProjectModel::saveToFile(QWidget* parent)
             return false;
 
         g.second.setIdDatabases();
-        {
-            athena::io::FileWriter fo(QStringToSysString(dir.filePath("!project.yaml")));
-            g.second.m_proj.toYAML(fo);
-        }
-        {
-            athena::io::FileWriter fo(QStringToSysString(dir.filePath("!pool.yaml")));
-            g.second.m_pool.toYAML(fo);
-        }
-        //g.second.m_sdir.sampleEntries()
+        amuse::SystemString groupPath = QStringToSysString(dir.path());
+        g.second.m_proj.toYAML(groupPath);
+        g.second.m_pool.toYAML(groupPath);
     }
 
     return true;

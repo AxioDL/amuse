@@ -58,16 +58,7 @@ class Voice : public Entity
     std::list<std::shared_ptr<Voice>> m_childVoices; /**< Child voices for PLAYMACRO usage */
     uint8_t m_keygroup = 0;                          /**< Keygroup voice is a member of */
 
-    enum class SampleFormat : uint8_t
-    {
-        DSP,      /**< GCN DSP-ucode ADPCM (very common for GameCube games) */
-        DSP_DRUM, /**< GCN DSP-ucode ADPCM (seems to be set into drum samples for expanding their amplitude
-                     appropriately) */
-        PCM,      /**< Big-endian PCM found in MusyX2 demo GM instruments */
-        N64,      /**< 2-stage VADPCM coding with SAMP-embedded codebooks */
-        PCM_PC    /**< Little-endian PCM found in PC Rogue Squadron (actually enum 0 which conflicts with DSP-ADPCM) */
-    };
-    const Sample* m_curSample = nullptr;            /**< Current sample entry playing */
+    const AudioGroupSampleDirectory::Entry* m_curSample = nullptr; /**< Current sample entry playing */
     const unsigned char* m_curSampleData = nullptr; /**< Current sample data playing */
     SampleFormat m_curFormat;                       /**< Current sample format playing */
     uint32_t m_curSamplePos = 0;                    /**< Current sample position */
@@ -236,7 +227,7 @@ public:
     void message(int32_t val);
 
     /** Start playing specified sample from within group, optionally by sample offset */
-    void startSample(int16_t sampId, int32_t offset);
+    void startSample(SampleId sampId, int32_t offset);
 
     /** Stop playing current sample */
     void stopSample();

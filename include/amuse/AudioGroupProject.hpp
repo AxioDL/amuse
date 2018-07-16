@@ -193,6 +193,7 @@ class AudioGroupProject
     static void BootstrapObjectIDs(athena::io::IStreamReader& r, bool absOffs);
 public:
     static AudioGroupProject CreateAudioGroupProject(const AudioGroupData& data);
+    static AudioGroupProject CreateAudioGroupProject(SystemStringView groupPath);
     static void BootstrapObjectIDs(const AudioGroupData& data);
 
     const SongGroupIndex* getSongGroupIndex(int groupId) const;
@@ -201,7 +202,7 @@ public:
     const std::unordered_map<int, SongGroupIndex>& songGroups() const { return m_songGroups; }
     const std::unordered_map<int, SFXGroupIndex>& sfxGroups() const { return m_sfxGroups; }
 
-    bool toYAML(athena::io::IStreamWriter& w) const;
+    bool toYAML(SystemStringView groupPath) const;
 };
 }
 

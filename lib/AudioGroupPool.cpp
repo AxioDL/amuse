@@ -2,8 +2,9 @@
 #include "amuse/Common.hpp"
 #include "amuse/Entity.hpp"
 #include "amuse/AudioGroupData.hpp"
-#include "athena/MemoryReader.hpp"
 #include "logvisor/logvisor.hpp"
+#include "athena/FileWriter.hpp"
+#include "athena/FileReader.hpp"
 
 using namespace std::literals;
 
@@ -51,11 +52,11 @@ AudioGroupPool AudioGroupPool::_AudioGroupPool(athena::io::IStreamReader& r)
             auto& ptr = ret.m_tables[objHead.objectId.id];
             switch (objHead.size)
             {
-            case 8:
+            case 0x10:
                 ptr = std::make_unique<ADSR>();
                 static_cast<ADSR&>(*ptr).read(r);
                 break;
-            case 0x14:
+            case 0x1c:
                 ptr = std::make_unique<ADSRDLS>();
                 static_cast<ADSRDLS&>(*ptr).read(r);
                 break;
@@ -123,11 +124,147 @@ AudioGroupPool AudioGroupPool::CreateAudioGroupPool(const AudioGroupData& data)
     }
 }
 
-template <class Tp>
-static std::unique_ptr<SoundMacro::ICmd> MakeCmd(athena::io::MemoryReader& r)
+AudioGroupPool AudioGroupPool::CreateAudioGroupPool(SystemStringView groupPath)
 {
-    std::unique_ptr<SoundMacro::ICmd> ret = std::make_unique<Tp>();
-    static_cast<Tp&>(*ret).read(r);
+    AudioGroupPool ret;
+    SystemString poolPath(groupPath);
+    poolPath += _S("/!pool.yaml");
+    athena::io::FileReader fi(poolPath);
+
+    if (!fi.hasError())
+    {
+        athena::io::YAMLDocReader r;
+        if (r.parse(&fi) && r.ValidateClassType("amuse::Pool"))
+        {
+            if (auto __r = r.enterSubRecord("soundMacros"))
+            {
+                ret.m_soundMacros.reserve(r.getCurNode()->m_mapChildren.size());
+                for (const auto& sm : r.getCurNode()->m_mapChildren)
+                {
+                    ObjectId macroId = SoundMacroId::CurNameDB->generateId(NameDB::Type::SoundMacro);
+                    SoundMacroId::CurNameDB->registerPair(sm.first, macroId);
+                }
+            }
+
+            if (auto __r = r.enterSubRecord("tables"))
+            {
+                ret.m_tables.reserve(r.getCurNode()->m_mapChildren.size());
+                for (const auto& t : r.getCurNode()->m_mapChildren)
+                {
+                    if (auto __v = r.enterSubRecord(t.first.c_str()))
+                    {
+                        ObjectId tableId = TableId::CurNameDB->generateId(NameDB::Type::Table);
+                        TableId::CurNameDB->registerPair(t.first, tableId);
+                    }
+                }
+            }
+
+            if (auto __r = r.enterSubRecord("keymaps"))
+            {
+                ret.m_keymaps.reserve(r.getCurNode()->m_mapChildren.size());
+                for (const auto& k : r.getCurNode()->m_mapChildren)
+                    if (auto __v = r.enterSubRecord(k.first.c_str()))
+                    {
+                        ObjectId keymapId = KeymapId::CurNameDB->generateId(NameDB::Type::Keymap);
+                        KeymapId::CurNameDB->registerPair(k.first, keymapId);
+                    }
+            }
+
+            if (auto __r = r.enterSubRecord("layers"))
+            {
+                for (const auto& l : r.getCurNode()->m_mapChildren)
+                {
+                    size_t mappingCount;
+                    if (auto __v = r.enterSubVector(l.first.c_str(), mappingCount))
+                    {
+                        ObjectId layersId = LayersId::CurNameDB->generateId(NameDB::Type::Layer);
+                        LayersId::CurNameDB->registerPair(l.first, layersId);
+                    }
+                }
+            }
+
+            if (auto __r = r.enterSubRecord("soundMacros"))
+            {
+                ret.m_soundMacros.reserve(r.getCurNode()->m_mapChildren.size());
+                for (const auto& sm : r.getCurNode()->m_mapChildren)
+                {
+                    SoundMacro& smOut = ret.m_soundMacros[SoundMacroId::CurNameDB->resolveIdFromName(sm.first)];
+                    size_t cmdCount;
+                    if (auto __v = r.enterSubVector(sm.first.c_str(), cmdCount))
+                    {
+                        smOut.m_cmds.reserve(cmdCount);
+                        for (int c = 0; c < cmdCount; ++c)
+                            if (auto __r2 = r.enterSubRecord(nullptr))
+                                smOut.m_cmds.push_back(SoundMacro::MakeCmd(r));
+                    }
+                }
+            }
+
+            if (auto __r = r.enterSubRecord("tables"))
+            {
+                ret.m_tables.reserve(r.getCurNode()->m_mapChildren.size());
+                for (const auto& t : r.getCurNode()->m_mapChildren)
+                {
+                    if (auto __v = r.enterSubRecord(t.first.c_str()))
+                    {
+                        std::unique_ptr<ITable>& tableOut = ret.m_tables[TableId::CurNameDB->resolveIdFromName(t.first)];
+                        if (auto __att = r.enterSubRecord("attack"))
+                        {
+                            __att.leave();
+                            if (auto __vta = r.enterSubRecord("velToAttack"))
+                            {
+                                __vta.leave();
+                                tableOut = std::make_unique<ADSRDLS>();
+                                static_cast<ADSRDLS&>(*tableOut).read(r);
+                            }
+                            else
+                            {
+                                tableOut = std::make_unique<ADSR>();
+                                static_cast<ADSR&>(*tableOut).read(r);
+                            }
+                        }
+                        else if (auto __dat = r.enterSubRecord("data"))
+                        {
+                            __dat.leave();
+                            tableOut = std::make_unique<Curve>();
+                            static_cast<Curve&>(*tableOut).read(r);
+                        }
+                    }
+                }
+            }
+
+            if (auto __r = r.enterSubRecord("keymaps"))
+            {
+                ret.m_keymaps.reserve(r.getCurNode()->m_mapChildren.size());
+                for (const auto& k : r.getCurNode()->m_mapChildren)
+                    if (auto __v = r.enterSubRecord(k.first.c_str()))
+                        ret.m_keymaps[KeymapId::CurNameDB->resolveIdFromName(k.first)].read(r);
+            }
+
+            if (auto __r = r.enterSubRecord("layers"))
+            {
+                ret.m_layers.reserve(r.getCurNode()->m_mapChildren.size());
+                for (const auto& l : r.getCurNode()->m_mapChildren)
+                {
+                    size_t mappingCount;
+                    if (auto __v = r.enterSubVector(l.first.c_str(), mappingCount))
+                    {
+                        std::vector<LayerMapping>& layOut = ret.m_layers[LayersId::CurNameDB->resolveIdFromName(l.first)];
+                        layOut.reserve(mappingCount);
+                        for (int lm = 0; lm < mappingCount; ++lm)
+                        {
+                            if (auto __r2 = r.enterSubRecord(nullptr))
+                            {
+                                layOut.emplace_back();
+                                layOut.back().read(r);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     return ret;
 }
 
@@ -153,167 +290,7 @@ void SoundMacro::readCmds(athena::io::IStreamReader& r, uint32_t size)
         uint32_t data[2];
         athena::io::Read<athena::io::PropType::None>::Do<decltype(data), DNAE>({}, data, r);
         athena::io::MemoryReader r(data, 8);
-        std::unique_ptr<ICmd> cmd;
-        switch (CmdOp(r.readUByte()))
-        {
-        case CmdOp::End:
-            cmd = MakeCmd<CmdEnd>(r); break;
-        case CmdOp::Stop:
-            cmd = MakeCmd<CmdStop>(r); break;
-        case CmdOp::SplitKey:
-            cmd = MakeCmd<CmdSplitKey>(r); break;
-        case CmdOp::SplitVel:
-            cmd = MakeCmd<CmdSplitVel>(r); break;
-        case CmdOp::WaitTicks:
-            cmd = MakeCmd<CmdWaitTicks>(r); break;
-        case CmdOp::Loop:
-            cmd = MakeCmd<CmdLoop>(r); break;
-        case CmdOp::Goto:
-            cmd = MakeCmd<CmdGoto>(r); break;
-        case CmdOp::WaitMs:
-            cmd = MakeCmd<CmdWaitMs>(r); break;
-        case CmdOp::PlayMacro:
-            cmd = MakeCmd<CmdPlayMacro>(r); break;
-        case CmdOp::SendKeyOff:
-            cmd = MakeCmd<CmdSendKeyOff>(r); break;
-        case CmdOp::SplitMod:
-            cmd = MakeCmd<CmdSplitMod>(r); break;
-        case CmdOp::PianoPan:
-            cmd = MakeCmd<CmdPianoPan>(r); break;
-        case CmdOp::SetAdsr:
-            cmd = MakeCmd<CmdSetAdsr>(r); break;
-        case CmdOp::ScaleVolume:
-            cmd = MakeCmd<CmdScaleVolume>(r); break;
-        case CmdOp::Panning:
-            cmd = MakeCmd<CmdPanning>(r); break;
-        case CmdOp::Envelope:
-            cmd = MakeCmd<CmdEnvelope>(r); break;
-        case CmdOp::StartSample:
-            cmd = MakeCmd<CmdStartSample>(r); break;
-        case CmdOp::StopSample:
-            cmd = MakeCmd<CmdStopSample>(r); break;
-        case CmdOp::KeyOff:
-            cmd = MakeCmd<CmdKeyOff>(r); break;
-        case CmdOp::SplitRnd:
-            cmd = MakeCmd<CmdSplitRnd>(r); break;
-        case CmdOp::FadeIn:
-            cmd = MakeCmd<CmdFadeIn>(r); break;
-        case CmdOp::Spanning:
-            cmd = MakeCmd<CmdSpanning>(r); break;
-        case CmdOp::SetAdsrCtrl:
-            cmd = MakeCmd<CmdSetAdsrCtrl>(r); break;
-        case CmdOp::RndNote:
-            cmd = MakeCmd<CmdRndNote>(r); break;
-        case CmdOp::AddNote:
-            cmd = MakeCmd<CmdAddNote>(r); break;
-        case CmdOp::SetNote:
-            cmd = MakeCmd<CmdSetNote>(r); break;
-        case CmdOp::LastNote:
-            cmd = MakeCmd<CmdLastNote>(r); break;
-        case CmdOp::Portamento:
-            cmd = MakeCmd<CmdPortamento>(r); break;
-        case CmdOp::Vibrato:
-            cmd = MakeCmd<CmdVibrato>(r); break;
-        case CmdOp::PitchSweep1:
-            cmd = MakeCmd<CmdPitchSweep1>(r); break;
-        case CmdOp::PitchSweep2:
-            cmd = MakeCmd<CmdPitchSweep2>(r); break;
-        case CmdOp::SetPitch:
-            cmd = MakeCmd<CmdSetPitch>(r); break;
-        case CmdOp::SetPitchAdsr:
-            cmd = MakeCmd<CmdSetPitchAdsr>(r); break;
-        case CmdOp::ScaleVolumeDLS:
-            cmd = MakeCmd<CmdScaleVolumeDLS>(r); break;
-        case CmdOp::Mod2Vibrange:
-            cmd = MakeCmd<CmdMod2Vibrange>(r); break;
-        case CmdOp::SetupTremolo:
-            cmd = MakeCmd<CmdSetupTremolo>(r); break;
-        case CmdOp::Return:
-            cmd = MakeCmd<CmdReturn>(r); break;
-        case CmdOp::GoSub:
-            cmd = MakeCmd<CmdGoSub>(r); break;
-        case CmdOp::TrapEvent:
-            cmd = MakeCmd<CmdTrapEvent>(r); break;
-        case CmdOp::UntrapEvent:
-            cmd = MakeCmd<CmdUntrapEvent>(r); break;
-        case CmdOp::SendMessage:
-            cmd = MakeCmd<CmdSendMessage>(r); break;
-        case CmdOp::GetMessage:
-            cmd = MakeCmd<CmdGetMessage>(r); break;
-        case CmdOp::GetVid:
-            cmd = MakeCmd<CmdGetVid>(r); break;
-        case CmdOp::AddAgeCount:
-            cmd = MakeCmd<CmdAddAgeCount>(r); break;
-        case CmdOp::SetAgeCount:
-            cmd = MakeCmd<CmdSetAgeCount>(r); break;
-        case CmdOp::SendFlag:
-            cmd = MakeCmd<CmdSendFlag>(r); break;
-        case CmdOp::PitchWheelR:
-            cmd = MakeCmd<CmdPitchWheelR>(r); break;
-        case CmdOp::SetPriority:
-            cmd = MakeCmd<CmdSetPriority>(r); break;
-        case CmdOp::AddPriority:
-            cmd = MakeCmd<CmdAddPriority>(r); break;
-        case CmdOp::AgeCntSpeed:
-            cmd = MakeCmd<CmdAgeCntSpeed>(r); break;
-        case CmdOp::AgeCntVel:
-            cmd = MakeCmd<CmdAgeCntVel>(r); break;
-        case CmdOp::VolSelect:
-            cmd = MakeCmd<CmdVolSelect>(r); break;
-        case CmdOp::PanSelect:
-            cmd = MakeCmd<CmdPanSelect>(r); break;
-        case CmdOp::PitchWheelSelect:
-            cmd = MakeCmd<CmdPitchWheelSelect>(r); break;
-        case CmdOp::ModWheelSelect:
-            cmd = MakeCmd<CmdModWheelSelect>(r); break;
-        case CmdOp::PedalSelect:
-            cmd = MakeCmd<CmdPedalSelect>(r); break;
-        case CmdOp::PortamentoSelect:
-            cmd = MakeCmd<CmdPortamentoSelect>(r); break;
-        case CmdOp::ReverbSelect:
-            cmd = MakeCmd<CmdReverbSelect>(r); break;
-        case CmdOp::SpanSelect:
-            cmd = MakeCmd<CmdSpanSelect>(r); break;
-        case CmdOp::DopplerSelect:
-            cmd = MakeCmd<CmdDopplerSelect>(r); break;
-        case CmdOp::TremoloSelect:
-            cmd = MakeCmd<CmdTremoloSelect>(r); break;
-        case CmdOp::PreASelect:
-            cmd = MakeCmd<CmdPreASelect>(r); break;
-        case CmdOp::PreBSelect:
-            cmd = MakeCmd<CmdPreBSelect>(r); break;
-        case CmdOp::PostBSelect:
-            cmd = MakeCmd<CmdPostBSelect>(r); break;
-        case CmdOp::AuxAFXSelect:
-            cmd = MakeCmd<CmdAuxAFXSelect>(r); break;
-        case CmdOp::AuxBFXSelect:
-            cmd = MakeCmd<CmdAuxBFXSelect>(r); break;
-        case CmdOp::SetupLFO:
-            cmd = MakeCmd<CmdSetupLFO>(r); break;
-        case CmdOp::ModeSelect:
-            cmd = MakeCmd<CmdModeSelect>(r); break;
-        case CmdOp::SetKeygroup:
-            cmd = MakeCmd<CmdSetKeygroup>(r); break;
-        case CmdOp::SRCmodeSelect:
-            cmd = MakeCmd<CmdSRCmodeSelect>(r); break;
-        case CmdOp::AddVars:
-            cmd = MakeCmd<CmdAddVars>(r); break;
-        case CmdOp::SubVars:
-            cmd = MakeCmd<CmdSubVars>(r); break;
-        case CmdOp::MulVars:
-            cmd = MakeCmd<CmdMulVars>(r); break;
-        case CmdOp::DivVars:
-            cmd = MakeCmd<CmdDivVars>(r); break;
-        case CmdOp::AddIVars:
-            cmd = MakeCmd<CmdAddIVars>(r); break;
-        case CmdOp::IfEqual:
-            cmd = MakeCmd<CmdIfEqual>(r); break;
-        case CmdOp::IfLess:
-            cmd = MakeCmd<CmdIfLess>(r); break;
-        default:
-            break;
-        }
-        m_cmds.push_back(std::move(cmd));
+        m_cmds.push_back(MakeCmd(r));
     }
 }
 template void SoundMacro::readCmds<athena::Big>(athena::io::IStreamReader& r, uint32_t size);
@@ -346,10 +323,212 @@ const std::vector<LayerMapping>* AudioGroupPool::layer(ObjectId id) const
 const ADSR* AudioGroupPool::tableAsAdsr(ObjectId id) const
 {
     auto search = m_tables.find(id);
-    if (search == m_tables.cend())
+    if (search == m_tables.cend() || search->second->Isa() != ITable::Type::ADSR)
         return nullptr;
     return static_cast<const ADSR*>(search->second.get());
 }
+
+const ADSRDLS* AudioGroupPool::tableAsAdsrDLS(ObjectId id) const
+{
+    auto search = m_tables.find(id);
+    if (search == m_tables.cend() || search->second->Isa() != ITable::Type::ADSRDLS)
+        return nullptr;
+    return static_cast<const ADSRDLS*>(search->second.get());
+}
+
+const Curve* AudioGroupPool::tableAsCurves(ObjectId id) const
+{
+    auto search = m_tables.find(id);
+    if (search == m_tables.cend() || search->second->Isa() != ITable::Type::Curve)
+        return nullptr;
+    return static_cast<const Curve*>(search->second.get());
+}
+
+template <class Tp, class R>
+static std::unique_ptr<SoundMacro::ICmd> _MakeCmd(R& r)
+{
+    std::unique_ptr<SoundMacro::ICmd> ret = std::make_unique<Tp>();
+    static_cast<Tp&>(*ret).read(r);
+    return ret;
+}
+
+static SoundMacro::CmdOp _ReadCmdOp(athena::io::MemoryReader& r)
+{
+    return SoundMacro::CmdOp(r.readUByte());
+}
+
+static SoundMacro::CmdOp _ReadCmdOp(athena::io::YAMLDocReader& r)
+{
+    return SoundMacro::CmdStrToOp(r.readString("cmdOp"));
+}
+
+template <class R>
+std::unique_ptr<SoundMacro::ICmd> SoundMacro::MakeCmd(R& r)
+{
+    std::unique_ptr<ICmd> cmd;
+    switch (_ReadCmdOp(r))
+    {
+    case CmdOp::End:
+        cmd = _MakeCmd<CmdEnd>(r); break;
+    case CmdOp::Stop:
+        cmd = _MakeCmd<CmdStop>(r); break;
+    case CmdOp::SplitKey:
+        cmd = _MakeCmd<CmdSplitKey>(r); break;
+    case CmdOp::SplitVel:
+        cmd = _MakeCmd<CmdSplitVel>(r); break;
+    case CmdOp::WaitTicks:
+        cmd = _MakeCmd<CmdWaitTicks>(r); break;
+    case CmdOp::Loop:
+        cmd = _MakeCmd<CmdLoop>(r); break;
+    case CmdOp::Goto:
+        cmd = _MakeCmd<CmdGoto>(r); break;
+    case CmdOp::WaitMs:
+        cmd = _MakeCmd<CmdWaitMs>(r); break;
+    case CmdOp::PlayMacro:
+        cmd = _MakeCmd<CmdPlayMacro>(r); break;
+    case CmdOp::SendKeyOff:
+        cmd = _MakeCmd<CmdSendKeyOff>(r); break;
+    case CmdOp::SplitMod:
+        cmd = _MakeCmd<CmdSplitMod>(r); break;
+    case CmdOp::PianoPan:
+        cmd = _MakeCmd<CmdPianoPan>(r); break;
+    case CmdOp::SetAdsr:
+        cmd = _MakeCmd<CmdSetAdsr>(r); break;
+    case CmdOp::ScaleVolume:
+        cmd = _MakeCmd<CmdScaleVolume>(r); break;
+    case CmdOp::Panning:
+        cmd = _MakeCmd<CmdPanning>(r); break;
+    case CmdOp::Envelope:
+        cmd = _MakeCmd<CmdEnvelope>(r); break;
+    case CmdOp::StartSample:
+        cmd = _MakeCmd<CmdStartSample>(r); break;
+    case CmdOp::StopSample:
+        cmd = _MakeCmd<CmdStopSample>(r); break;
+    case CmdOp::KeyOff:
+        cmd = _MakeCmd<CmdKeyOff>(r); break;
+    case CmdOp::SplitRnd:
+        cmd = _MakeCmd<CmdSplitRnd>(r); break;
+    case CmdOp::FadeIn:
+        cmd = _MakeCmd<CmdFadeIn>(r); break;
+    case CmdOp::Spanning:
+        cmd = _MakeCmd<CmdSpanning>(r); break;
+    case CmdOp::SetAdsrCtrl:
+        cmd = _MakeCmd<CmdSetAdsrCtrl>(r); break;
+    case CmdOp::RndNote:
+        cmd = _MakeCmd<CmdRndNote>(r); break;
+    case CmdOp::AddNote:
+        cmd = _MakeCmd<CmdAddNote>(r); break;
+    case CmdOp::SetNote:
+        cmd = _MakeCmd<CmdSetNote>(r); break;
+    case CmdOp::LastNote:
+        cmd = _MakeCmd<CmdLastNote>(r); break;
+    case CmdOp::Portamento:
+        cmd = _MakeCmd<CmdPortamento>(r); break;
+    case CmdOp::Vibrato:
+        cmd = _MakeCmd<CmdVibrato>(r); break;
+    case CmdOp::PitchSweep1:
+        cmd = _MakeCmd<CmdPitchSweep1>(r); break;
+    case CmdOp::PitchSweep2:
+        cmd = _MakeCmd<CmdPitchSweep2>(r); break;
+    case CmdOp::SetPitch:
+        cmd = _MakeCmd<CmdSetPitch>(r); break;
+    case CmdOp::SetPitchAdsr:
+        cmd = _MakeCmd<CmdSetPitchAdsr>(r); break;
+    case CmdOp::ScaleVolumeDLS:
+        cmd = _MakeCmd<CmdScaleVolumeDLS>(r); break;
+    case CmdOp::Mod2Vibrange:
+        cmd = _MakeCmd<CmdMod2Vibrange>(r); break;
+    case CmdOp::SetupTremolo:
+        cmd = _MakeCmd<CmdSetupTremolo>(r); break;
+    case CmdOp::Return:
+        cmd = _MakeCmd<CmdReturn>(r); break;
+    case CmdOp::GoSub:
+        cmd = _MakeCmd<CmdGoSub>(r); break;
+    case CmdOp::TrapEvent:
+        cmd = _MakeCmd<CmdTrapEvent>(r); break;
+    case CmdOp::UntrapEvent:
+        cmd = _MakeCmd<CmdUntrapEvent>(r); break;
+    case CmdOp::SendMessage:
+        cmd = _MakeCmd<CmdSendMessage>(r); break;
+    case CmdOp::GetMessage:
+        cmd = _MakeCmd<CmdGetMessage>(r); break;
+    case CmdOp::GetVid:
+        cmd = _MakeCmd<CmdGetVid>(r); break;
+    case CmdOp::AddAgeCount:
+        cmd = _MakeCmd<CmdAddAgeCount>(r); break;
+    case CmdOp::SetAgeCount:
+        cmd = _MakeCmd<CmdSetAgeCount>(r); break;
+    case CmdOp::SendFlag:
+        cmd = _MakeCmd<CmdSendFlag>(r); break;
+    case CmdOp::PitchWheelR:
+        cmd = _MakeCmd<CmdPitchWheelR>(r); break;
+    case CmdOp::SetPriority:
+        cmd = _MakeCmd<CmdSetPriority>(r); break;
+    case CmdOp::AddPriority:
+        cmd = _MakeCmd<CmdAddPriority>(r); break;
+    case CmdOp::AgeCntSpeed:
+        cmd = _MakeCmd<CmdAgeCntSpeed>(r); break;
+    case CmdOp::AgeCntVel:
+        cmd = _MakeCmd<CmdAgeCntVel>(r); break;
+    case CmdOp::VolSelect:
+        cmd = _MakeCmd<CmdVolSelect>(r); break;
+    case CmdOp::PanSelect:
+        cmd = _MakeCmd<CmdPanSelect>(r); break;
+    case CmdOp::PitchWheelSelect:
+        cmd = _MakeCmd<CmdPitchWheelSelect>(r); break;
+    case CmdOp::ModWheelSelect:
+        cmd = _MakeCmd<CmdModWheelSelect>(r); break;
+    case CmdOp::PedalSelect:
+        cmd = _MakeCmd<CmdPedalSelect>(r); break;
+    case CmdOp::PortamentoSelect:
+        cmd = _MakeCmd<CmdPortamentoSelect>(r); break;
+    case CmdOp::ReverbSelect:
+        cmd = _MakeCmd<CmdReverbSelect>(r); break;
+    case CmdOp::SpanSelect:
+        cmd = _MakeCmd<CmdSpanSelect>(r); break;
+    case CmdOp::DopplerSelect:
+        cmd = _MakeCmd<CmdDopplerSelect>(r); break;
+    case CmdOp::TremoloSelect:
+        cmd = _MakeCmd<CmdTremoloSelect>(r); break;
+    case CmdOp::PreASelect:
+        cmd = _MakeCmd<CmdPreASelect>(r); break;
+    case CmdOp::PreBSelect:
+        cmd = _MakeCmd<CmdPreBSelect>(r); break;
+    case CmdOp::PostBSelect:
+        cmd = _MakeCmd<CmdPostBSelect>(r); break;
+    case CmdOp::AuxAFXSelect:
+        cmd = _MakeCmd<CmdAuxAFXSelect>(r); break;
+    case CmdOp::AuxBFXSelect:
+        cmd = _MakeCmd<CmdAuxBFXSelect>(r); break;
+    case CmdOp::SetupLFO:
+        cmd = _MakeCmd<CmdSetupLFO>(r); break;
+    case CmdOp::ModeSelect:
+        cmd = _MakeCmd<CmdModeSelect>(r); break;
+    case CmdOp::SetKeygroup:
+        cmd = _MakeCmd<CmdSetKeygroup>(r); break;
+    case CmdOp::SRCmodeSelect:
+        cmd = _MakeCmd<CmdSRCmodeSelect>(r); break;
+    case CmdOp::AddVars:
+        cmd = _MakeCmd<CmdAddVars>(r); break;
+    case CmdOp::SubVars:
+        cmd = _MakeCmd<CmdSubVars>(r); break;
+    case CmdOp::MulVars:
+        cmd = _MakeCmd<CmdMulVars>(r); break;
+    case CmdOp::DivVars:
+        cmd = _MakeCmd<CmdDivVars>(r); break;
+    case CmdOp::AddIVars:
+        cmd = _MakeCmd<CmdAddIVars>(r); break;
+    case CmdOp::IfEqual:
+        cmd = _MakeCmd<CmdIfEqual>(r); break;
+    case CmdOp::IfLess:
+        cmd = _MakeCmd<CmdIfLess>(r); break;
+    default:
+        break;
+    }
+    return cmd;
+}
+template std::unique_ptr<SoundMacro::ICmd> SoundMacro::MakeCmd(athena::io::MemoryReader& r);
+template std::unique_ptr<SoundMacro::ICmd> SoundMacro::MakeCmd(athena::io::YAMLDocReader& r);
 
 std::string_view SoundMacro::CmdOpToStr(CmdOp op)
 {
@@ -673,7 +852,7 @@ SoundMacro::CmdOp SoundMacro::CmdStrToOp(std::string_view op)
     return CmdOp::Invalid;
 }
 
-bool AudioGroupPool::toYAML(athena::io::IStreamWriter& writer) const
+bool AudioGroupPool::toYAML(SystemStringView groupPath) const
 {
     athena::io::YAMLDocWriter w("amuse::Pool");
 
@@ -750,7 +929,10 @@ bool AudioGroupPool::toYAML(athena::io::IStreamWriter& writer) const
         }
     }
 
-    return w.finish(&writer);
+    SystemString poolPath(groupPath);
+    poolPath += _S("/!pool.yaml");
+    athena::io::FileWriter fo(poolPath);
+    return w.finish(&fo);
 }
 
 template <>
@@ -785,7 +967,7 @@ void amuse::Curve::Enumerate<LittleDNA::WriteYaml>(athena::io::YAMLDocWriter& w)
 
 const char* amuse::Curve::DNAType()
 {
-    return "amuse::ADSR";
+    return "amuse::Curve";
 }
 
 }

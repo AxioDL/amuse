@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include "Entity.hpp"
 #include "Common.hpp"
+#include "athena/MemoryReader.hpp"
 
 namespace amuse
 {
@@ -121,9 +122,6 @@ struct SoundMacro
         IfLess,
         Invalid = 0xff
     };
-
-    static std::string_view CmdOpToStr(CmdOp op);
-    static CmdOp CmdStrToOp(std::string_view op);
 
     /** Base command interface. All versions of MusyX encode little-endian parameters */
     struct ICmd : LittleDNAV
@@ -955,6 +953,11 @@ struct SoundMacro
         CmdOp Isa() const { return CmdOp::IfLess; }
     };
 
+    template <class R>
+    static std::unique_ptr<ICmd> MakeCmd(R& r);
+    static std::string_view CmdOpToStr(CmdOp op);
+    static CmdOp CmdStrToOp(std::string_view op);
+
     std::vector<std::unique_ptr<ICmd>> m_cmds;
     int assertPC(int pc) const;
     
@@ -977,6 +980,13 @@ struct ITable : LittleDNAV
 {
     AT_DECL_DNA_YAML
     AT_DECL_DNAV
+    enum class Type
+    {
+        ADSR,
+        ADSRDLS,
+        Curve
+    };
+    virtual Type Isa() const = 0;
 };
 
 /** Defines phase-based volume curve for macro volume control */
@@ -993,6 +1003,8 @@ struct ADSR : ITable
     double getDecay() const { return (decay == 0x8000) ? 0.0 : (decay / 1000.0); }
     double getSustain() const { return sustain / double(0x1000); }
     double getRelease() const { return release / 1000.0; }
+
+    Type Isa() const { return ITable::Type::ADSR; }
 };
 
 /** Defines phase-based volume curve for macro volume control (modified DLS standard) */
@@ -1023,6 +1035,8 @@ struct ADSRDLS : ITable
             return getDecay();
         return getDecay() + note * (keyToDecay / 65536.0 / 1000.0) / 128.0;
     }
+
+    Type Isa() const { return ITable::Type::ADSRDLS; }
 };
 
 /** Defines arbitrary data for use as volume curve */
@@ -1031,6 +1045,8 @@ struct Curve : ITable
     AT_DECL_EXPLICIT_DNA_YAML
     AT_DECL_DNAV
     std::vector<uint8_t> data;
+
+    Type Isa() const { return ITable::Type::Curve; }
 };
 
 /** Maps individual MIDI keys to sound-entity as indexed in table
@@ -1128,25 +1144,26 @@ struct LayerMapping : BigDNA
 /** Database of functional objects within Audio Group */
 class AudioGroupPool
 {
-    std::unordered_map<ObjectId, SoundMacro> m_soundMacros;
-    std::unordered_map<ObjectId, std::unique_ptr<ITable>> m_tables;
-    std::unordered_map<ObjectId, Keymap> m_keymaps;
-    std::unordered_map<ObjectId, std::vector<LayerMapping>> m_layers;
+    std::unordered_map<SoundMacroId, SoundMacro> m_soundMacros;
+    std::unordered_map<TableId, std::unique_ptr<ITable>> m_tables;
+    std::unordered_map<KeymapId, Keymap> m_keymaps;
+    std::unordered_map<LayersId, std::vector<LayerMapping>> m_layers;
 
     AudioGroupPool() = default;
     template <athena::Endian DNAE>
     static AudioGroupPool _AudioGroupPool(athena::io::IStreamReader& r);
 public:
     static AudioGroupPool CreateAudioGroupPool(const AudioGroupData& data);
+    static AudioGroupPool CreateAudioGroupPool(SystemStringView groupPath);
 
     const SoundMacro* soundMacro(ObjectId id) const;
     const Keymap* keymap(ObjectId id) const;
     const std::vector<LayerMapping>* layer(ObjectId id) const;
     const ADSR* tableAsAdsr(ObjectId id) const;
-    const ADSRDLS* tableAsAdsrDLS(ObjectId id) const { return reinterpret_cast<const ADSRDLS*>(tableAsAdsr(id)); }
-    const Curve* tableAsCurves(ObjectId id) const { return reinterpret_cast<const Curve*>(tableAsAdsr(id)); }
+    const ADSRDLS* tableAsAdsrDLS(ObjectId id) const;
+    const Curve* tableAsCurves(ObjectId id) const;
 
-    bool toYAML(athena::io::IStreamWriter& w) const;
+    bool toYAML(SystemStringView groupPath) const;
 };
 }
 

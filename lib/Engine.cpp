@@ -213,24 +213,7 @@ AudioGroup* Engine::_addAudioGroup(const AudioGroupData& data, std::unique_ptr<A
 const AudioGroup* Engine::addAudioGroup(const AudioGroupData& data)
 {
     removeAudioGroup(data);
-
-    std::unique_ptr<AudioGroup> grp;
-    switch (data.m_fmt)
-    {
-    case DataFormat::GCN:
-        grp = std::make_unique<AudioGroup>(data, GCNDataTag{});
-        break;
-    case DataFormat::N64:
-        grp = std::make_unique<AudioGroup>(data, data.m_absOffs, N64DataTag{});
-        break;
-    case DataFormat::PC:
-        grp = std::make_unique<AudioGroup>(data, data.m_absOffs, PCDataTag{});
-        break;
-    }
-    if (!grp)
-        return nullptr;
-
-    return _addAudioGroup(data, std::move(grp));
+    return _addAudioGroup(data, std::make_unique<AudioGroup>(data));
 }
 
 /** Remove audio group from engine */

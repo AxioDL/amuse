@@ -193,7 +193,7 @@ const char* PageObjectIdDNA<DNAE>::DNAType()
 template struct PageObjectIdDNA<athena::Big>;
 template struct PageObjectIdDNA<athena::Little>;
 
-ObjectId NameDB::generateId(Type tp)
+ObjectId NameDB::generateId(Type tp) const
 {
     uint16_t maxMatch = uint16_t(tp == Type::Layer ? 0x8000 : 0);
     for (const auto& p : m_idToString)

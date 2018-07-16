@@ -464,7 +464,7 @@ struct NameDB
     std::unordered_map<std::string, ObjectId> m_stringToId;
     std::unordered_map<ObjectId, std::string> m_idToString;
 
-    ObjectId generateId(Type tp);
+    ObjectId generateId(Type tp) const;
     static std::string generateName(ObjectId id, Type tp);
     std::string_view registerPair(std::string_view str, ObjectId id);
     std::string_view resolveNameFromId(ObjectId id) const;

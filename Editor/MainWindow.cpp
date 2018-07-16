@@ -225,10 +225,10 @@ void MainWindow::importAction()
             {
                 auto data = amuse::ContainerRegistry::LoadContainer(QStringToSysString(dir.filePath(fPath)).c_str());
                 for (auto& p : data)
-                    if (!m_projectModel->importGroupData(SysStringToQString(p.first), std::move(p.second),
-                                                         ProjectModel::ImportMode(impMode)))
+                    if (!m_projectModel->importGroupData(SysStringToQString(p.first), std::move(p.second)))
                         return;
             }
+            m_projectModel->extractSamples(ProjectModel::ImportMode(impMode), this);
             m_projectModel->saveToFile(this);
             return;
         }
@@ -254,10 +254,10 @@ void MainWindow::importAction()
     /* Handle single container */
     auto data = amuse::ContainerRegistry::LoadContainer(QStringToSysString(path).c_str());
     for (auto& p : data)
-        if (!m_projectModel->importGroupData(SysStringToQString(p.first), std::move(p.second),
-                                             ProjectModel::ImportMode(impMode)))
+        if (!m_projectModel->importGroupData(SysStringToQString(p.first), std::move(p.second)))
             return;
 
+    m_projectModel->extractSamples(ProjectModel::ImportMode(impMode), this);
     m_projectModel->saveToFile(this);
 }
 

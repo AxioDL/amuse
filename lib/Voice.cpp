@@ -64,14 +64,14 @@ bool Voice::_checkSamplePos(bool& looped)
 
     if (m_curSamplePos >= m_lastSamplePos)
     {
-        if (m_curSample->first.m_loopLengthSamples)
+        if (m_curSample->m_loopLengthSamples)
         {
             /* Turn over looped sample */
-            m_curSamplePos = m_curSample->first.m_loopStartSample;
+            m_curSamplePos = m_curSample->m_loopStartSample;
             if (m_curFormat == SampleFormat::DSP)
             {
-                m_prev1 = m_curSample->second.dsp.m_hist1;
-                m_prev2 = m_curSample->second.dsp.m_hist2;
+                m_prev1 = m_curSample->m_ADPCMParms.dsp.m_hist1;
+                m_prev2 = m_curSample->m_ADPCMParms.dsp.m_hist2;
             }
             looped = true;
         }
@@ -115,9 +115,9 @@ void Voice::_doKeyOff()
 void Voice::_setTotalPitch(int32_t cents, bool slew)
 {
     // fprintf(stderr, "PITCH %d %d  \n", cents, slew);
-    int32_t interval = cents - m_curSample->first.m_pitch * 100;
+    int32_t interval = cents - m_curSample->m_pitch * 100;
     double ratio = std::exp2(interval / 1200.0) * m_dopplerRatio;
-    m_sampleRate = m_curSample->first.m_sampleRate * ratio;
+    m_sampleRate = m_curSample->m_sampleRate * ratio;
     m_backendVoice->setPitchRatio(ratio, slew);
 }
 
@@ -346,9 +346,10 @@ uint32_t Voice::_GetBlockSampleCount(SampleFormat fmt)
     {
     default:
         return 1;
-    case Voice::SampleFormat::DSP:
+    case SampleFormat::DSP:
+    case SampleFormat::DSP_DRUM:
         return 14;
-    case Voice::SampleFormat::N64:
+    case SampleFormat::N64:
         return 64;
     }
 }
@@ -514,14 +515,15 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
                 case SampleFormat::DSP:
                 {
                     decSamples =
-                        DSPDecompressFrameRanged(data, m_curSampleData + 8 * block, m_curSample->second.dsp.m_coefs,
+                        DSPDecompressFrameRanged(data, m_curSampleData + 8 * block,
+                                                 m_curSample->m_ADPCMParms.dsp.m_coefs,
                                                  &m_prev1, &m_prev2, rem, remCount);
                     break;
                 }
                 case SampleFormat::N64:
                 {
                     decSamples = N64MusyXDecompressFrameRanged(data, m_curSampleData + 256 + 40 * block,
-                                                               m_curSample->second.vadpcm.m_coefs, rem, remCount);
+                                                               m_curSample->m_ADPCMParms.vadpcm.m_coefs, rem, remCount);
                     break;
                 }
                 case SampleFormat::PCM:
@@ -576,14 +578,14 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
                 {
                 case SampleFormat::DSP:
                 {
-                    decSamples = DSPDecompressFrame(data, m_curSampleData + 8 * block, m_curSample->second.dsp.m_coefs,
-                                                    &m_prev1, &m_prev2, remCount);
+                    decSamples = DSPDecompressFrame(data, m_curSampleData + 8 * block,
+                        m_curSample->m_ADPCMParms.dsp.m_coefs, &m_prev1, &m_prev2, remCount);
                     break;
                 }
                 case SampleFormat::N64:
                 {
                     decSamples = N64MusyXDecompressFrame(data, m_curSampleData + 256 + 40 * block,
-                                                         m_curSample->second.vadpcm.m_coefs, remCount);
+                                                         m_curSample->m_ADPCMParms.vadpcm.m_coefs, remCount);
                     break;
                 }
                 case SampleFormat::PCM:
@@ -877,7 +879,7 @@ void Voice::keyOff()
             loadMacroObject(m_keyoffTrap.macroId, m_keyoffTrap.macroStep, m_state.m_ticksPerSec, m_state.m_initKey,
                             m_state.m_initVel, m_state.m_initMod);
     }
-    else if (!m_curSample || m_curSample->first.m_loopLengthSamples)
+    else if (!m_curSample || m_curSample->m_loopLengthSamples)
         _macroKeyOff();
 
     for (const std::shared_ptr<Voice>& vox : m_childVoices)
@@ -901,7 +903,7 @@ void Voice::message(int32_t val)
     }
 }
 
-void Voice::startSample(int16_t sampId, int32_t offset)
+void Voice::startSample(SampleId sampId, int32_t offset)
 {
     if (m_destroyed)
         return;
@@ -909,41 +911,38 @@ void Voice::startSample(int16_t sampId, int32_t offset)
     m_curSample = m_audioGroup.getSample(sampId);
     if (m_curSample)
     {
-        m_sampleRate = m_curSample->first.m_sampleRate;
-        m_curPitch = m_curSample->first.m_pitch;
+        m_curSampleData = m_audioGroup.getSampleData(sampId, m_curSample);
+
+        m_sampleRate = m_curSample->m_sampleRate;
+        m_curPitch = m_curSample->m_pitch;
         m_pitchDirty = true;
         _setPitchWheel(m_curPitchWheel);
-        m_backendVoice->resetSampleRate(m_curSample->first.m_sampleRate);
+        m_backendVoice->resetSampleRate(m_curSample->m_sampleRate);
         m_needsSlew = false;
 
-        int32_t numSamples = m_curSample->first.m_numSamples & 0xffffff;
+        int32_t numSamples = m_curSample->m_numSamples & 0xffffff;
         if (offset)
         {
-            if (m_curSample->first.m_loopLengthSamples)
+            if (m_curSample->m_loopLengthSamples)
             {
-                if (offset > int32_t(m_curSample->first.m_loopStartSample))
+                if (offset > int32_t(m_curSample->m_loopStartSample))
                     offset =
-                        ((offset - m_curSample->first.m_loopStartSample) % m_curSample->first.m_loopLengthSamples) +
-                        m_curSample->first.m_loopStartSample;
+                        ((offset - m_curSample->m_loopStartSample) % m_curSample->m_loopLengthSamples) +
+                        m_curSample->m_loopStartSample;
             }
             else
                 offset = clamp(0, offset, numSamples);
         }
         m_curSamplePos = offset;
-        m_curSampleData = m_audioGroup.getSampleData(m_curSample->first.m_sampleOff);
         m_prev1 = 0;
         m_prev2 = 0;
 
-        if (m_audioGroup.getDataFormat() == DataFormat::PC)
-            m_curFormat = SampleFormat::PCM_PC;
-        else
-            m_curFormat = SampleFormat(m_curSample->first.m_numSamples >> 24);
-
+        m_curFormat = SampleFormat(m_curSample->m_numSamples >> 24);
         if (m_curFormat == SampleFormat::DSP_DRUM)
             m_curFormat = SampleFormat::DSP;
 
-        m_lastSamplePos = m_curSample->first.m_loopLengthSamples
-                              ? (m_curSample->first.m_loopStartSample + m_curSample->first.m_loopLengthSamples)
+        m_lastSamplePos = m_curSample->m_loopLengthSamples
+                              ? (m_curSample->m_loopStartSample + m_curSample->m_loopLengthSamples)
                               : numSamples;
 
         bool looped;
@@ -955,11 +954,11 @@ void Voice::startSample(int16_t sampId, int32_t offset)
             uint32_t block = m_curSamplePos / 14;
             uint32_t rem = m_curSamplePos % 14;
             for (uint32_t b = 0; b < block; ++b)
-                DSPDecompressFrameStateOnly(m_curSampleData + 8 * b, m_curSample->second.dsp.m_coefs, &m_prev1,
+                DSPDecompressFrameStateOnly(m_curSampleData + 8 * b, m_curSample->m_ADPCMParms.dsp.m_coefs, &m_prev1,
                                             &m_prev2, 14);
 
             if (rem)
-                DSPDecompressFrameStateOnly(m_curSampleData + 8 * block, m_curSample->second.dsp.m_coefs, &m_prev1,
+                DSPDecompressFrameStateOnly(m_curSampleData + 8 * block, m_curSample->m_ADPCMParms.dsp.m_coefs, &m_prev1,
                                             &m_prev2, rem);
         }
     }

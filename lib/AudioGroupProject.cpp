@@ -1,6 +1,8 @@
 #include "amuse/AudioGroupProject.hpp"
 #include "amuse/AudioGroupData.hpp"
 #include "athena/MemoryReader.hpp"
+#include "athena/FileWriter.hpp"
+#include "athena/FileReader.hpp"
 
 namespace amuse
 {
@@ -208,6 +210,87 @@ AudioGroupProject AudioGroupProject::CreateAudioGroupProject(const AudioGroupDat
     }
 }
 
+AudioGroupProject AudioGroupProject::CreateAudioGroupProject(SystemStringView groupPath)
+{
+    AudioGroupProject ret;
+    SystemString projPath(groupPath);
+    projPath += _S("/!project.yaml");
+    athena::io::FileReader fi(projPath);
+
+    if (!fi.hasError())
+    {
+        athena::io::YAMLDocReader r;
+        if (r.parse(&fi) && r.ValidateClassType("amuse::Project"))
+        {
+            size_t songGroupCount;
+            if (auto __v = r.enterSubVector("songGroups", songGroupCount))
+            {
+                ret.m_songGroups.reserve(songGroupCount);
+                for (int g = 0; g < songGroupCount; ++g)
+                {
+                    if (auto __r = r.enterSubRecord(nullptr))
+                    {
+                        SongGroupIndex& idx = ret.m_songGroups[g];
+                        if (auto __v2 = r.enterSubRecord("normPages"))
+                        {
+                            idx.m_normPages.reserve(r.getCurNode()->m_mapChildren.size());
+                            for (const auto& pg : r.getCurNode()->m_mapChildren)
+                                if (auto __r2 = r.enterSubRecord(pg.first.c_str()))
+                                    idx.m_normPages[strtoul(pg.first.c_str(), nullptr, 0)].read(r);
+                        }
+                        if (auto __v2 = r.enterSubRecord("drumPages"))
+                        {
+                            idx.m_drumPages.reserve(r.getCurNode()->m_mapChildren.size());
+                            for (const auto& pg : r.getCurNode()->m_mapChildren)
+                                if (auto __r2 = r.enterSubRecord(pg.first.c_str()))
+                                    idx.m_drumPages[strtoul(pg.first.c_str(), nullptr, 0)].read(r);
+                        }
+                        if (auto __v2 = r.enterSubRecord("songs"))
+                        {
+                            idx.m_midiSetups.reserve(r.getCurNode()->m_mapChildren.size());
+                            for (const auto& song : r.getCurNode()->m_mapChildren)
+                            {
+                                size_t chanCount;
+                                if (auto __v3 = r.enterSubVector(song.first.c_str(), chanCount))
+                                {
+                                    ObjectId songId = SongId::CurNameDB->generateId(NameDB::Type::Song);
+                                    SongId::CurNameDB->registerPair(song.first, songId);
+                                    std::array<SongGroupIndex::MIDISetup, 16>& setup = idx.m_midiSetups[songId];
+                                    for (int i = 0; i < 16 && i < chanCount; ++i)
+                                        if (auto __r2 = r.enterSubRecord(nullptr))
+                                            setup[i].read(r);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            size_t sfxGroupCount;
+            if (auto __v = r.enterSubVector("sfxGroups", sfxGroupCount))
+            {
+                ret.m_sfxGroups.reserve(sfxGroupCount);
+                for (int g = 0; g < sfxGroupCount; ++g)
+                {
+                    if (auto __r = r.enterSubRecord(nullptr))
+                    {
+                        SFXGroupIndex& idx = ret.m_sfxGroups[g];
+                        for (const auto& sfx : r.getCurNode()->m_mapChildren)
+                            if (auto __r2 = r.enterSubRecord(sfx.first.c_str()))
+                            {
+                                ObjectId sfxId = SFXId::CurNameDB->generateId(NameDB::Type::SFX);
+                                SFXId::CurNameDB->registerPair(sfx.first, sfxId);
+                                idx.m_sfxEntries[sfxId].read(r);
+                            }
+                    }
+                }
+            }
+        }
+    }
+
+    return ret;
+}
+
 template <athena::Endian DNAE>
 static void ReadRangedObjectIds(NameDB* db, athena::io::IStreamReader& r, NameDB::Type tp)
 {
@@ -412,7 +495,7 @@ const SFXGroupIndex* AudioGroupProject::getSFXGroupIndex(int groupId) const
     return nullptr;
 }
 
-bool AudioGroupProject::toYAML(athena::io::IStreamWriter& writer) const
+bool AudioGroupProject::toYAML(SystemStringView groupPath) const
 {
     athena::io::YAMLDocWriter w("amuse::Project");
 
@@ -498,7 +581,10 @@ bool AudioGroupProject::toYAML(athena::io::IStreamWriter& writer) const
         }
     }
 
-    return w.finish(&writer);
+    SystemString projPath(groupPath);
+    projPath += _S("/!project.yaml");
+    athena::io::FileWriter fo(projPath);
+    return w.finish(&fo);
 }
 
 }
