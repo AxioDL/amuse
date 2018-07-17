@@ -146,11 +146,23 @@ static uint32_t DSPNibbleToSample(uint32_t nibble)
 
 void AudioGroupSampleDirectory::Entry::loadLooseData(SystemStringView basePath)
 {
-    Sstat theStat;
-    SystemString filePath = SystemString(basePath) + _S(".dsp");
-    if (!Stat(filePath.c_str(), &theStat) && (!m_looseData || theStat.st_mtime > m_looseModTime))
+    SystemString wavPath = SystemString(basePath) + _S(".wav");
+    SystemString dspPath = SystemString(basePath) + _S(".dsp");
+    Sstat wavStat, dspStat;
+    bool wavValid = !Stat(wavPath.c_str(), &wavStat) && S_ISREG(wavStat.st_mode);
+    bool dspValid = !Stat(dspPath.c_str(), &dspStat) && S_ISREG(dspStat.st_mode);
+
+    if (wavValid && dspValid)
     {
-        athena::io::FileReader r(filePath);
+        if (wavStat.st_mtime > dspStat.st_mtime)
+            dspValid = false;
+        else
+            wavValid = false;
+    }
+
+    if (dspValid && (!m_looseData || dspStat.st_mtime > m_looseModTime))
+    {
+        athena::io::FileReader r(dspPath);
         if (!r.hasError())
         {
             DSPADPCMHeader header;
@@ -175,13 +187,14 @@ void AudioGroupSampleDirectory::Entry::loadLooseData(SystemStringView basePath)
             m_looseData.reset(new uint8_t[dataLen]);
             r.readUBytesToBuf(m_looseData.get(), dataLen);
 
-            m_looseModTime = theStat.st_mtime;
+            m_looseModTime = dspStat.st_mtime;
             return;
         }
     }
-    if (!Stat(filePath.c_str(), &theStat) && (!m_looseData || theStat.st_mtime > m_looseModTime))
+
+    if (wavValid && (!m_looseData || wavStat.st_mtime > m_looseModTime))
     {
-        athena::io::FileReader r(filePath);
+        athena::io::FileReader r(wavPath);
         if (!r.hasError())
         {
             atUint32 riffMagic = r.readUint32Little();
@@ -216,7 +229,6 @@ void AudioGroupSampleDirectory::Entry::loadLooseData(SystemStringView basePath)
                         m_loopStartSample = loop.start;
                         m_loopLengthSamples = loop.end - loop.start + 1;
                     }
-
                 }
                 else if (chunkMagic == SBIG('data'))
                 {
@@ -227,7 +239,7 @@ void AudioGroupSampleDirectory::Entry::loadLooseData(SystemStringView basePath)
                 r.seek(startPos + chunkSize, athena::Begin);
             }
 
-            m_looseModTime = theStat.st_mtime;
+            m_looseModTime = wavStat.st_mtime;
             return;
         }
     }

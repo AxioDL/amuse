@@ -14,7 +14,7 @@
    viewBox="0 0 4.2333332 4.2333335"
    id="svg2"
    version="1.1"
-   inkscape:version="0.91+devel+osxmenu r12922"
+   inkscape:version="0.92.2 2405546, 2018-03-11"
    sodipodi:docname="IconSongGroup.svg">
   <defs
      id="defs4" />
@@ -25,17 +25,17 @@
      borderopacity="1.0"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:zoom="29.730996"
-     inkscape:cx="3.7002328"
-     inkscape:cy="9.0045012"
+     inkscape:zoom="34.350339"
+     inkscape:cx="8.8858389"
+     inkscape:cy="8.8343343"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="true"
      units="px"
      inkscape:window-width="1260"
      inkscape:window-height="787"
-     inkscape:window-x="0"
-     inkscape:window-y="23"
+     inkscape:window-x="1944"
+     inkscape:window-y="288"
      inkscape:window-maximized="0"
      showborder="false"
      objecttolerance="4"
@@ -45,7 +45,7 @@
        type="xygrid"
        id="grid4173"
        empspacing="1"
-       visible="false" />
+       visible="true" />
   </sodipodi:namedview>
   <metadata
      id="metadata7">
@@ -65,10 +65,19 @@
      id="layer1"
      transform="translate(0,-292.76665)">
     <path
-       style="opacity:1;fill:#04e2ff;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1.67643285;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       style="opacity:1;fill:#ff5599;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1.67643285;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        d="m 1.3229167,293.04538 c 0.2645833,0 0.5291666,0.25044 0.5291666,0.51502 l 0,0.26458 1.8488138,0.0102 c 0.3165926,0.002 0.5239173,0.20975 0.5245413,0.52471 l 0.00313,1.57936 c 6.239e-4,0.31495 -0.2079439,0.53411 -0.5245413,0.53411 l -3.17666623,0 C 0.21076252,296.47339 0,296.2566 0,295.94165 c 4.054e-5,-0.82258 0,-2.38125 0,-2.38125 0,-0.26458 0.26458333,-0.51612 0.52916667,-0.51612 z"
        id="rect4141"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="cccssssscccc" />
+    <g
+       aria-label="♬"
+       style="font-style:normal;font-weight:normal;font-size:1.66674709px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.31251505"
+       id="text820"
+       transform="matrix(1.1529095,0,0,1.1529095,-0.32840767,-44.985003)" />
+    <path
+       id="path868"
+       style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332;stroke-miterlimit:4;stroke-dasharray:none"
+       d="m 1.8675862,295.87272 a 0.57456183,0.36088178 0 0 1 -0.5745618,0.36089 0.57456183,0.36088178 0 0 1 -0.57456171,-0.36089 0.57456183,0.36088178 0 0 1 0.57456171,-0.36088 0.57456183,0.36088178 0 0 1 0.5745618,0.36088 z m 1.3298265,-0.001 a 0.57456183,0.36088178 0 0 1 -0.5745619,0.36089 0.57456183,0.36088178 0 0 1 -0.5745618,-0.36089 0.57456183,0.36088178 0 0 1 0.5745618,-0.36088 0.57456183,0.36088178 0 0 1 0.5745619,0.36088 z m -0.253445,-1.78193 0.253445,0.006 v 1.77617 c -0.2177221,0.0701 -0.286996,-0.0173 -0.3755473,-0.1676 l 0.00387,-0.79478 H 1.868454 v 0.95424 c -0.2323614,-0.008 -0.2369279,-0.14254 -0.3755412,-0.22458 v -1.54879 z" />
   </g>
 </svg>

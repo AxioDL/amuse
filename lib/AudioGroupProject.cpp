@@ -210,6 +210,15 @@ AudioGroupProject AudioGroupProject::CreateAudioGroupProject(const AudioGroupDat
     }
 }
 
+std::string ParseStringSlashId(const std::string& str, uint16_t& idOut)
+{
+    size_t slashPos = str.find('/');
+    if (slashPos == std::string::npos)
+        return {};
+    idOut = uint16_t(strtoul(str.data() + slashPos + 1, nullptr, 0));
+    return {str.begin(), str.begin() + slashPos};
+}
+
 AudioGroupProject AudioGroupProject::CreateAudioGroupProject(SystemStringView groupPath)
 {
     AudioGroupProject ret;
@@ -222,15 +231,20 @@ AudioGroupProject AudioGroupProject::CreateAudioGroupProject(SystemStringView gr
         athena::io::YAMLDocReader r;
         if (r.parse(&fi) && r.ValidateClassType("amuse::Project"))
         {
-            size_t songGroupCount;
-            if (auto __v = r.enterSubVector("songGroups", songGroupCount))
+            if (auto __v = r.enterSubRecord("songGroups"))
             {
-                ret.m_songGroups.reserve(songGroupCount);
-                for (int g = 0; g < songGroupCount; ++g)
+                ret.m_songGroups.reserve(r.getCurNode()->m_mapChildren.size());
+                for (const auto& grp : r.getCurNode()->m_mapChildren)
                 {
-                    if (auto __r = r.enterSubRecord(nullptr))
+                    if (auto __r = r.enterSubRecord(grp.first.c_str()))
                     {
-                        SongGroupIndex& idx = ret.m_songGroups[g];
+                        uint16_t groupId;
+                        std::string groupName = ParseStringSlashId(grp.first, groupId);
+                        if (groupName.empty() || groupId == 0xffff)
+                            continue;
+                        GroupId::CurNameDB->registerPair(groupName, groupId);
+
+                        SongGroupIndex& idx = ret.m_songGroups[groupId];
                         if (auto __v2 = r.enterSubRecord("normPages"))
                         {
                             idx.m_normPages.reserve(r.getCurNode()->m_mapChildren.size());
@@ -253,8 +267,12 @@ AudioGroupProject AudioGroupProject::CreateAudioGroupProject(SystemStringView gr
                                 size_t chanCount;
                                 if (auto __v3 = r.enterSubVector(song.first.c_str(), chanCount))
                                 {
-                                    ObjectId songId = SongId::CurNameDB->generateId(NameDB::Type::Song);
-                                    SongId::CurNameDB->registerPair(song.first, songId);
+                                    uint16_t songId;
+                                    std::string songName = ParseStringSlashId(song.first, songId);
+                                    if (songName.empty() || songId == 0xffff)
+                                        continue;
+                                    SongId::CurNameDB->registerPair(songName, songId);
+
                                     std::array<SongGroupIndex::MIDISetup, 16>& setup = idx.m_midiSetups[songId];
                                     for (int i = 0; i < 16 && i < chanCount; ++i)
                                         if (auto __r2 = r.enterSubRecord(nullptr))
@@ -266,20 +284,28 @@ AudioGroupProject AudioGroupProject::CreateAudioGroupProject(SystemStringView gr
                 }
             }
 
-            size_t sfxGroupCount;
-            if (auto __v = r.enterSubVector("sfxGroups", sfxGroupCount))
+            if (auto __v = r.enterSubRecord("sfxGroups"))
             {
-                ret.m_sfxGroups.reserve(sfxGroupCount);
-                for (int g = 0; g < sfxGroupCount; ++g)
+                ret.m_sfxGroups.reserve(r.getCurNode()->m_mapChildren.size());
+                for (const auto& grp : r.getCurNode()->m_mapChildren)
                 {
                     if (auto __r = r.enterSubRecord(nullptr))
                     {
-                        SFXGroupIndex& idx = ret.m_sfxGroups[g];
+                        uint16_t groupId;
+                        std::string groupName = ParseStringSlashId(grp.first, groupId);
+                        if (groupName.empty() || groupId == 0xffff)
+                            continue;
+                        GroupId::CurNameDB->registerPair(groupName, groupId);
+
+                        SFXGroupIndex& idx = ret.m_sfxGroups[groupId];
                         for (const auto& sfx : r.getCurNode()->m_mapChildren)
                             if (auto __r2 = r.enterSubRecord(sfx.first.c_str()))
                             {
-                                ObjectId sfxId = SFXId::CurNameDB->generateId(NameDB::Type::SFX);
-                                SFXId::CurNameDB->registerPair(sfx.first, sfxId);
+                                uint16_t sfxId;
+                                std::string sfxName = ParseStringSlashId(sfx.first, sfxId);
+                                if (sfxName.empty() || sfxId == 0xffff)
+                                    continue;
+                                SFXId::CurNameDB->registerPair(sfxName, sfxId);
                                 idx.m_sfxEntries[sfxId].read(r);
                             }
                     }
@@ -320,6 +346,8 @@ void AudioGroupProject::BootstrapObjectIDs(athena::io::IStreamReader& r, GCNData
     {
         GroupHeader<athena::Big> header;
         header.read(r);
+
+        GroupId::CurNameDB->registerPair(NameDB::generateName(header.groupId, NameDB::Type::Group), header.groupId);
 
         /* Sound Macros */
         r.seek(header.soundMacroIdsOff, athena::Begin);
@@ -385,6 +413,8 @@ void AudioGroupProject::BootstrapObjectIDs(athena::io::IStreamReader& r, bool ab
         atInt64 subDataOff = absOffs ? 0 : groupBegin + 8;
         GroupHeader<DNAE> header;
         header.read(r);
+
+        GroupId::CurNameDB->registerPair(NameDB::generateName(header.groupId, NameDB::Type::Group), header.groupId);
 
         /* Sound Macros */
         r.seek(subDataOff + header.soundMacroIdsOff, athena::Begin);
@@ -501,11 +531,13 @@ bool AudioGroupProject::toYAML(SystemStringView groupPath) const
 
     if (!m_songGroups.empty())
     {
-        if (auto __v = w.enterSubVector("songGroups"))
+        if (auto __v = w.enterSubRecord("songGroups"))
         {
             for (const auto& p : SortUnorderedMap(m_songGroups))
             {
-                if (auto __r = w.enterSubRecord(nullptr))
+                char groupString[64];
+                snprintf(groupString, 64, "%s/0x%04X", GroupId::CurNameDB->resolveNameFromId(p.first).data(), int(p.first.id));
+                if (auto __r = w.enterSubRecord(groupString))
                 {
                     if (!p.second.get().m_normPages.empty())
                     {
@@ -545,7 +577,9 @@ bool AudioGroupProject::toYAML(SystemStringView groupPath) const
                         {
                             for (const auto& song : SortUnorderedMap(p.second.get().m_midiSetups))
                             {
-                                if (auto __v3 = w.enterSubVector(SongId::CurNameDB->resolveNameFromId(song.first).data()))
+                                char songString[64];
+                                snprintf(songString, 64, "%s/0x%04X", SongId::CurNameDB->resolveNameFromId(song.first).data(), int(song.first.id));
+                                if (auto __v3 = w.enterSubVector(songString))
                                     for (int i = 0; i < 16; ++i)
                                         if (auto __r2 = w.enterSubRecord(nullptr))
                                         {
@@ -562,15 +596,19 @@ bool AudioGroupProject::toYAML(SystemStringView groupPath) const
 
     if (!m_sfxGroups.empty())
     {
-        if (auto __v = w.enterSubVector("sfxGroups"))
+        if (auto __v = w.enterSubRecord("sfxGroups"))
         {
             for (const auto& p : SortUnorderedMap(m_sfxGroups))
             {
-                if (auto __r = w.enterSubRecord(nullptr))
+                char groupString[64];
+                snprintf(groupString, 64, "%s/0x%04X", GroupId::CurNameDB->resolveNameFromId(p.first).data(), int(p.first.id));
+                if (auto __r = w.enterSubRecord(groupString))
                 {
                     for (const auto& sfx : SortUnorderedMap(p.second.get().m_sfxEntries))
                     {
-                        if (auto __r2 = w.enterSubRecord(SFXId::CurNameDB->resolveNameFromId(sfx.first).data()))
+                        char sfxString[64];
+                        snprintf(sfxString, 64, "%s/0x%04X", SFXId::CurNameDB->resolveNameFromId(sfx.first).data(), int(sfx.first.id));
+                        if (auto __r2 = w.enterSubRecord(sfxString))
                         {
                             w.setStyle(athena::io::YAMLNodeStyle::Flow);
                             sfx.second.get().write(w);

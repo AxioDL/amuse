@@ -236,8 +236,8 @@ void Voice::_procSamplePre(int16_t& samp)
         float start = m_envelopeStart;
         float end = m_envelopeEnd;
         float t = clamp(0.f, float(m_envelopeTime / m_envelopeDur), 1.f);
-        if (m_envelopeCurve)
-            t = m_envelopeCurve->data.at(t * 127.f) / 127.f;
+        if (m_envelopeCurve && m_envelopeCurve->data.size() >= 128)
+            t = m_envelopeCurve->data[t * 127.f] / 127.f;
         m_curVol = clamp(0.f, (start * (1.0f - t)) + (end * t), 1.f);
 
         // printf("%d %f\n", m_vid, m_curVol);

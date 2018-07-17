@@ -4,111 +4,250 @@
 #include "Common.hpp"
 #include "athena/YAMLDocWriter.hpp"
 
+QIcon ProjectModel::GroupNode::Icon;
+QIcon ProjectModel::SongGroupNode::Icon;
+QIcon ProjectModel::SoundGroupNode::Icon;
+
 ProjectModel::ProjectModel(const QString& path, QObject* parent)
 : QAbstractItemModel(parent), m_dir(path)
 {
+    m_root = std::make_unique<RootNode>();
 
+    GroupNode::Icon = QIcon(":/icons/IconGroup.svg");
+    SongGroupNode::Icon = QIcon(":/icons/IconSongGroup.svg");
+    SoundGroupNode::Icon = QIcon(":/icons/IconSoundGroup.svg");
 }
 
-ProjectModel::ProjectGroup::ProjectGroup(amuse::IntrusiveAudioGroupData&& data)
-: m_data(std::move(data)),
-  m_proj(amuse::AudioGroupProject::CreateAudioGroupProject(m_data)),
-  m_pool(amuse::AudioGroupPool::CreateAudioGroupPool(m_data)),
-  m_sdir(amuse::AudioGroupSampleDirectory::CreateAudioGroupSampleDirectory(m_data))
-{}
-
-bool ProjectModel::importGroupData(const QString& groupName, amuse::IntrusiveAudioGroupData&& data)
+bool ProjectModel::importGroupData(const QString& groupName, const amuse::AudioGroupData& data,
+                                   ImportMode mode, UIMessenger& messenger)
 {
-    setIdDatabases();
+    m_projectDatabase.setIdDatabases();
 
-    ProjectGroup& grp = m_groups.insert(std::make_pair(groupName, std::move(data))).first->second;
+    amuse::AudioGroupDatabase& grp = m_groups.insert(std::make_pair(groupName, data)).first->second;
     grp.setIdDatabases();
-    amuse::AudioGroupProject::BootstrapObjectIDs(grp.m_data);
+    amuse::AudioGroupProject::BootstrapObjectIDs(data);
 
-    return true;
-}
-
-bool ProjectModel::extractSamples(ImportMode mode, QWidget* parent)
-{
-    setIdDatabases();
-
-    if (!MkPath(m_dir.path(), parent))
+    if (!MkPath(m_dir.path(), messenger))
+        return false;
+    QDir dir(QFileInfo(m_dir, groupName).filePath());
+    if (!MkPath(dir.path(), messenger))
         return false;
 
-    for (auto& g : m_groups)
+    amuse::SystemString sysDir = QStringToSysString(dir.path());
+    switch (mode)
     {
-        g.second.setIdDatabases();
-
-        QDir dir(QFileInfo(m_dir, g.first).filePath());
-        if (!MkPath(dir.path(), parent))
-            return false;
-
-        amuse::SystemString sysDir = QStringToSysString(dir.path());
-        switch (mode)
-        {
-        case ImportMode::Original:
-            g.second.m_sdir.extractAllCompressed(sysDir, g.second.m_data.getSamp());
-            break;
-        case ImportMode::WAVs:
-            g.second.m_sdir.extractAllWAV(sysDir, g.second.m_data.getSamp());
-            break;
-        case ImportMode::Both:
-            g.second.m_sdir.extractAllCompressed(sysDir, g.second.m_data.getSamp());
-            g.second.m_sdir.extractAllWAV(sysDir, g.second.m_data.getSamp());
-            break;
-        default:
-            break;
-        }
+    case ImportMode::Original:
+        grp.getSdir().extractAllCompressed(sysDir, data.getSamp());
+        break;
+    case ImportMode::WAVs:
+        grp.getSdir().extractAllWAV(sysDir, data.getSamp());
+        break;
+    case ImportMode::Both:
+        grp.getSdir().extractAllWAV(sysDir, data.getSamp());
+        grp.getSdir().extractAllCompressed(sysDir, data.getSamp());
+        break;
+    default:
+        break;
     }
 
+    grp.getProj().toYAML(sysDir);
+    grp.getPool().toYAML(sysDir);
+
+    m_needsReset = true;
     return true;
 }
 
-bool ProjectModel::saveToFile(QWidget* parent)
+bool ProjectModel::saveToFile(UIMessenger& messenger)
 {
-    setIdDatabases();
+    m_projectDatabase.setIdDatabases();
 
-    if (!MkPath(m_dir.path(), parent))
+    if (!MkPath(m_dir.path(), messenger))
         return false;
 
     for (auto& g : m_groups)
     {
         QDir dir(QFileInfo(m_dir, g.first).filePath());
-        if (!MkPath(dir.path(), parent))
+        if (!MkPath(dir.path(), messenger))
             return false;
 
         g.second.setIdDatabases();
         amuse::SystemString groupPath = QStringToSysString(dir.path());
-        g.second.m_proj.toYAML(groupPath);
-        g.second.m_pool.toYAML(groupPath);
+        g.second.getProj().toYAML(groupPath);
+        g.second.getPool().toYAML(groupPath);
     }
 
     return true;
 }
 
-QModelIndex ProjectModel::index(int row, int column, const QModelIndex& parent) const
+void ProjectModel::_resetModelData()
 {
-    return createIndex(row, column, nullptr);
+    beginResetModel();
+    m_projectDatabase.setIdDatabases();
+    m_root = std::make_unique<RootNode>();
+    m_root->reserve(m_groups.size());
+    for (auto it = m_groups.begin() ; it != m_groups.end() ; ++it)
+    {
+        it->second.setIdDatabases();
+        GroupNode& gn = m_root->makeChild<GroupNode>(it);
+        auto& songGroups = it->second.getProj().songGroups();
+        auto& sfxGroups = it->second.getProj().sfxGroups();
+        auto& soundMacros = it->second.getPool().soundMacros();
+        auto& tables = it->second.getPool().tables();
+        auto& keymaps = it->second.getPool().keymaps();
+        auto& layers = it->second.getPool().layers();
+        gn.reserve(songGroups.size() + sfxGroups.size() + 4);
+        for (const auto& grp : SortUnorderedMap(songGroups))
+            gn.makeChild<SongGroupNode>(grp.first, grp.second.get());
+        for (const auto& grp : SortUnorderedMap(sfxGroups))
+            gn.makeChild<SoundGroupNode>(grp.first, grp.second.get());
+        if (soundMacros.size())
+        {
+            CollectionNode& col =
+                gn.makeChild<CollectionNode>(tr("Sound Macros"), QIcon(":/icons/IconSoundMacro.svg"));
+            col.reserve(soundMacros.size());
+            for (const auto& macro : SortUnorderedMap(soundMacros))
+                col.makeChild<PoolObjectNode<amuse::SoundMacroId, amuse::SoundMacro>>(macro.first, macro.second.get());
+        }
+        if (tables.size())
+        {
+            auto tablesSort = SortUnorderedMap(tables);
+            size_t ADSRCount = 0;
+            size_t curveCount = 0;
+            for (auto& t : tablesSort)
+            {
+                amuse::ITable::Type tp = t.second.get()->Isa();
+                if (tp == amuse::ITable::Type::ADSR || tp == amuse::ITable::Type::ADSRDLS)
+                    ADSRCount += 1;
+                else if (tp == amuse::ITable::Type::Curve)
+                    curveCount += 1;
+            }
+            if (ADSRCount)
+            {
+                CollectionNode& col =
+                    gn.makeChild<CollectionNode>(tr("ADSRs"), QIcon(":/icons/IconADSR.svg"));
+                col.reserve(ADSRCount);
+                for (auto& t : tablesSort)
+                {
+                    amuse::ITable::Type tp = t.second.get()->Isa();
+                    if (tp == amuse::ITable::Type::ADSR || tp == amuse::ITable::Type::ADSRDLS)
+                        col.makeChild<PoolObjectNode<amuse::TableId, amuse::ITable>>(t.first, *t.second.get());
+                }
+            }
+            if (curveCount)
+            {
+                CollectionNode& col =
+                    gn.makeChild<CollectionNode>(tr("Curves"), QIcon(":/icons/IconCurve.svg"));
+                col.reserve(curveCount);
+                for (auto& t : tablesSort)
+                {
+                    amuse::ITable::Type tp = t.second.get()->Isa();
+                    if (tp == amuse::ITable::Type::Curve)
+                        col.makeChild<PoolObjectNode<amuse::TableId, amuse::Curve>>(t.first, static_cast<amuse::Curve&>(*t.second.get()));
+                }
+            }
+        }
+        if (keymaps.size())
+        {
+            CollectionNode& col =
+                gn.makeChild<CollectionNode>(tr("Keymaps"), QIcon(":/icons/IconKeymap.svg"));
+            col.reserve(keymaps.size());
+            for (auto& keymap : SortUnorderedMap(keymaps))
+                col.makeChild<PoolObjectNode<amuse::KeymapId, amuse::Keymap>>(keymap.first, keymap.second.get());
+        }
+        if (layers.size())
+        {
+            CollectionNode& col =
+                gn.makeChild<CollectionNode>(tr("Layers"), QIcon(":/icons/IconLayers.svg"));
+            col.reserve(layers.size());
+            for (auto& keymap : SortUnorderedMap(layers))
+                col.makeChild<PoolObjectNode<amuse::LayersId, std::vector<amuse::LayerMapping>>>(keymap.first, keymap.second.get());
+        }
+    }
+    endResetModel();
 }
 
-QModelIndex ProjectModel::parent(const QModelIndex& child) const
+void ProjectModel::ensureModelData()
 {
-    return {};
+    if (m_needsReset)
+    {
+        _resetModelData();
+        m_needsReset = false;
+    }
+}
+
+QModelIndex ProjectModel::index(int row, int column, const QModelIndex& parent) const
+{
+    if (!hasIndex(row, column, parent))
+        return QModelIndex();
+
+    INode* parentItem;
+    if (!parent.isValid())
+        parentItem = m_root.get();
+    else
+        parentItem = static_cast<INode*>(parent.internalPointer());
+
+    INode* childItem = parentItem->child(row);
+    if (childItem)
+        return createIndex(row, column, childItem);
+    else
+        return QModelIndex();
+}
+
+QModelIndex ProjectModel::parent(const QModelIndex& index) const
+{
+    if (!index.isValid())
+        return QModelIndex();
+
+    INode* childItem = static_cast<INode*>(index.internalPointer());
+    INode* parentItem = childItem->parent();
+
+    if (parentItem == m_root.get())
+        return QModelIndex();
+
+    return createIndex(parentItem->row(), 0, parentItem);
 }
 
 int ProjectModel::rowCount(const QModelIndex& parent) const
 {
-    return 0;
+    INode* parentItem;
+
+    if (!parent.isValid())
+        parentItem = m_root.get();
+    else
+        parentItem = static_cast<INode*>(parent.internalPointer());
+
+    return parentItem->childCount();
 }
 
 int ProjectModel::columnCount(const QModelIndex& parent) const
 {
-    return 0;
+    return 1;
 }
 
 QVariant ProjectModel::data(const QModelIndex& index, int role) const
 {
-    return {};
+    if (!index.isValid())
+        return QVariant();
+
+    INode* item = static_cast<INode*>(index.internalPointer());
+
+    switch (role)
+    {
+    case Qt::DisplayRole:
+        return item->text();
+    case Qt::DecorationRole:
+        return item->icon();
+    default:
+        return {};
+    }
+}
+
+Qt::ItemFlags ProjectModel::flags(const QModelIndex& index) const
+{
+    if (!index.isValid())
+        return 0;
+
+    return QAbstractItemModel::flags(index);
 }
 
 bool ProjectModel::canDelete() const

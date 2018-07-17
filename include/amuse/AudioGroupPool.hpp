@@ -664,7 +664,7 @@ struct SoundMacro
         AT_DECL_DNAV
         Value<atUint8> midiControl;
         Value<atUint16> scalingPercentage;
-        Value<bool> combine;
+        Value<atInt8> combine;
         Value<bool> isVar;
         Value<atUint8> fineScaling;
         bool Do(SoundMacroState& st, Voice& vox) const;
@@ -676,7 +676,7 @@ struct SoundMacro
         AT_DECL_DNAV
         Value<atUint8> midiControl;
         Value<atUint16> scalingPercentage;
-        Value<bool> combine;
+        Value<atInt8> combine;
         Value<bool> isVar;
         Value<atUint8> fineScaling;
         bool Do(SoundMacroState& st, Voice& vox) const;
@@ -688,7 +688,7 @@ struct SoundMacro
         AT_DECL_DNAV
         Value<atUint8> midiControl;
         Value<atUint16> scalingPercentage;
-        Value<bool> combine;
+        Value<atInt8> combine;
         Value<bool> isVar;
         Value<atUint8> fineScaling;
         bool Do(SoundMacroState& st, Voice& vox) const;
@@ -700,7 +700,7 @@ struct SoundMacro
         AT_DECL_DNAV
         Value<atUint8> midiControl;
         Value<atUint16> scalingPercentage;
-        Value<bool> combine;
+        Value<atInt8> combine;
         Value<bool> isVar;
         Value<atUint8> fineScaling;
         bool Do(SoundMacroState& st, Voice& vox) const;
@@ -712,7 +712,7 @@ struct SoundMacro
         AT_DECL_DNAV
         Value<atUint8> midiControl;
         Value<atUint16> scalingPercentage;
-        Value<bool> combine;
+        Value<atInt8> combine;
         Value<bool> isVar;
         Value<atUint8> fineScaling;
         bool Do(SoundMacroState& st, Voice& vox) const;
@@ -724,7 +724,7 @@ struct SoundMacro
         AT_DECL_DNAV
         Value<atUint8> midiControl;
         Value<atUint16> scalingPercentage;
-        Value<bool> combine;
+        Value<atInt8> combine;
         Value<bool> isVar;
         Value<atUint8> fineScaling;
         bool Do(SoundMacroState& st, Voice& vox) const;
@@ -736,7 +736,7 @@ struct SoundMacro
         AT_DECL_DNAV
         Value<atUint8> midiControl;
         Value<atUint16> scalingPercentage;
-        Value<bool> combine;
+        Value<atInt8> combine;
         Value<bool> isVar;
         Value<atUint8> fineScaling;
         bool Do(SoundMacroState& st, Voice& vox) const;
@@ -748,7 +748,7 @@ struct SoundMacro
         AT_DECL_DNAV
         Value<atUint8> midiControl;
         Value<atUint16> scalingPercentage;
-        Value<bool> combine;
+        Value<atInt8> combine;
         Value<bool> isVar;
         Value<atUint8> fineScaling;
         bool Do(SoundMacroState& st, Voice& vox) const;
@@ -760,7 +760,7 @@ struct SoundMacro
         AT_DECL_DNAV
         Value<atUint8> midiControl;
         Value<atUint16> scalingPercentage;
-        Value<bool> combine;
+        Value<atInt8> combine;
         Value<bool> isVar;
         Value<atUint8> fineScaling;
         bool Do(SoundMacroState& st, Voice& vox) const;
@@ -772,7 +772,7 @@ struct SoundMacro
         AT_DECL_DNAV
         Value<atUint8> midiControl;
         Value<atUint16> scalingPercentage;
-        Value<bool> combine;
+        Value<atInt8> combine;
         Value<bool> isVar;
         Value<atUint8> fineScaling;
         bool Do(SoundMacroState& st, Voice& vox) const;
@@ -784,7 +784,7 @@ struct SoundMacro
         AT_DECL_DNAV
         Value<atUint8> midiControl;
         Value<atUint16> scalingPercentage;
-        Value<bool> combine;
+        Value<atInt8> combine;
         Value<bool> isVar;
         Value<atUint8> fineScaling;
         bool Do(SoundMacroState& st, Voice& vox) const;
@@ -796,7 +796,7 @@ struct SoundMacro
         AT_DECL_DNAV
         Value<atUint8> midiControl;
         Value<atUint16> scalingPercentage;
-        Value<bool> combine;
+        Value<atInt8> combine;
         Value<bool> isVar;
         Value<atUint8> fineScaling;
         bool Do(SoundMacroState& st, Voice& vox) const;
@@ -808,7 +808,7 @@ struct SoundMacro
         AT_DECL_DNAV
         Value<atUint8> midiControl;
         Value<atUint16> scalingPercentage;
-        Value<bool> combine;
+        Value<atInt8> combine;
         Value<bool> isVar;
         Value<atUint8> fineScaling;
         bool Do(SoundMacroState& st, Voice& vox) const;
@@ -820,7 +820,7 @@ struct SoundMacro
         AT_DECL_DNAV
         Value<atUint8> midiControl;
         Value<atUint16> scalingPercentage;
-        Value<bool> combine;
+        Value<atInt8> combine;
         Value<bool> isVar;
         Value<atUint8> fineScaling;
         bool Do(SoundMacroState& st, Voice& vox) const;
@@ -1156,6 +1156,15 @@ public:
     static AudioGroupPool CreateAudioGroupPool(const AudioGroupData& data);
     static AudioGroupPool CreateAudioGroupPool(SystemStringView groupPath);
 
+    const std::unordered_map<SoundMacroId, SoundMacro>& soundMacros() const { return m_soundMacros; }
+    const std::unordered_map<TableId, std::unique_ptr<ITable>>& tables() const { return m_tables; }
+    const std::unordered_map<KeymapId, Keymap>& keymaps() const { return m_keymaps; }
+    const std::unordered_map<LayersId, std::vector<LayerMapping>>& layers() const { return m_layers; }
+    std::unordered_map<SoundMacroId, SoundMacro>& soundMacros() { return m_soundMacros; }
+    std::unordered_map<TableId, std::unique_ptr<ITable>>& tables() { return m_tables; }
+    std::unordered_map<KeymapId, Keymap>& keymaps() { return m_keymaps; }
+    std::unordered_map<LayersId, std::vector<LayerMapping>>& layers() { return m_layers; }
+
     const SoundMacro* soundMacro(ObjectId id) const;
     const Keymap* keymap(ObjectId id) const;
     const std::vector<LayerMapping>* layer(ObjectId id) const;
@@ -1164,6 +1173,11 @@ public:
     const Curve* tableAsCurves(ObjectId id) const;
 
     bool toYAML(SystemStringView groupPath) const;
+
+    AudioGroupPool(const AudioGroupPool&) = delete;
+    AudioGroupPool& operator=(const AudioGroupPool&) = delete;
+    AudioGroupPool(AudioGroupPool&&) = default;
+    AudioGroupPool& operator=(AudioGroupPool&&) = default;
 };
 }
 

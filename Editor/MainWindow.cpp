@@ -3,15 +3,27 @@
 #include <QMessageBox>
 #include <QLineEdit>
 #include <QInputDialog>
+#include <QProgressDialog>
 #include <QtSvg/QtSvg>
 #include "amuse/ContainerRegistry.hpp"
 #include "Common.hpp"
 
+static void connectMessenger(UIMessenger* messenger, Qt::ConnectionType type)
+{
+
+}
+
 MainWindow::MainWindow(QWidget* parent)
 : QMainWindow(parent),
-  m_undoStack(new QUndoStack(this))
+  m_mainMessenger(this),
+  m_undoStack(new QUndoStack(this)),
+  m_backgroundThread(this)
 {
+    m_backgroundThread.start();
+
     m_ui.setupUi(this);
+    connectMessenger(&m_mainMessenger, Qt::DirectConnection);
+
     m_ui.actionNew_Project->setShortcut(QKeySequence::New);
     connect(m_ui.actionNew_Project, SIGNAL(triggered()), this, SLOT(newAction()));
     m_ui.actionOpen_Project->setShortcut(QKeySequence::Open);
@@ -55,7 +67,37 @@ MainWindow::MainWindow(QWidget* parent)
 
 MainWindow::~MainWindow()
 {
+    m_backgroundThread.quit();
+    m_backgroundThread.wait();
     printf("IM DYING\n");
+}
+
+void MainWindow::connectMessenger(UIMessenger* messenger, Qt::ConnectionType type)
+{
+    connect(messenger, SIGNAL(information(const QString&,
+                                  const QString&, QMessageBox::StandardButtons,
+                                  QMessageBox::StandardButton)),
+            this, SLOT(msgInformation(const QString&,
+                           const QString&, QMessageBox::StandardButtons,
+                           QMessageBox::StandardButton)), type);
+    connect(messenger, SIGNAL(question(const QString&,
+                                  const QString&, QMessageBox::StandardButtons,
+                                  QMessageBox::StandardButton)),
+            this, SLOT(msgQuestion(const QString&,
+                           const QString&, QMessageBox::StandardButtons,
+                           QMessageBox::StandardButton)), type);
+    connect(messenger, SIGNAL(warning(const QString&,
+                                  const QString&, QMessageBox::StandardButtons,
+                                  QMessageBox::StandardButton)),
+            this, SLOT(msgWarning(const QString&,
+                           const QString&, QMessageBox::StandardButtons,
+                           QMessageBox::StandardButton)), type);
+    connect(messenger, SIGNAL(critical(const QString&,
+                                  const QString&, QMessageBox::StandardButtons,
+                                  QMessageBox::StandardButton)),
+            this, SLOT(msgCritical(const QString&,
+                           const QString&, QMessageBox::StandardButtons,
+                           QMessageBox::StandardButton)), type);
 }
 
 bool MainWindow::setProjectPath(const QString& path)
@@ -138,14 +180,52 @@ void MainWindow::refreshMIDIIO()
         m_ui.menuMIDI->addAction(tr("No MIDI Devices Found"))->setEnabled(false);
 }
 
+void MainWindow::startBackgroundTask(const QString& windowTitle, const QString& label,
+                                     std::function<void(BackgroundTask&)>&& task)
+{
+    assert(m_backgroundTask == nullptr && "existing background process");
+    setEnabled(false);
+
+    m_backgroundTask = new BackgroundTask(std::move(task));
+    m_backgroundTask->moveToThread(&m_backgroundThread);
+
+    m_backgroundDialog = new QProgressDialog(this);
+    m_backgroundDialog->setWindowTitle(windowTitle);
+    m_backgroundDialog->setLabelText(label);
+    m_backgroundDialog->setMinimumWidth(300);
+    m_backgroundDialog->setAutoClose(false);
+    m_backgroundDialog->setAutoReset(false);
+    m_backgroundDialog->setMinimumDuration(0);
+    m_backgroundDialog->setMinimum(0);
+    m_backgroundDialog->setMaximum(0);
+    m_backgroundDialog->setValue(0);
+
+    connect(m_backgroundTask, SIGNAL(setMinimum(int)),
+            m_backgroundDialog, SLOT(setMinimum(int)), Qt::QueuedConnection);
+    connect(m_backgroundTask, SIGNAL(setMaximum(int)),
+            m_backgroundDialog, SLOT(setMaximum(int)), Qt::QueuedConnection);
+    connect(m_backgroundTask, SIGNAL(setValue(int)),
+            m_backgroundDialog, SLOT(setValue(int)), Qt::QueuedConnection);
+    connect(m_backgroundTask, SIGNAL(setLabelText(const QString&)),
+            m_backgroundDialog, SLOT(setLabelText(const QString&)), Qt::QueuedConnection);
+    connect(m_backgroundTask, SIGNAL(finished()),
+            this, SLOT(onBackgroundTaskFinished()), Qt::QueuedConnection);
+    m_backgroundDialog->open(m_backgroundTask, SLOT(cancel()));
+
+    connectMessenger(&m_backgroundTask->uiMessenger(), Qt::BlockingQueuedConnection);
+
+    QMetaObject::invokeMethod(m_backgroundTask, "run", Qt::QueuedConnection);
+}
+
 void MainWindow::newAction()
 {
     QString path = QFileDialog::getSaveFileName(this, tr("New Project"));
     if (path.isEmpty())
         return;
-    if (!MkPath(path, this))
+    if (!MkPath(path, m_mainMessenger))
         return;
-    setProjectPath(path);
+    if (!setProjectPath(path))
+        return;
 }
 
 void MainWindow::openAction()
@@ -153,7 +233,10 @@ void MainWindow::openAction()
     QString path = QFileDialog::getExistingDirectory(this, tr("Open Project"));
     if (path.isEmpty())
         return;
-    setProjectPath(path);
+    if (!setProjectPath(path))
+        return;
+
+
 }
 
 void MainWindow::importAction()
@@ -176,8 +259,8 @@ void MainWindow::importAction()
     int impMode = QMessageBox::question(this, tr("Sample Import Mode"),
         tr("Amuse can import samples as WAV files for ease of editing, "
            "import original compressed data for lossless repacking, or both. "
-           "Exporting the project will prefer compressed files over WAVs, so "
-           "be sure to delete the compressed version if you edit the WAV."),
+           "Exporting the project will prefer whichever version was modified "
+           "most recently."),
         tr("Import Compressed"), tr("Import WAVs"), tr("Import Both"));
 
     switch (impMode)
@@ -189,6 +272,7 @@ void MainWindow::importAction()
     default:
         return;
     }
+    ProjectModel::ImportMode importMode = ProjectModel::ImportMode(impMode);
 
     /* Special handling for raw groups - gather sibling groups in filesystem */
     if (tp == amuse::ContainerRegistry::Type::Raw4)
@@ -211,25 +295,36 @@ void MainWindow::importAction()
 
                 QFileInfo fInfo(path);
                 QString newPath = QFileInfo(fInfo.dir(), newName).filePath();
-                if (!MkPath(fInfo.dir(), newName, this))
+                if (!MkPath(fInfo.dir(), newName, m_mainMessenger))
                     return;
                 if (!setProjectPath(newPath))
                     return;
             }
 
-            QDir dir = QFileInfo(path).dir();
-            QStringList filters;
-            filters << "*.proj" << "*.pro";
-            QStringList files = dir.entryList(filters, QDir::Files);
-            for (const QString& fPath : files)
+            ProjectModel* model = m_projectModel;
+            startBackgroundTask(tr("Importing"), tr("Scanning Project"),
+            [model, path, importMode](BackgroundTask& task)
             {
-                auto data = amuse::ContainerRegistry::LoadContainer(QStringToSysString(dir.filePath(fPath)).c_str());
-                for (auto& p : data)
-                    if (!m_projectModel->importGroupData(SysStringToQString(p.first), std::move(p.second)))
-                        return;
-            }
-            m_projectModel->extractSamples(ProjectModel::ImportMode(impMode), this);
-            m_projectModel->saveToFile(this);
+                QDir dir = QFileInfo(path).dir();
+                QStringList filters;
+                filters << "*.proj" << "*.pro";
+                QStringList files = dir.entryList(filters, QDir::Files);
+                for (const QString& fPath : files)
+                {
+                    auto data = amuse::ContainerRegistry::LoadContainer(QStringToSysString(dir.filePath(fPath)).c_str());
+                    for (auto& p : data)
+                    {
+                        task.setLabelText(tr("Importing %1").arg(SysStringToQString(p.first)));
+                        if (task.isCanceled())
+                            return;
+                        if (!model->importGroupData(SysStringToQString(p.first), p.second,
+                                                    importMode, task.uiMessenger()))
+                            return;
+                    }
+                }
+            });
+
+
             return;
         }
         else if (scanMode == QMessageBox::No)
@@ -245,20 +340,31 @@ void MainWindow::importAction()
     {
         QFileInfo fInfo(path);
         QString newPath = QFileInfo(fInfo.dir(), fInfo.completeBaseName()).filePath();
-        if (!MkPath(fInfo.dir(), fInfo.completeBaseName(), this))
+        if (!MkPath(fInfo.dir(), fInfo.completeBaseName(), m_mainMessenger))
             return;
         if (!setProjectPath(newPath))
             return;
     }
 
-    /* Handle single container */
-    auto data = amuse::ContainerRegistry::LoadContainer(QStringToSysString(path).c_str());
-    for (auto& p : data)
-        if (!m_projectModel->importGroupData(SysStringToQString(p.first), std::move(p.second)))
-            return;
-
-    m_projectModel->extractSamples(ProjectModel::ImportMode(impMode), this);
-    m_projectModel->saveToFile(this);
+    ProjectModel* model = m_projectModel;
+    startBackgroundTask(tr("Importing"), tr("Scanning Project"),
+    [model, path, importMode](BackgroundTask& task)
+    {
+        /* Handle single container */
+        auto data = amuse::ContainerRegistry::LoadContainer(QStringToSysString(path).c_str());
+        task.setMaximum(int(data.size()));
+        int curVal = 0;
+        for (auto& p : data)
+        {
+            task.setLabelText(tr("Importing %1").arg(SysStringToQString(p.first)));
+            if (task.isCanceled())
+                return;
+            if (!model->importGroupData(SysStringToQString(p.first), p.second,
+                                        importMode, task.uiMessenger()))
+                return;
+            task.setValue(++curVal);
+        }
+    });
 }
 
 void MainWindow::exportAction()
@@ -394,4 +500,43 @@ void MainWindow::onTextDelete()
     {
         le->del();
     }
+}
+
+void MainWindow::onBackgroundTaskFinished()
+{
+    m_backgroundDialog->reset();
+    m_backgroundDialog->deleteLater();
+    m_backgroundDialog = nullptr;
+    m_backgroundTask->deleteLater();
+    m_backgroundTask = nullptr;
+    m_projectModel->ensureModelData();
+    setEnabled(true);
+}
+
+QMessageBox::StandardButton MainWindow::msgInformation(const QString &title,
+    const QString &text, QMessageBox::StandardButtons buttons,
+    QMessageBox::StandardButton defaultButton)
+{
+    return QMessageBox::information(this, title, text, buttons, defaultButton);
+}
+
+QMessageBox::StandardButton MainWindow::msgQuestion(const QString &title,
+    const QString &text, QMessageBox::StandardButtons buttons,
+    QMessageBox::StandardButton defaultButton)
+{
+    return QMessageBox::question(this, title, text, buttons, defaultButton);
+}
+
+QMessageBox::StandardButton MainWindow::msgWarning(const QString &title,
+    const QString &text, QMessageBox::StandardButtons buttons,
+    QMessageBox::StandardButton defaultButton)
+{
+    return QMessageBox::warning(this, title, text, buttons, defaultButton);
+}
+
+QMessageBox::StandardButton MainWindow::msgCritical(const QString &title,
+    const QString &text, QMessageBox::StandardButtons buttons,
+    QMessageBox::StandardButton defaultButton)
+{
+    return QMessageBox::critical(this, title, text, buttons, defaultButton);
 }

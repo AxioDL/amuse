@@ -3,7 +3,10 @@
 
 #include <QAbstractItemModel>
 #include <QDir>
+#include <QIcon>
 #include <map>
+#include "Common.hpp"
+#include "amuse/AudioGroup.hpp"
 #include "amuse/AudioGroupData.hpp"
 #include "amuse/AudioGroupProject.hpp"
 #include "amuse/AudioGroupPool.hpp"
@@ -19,54 +22,134 @@ public:
         WAVs,
         Both
     };
-    struct ProjectGroup
-    {
-        amuse::IntrusiveAudioGroupData m_data;
-        amuse::AudioGroupProject m_proj;
-        amuse::AudioGroupPool m_pool;
-        amuse::AudioGroupSampleDirectory m_sdir;
-        amuse::NameDB m_soundMacroDb;
-        amuse::NameDB m_sampleDb;
-        amuse::NameDB m_tableDb;
-        amuse::NameDB m_keymapDb;
-        amuse::NameDB m_layersDb;
-
-        explicit ProjectGroup(amuse::IntrusiveAudioGroupData&& data);
-        void setIdDatabases()
-        {
-            amuse::SoundMacroId::CurNameDB = &m_soundMacroDb;
-            amuse::SampleId::CurNameDB = &m_sampleDb;
-            amuse::TableId::CurNameDB = &m_tableDb;
-            amuse::KeymapId::CurNameDB = &m_keymapDb;
-            amuse::LayersId::CurNameDB = &m_layersDb;
-        }
-    };
 
 private:
     QDir m_dir;
 
-    amuse::NameDB m_songDb;
-    amuse::NameDB m_sfxDb;
-    std::map<QString, ProjectGroup> m_groups;
+    amuse::ProjectDatabase m_projectDatabase;
+    std::map<QString, amuse::AudioGroupDatabase> m_groups;
 
-    void setIdDatabases()
+    class INode
     {
-        amuse::SongId::CurNameDB = &m_songDb;
-        amuse::SFXId::CurNameDB = &m_sfxDb;
-    }
+        enum class Type
+        {
+            Group, // Top-level group
+            SongGroup,
+            SfxGroup,
+            Collection, // Classified object collection, one of the following:
+            SoundMacro,
+            ADSR,
+            Curve,
+            Keymap,
+            Layer
+        };
+        INode* m_parent;
+        std::vector<std::unique_ptr<INode>> m_children;
+        int m_row;
+    public:
+        virtual ~INode() = default;
+        INode(INode* parent, int row) : m_parent(parent), m_row(row) {}
+
+        int childCount() const { return int(m_children.size()); }
+        INode* child(int row) const { return m_children[row].get(); }
+        INode* parent() const { return m_parent; }
+        int row() const { return m_row; }
+
+        void reserve(size_t sz) { m_children.reserve(sz); }
+        template<class T, class... _Args>
+        T& makeChild(_Args&&... args)
+        {
+            m_children.push_back(std::make_unique<T>(this, m_children.size(), std::forward<_Args>(args)...));
+            return static_cast<T&>(*m_children.back());
+        }
+
+        virtual QString text() const = 0;
+        virtual QIcon icon() const = 0;
+    };
+    struct RootNode : INode
+    {
+        RootNode() : INode(nullptr, 0) {}
+
+        QString text() const { return {}; }
+        QIcon icon() const { return {}; }
+    };
+    struct GroupNode : INode
+    {
+        std::map<QString, amuse::AudioGroupDatabase>::iterator m_it;
+        GroupNode(INode* parent, int row, std::map<QString, amuse::AudioGroupDatabase>::iterator it)
+        : INode(parent, row), m_it(it) {}
+
+        static QIcon Icon;
+        QString text() const { return m_it->first; }
+        QIcon icon() const { return Icon; }
+    };
+    struct SongGroupNode : INode
+    {
+        amuse::GroupId m_id;
+        QString m_name;
+        amuse::SongGroupIndex& m_index;
+        SongGroupNode(INode* parent, int row, amuse::GroupId id, amuse::SongGroupIndex& index)
+        : INode(parent, row), m_id(id), m_name(amuse::GroupId::CurNameDB->resolveNameFromId(id).data()), m_index(index) {}
+
+        static QIcon Icon;
+        QString text() const { return m_name; }
+        QIcon icon() const { return Icon; }
+    };
+    struct SoundGroupNode : INode
+    {
+        amuse::GroupId m_id;
+        QString m_name;
+        amuse::SFXGroupIndex& m_index;
+        SoundGroupNode(INode* parent, int row, amuse::GroupId id, amuse::SFXGroupIndex& index)
+        : INode(parent, row), m_id(id), m_name(amuse::GroupId::CurNameDB->resolveNameFromId(id).data()), m_index(index) {}
+
+        static QIcon Icon;
+        QString text() const { return m_name; }
+        QIcon icon() const { return Icon; }
+    };
+    struct CollectionNode : INode
+    {
+        QString m_name;
+        QIcon m_icon;
+        CollectionNode(INode* parent, int row, const QString& name, const QIcon& icon)
+        : INode(parent, row), m_name(name), m_icon(icon) {}
+
+        QString text() const { return m_name; }
+        QIcon icon() const { return m_icon; }
+    };
+    template <class ID, class T>
+    struct PoolObjectNode : INode
+    {
+        ID m_id;
+        QString m_name;
+        T& m_obj;
+        PoolObjectNode(INode* parent, int row, ID id, T& obj)
+        : INode(parent, row), m_id(id), m_name(ID::CurNameDB->resolveNameFromId(id).data()), m_obj(obj) {}
+
+        QString text() const { return m_name; }
+        QIcon icon() const { return {}; }
+    };
+
+    std::unique_ptr<RootNode> m_root;
+
+    bool m_needsReset = false;
+    void _resetModelData();
 
 public:
     explicit ProjectModel(const QString& path, QObject* parent = Q_NULLPTR);
 
-    bool importGroupData(const QString& groupName, amuse::IntrusiveAudioGroupData&& data);
-    bool extractSamples(ImportMode mode, QWidget* parent);
-    bool saveToFile(QWidget* parent);
+    bool importGroupData(const QString& groupName, const amuse::AudioGroupData& data,
+                         ImportMode mode, UIMessenger& messenger);
+    bool saveToFile(UIMessenger& messenger);
+
+    void ensureModelData();
 
     QModelIndex index(int row, int column, const QModelIndex& parent = QModelIndex()) const;
     QModelIndex parent(const QModelIndex& child) const;
     int rowCount(const QModelIndex& parent = QModelIndex()) const;
     int columnCount(const QModelIndex& parent = QModelIndex()) const;
     QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const;
+    Qt::ItemFlags flags(const QModelIndex& index) const;
 
     QString path() const { return m_dir.path(); }
     bool canDelete() const;

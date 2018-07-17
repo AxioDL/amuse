@@ -52,6 +52,9 @@
           <height>0</height>
          </size>
         </property>
+        <attribute name="headerVisible">
+         <bool>false</bool>
+        </attribute>
        </widget>
        <widget class="QTableView" name="propertyEditor">
         <property name="sizePolicy">

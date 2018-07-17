@@ -14,7 +14,7 @@
    viewBox="0 0 4.2333332 4.2333335"
    id="svg2"
    version="1.1"
-   inkscape:version="0.91+devel+osxmenu r12922"
+   inkscape:version="0.92.2 2405546, 2018-03-11"
    sodipodi:docname="IconLayers.svg">
   <defs
      id="defs4" />
@@ -26,7 +26,7 @@
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
      inkscape:zoom="4.92"
-     inkscape:cx="19.961362"
+     inkscape:cx="-13.575223"
      inkscape:cy="7.1823475"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
@@ -34,8 +34,8 @@
      units="px"
      inkscape:window-width="1260"
      inkscape:window-height="787"
-     inkscape:window-x="131"
-     inkscape:window-y="148"
+     inkscape:window-x="1749"
+     inkscape:window-y="677"
      inkscape:window-maximized="0"
      showborder="false"
      objecttolerance="4"
@@ -55,7 +55,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>

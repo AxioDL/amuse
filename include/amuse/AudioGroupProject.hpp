@@ -25,7 +25,7 @@ GroupHeader : BigDNA
 {
     AT_DECL_DNA
     Value<atUint32, DNAEn> groupEndOff;
-    Value<atUint16, DNAEn> groupId;
+    GroupIdDNA<DNAEn> groupId;
     Value<GroupType, DNAEn> type;
     Value<atUint32, DNAEn> soundMacroIdsOff;
     Value<atUint32, DNAEn> samplIdsOff;
@@ -180,8 +180,8 @@ struct SFXGroupIndex : AudioGroupIndex
 /** Collection of SongGroup and SFXGroup indexes */
 class AudioGroupProject
 {
-    std::unordered_map<int, SongGroupIndex> m_songGroups;
-    std::unordered_map<int, SFXGroupIndex> m_sfxGroups;
+    std::unordered_map<GroupId, SongGroupIndex> m_songGroups;
+    std::unordered_map<GroupId, SFXGroupIndex> m_sfxGroups;
 
     AudioGroupProject() = default;
     AudioGroupProject(athena::io::IStreamReader& r, GCNDataTag);
@@ -199,10 +199,17 @@ public:
     const SongGroupIndex* getSongGroupIndex(int groupId) const;
     const SFXGroupIndex* getSFXGroupIndex(int groupId) const;
 
-    const std::unordered_map<int, SongGroupIndex>& songGroups() const { return m_songGroups; }
-    const std::unordered_map<int, SFXGroupIndex>& sfxGroups() const { return m_sfxGroups; }
+    const std::unordered_map<GroupId, SongGroupIndex>& songGroups() const { return m_songGroups; }
+    const std::unordered_map<GroupId, SFXGroupIndex>& sfxGroups() const { return m_sfxGroups; }
+    std::unordered_map<GroupId, SongGroupIndex>& songGroups() { return m_songGroups; }
+    std::unordered_map<GroupId, SFXGroupIndex>& sfxGroups() { return m_sfxGroups; }
 
     bool toYAML(SystemStringView groupPath) const;
+
+    AudioGroupProject(const AudioGroupProject&) = delete;
+    AudioGroupProject& operator=(const AudioGroupProject&) = delete;
+    AudioGroupProject(AudioGroupProject&&) = default;
+    AudioGroupProject& operator=(AudioGroupProject&&) = default;
 };
 }
 

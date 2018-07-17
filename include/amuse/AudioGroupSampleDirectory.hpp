@@ -268,6 +268,11 @@ public:
     void extractAllWAV(amuse::SystemStringView destDir, const unsigned char* samp) const;
     void extractCompressed(SampleId id, amuse::SystemStringView destDir, const unsigned char* samp) const;
     void extractAllCompressed(amuse::SystemStringView destDir, const unsigned char* samp) const;
+
+    AudioGroupSampleDirectory(const AudioGroupSampleDirectory&) = delete;
+    AudioGroupSampleDirectory& operator=(const AudioGroupSampleDirectory&) = delete;
+    AudioGroupSampleDirectory(AudioGroupSampleDirectory&&) = default;
+    AudioGroupSampleDirectory& operator=(AudioGroupSampleDirectory&&) = default;
 };
 }
 

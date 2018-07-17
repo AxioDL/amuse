@@ -96,6 +96,7 @@ DEFINE_ID_TYPE(KeymapId, "keymap")
 DEFINE_ID_TYPE(LayersId, "layers")
 DEFINE_ID_TYPE(SongId, "song")
 DEFINE_ID_TYPE(SFXId, "sfx")
+DEFINE_ID_TYPE(GroupId, "group")
 
 template<> template<>
 void PageObjectIdDNA<athena::Little>::Enumerate<BigDNA::Read>(athena::io::IStreamReader& reader)
@@ -224,6 +225,9 @@ std::string NameDB::generateName(ObjectId id, Type tp)
         break;
     case Type::SFX:
         snprintf(name, 32, "sfx%04X", id.id);
+        break;
+    case Type::Group:
+        snprintf(name, 32, "group%04X", id.id);
         break;
     case Type::Sample:
         snprintf(name, 32, "sample%04X", id.id);

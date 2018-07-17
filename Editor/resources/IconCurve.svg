@@ -15,7 +15,7 @@
    id="svg2"
    version="1.1"
    inkscape:version="0.92.2 2405546, 2018-03-11"
-   sodipodi:docname="IconSoundGroup.svg">
+   sodipodi:docname="IconCurve.svg">
   <sodipodi:namedview
      id="base"
      pagecolor="#393939"
@@ -23,17 +23,17 @@
      borderopacity="1.0"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:zoom="34.25"
-     inkscape:cx="8.0808195"
-     inkscape:cy="8.452632"
+     inkscape:zoom="30.086227"
+     inkscape:cx="-2.7199818"
+     inkscape:cy="9.4290379"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="true"
      units="px"
-     inkscape:window-width="1258"
+     inkscape:window-width="1260"
      inkscape:window-height="787"
-     inkscape:window-x="1970"
-     inkscape:window-y="1150"
+     inkscape:window-x="267"
+     inkscape:window-y="1022"
      inkscape:window-maximized="0"
      showborder="false"
      objecttolerance="4"
@@ -55,7 +55,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -64,17 +64,24 @@
      id="layer1"
      inkscape:groupmode="layer"
      inkscape:label="Layer 1">
+    <rect
+       style="fill:#00ffcc;fill-opacity:1;stroke:none;stroke-width:0.39687499;stroke-linecap:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:normal"
+       id="rect1235"
+       width="3.7041667"
+       height="3.7041805"
+       x="0.26458335"
+       y="293.03122" />
     <path
-       sodipodi:nodetypes="cccssssscccc"
+       style="fill:none;stroke:#808080;stroke-width:0.52916667;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:0.52916667, 0.52916666999999995;stroke-opacity:1;stroke-dashoffset:0"
+       d="m 0.26458333,292.76665 0,3.96875 H 4.2333333"
+       id="path1231"
        inkscape:connector-curvature="0"
-       id="rect4141"
-       d="m 1.3229167,293.04538 c 0.2645833,0 0.5291666,0.25044 0.5291666,0.51502 l 0,0.26458 1.8488138,0.0102 c 0.3165926,0.002 0.5239173,0.20975 0.5245413,0.52471 l 0.00313,1.57936 c 6.239e-4,0.31495 -0.2079439,0.53411 -0.5245413,0.53411 l -3.17666623,0 C 0.21076252,296.47339 0,296.2566 0,295.94165 c 4.054e-5,-0.82258 0,-2.38125 0,-2.38125 0,-0.26458 0.26458333,-0.51612 0.52916667,-0.51612 z"
-       style="opacity:1;fill:#04e2ff;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1.67643285;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+       sodipodi:nodetypes="ccc" />
     <path
-       id="path1184"
-       title="sin(x*4*pi)*sin(x*pi)"
-       d="m 0.52916698,295.1479 c 0.11759258,-1.5e-4 0.23518516,-0.18652 0.35277775,-0.31191 0.11759258,-0.1254 0.23518517,-0.1236 0.35277777,0.10832 0.1175926,0.23193 0.2351851,0.66463 0.3527777,0.89812 0.1175926,0.23349 0.2351852,0.20457 0.3527778,-0.10832 0.1175925,-0.3129 0.2351851,-0.85907 0.3527777,-1.17242 0.1175926,-0.31334 0.2351852,-0.3414 0.3527777,-0.10832 0.1175926,0.23308 0.2351852,0.66584 0.3527778,0.89812 0.1175926,0.23228 0.2351852,0.23355 0.3527777,0.10832 0.1175926,-0.12522 0.2351852,-0.31176 0.3527778,-0.31191"
-       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.396875;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;stroke-linecap:round;paint-order:normal"
-       inkscape:connector-curvature="0" />
+       style="fill:none;stroke:#000000;stroke-width:0.5291667;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 0,296.7354 c 2.0787582,0 3.96875,-2.11667 3.96875,-3.96875"
+       id="path1233"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
   </g>
 </svg>

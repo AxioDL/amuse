@@ -86,6 +86,7 @@ DECL_ID_TYPE(KeymapId)
 DECL_ID_TYPE(LayersId)
 DECL_ID_TYPE(SongId)
 DECL_ID_TYPE(SFXId)
+DECL_ID_TYPE(GroupId)
 
 /* MusyX has object polymorphism between Keymaps and Layers when
  * referenced by a song group's page object. When the upper bit is set,
@@ -419,10 +420,24 @@ struct PCDataTag
 
 template <class T>
 static std::vector<std::pair<typename T::key_type,
+    std::reference_wrapper<typename T::mapped_type>>> SortUnorderedMap(T& um)
+{
+    std::vector<std::pair<typename T::key_type, std::reference_wrapper<typename T::mapped_type>>> ret;
+    ret.reserve(um.size());
+    for (auto& p : um)
+        ret.emplace_back(p.first, p.second);
+    std::sort(ret.begin(), ret.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+    return ret;
+}
+
+template <class T>
+static std::vector<std::pair<typename T::key_type,
     std::reference_wrapper<const typename T::mapped_type>>> SortUnorderedMap(const T& um)
 {
-    std::vector<std::pair<typename T::key_type,
-        std::reference_wrapper<const typename T::mapped_type>>> ret(um.cbegin(), um.cend());
+    std::vector<std::pair<typename T::key_type, std::reference_wrapper<const typename T::mapped_type>>> ret;
+    ret.reserve(um.size());
+    for (const auto& p : um)
+        ret.emplace_back(p.first, p.second);
     std::sort(ret.begin(), ret.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
     return ret;
 }
@@ -444,6 +459,7 @@ DECL_ID_HASH(KeymapId)
 DECL_ID_HASH(LayersId)
 DECL_ID_HASH(SongId)
 DECL_ID_HASH(SFXId)
+DECL_ID_HASH(GroupId)
 }
 
 namespace amuse
@@ -458,6 +474,7 @@ struct NameDB
         Layer,
         Song,
         SFX,
+        Group,
         Sample
     };
 
