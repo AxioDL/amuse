@@ -229,7 +229,7 @@ AudioGroupProject AudioGroupProject::CreateAudioGroupProject(SystemStringView gr
     if (!fi.hasError())
     {
         athena::io::YAMLDocReader r;
-        if (r.parse(&fi) && r.ValidateClassType("amuse::Project"))
+        if (r.parse(&fi) && !r.readString("DNAType").compare("amuse::Project"))
         {
             if (auto __v = r.enterSubRecord("songGroups"))
             {
@@ -289,7 +289,7 @@ AudioGroupProject AudioGroupProject::CreateAudioGroupProject(SystemStringView gr
                 ret.m_sfxGroups.reserve(r.getCurNode()->m_mapChildren.size());
                 for (const auto& grp : r.getCurNode()->m_mapChildren)
                 {
-                    if (auto __r = r.enterSubRecord(nullptr))
+                    if (auto __r = r.enterSubRecord(grp.first.c_str()))
                     {
                         uint16_t groupId;
                         std::string groupName = ParseStringSlashId(grp.first, groupId);

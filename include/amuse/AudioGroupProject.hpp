@@ -183,7 +183,6 @@ class AudioGroupProject
     std::unordered_map<GroupId, SongGroupIndex> m_songGroups;
     std::unordered_map<GroupId, SFXGroupIndex> m_sfxGroups;
 
-    AudioGroupProject() = default;
     AudioGroupProject(athena::io::IStreamReader& r, GCNDataTag);
     template <athena::Endian DNAE>
     static AudioGroupProject _AudioGroupProject(athena::io::IStreamReader& r, bool absOffs);
@@ -192,6 +191,7 @@ class AudioGroupProject
     template <athena::Endian DNAE>
     static void BootstrapObjectIDs(athena::io::IStreamReader& r, bool absOffs);
 public:
+    AudioGroupProject() = default;
     static AudioGroupProject CreateAudioGroupProject(const AudioGroupData& data);
     static AudioGroupProject CreateAudioGroupProject(SystemStringView groupPath);
     static void BootstrapObjectIDs(const AudioGroupData& data);

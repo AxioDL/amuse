@@ -7,7 +7,7 @@ class SoundMacroEditor : public EditorWidget
 {
     Q_OBJECT
 public:
-    explicit SoundMacroEditor(QWidget* parent = Q_NULLPTR);
+    explicit SoundMacroEditor(ProjectModel::SoundMacroNode* node, QWidget* parent = Q_NULLPTR);
 };
 
 

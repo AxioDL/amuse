@@ -28,15 +28,17 @@ add_executable(amuse-gui WIN32 MACOSX_BUNDLE
         Common.hpp Common.cpp
         MainWindow.ui MainWindow.hpp MainWindow.cpp
         KeyboardWidget.hpp KeyboardWidget.cpp
-        StatusBarWidget.hpp StatusBarWidget.cpp
+        StatusBarWidget.hpp
         ProjectModel.hpp ProjectModel.cpp
         ProjectStatistics.hpp ProjectStatistics.cpp
         EditorWidget.hpp EditorWidget.cpp
         SoundMacroEditor.hpp SoundMacroEditor.cpp
+        ADSREditor.hpp ADSREditor.cpp
+        CurveEditor.hpp CurveEditor.cpp
         KeymapEditor.hpp KeymapEditor.cpp
         LayersEditor.hpp LayersEditor.cpp
         SampleEditor.hpp SampleEditor.cpp
-        SFXGroupEditor.hpp SFXGroupEditor.cpp
+        SoundGroupEditor.hpp SoundGroupEditor.cpp
         SongGroupEditor.hpp SongGroupEditor.cpp
         AudioGroupModel.hpp AudioGroupModel.cpp
         resources/resources.qrc qrc_resources.cpp

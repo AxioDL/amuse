@@ -5,16 +5,19 @@
 #include <QUndoStack>
 #include <QProgressDialog>
 #include <QThread>
+#include <QStyledItemDelegate>
 #include "ui_MainWindow.h"
 #include "amuse/Engine.hpp"
 #include "amuse/BooBackend.hpp"
 #include "boo/audiodev/IAudioVoiceEngine.hpp"
 #include "ProjectModel.hpp"
+#include "EditorWidget.hpp"
 
 namespace Ui {
 class MainWindow;
 }
 
+class MainWindow;
 class AudioGroupModel;
 
 class BackgroundTask : public QObject
@@ -41,13 +44,29 @@ public slots:
     void cancel() { m_cancelled = true; }
 };
 
+class TreeDelegate : public QStyledItemDelegate
+{
+    Q_OBJECT
+    MainWindow& m_window;
+public:
+    explicit TreeDelegate(MainWindow& window, QObject* parent = Q_NULLPTR)
+    : QStyledItemDelegate(parent), m_window(window) {}
+
+    bool editorEvent(QEvent *event,
+                     QAbstractItemModel *model,
+                     const QStyleOptionViewItem &option,
+                     const QModelIndex &index);
+};
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
     Ui::MainWindow m_ui;
+    TreeDelegate m_treeDelegate;
     UIMessenger m_mainMessenger;
     ProjectModel* m_projectModel = nullptr;
     AudioGroupModel* m_focusAudioGroup = nullptr;
+    QWidget* m_faceSvg;
 
     std::unique_ptr<boo::IAudioVoiceEngine> m_voxEngine;
     std::unique_ptr<amuse::BooBackendVoiceAllocator> m_voxAllocator;
@@ -79,9 +98,21 @@ class MainWindow : public QMainWindow
     void startBackgroundTask(const QString& windowTitle, const QString& label,
                              std::function<void(BackgroundTask&)>&& task);
 
+    bool _setEditor(EditorWidget* widget);
+
 public:
     explicit MainWindow(QWidget* parent = Q_NULLPTR);
     ~MainWindow();
+
+    bool openEditor(ProjectModel::SongGroupNode* node);
+    bool openEditor(ProjectModel::SoundGroupNode* node);
+    bool openEditor(ProjectModel::SoundMacroNode* node);
+    bool openEditor(ProjectModel::ADSRNode* node);
+    bool openEditor(ProjectModel::CurveNode* node);
+    bool openEditor(ProjectModel::KeymapNode* node);
+    bool openEditor(ProjectModel::LayersNode* node);
+    bool openEditor(ProjectModel::INode* node);
+    void closeEditor();
 
 public slots:
     void newAction();
@@ -89,9 +120,12 @@ public slots:
     void importAction();
     void exportAction();
 
+    void newSubprojectAction();
     void newSFXGroupAction();
     void newSongGroupAction();
     void newSoundMacroAction();
+    void newADSRAction();
+    void newCurveAction();
     void newKeymapAction();
     void newLayersAction();
 

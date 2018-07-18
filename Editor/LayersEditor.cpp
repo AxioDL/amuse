@@ -1,6 +1,6 @@
 #include "LayersEditor.hpp"
 
-LayersEditor::LayersEditor(QWidget* parent)
+LayersEditor::LayersEditor(ProjectModel::LayersNode* node, QWidget* parent)
 : EditorWidget(parent)
 {
 

@@ -1024,6 +1024,16 @@ bool SoundMacro::CmdAddIVars::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+bool SoundMacro::CmdSetVar::Do(SoundMacroState& st, Voice& vox) const
+{
+    if (varCtrlA)
+        vox.setCtrlValue(a, imm);
+    else
+        st.m_variables[a] = imm;
+
+    return false;
+}
+
 bool SoundMacro::CmdIfEqual::Do(SoundMacroState& st, Voice& vox) const
 {
     int32_t useA, useB;

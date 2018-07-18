@@ -18,6 +18,25 @@ ProjectModel::ProjectModel(const QString& path, QObject* parent)
     SoundGroupNode::Icon = QIcon(":/icons/IconSoundGroup.svg");
 }
 
+bool ProjectModel::clearProjectData()
+{
+    m_projectDatabase = amuse::ProjectDatabase();
+    m_groups.clear();
+
+    m_needsReset = true;
+    return true;
+}
+
+bool ProjectModel::openGroupData(const QString& groupName, UIMessenger& messenger)
+{
+    m_projectDatabase.setIdDatabases();
+    QString path = QFileInfo(m_dir, groupName).filePath();
+    m_groups.insert(std::make_pair(groupName, QStringToSysString(path)));
+
+    m_needsReset = true;
+    return true;
+}
+
 bool ProjectModel::importGroupData(const QString& groupName, const amuse::AudioGroupData& data,
                                    ImportMode mode, UIMessenger& messenger)
 {
@@ -89,12 +108,13 @@ void ProjectModel::_resetModelData()
     {
         it->second.setIdDatabases();
         GroupNode& gn = m_root->makeChild<GroupNode>(it);
-        auto& songGroups = it->second.getProj().songGroups();
-        auto& sfxGroups = it->second.getProj().sfxGroups();
-        auto& soundMacros = it->second.getPool().soundMacros();
-        auto& tables = it->second.getPool().tables();
-        auto& keymaps = it->second.getPool().keymaps();
-        auto& layers = it->second.getPool().layers();
+        amuse::AudioGroup& group = it->second;
+        auto& songGroups = group.getProj().songGroups();
+        auto& sfxGroups = group.getProj().sfxGroups();
+        auto& soundMacros = group.getPool().soundMacros();
+        auto& tables = group.getPool().tables();
+        auto& keymaps = group.getPool().keymaps();
+        auto& layers = group.getPool().layers();
         gn.reserve(songGroups.size() + sfxGroups.size() + 4);
         for (const auto& grp : SortUnorderedMap(songGroups))
             gn.makeChild<SongGroupNode>(grp.first, grp.second.get());
@@ -106,7 +126,7 @@ void ProjectModel::_resetModelData()
                 gn.makeChild<CollectionNode>(tr("Sound Macros"), QIcon(":/icons/IconSoundMacro.svg"));
             col.reserve(soundMacros.size());
             for (const auto& macro : SortUnorderedMap(soundMacros))
-                col.makeChild<PoolObjectNode<amuse::SoundMacroId, amuse::SoundMacro>>(macro.first, macro.second.get());
+                col.makeChild<SoundMacroNode>(macro.first, macro.second.get());
         }
         if (tables.size())
         {
@@ -130,7 +150,7 @@ void ProjectModel::_resetModelData()
                 {
                     amuse::ITable::Type tp = t.second.get()->Isa();
                     if (tp == amuse::ITable::Type::ADSR || tp == amuse::ITable::Type::ADSRDLS)
-                        col.makeChild<PoolObjectNode<amuse::TableId, amuse::ITable>>(t.first, *t.second.get());
+                        col.makeChild<ADSRNode>(t.first, *t.second.get());
                 }
             }
             if (curveCount)
@@ -142,7 +162,7 @@ void ProjectModel::_resetModelData()
                 {
                     amuse::ITable::Type tp = t.second.get()->Isa();
                     if (tp == amuse::ITable::Type::Curve)
-                        col.makeChild<PoolObjectNode<amuse::TableId, amuse::Curve>>(t.first, static_cast<amuse::Curve&>(*t.second.get()));
+                        col.makeChild<CurveNode>(t.first, static_cast<amuse::Curve&>(*t.second.get()));
                 }
             }
         }
@@ -152,7 +172,7 @@ void ProjectModel::_resetModelData()
                 gn.makeChild<CollectionNode>(tr("Keymaps"), QIcon(":/icons/IconKeymap.svg"));
             col.reserve(keymaps.size());
             for (auto& keymap : SortUnorderedMap(keymaps))
-                col.makeChild<PoolObjectNode<amuse::KeymapId, amuse::Keymap>>(keymap.first, keymap.second.get());
+                col.makeChild<KeymapNode>(keymap.first, keymap.second.get());
         }
         if (layers.size())
         {
@@ -160,7 +180,7 @@ void ProjectModel::_resetModelData()
                 gn.makeChild<CollectionNode>(tr("Layers"), QIcon(":/icons/IconLayers.svg"));
             col.reserve(layers.size());
             for (auto& keymap : SortUnorderedMap(layers))
-                col.makeChild<PoolObjectNode<amuse::LayersId, std::vector<amuse::LayerMapping>>>(keymap.first, keymap.second.get());
+                col.makeChild<LayersNode>(keymap.first, keymap.second.get());
         }
     }
     endResetModel();
@@ -248,6 +268,13 @@ Qt::ItemFlags ProjectModel::flags(const QModelIndex& index) const
         return 0;
 
     return QAbstractItemModel::flags(index);
+}
+
+ProjectModel::INode* ProjectModel::node(const QModelIndex& index) const
+{
+    if (!index.isValid())
+        return nullptr;
+    return static_cast<INode*>(index.internalPointer());
 }
 
 bool ProjectModel::canDelete() const

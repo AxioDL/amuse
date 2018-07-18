@@ -22,5 +22,7 @@
     </qresource>
     <qresource prefix="/bg">
         <file>FaceGrey.svg</file>
+        <file>keyboard.svg</file>
+        <file>keyboard_last.svg</file>
     </qresource>
 </RCC>

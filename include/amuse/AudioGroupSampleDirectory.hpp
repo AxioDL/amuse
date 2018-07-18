@@ -253,9 +253,8 @@ private:
     static void _extractCompressed(SampleId id, const Entry& ent, amuse::SystemStringView destDir,
                                    const unsigned char* samp);
 
-    AudioGroupSampleDirectory() = default;
-
 public:
+    AudioGroupSampleDirectory() = default;
     AudioGroupSampleDirectory(athena::io::IStreamReader& r, GCNDataTag);
     AudioGroupSampleDirectory(athena::io::IStreamReader& r, const unsigned char* sampData, bool absOffs, N64DataTag);
     AudioGroupSampleDirectory(athena::io::IStreamReader& r, bool absOffs, PCDataTag);

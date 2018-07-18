@@ -1,6 +1,6 @@
 #include "SongGroupEditor.hpp"
 
-SongGroupEditor::SongGroupEditor(QWidget* parent)
+SongGroupEditor::SongGroupEditor(ProjectModel::SongGroupNode* node, QWidget* parent)
 : EditorWidget(parent)
 {
 

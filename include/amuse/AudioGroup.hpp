@@ -21,8 +21,12 @@ class AudioGroup
 
 public:
     operator bool() const { return m_valid; }
-    explicit AudioGroup(const AudioGroupData& data);
-    explicit AudioGroup(SystemStringView groupPath);
+    AudioGroup() = default;
+    explicit AudioGroup(const AudioGroupData& data) { assign(data); }
+    explicit AudioGroup(SystemStringView groupPath) { assign(groupPath); }
+
+    void assign(const AudioGroupData& data);
+    void assign(SystemStringView groupPath);
 
     const AudioGroupSampleDirectory::Entry* getSample(SampleId sfxId) const;
     const unsigned char* getSampleData(SampleId sfxId, const AudioGroupSampleDirectory::Entry* sample) const;
@@ -43,10 +47,16 @@ class AudioGroupDatabase : public AudioGroup
     amuse::NameDB m_layersDb;
 
 public:
+    AudioGroupDatabase() = default;
     explicit AudioGroupDatabase(const AudioGroupData& data)
-    : AudioGroup(data) {}
+    {
+        assign(data);
+    }
     explicit AudioGroupDatabase(SystemStringView groupPath)
-    : AudioGroup(groupPath) {}
+    {
+        setIdDatabases();
+        assign(groupPath);
+    }
 
     void setIdDatabases()
     {

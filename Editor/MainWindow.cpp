@@ -4,9 +4,18 @@
 #include <QLineEdit>
 #include <QInputDialog>
 #include <QProgressDialog>
+#include <QMouseEvent>
 #include <QtSvg/QtSvg>
 #include "amuse/ContainerRegistry.hpp"
 #include "Common.hpp"
+#include "SongGroupEditor.hpp"
+#include "SoundGroupEditor.hpp"
+#include "SoundGroupEditor.hpp"
+#include "SoundMacroEditor.hpp"
+#include "ADSREditor.hpp"
+#include "CurveEditor.hpp"
+#include "KeymapEditor.hpp"
+#include "LayersEditor.hpp"
 
 static void connectMessenger(UIMessenger* messenger, Qt::ConnectionType type)
 {
@@ -15,6 +24,7 @@ static void connectMessenger(UIMessenger* messenger, Qt::ConnectionType type)
 
 MainWindow::MainWindow(QWidget* parent)
 : QMainWindow(parent),
+  m_treeDelegate(*this, this),
   m_mainMessenger(this),
   m_undoStack(new QUndoStack(this)),
   m_backgroundThread(this)
@@ -22,7 +32,10 @@ MainWindow::MainWindow(QWidget* parent)
     m_backgroundThread.start();
 
     m_ui.setupUi(this);
+    m_ui.projectOutline->setItemDelegate(&m_treeDelegate);
     connectMessenger(&m_mainMessenger, Qt::DirectConnection);
+
+    m_ui.keyboardContents->setStatusFocus(new StatusBarFocus(m_ui.statusbar));
 
     m_ui.actionNew_Project->setShortcut(QKeySequence::New);
     connect(m_ui.actionNew_Project, SIGNAL(triggered()), this, SLOT(newAction()));
@@ -45,11 +58,21 @@ MainWindow::MainWindow(QWidget* parent)
     m_ui.actionDelete->setShortcut(QKeySequence::Delete);
     onFocusChanged(nullptr, this);
 
-    m_ui.editorSvg->load(QStringLiteral(":/bg/FaceGrey.svg"));
+    QGridLayout* faceLayout = new QGridLayout;
+    QSvgWidget* faceSvg = new QSvgWidget(QStringLiteral(":/bg/FaceGrey.svg"));
+    faceSvg->setGeometry(0, 0, 256, 256);
+    faceSvg->setSizePolicy(QSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed));
+    faceLayout->addWidget(faceSvg);
+    m_faceSvg = new QWidget;
+    m_faceSvg->setLayout(faceLayout);
+    m_ui.editorContents->addWidget(m_faceSvg);
 
+    connect(m_ui.actionNew_Subproject, SIGNAL(triggered()), this, SLOT(newSubprojectAction()));
     connect(m_ui.actionNew_SFX_Group, SIGNAL(triggered()), this, SLOT(newSFXGroupAction()));
     connect(m_ui.actionNew_Song_Group, SIGNAL(triggered()), this, SLOT(newSongGroupAction()));
     connect(m_ui.actionNew_Sound_Macro, SIGNAL(triggered()), this, SLOT(newSoundMacroAction()));
+    connect(m_ui.actionNew_ADSR, SIGNAL(triggered()), this, SLOT(newADSRAction()));
+    connect(m_ui.actionNew_Curve, SIGNAL(triggered()), this, SLOT(newCurveAction()));
     connect(m_ui.actionNew_Keymap, SIGNAL(triggered()), this, SLOT(newKeymapAction()));
     connect(m_ui.actionNew_Layers, SIGNAL(triggered()), this, SLOT(newLayersAction()));
 
@@ -128,6 +151,9 @@ bool MainWindow::setProjectPath(const QString& path)
     m_ui.projectOutline->setModel(m_projectModel);
     m_ui.actionExport_GameCube_Groups->setEnabled(true);
     setWindowFilePath(path);
+#ifndef __APPLE__
+    setWindowTitle(QString("Amuse - %1").arg(dir.dirName()));
+#endif
     setFocusAudioGroup(nullptr);
     onFocusChanged(nullptr, focusWidget());
 
@@ -217,6 +243,88 @@ void MainWindow::startBackgroundTask(const QString& windowTitle, const QString& 
     QMetaObject::invokeMethod(m_backgroundTask, "run", Qt::QueuedConnection);
 }
 
+bool MainWindow::_setEditor(EditorWidget* editor)
+{
+    while (m_ui.editorContents->currentWidget() != m_faceSvg)
+    {
+        m_ui.editorContents->currentWidget()->deleteLater();
+        m_ui.editorContents->removeWidget(m_ui.editorContents->currentWidget());
+    }
+    if (!editor)
+        return false;
+    if (!editor->valid())
+    {
+        editor->deleteLater();
+        return false;
+    }
+    m_ui.editorContents->addWidget(editor);
+    m_ui.editorContents->setCurrentWidget(editor);
+    return true;
+}
+
+bool MainWindow::openEditor(ProjectModel::SongGroupNode* node)
+{
+    return _setEditor(new SongGroupEditor(node));
+}
+
+bool MainWindow::openEditor(ProjectModel::SoundGroupNode* node)
+{
+    return _setEditor(new SoundGroupEditor(node));
+}
+
+bool MainWindow::openEditor(ProjectModel::SoundMacroNode* node)
+{
+    return _setEditor(new SoundMacroEditor(node));
+}
+
+bool MainWindow::openEditor(ProjectModel::ADSRNode* node)
+{
+    return _setEditor(new ADSREditor(node));
+}
+
+bool MainWindow::openEditor(ProjectModel::CurveNode* node)
+{
+    return _setEditor(new CurveEditor(node));
+}
+
+bool MainWindow::openEditor(ProjectModel::KeymapNode* node)
+{
+    return _setEditor(new KeymapEditor(node));
+}
+
+bool MainWindow::openEditor(ProjectModel::LayersNode* node)
+{
+    return _setEditor(new LayersEditor(node));
+}
+
+bool MainWindow::openEditor(ProjectModel::INode* node)
+{
+    switch (node->type())
+    {
+    case ProjectModel::INode::Type::SongGroup:
+        return openEditor(static_cast<ProjectModel::SongGroupNode*>(node));
+    case ProjectModel::INode::Type::SoundGroup:
+        return openEditor(static_cast<ProjectModel::SoundGroupNode*>(node));
+    case ProjectModel::INode::Type::SoundMacro:
+        return openEditor(static_cast<ProjectModel::SoundMacroNode*>(node));
+    case ProjectModel::INode::Type::ADSR:
+        return openEditor(static_cast<ProjectModel::ADSRNode*>(node));
+    case ProjectModel::INode::Type::Curve:
+        return openEditor(static_cast<ProjectModel::CurveNode*>(node));
+    case ProjectModel::INode::Type::Keymap:
+        return openEditor(static_cast<ProjectModel::KeymapNode*>(node));
+    case ProjectModel::INode::Type::Layer:
+        return openEditor(static_cast<ProjectModel::LayersNode*>(node));
+    default:
+        return false;
+    }
+}
+
+void MainWindow::closeEditor()
+{
+    _setEditor(nullptr);
+}
+
 void MainWindow::newAction()
 {
     QString path = QFileDialog::getSaveFileName(this, tr("New Project"));
@@ -226,6 +334,9 @@ void MainWindow::newAction()
         return;
     if (!setProjectPath(path))
         return;
+
+    m_projectModel->clearProjectData();
+    m_projectModel->ensureModelData();
 }
 
 void MainWindow::openAction()
@@ -233,10 +344,41 @@ void MainWindow::openAction()
     QString path = QFileDialog::getExistingDirectory(this, tr("Open Project"));
     if (path.isEmpty())
         return;
+
+    QDir dir(path);
+    if (!dir.exists())
+    {
+        QString msg = QString(tr("The directory at '%1' does not exist.")).arg(path);
+        QMessageBox::critical(this, tr("Bad Directory"), msg);
+        return;
+    }
+
+    if (QFileInfo(dir, QStringLiteral("!project.yaml")).exists() &&
+        QFileInfo(dir, QStringLiteral("!pool.yaml")).exists())
+        dir.cdUp();
+
     if (!setProjectPath(path))
         return;
 
-
+    ProjectModel* model = m_projectModel;
+    startBackgroundTask(tr("Opening"), tr("Scanning Project"),
+    [dir, model](BackgroundTask& task)
+    {
+        QStringList childDirs = dir.entryList(QDir::Dirs);
+        for (const auto& chDir : childDirs)
+        {
+            if (task.isCanceled())
+                return;
+            QString chPath = dir.filePath(chDir);
+            if (QFileInfo(chPath, QStringLiteral("!project.yaml")).exists() &&
+                QFileInfo(chPath, QStringLiteral("!pool.yaml")).exists())
+            {
+                task.setLabelText(tr("Opening %1").arg(chDir));
+                if (!model->openGroupData(chDir, task.uiMessenger()))
+                    return;
+            }
+        }
+    });
 }
 
 void MainWindow::importAction()
@@ -372,6 +514,33 @@ void MainWindow::exportAction()
 
 }
 
+bool TreeDelegate::editorEvent(QEvent* event,
+                               QAbstractItemModel* _model,
+                               const QStyleOptionViewItem& option,
+                               const QModelIndex& index)
+{
+    ProjectModel* model = static_cast<ProjectModel*>(_model);
+    ProjectModel::INode* node = model->node(index);
+    if (!node)
+        return false;
+
+    if ((event->type() == QEvent::MouseButtonDblClick &&
+         static_cast<QMouseEvent*>(event)->button() == Qt::LeftButton) ||
+        (event->type() == QEvent::KeyPress &&
+         static_cast<QKeyEvent*>(event)->key() == Qt::Key_Enter))
+    {
+        // Open in editor
+        return m_window.openEditor(node);
+    }
+
+    return false;
+}
+
+void MainWindow::newSubprojectAction()
+{
+
+}
+
 void MainWindow::newSFXGroupAction()
 {
 
@@ -383,6 +552,16 @@ void MainWindow::newSongGroupAction()
 }
 
 void MainWindow::newSoundMacroAction()
+{
+
+}
+
+void MainWindow::newADSRAction()
+{
+
+}
+
+void MainWindow::newCurveAction()
 {
 
 }

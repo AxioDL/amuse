@@ -35,41 +35,25 @@
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
       </property>
-      <widget class="QSplitter" name="leftSplitter">
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
+      <widget class="QTreeView" name="projectOutline">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+         <horstretch>0</horstretch>
+         <verstretch>3</verstretch>
+        </sizepolicy>
        </property>
-       <widget class="QTreeView" name="projectOutline">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-          <horstretch>0</horstretch>
-          <verstretch>3</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="minimumSize">
-         <size>
-          <width>200</width>
-          <height>0</height>
-         </size>
-        </property>
-        <attribute name="headerVisible">
-         <bool>false</bool>
-        </attribute>
-       </widget>
-       <widget class="QTableView" name="propertyEditor">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-          <horstretch>0</horstretch>
-          <verstretch>2</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="minimumSize">
-         <size>
-          <width>200</width>
-          <height>0</height>
-         </size>
-        </property>
-       </widget>
+       <property name="minimumSize">
+        <size>
+         <width>200</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="animated">
+        <bool>true</bool>
+       </property>
+       <attribute name="headerVisible">
+        <bool>false</bool>
+       </attribute>
       </widget>
       <widget class="QSplitter" name="rightSplitter">
        <property name="sizePolicy">
@@ -109,7 +93,7 @@
         <property name="widgetResizable">
          <bool>true</bool>
         </property>
-        <widget class="QWidget" name="editorContents">
+        <widget class="QStackedWidget" name="editorContents">
          <property name="geometry">
           <rect>
            <x>0</x>
@@ -118,24 +102,6 @@
            <height>442</height>
           </rect>
          </property>
-         <layout class="QGridLayout" name="gridLayout_2">
-          <item row="0" column="0">
-           <widget class="QSvgWidget" name="editorSvg" native="true">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="minimumSize">
-             <size>
-              <width>256</width>
-              <height>256</height>
-             </size>
-            </property>
-           </widget>
-          </item>
-         </layout>
         </widget>
        </widget>
        <widget class="QScrollArea" name="keyboardScrollArea">
@@ -174,9 +140,21 @@
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>540</width>
-           <height>100</height>
+           <width>1501</width>
+           <height>85</height>
           </rect>
+         </property>
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>1501</width>
+           <height>0</height>
+          </size>
          </property>
          <property name="maximumSize">
           <size>
@@ -213,10 +191,14 @@
     <property name="title">
      <string>P&amp;roject</string>
     </property>
+    <addaction name="actionNew_Subproject"/>
+    <addaction name="separator"/>
     <addaction name="actionNew_SFX_Group"/>
     <addaction name="actionNew_Song_Group"/>
     <addaction name="separator"/>
     <addaction name="actionNew_Sound_Macro"/>
+    <addaction name="actionNew_ADSR"/>
+    <addaction name="actionNew_Curve"/>
     <addaction name="actionNew_Keymap"/>
     <addaction name="actionNew_Layers"/>
    </widget>
@@ -418,6 +400,42 @@
     <string>Ctrl+E</string>
    </property>
   </action>
+  <action name="actionNew_Subproject">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>:/icons/IconNewGroup.svg</normaloff>:/icons/IconNewGroup.svg</iconset>
+   </property>
+   <property name="text">
+    <string>N&amp;ew Subproject</string>
+   </property>
+  </action>
+  <action name="actionNew_ADSR">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>:/icons/IconNewADSR.svg</normaloff>:/icons/IconNewADSR.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Ne&amp;w ADSR</string>
+   </property>
+  </action>
+  <action name="actionNew_Curve">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>:/icons/IconNewCurve.svg</normaloff>:/icons/IconNewCurve.svg</iconset>
+   </property>
+   <property name="text">
+    <string>New &amp;Curve</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
@@ -430,12 +448,6 @@
    <class>StatusBarWidget</class>
    <extends>QStatusBar</extends>
    <header>StatusBarWidget.hpp</header>
-  </customwidget>
-  <customwidget>
-   <class>QSvgWidget</class>
-   <extends>QWidget</extends>
-   <header location="global">QSvgWidget</header>
-   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources/>

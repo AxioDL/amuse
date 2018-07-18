@@ -4,19 +4,21 @@
 namespace amuse
 {
 
-AudioGroup::AudioGroup(const AudioGroupData& data)
-: m_proj(AudioGroupProject::CreateAudioGroupProject(data))
-, m_pool(AudioGroupPool::CreateAudioGroupPool(data))
-, m_sdir(AudioGroupSampleDirectory::CreateAudioGroupSampleDirectory(data))
-, m_samp(data.getSamp())
-{}
-
-AudioGroup::AudioGroup(SystemStringView groupPath)
-: m_proj(AudioGroupProject::CreateAudioGroupProject(groupPath))
-, m_pool(AudioGroupPool::CreateAudioGroupPool(groupPath))
-, m_sdir(AudioGroupSampleDirectory::CreateAudioGroupSampleDirectory(groupPath))
-, m_groupPath(groupPath)
-{}
+void AudioGroup::assign(const AudioGroupData& data)
+{
+    m_proj = AudioGroupProject::CreateAudioGroupProject(data);
+    m_pool = AudioGroupPool::CreateAudioGroupPool(data);
+    m_sdir = AudioGroupSampleDirectory::CreateAudioGroupSampleDirectory(data);
+    m_samp = data.getSamp();
+}
+void AudioGroup::assign(SystemStringView groupPath)
+{
+    /* Reverse order when loading intermediates */
+    m_sdir = AudioGroupSampleDirectory::CreateAudioGroupSampleDirectory(groupPath);
+    m_pool = AudioGroupPool::CreateAudioGroupPool(groupPath);
+    m_proj = AudioGroupProject::CreateAudioGroupProject(groupPath);
+    m_samp = nullptr;
+}
 
 const AudioGroupSampleDirectory::Entry* AudioGroup::getSample(SampleId sfxId) const
 {

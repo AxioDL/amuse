@@ -7,7 +7,7 @@ class SongGroupEditor : public EditorWidget
 {
     Q_OBJECT
 public:
-    explicit SongGroupEditor(QWidget* parent = Q_NULLPTR);
+    explicit SongGroupEditor(ProjectModel::SongGroupNode* node, QWidget* parent = Q_NULLPTR);
 };
 
 

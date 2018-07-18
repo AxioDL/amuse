@@ -29,13 +29,16 @@ private:
     amuse::ProjectDatabase m_projectDatabase;
     std::map<QString, amuse::AudioGroupDatabase> m_groups;
 
+public:
     class INode
     {
+    public:
         enum class Type
         {
+            Root,
             Group, // Top-level group
             SongGroup,
-            SfxGroup,
+            SoundGroup,
             Collection, // Classified object collection, one of the following:
             SoundMacro,
             ADSR,
@@ -43,6 +46,7 @@ private:
             Keymap,
             Layer
         };
+    private:
         INode* m_parent;
         std::vector<std::unique_ptr<INode>> m_children;
         int m_row;
@@ -63,6 +67,7 @@ private:
             return static_cast<T&>(*m_children.back());
         }
 
+        virtual Type type() const = 0;
         virtual QString text() const = 0;
         virtual QIcon icon() const = 0;
     };
@@ -70,6 +75,7 @@ private:
     {
         RootNode() : INode(nullptr, 0) {}
 
+        Type type() const { return Type::Root; }
         QString text() const { return {}; }
         QIcon icon() const { return {}; }
     };
@@ -80,6 +86,7 @@ private:
         : INode(parent, row), m_it(it) {}
 
         static QIcon Icon;
+        Type type() const { return Type::Group; }
         QString text() const { return m_it->first; }
         QIcon icon() const { return Icon; }
     };
@@ -92,6 +99,7 @@ private:
         : INode(parent, row), m_id(id), m_name(amuse::GroupId::CurNameDB->resolveNameFromId(id).data()), m_index(index) {}
 
         static QIcon Icon;
+        Type type() const { return Type::SongGroup; }
         QString text() const { return m_name; }
         QIcon icon() const { return Icon; }
     };
@@ -104,6 +112,7 @@ private:
         : INode(parent, row), m_id(id), m_name(amuse::GroupId::CurNameDB->resolveNameFromId(id).data()), m_index(index) {}
 
         static QIcon Icon;
+        Type type() const { return Type::SoundGroup; }
         QString text() const { return m_name; }
         QIcon icon() const { return Icon; }
     };
@@ -114,10 +123,11 @@ private:
         CollectionNode(INode* parent, int row, const QString& name, const QIcon& icon)
         : INode(parent, row), m_name(name), m_icon(icon) {}
 
+        Type type() const { return Type::Collection; }
         QString text() const { return m_name; }
         QIcon icon() const { return m_icon; }
     };
-    template <class ID, class T>
+    template <class ID, class T, INode::Type TP>
     struct PoolObjectNode : INode
     {
         ID m_id;
@@ -126,9 +136,15 @@ private:
         PoolObjectNode(INode* parent, int row, ID id, T& obj)
         : INode(parent, row), m_id(id), m_name(ID::CurNameDB->resolveNameFromId(id).data()), m_obj(obj) {}
 
+        Type type() const { return TP; }
         QString text() const { return m_name; }
         QIcon icon() const { return {}; }
     };
+    using SoundMacroNode = PoolObjectNode<amuse::SoundMacroId, amuse::SoundMacro, INode::Type::SoundMacro>;
+    using ADSRNode = PoolObjectNode<amuse::TableId, amuse::ITable, INode::Type::ADSR>;
+    using CurveNode = PoolObjectNode<amuse::TableId, amuse::Curve, INode::Type::Curve>;
+    using KeymapNode = PoolObjectNode<amuse::KeymapId, amuse::Keymap, INode::Type::Keymap>;
+    using LayersNode = PoolObjectNode<amuse::LayersId, std::vector<amuse::LayerMapping>, INode::Type::Layer>;
 
     std::unique_ptr<RootNode> m_root;
 
@@ -138,6 +154,8 @@ private:
 public:
     explicit ProjectModel(const QString& path, QObject* parent = Q_NULLPTR);
 
+    bool clearProjectData();
+    bool openGroupData(const QString& groupName, UIMessenger& messenger);
     bool importGroupData(const QString& groupName, const amuse::AudioGroupData& data,
                          ImportMode mode, UIMessenger& messenger);
     bool saveToFile(UIMessenger& messenger);
@@ -150,6 +168,7 @@ public:
     int columnCount(const QModelIndex& parent = QModelIndex()) const;
     QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const;
     Qt::ItemFlags flags(const QModelIndex& index) const;
+    INode* node(const QModelIndex& index) const;
 
     QString path() const { return m_dir.path(); }
     bool canDelete() const;

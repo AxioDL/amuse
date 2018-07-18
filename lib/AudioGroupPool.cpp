@@ -134,7 +134,7 @@ AudioGroupPool AudioGroupPool::CreateAudioGroupPool(SystemStringView groupPath)
     if (!fi.hasError())
     {
         athena::io::YAMLDocReader r;
-        if (r.parse(&fi) && r.ValidateClassType("amuse::Pool"))
+        if (r.parse(&fi) && !r.readString("DNAType").compare("amuse::Pool"))
         {
             if (auto __r = r.enterSubRecord("soundMacros"))
             {
@@ -518,6 +518,8 @@ std::unique_ptr<SoundMacro::ICmd> SoundMacro::MakeCmd(R& r)
         cmd = _MakeCmd<CmdDivVars>(r); break;
     case CmdOp::AddIVars:
         cmd = _MakeCmd<CmdAddIVars>(r); break;
+    case CmdOp::SetVar:
+        cmd = _MakeCmd<CmdSetVar>(r); break;
     case CmdOp::IfEqual:
         cmd = _MakeCmd<CmdIfEqual>(r); break;
     case CmdOp::IfLess:
@@ -684,6 +686,8 @@ std::string_view SoundMacro::CmdOpToStr(CmdOp op)
         return "DivVars"sv;
     case CmdOp::AddIVars:
         return "AddIVars"sv;
+    case CmdOp::SetVar:
+        return "SetVar"sv;
     case CmdOp::IfEqual:
         return "IfEqual"sv;
     case CmdOp::IfLess:
@@ -845,6 +849,8 @@ SoundMacro::CmdOp SoundMacro::CmdStrToOp(std::string_view op)
         return CmdOp::DivVars;
     else if (!CompareCaseInsensitive(op.data(), "AddIVars"))
         return CmdOp::AddIVars;
+    else if (!CompareCaseInsensitive(op.data(), "SetVar"))
+        return CmdOp::SetVar;
     else if (!CompareCaseInsensitive(op.data(), "IfEqual"))
         return CmdOp::IfEqual;
     else if (!CompareCaseInsensitive(op.data(), "IfLess"))

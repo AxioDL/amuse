@@ -118,6 +118,7 @@ struct SoundMacro
         MulVars,
         DivVars,
         AddIVars,
+        SetVar,
         IfEqual = 0x70,
         IfLess,
         Invalid = 0xff
@@ -926,6 +927,17 @@ struct SoundMacro
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::AddIVars; }
     };
+    struct CmdSetVar : ICmd
+    {
+        AT_DECL_DNA_YAML
+        AT_DECL_DNAV
+        Value<bool> varCtrlA;
+        Value<atInt8> a;
+        Seek<1, athena::Current> pad;
+        Value<atInt16> imm;
+        bool Do(SoundMacroState& st, Voice& vox) const;
+        CmdOp Isa() const { return CmdOp::SetVar; }
+    };
     struct CmdIfEqual : ICmd
     {
         AT_DECL_DNA_YAML
@@ -1149,10 +1161,10 @@ class AudioGroupPool
     std::unordered_map<KeymapId, Keymap> m_keymaps;
     std::unordered_map<LayersId, std::vector<LayerMapping>> m_layers;
 
-    AudioGroupPool() = default;
     template <athena::Endian DNAE>
     static AudioGroupPool _AudioGroupPool(athena::io::IStreamReader& r);
 public:
+    AudioGroupPool() = default;
     static AudioGroupPool CreateAudioGroupPool(const AudioGroupData& data);
     static AudioGroupPool CreateAudioGroupPool(SystemStringView groupPath);
 
