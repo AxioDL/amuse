@@ -12,6 +12,26 @@ namespace amuse
 {
 static logvisor::Module Log("amuse::AudioGroupPool");
 
+struct MakeCmdOp
+{
+    template <class Tp, class R>
+    static std::unique_ptr<SoundMacro::ICmd> Do(R& r)
+    {
+        std::unique_ptr<SoundMacro::ICmd> ret = std::make_unique<Tp>();
+        static_cast<Tp&>(*ret).read(r);
+        return ret;
+    }
+};
+
+struct IntrospectCmdOp
+{
+    template <class Tp>
+    static const SoundMacro::CmdIntrospection* Do(SoundMacro::CmdOp)
+    {
+        return &Tp::Introspective;
+    }
+};
+
 static bool AtEnd(athena::io::IStreamReader& r)
 {
     uint32_t v = r.readUint32Big();
@@ -195,7 +215,7 @@ AudioGroupPool AudioGroupPool::CreateAudioGroupPool(SystemStringView groupPath)
                         smOut.m_cmds.reserve(cmdCount);
                         for (int c = 0; c < cmdCount; ++c)
                             if (auto __r2 = r.enterSubRecord(nullptr))
-                                smOut.m_cmds.push_back(SoundMacro::MakeCmd(r));
+                                smOut.m_cmds.push_back(SoundMacro::CmdDo<MakeCmdOp, std::unique_ptr<SoundMacro::ICmd>>(r));
                     }
                 }
             }
@@ -290,7 +310,7 @@ void SoundMacro::readCmds(athena::io::IStreamReader& r, uint32_t size)
         uint32_t data[2];
         athena::io::Read<athena::io::PropType::None>::Do<decltype(data), DNAE>({}, data, r);
         athena::io::MemoryReader r(data, 8);
-        m_cmds.push_back(MakeCmd(r));
+        m_cmds.push_back(CmdDo<MakeCmdOp, std::unique_ptr<SoundMacro::ICmd>>(r));
     }
 }
 template void SoundMacro::readCmds<athena::Big>(athena::io::IStreamReader& r, uint32_t size);
@@ -344,14 +364,6 @@ const Curve* AudioGroupPool::tableAsCurves(ObjectId id) const
     return static_cast<const Curve*>(search->second.get());
 }
 
-template <class Tp, class R>
-static std::unique_ptr<SoundMacro::ICmd> _MakeCmd(R& r)
-{
-    std::unique_ptr<SoundMacro::ICmd> ret = std::make_unique<Tp>();
-    static_cast<Tp&>(*ret).read(r);
-    return ret;
-}
-
 static SoundMacro::CmdOp _ReadCmdOp(athena::io::MemoryReader& r)
 {
     return SoundMacro::CmdOp(r.readUByte());
@@ -362,175 +374,184 @@ static SoundMacro::CmdOp _ReadCmdOp(athena::io::YAMLDocReader& r)
     return SoundMacro::CmdStrToOp(r.readString("cmdOp"));
 }
 
-template <class R>
-std::unique_ptr<SoundMacro::ICmd> SoundMacro::MakeCmd(R& r)
+static SoundMacro::CmdOp _ReadCmdOp(SoundMacro::CmdOp& op)
 {
-    std::unique_ptr<ICmd> cmd;
-    switch (_ReadCmdOp(r))
+    return op;
+}
+
+template <class Op, class O, class... _Args>
+O SoundMacro::CmdDo(_Args&&... args)
+{
+    switch (_ReadCmdOp(std::forward<_Args>(args)...))
     {
     case CmdOp::End:
-        cmd = _MakeCmd<CmdEnd>(r); break;
+        return Op::template Do<CmdEnd>(std::forward<_Args>(args)...);
     case CmdOp::Stop:
-        cmd = _MakeCmd<CmdStop>(r); break;
+        return Op::template Do<CmdStop>(std::forward<_Args>(args)...);
     case CmdOp::SplitKey:
-        cmd = _MakeCmd<CmdSplitKey>(r); break;
+        return Op::template Do<CmdSplitKey>(std::forward<_Args>(args)...);
     case CmdOp::SplitVel:
-        cmd = _MakeCmd<CmdSplitVel>(r); break;
+        return Op::template Do<CmdSplitVel>(std::forward<_Args>(args)...);
     case CmdOp::WaitTicks:
-        cmd = _MakeCmd<CmdWaitTicks>(r); break;
+        return Op::template Do<CmdWaitTicks>(std::forward<_Args>(args)...);
     case CmdOp::Loop:
-        cmd = _MakeCmd<CmdLoop>(r); break;
+        return Op::template Do<CmdLoop>(std::forward<_Args>(args)...);
     case CmdOp::Goto:
-        cmd = _MakeCmd<CmdGoto>(r); break;
+        return Op::template Do<CmdGoto>(std::forward<_Args>(args)...);
     case CmdOp::WaitMs:
-        cmd = _MakeCmd<CmdWaitMs>(r); break;
+        return Op::template Do<CmdWaitMs>(std::forward<_Args>(args)...);
     case CmdOp::PlayMacro:
-        cmd = _MakeCmd<CmdPlayMacro>(r); break;
+        return Op::template Do<CmdPlayMacro>(std::forward<_Args>(args)...);
     case CmdOp::SendKeyOff:
-        cmd = _MakeCmd<CmdSendKeyOff>(r); break;
+        return Op::template Do<CmdSendKeyOff>(std::forward<_Args>(args)...);
     case CmdOp::SplitMod:
-        cmd = _MakeCmd<CmdSplitMod>(r); break;
+        return Op::template Do<CmdSplitMod>(std::forward<_Args>(args)...);
     case CmdOp::PianoPan:
-        cmd = _MakeCmd<CmdPianoPan>(r); break;
+        return Op::template Do<CmdPianoPan>(std::forward<_Args>(args)...);
     case CmdOp::SetAdsr:
-        cmd = _MakeCmd<CmdSetAdsr>(r); break;
+        return Op::template Do<CmdSetAdsr>(std::forward<_Args>(args)...);
     case CmdOp::ScaleVolume:
-        cmd = _MakeCmd<CmdScaleVolume>(r); break;
+        return Op::template Do<CmdScaleVolume>(std::forward<_Args>(args)...);
     case CmdOp::Panning:
-        cmd = _MakeCmd<CmdPanning>(r); break;
+        return Op::template Do<CmdPanning>(std::forward<_Args>(args)...);
     case CmdOp::Envelope:
-        cmd = _MakeCmd<CmdEnvelope>(r); break;
+        return Op::template Do<CmdEnvelope>(std::forward<_Args>(args)...);
     case CmdOp::StartSample:
-        cmd = _MakeCmd<CmdStartSample>(r); break;
+        return Op::template Do<CmdStartSample>(std::forward<_Args>(args)...);
     case CmdOp::StopSample:
-        cmd = _MakeCmd<CmdStopSample>(r); break;
+        return Op::template Do<CmdStopSample>(std::forward<_Args>(args)...);
     case CmdOp::KeyOff:
-        cmd = _MakeCmd<CmdKeyOff>(r); break;
+        return Op::template Do<CmdKeyOff>(std::forward<_Args>(args)...);
     case CmdOp::SplitRnd:
-        cmd = _MakeCmd<CmdSplitRnd>(r); break;
+        return Op::template Do<CmdSplitRnd>(std::forward<_Args>(args)...);
     case CmdOp::FadeIn:
-        cmd = _MakeCmd<CmdFadeIn>(r); break;
+        return Op::template Do<CmdFadeIn>(std::forward<_Args>(args)...);
     case CmdOp::Spanning:
-        cmd = _MakeCmd<CmdSpanning>(r); break;
+        return Op::template Do<CmdSpanning>(std::forward<_Args>(args)...);
     case CmdOp::SetAdsrCtrl:
-        cmd = _MakeCmd<CmdSetAdsrCtrl>(r); break;
+        return Op::template Do<CmdSetAdsrCtrl>(std::forward<_Args>(args)...);
     case CmdOp::RndNote:
-        cmd = _MakeCmd<CmdRndNote>(r); break;
+        return Op::template Do<CmdRndNote>(std::forward<_Args>(args)...);
     case CmdOp::AddNote:
-        cmd = _MakeCmd<CmdAddNote>(r); break;
+        return Op::template Do<CmdAddNote>(std::forward<_Args>(args)...);
     case CmdOp::SetNote:
-        cmd = _MakeCmd<CmdSetNote>(r); break;
+        return Op::template Do<CmdSetNote>(std::forward<_Args>(args)...);
     case CmdOp::LastNote:
-        cmd = _MakeCmd<CmdLastNote>(r); break;
+        return Op::template Do<CmdLastNote>(std::forward<_Args>(args)...);
     case CmdOp::Portamento:
-        cmd = _MakeCmd<CmdPortamento>(r); break;
+        return Op::template Do<CmdPortamento>(std::forward<_Args>(args)...);
     case CmdOp::Vibrato:
-        cmd = _MakeCmd<CmdVibrato>(r); break;
+        return Op::template Do<CmdVibrato>(std::forward<_Args>(args)...);
     case CmdOp::PitchSweep1:
-        cmd = _MakeCmd<CmdPitchSweep1>(r); break;
+        return Op::template Do<CmdPitchSweep1>(std::forward<_Args>(args)...);
     case CmdOp::PitchSweep2:
-        cmd = _MakeCmd<CmdPitchSweep2>(r); break;
+        return Op::template Do<CmdPitchSweep2>(std::forward<_Args>(args)...);
     case CmdOp::SetPitch:
-        cmd = _MakeCmd<CmdSetPitch>(r); break;
+        return Op::template Do<CmdSetPitch>(std::forward<_Args>(args)...);
     case CmdOp::SetPitchAdsr:
-        cmd = _MakeCmd<CmdSetPitchAdsr>(r); break;
+        return Op::template Do<CmdSetPitchAdsr>(std::forward<_Args>(args)...);
     case CmdOp::ScaleVolumeDLS:
-        cmd = _MakeCmd<CmdScaleVolumeDLS>(r); break;
+        return Op::template Do<CmdScaleVolumeDLS>(std::forward<_Args>(args)...);
     case CmdOp::Mod2Vibrange:
-        cmd = _MakeCmd<CmdMod2Vibrange>(r); break;
+        return Op::template Do<CmdMod2Vibrange>(std::forward<_Args>(args)...);
     case CmdOp::SetupTremolo:
-        cmd = _MakeCmd<CmdSetupTremolo>(r); break;
+        return Op::template Do<CmdSetupTremolo>(std::forward<_Args>(args)...);
     case CmdOp::Return:
-        cmd = _MakeCmd<CmdReturn>(r); break;
+        return Op::template Do<CmdReturn>(std::forward<_Args>(args)...);
     case CmdOp::GoSub:
-        cmd = _MakeCmd<CmdGoSub>(r); break;
+        return Op::template Do<CmdGoSub>(std::forward<_Args>(args)...);
     case CmdOp::TrapEvent:
-        cmd = _MakeCmd<CmdTrapEvent>(r); break;
+        return Op::template Do<CmdTrapEvent>(std::forward<_Args>(args)...);
     case CmdOp::UntrapEvent:
-        cmd = _MakeCmd<CmdUntrapEvent>(r); break;
+        return Op::template Do<CmdUntrapEvent>(std::forward<_Args>(args)...);
     case CmdOp::SendMessage:
-        cmd = _MakeCmd<CmdSendMessage>(r); break;
+        return Op::template Do<CmdSendMessage>(std::forward<_Args>(args)...);
     case CmdOp::GetMessage:
-        cmd = _MakeCmd<CmdGetMessage>(r); break;
+        return Op::template Do<CmdGetMessage>(std::forward<_Args>(args)...);
     case CmdOp::GetVid:
-        cmd = _MakeCmd<CmdGetVid>(r); break;
+        return Op::template Do<CmdGetVid>(std::forward<_Args>(args)...);
     case CmdOp::AddAgeCount:
-        cmd = _MakeCmd<CmdAddAgeCount>(r); break;
+        return Op::template Do<CmdAddAgeCount>(std::forward<_Args>(args)...);
     case CmdOp::SetAgeCount:
-        cmd = _MakeCmd<CmdSetAgeCount>(r); break;
+        return Op::template Do<CmdSetAgeCount>(std::forward<_Args>(args)...);
     case CmdOp::SendFlag:
-        cmd = _MakeCmd<CmdSendFlag>(r); break;
+        return Op::template Do<CmdSendFlag>(std::forward<_Args>(args)...);
     case CmdOp::PitchWheelR:
-        cmd = _MakeCmd<CmdPitchWheelR>(r); break;
+        return Op::template Do<CmdPitchWheelR>(std::forward<_Args>(args)...);
     case CmdOp::SetPriority:
-        cmd = _MakeCmd<CmdSetPriority>(r); break;
+        return Op::template Do<CmdSetPriority>(std::forward<_Args>(args)...);
     case CmdOp::AddPriority:
-        cmd = _MakeCmd<CmdAddPriority>(r); break;
+        return Op::template Do<CmdAddPriority>(std::forward<_Args>(args)...);
     case CmdOp::AgeCntSpeed:
-        cmd = _MakeCmd<CmdAgeCntSpeed>(r); break;
+        return Op::template Do<CmdAgeCntSpeed>(std::forward<_Args>(args)...);
     case CmdOp::AgeCntVel:
-        cmd = _MakeCmd<CmdAgeCntVel>(r); break;
+        return Op::template Do<CmdAgeCntVel>(std::forward<_Args>(args)...);
     case CmdOp::VolSelect:
-        cmd = _MakeCmd<CmdVolSelect>(r); break;
+        return Op::template Do<CmdVolSelect>(std::forward<_Args>(args)...);
     case CmdOp::PanSelect:
-        cmd = _MakeCmd<CmdPanSelect>(r); break;
+        return Op::template Do<CmdPanSelect>(std::forward<_Args>(args)...);
     case CmdOp::PitchWheelSelect:
-        cmd = _MakeCmd<CmdPitchWheelSelect>(r); break;
+        return Op::template Do<CmdPitchWheelSelect>(std::forward<_Args>(args)...);
     case CmdOp::ModWheelSelect:
-        cmd = _MakeCmd<CmdModWheelSelect>(r); break;
+        return Op::template Do<CmdModWheelSelect>(std::forward<_Args>(args)...);
     case CmdOp::PedalSelect:
-        cmd = _MakeCmd<CmdPedalSelect>(r); break;
+        return Op::template Do<CmdPedalSelect>(std::forward<_Args>(args)...);
     case CmdOp::PortamentoSelect:
-        cmd = _MakeCmd<CmdPortamentoSelect>(r); break;
+        return Op::template Do<CmdPortamentoSelect>(std::forward<_Args>(args)...);
     case CmdOp::ReverbSelect:
-        cmd = _MakeCmd<CmdReverbSelect>(r); break;
+        return Op::template Do<CmdReverbSelect>(std::forward<_Args>(args)...);
     case CmdOp::SpanSelect:
-        cmd = _MakeCmd<CmdSpanSelect>(r); break;
+        return Op::template Do<CmdSpanSelect>(std::forward<_Args>(args)...);
     case CmdOp::DopplerSelect:
-        cmd = _MakeCmd<CmdDopplerSelect>(r); break;
+        return Op::template Do<CmdDopplerSelect>(std::forward<_Args>(args)...);
     case CmdOp::TremoloSelect:
-        cmd = _MakeCmd<CmdTremoloSelect>(r); break;
+        return Op::template Do<CmdTremoloSelect>(std::forward<_Args>(args)...);
     case CmdOp::PreASelect:
-        cmd = _MakeCmd<CmdPreASelect>(r); break;
+        return Op::template Do<CmdPreASelect>(std::forward<_Args>(args)...);
     case CmdOp::PreBSelect:
-        cmd = _MakeCmd<CmdPreBSelect>(r); break;
+        return Op::template Do<CmdPreBSelect>(std::forward<_Args>(args)...);
     case CmdOp::PostBSelect:
-        cmd = _MakeCmd<CmdPostBSelect>(r); break;
+        return Op::template Do<CmdPostBSelect>(std::forward<_Args>(args)...);
     case CmdOp::AuxAFXSelect:
-        cmd = _MakeCmd<CmdAuxAFXSelect>(r); break;
+        return Op::template Do<CmdAuxAFXSelect>(std::forward<_Args>(args)...);
     case CmdOp::AuxBFXSelect:
-        cmd = _MakeCmd<CmdAuxBFXSelect>(r); break;
+        return Op::template Do<CmdAuxBFXSelect>(std::forward<_Args>(args)...);
     case CmdOp::SetupLFO:
-        cmd = _MakeCmd<CmdSetupLFO>(r); break;
+        return Op::template Do<CmdSetupLFO>(std::forward<_Args>(args)...);
     case CmdOp::ModeSelect:
-        cmd = _MakeCmd<CmdModeSelect>(r); break;
+        return Op::template Do<CmdModeSelect>(std::forward<_Args>(args)...);
     case CmdOp::SetKeygroup:
-        cmd = _MakeCmd<CmdSetKeygroup>(r); break;
+        return Op::template Do<CmdSetKeygroup>(std::forward<_Args>(args)...);
     case CmdOp::SRCmodeSelect:
-        cmd = _MakeCmd<CmdSRCmodeSelect>(r); break;
+        return Op::template Do<CmdSRCmodeSelect>(std::forward<_Args>(args)...);
     case CmdOp::AddVars:
-        cmd = _MakeCmd<CmdAddVars>(r); break;
+        return Op::template Do<CmdAddVars>(std::forward<_Args>(args)...);
     case CmdOp::SubVars:
-        cmd = _MakeCmd<CmdSubVars>(r); break;
+        return Op::template Do<CmdSubVars>(std::forward<_Args>(args)...);
     case CmdOp::MulVars:
-        cmd = _MakeCmd<CmdMulVars>(r); break;
+        return Op::template Do<CmdMulVars>(std::forward<_Args>(args)...);
     case CmdOp::DivVars:
-        cmd = _MakeCmd<CmdDivVars>(r); break;
+        return Op::template Do<CmdDivVars>(std::forward<_Args>(args)...);
     case CmdOp::AddIVars:
-        cmd = _MakeCmd<CmdAddIVars>(r); break;
+        return Op::template Do<CmdAddIVars>(std::forward<_Args>(args)...);
     case CmdOp::SetVar:
-        cmd = _MakeCmd<CmdSetVar>(r); break;
+        return Op::template Do<CmdSetVar>(std::forward<_Args>(args)...);
     case CmdOp::IfEqual:
-        cmd = _MakeCmd<CmdIfEqual>(r); break;
+        return Op::template Do<CmdIfEqual>(std::forward<_Args>(args)...);
     case CmdOp::IfLess:
-        cmd = _MakeCmd<CmdIfLess>(r); break;
+        return Op::template Do<CmdIfLess>(std::forward<_Args>(args)...);
     default:
-        break;
+        return {};
     }
-    return cmd;
 }
-template std::unique_ptr<SoundMacro::ICmd> SoundMacro::MakeCmd(athena::io::MemoryReader& r);
-template std::unique_ptr<SoundMacro::ICmd> SoundMacro::MakeCmd(athena::io::YAMLDocReader& r);
+template std::unique_ptr<SoundMacro::ICmd> SoundMacro::CmdDo<MakeCmdOp>(athena::io::MemoryReader& r);
+template std::unique_ptr<SoundMacro::ICmd> SoundMacro::CmdDo<MakeCmdOp>(athena::io::YAMLDocReader& r);
+template const SoundMacro::CmdIntrospection* SoundMacro::CmdDo<IntrospectCmdOp>(SoundMacro::CmdOp& op);
+
+const SoundMacro::CmdIntrospection* SoundMacro::GetCmdIntrospection(CmdOp op)
+{
+    return CmdDo<IntrospectCmdOp, const SoundMacro::CmdIntrospection*>(op);
+}
 
 std::string_view SoundMacro::CmdOpToStr(CmdOp op)
 {

@@ -17,11 +17,6 @@
 #include "KeymapEditor.hpp"
 #include "LayersEditor.hpp"
 
-static void connectMessenger(UIMessenger* messenger, Qt::ConnectionType type)
-{
-
-}
-
 MainWindow::MainWindow(QWidget* parent)
 : QMainWindow(parent),
   m_treeDelegate(*this, this),
@@ -151,9 +146,7 @@ bool MainWindow::setProjectPath(const QString& path)
     m_ui.projectOutline->setModel(m_projectModel);
     m_ui.actionExport_GameCube_Groups->setEnabled(true);
     setWindowFilePath(path);
-#ifndef __APPLE__
-    setWindowTitle(QString("Amuse - %1").arg(dir.dirName()));
-#endif
+    setWindowTitle(QString("Amuse [%1]").arg(dir.dirName()));
     setFocusAudioGroup(nullptr);
     onFocusChanged(nullptr, focusWidget());
 
@@ -357,7 +350,7 @@ void MainWindow::openAction()
         QFileInfo(dir, QStringLiteral("!pool.yaml")).exists())
         dir.cdUp();
 
-    if (!setProjectPath(path))
+    if (!setProjectPath(dir.path()))
         return;
 
     ProjectModel* model = m_projectModel;
@@ -525,9 +518,7 @@ bool TreeDelegate::editorEvent(QEvent* event,
         return false;
 
     if ((event->type() == QEvent::MouseButtonDblClick &&
-         static_cast<QMouseEvent*>(event)->button() == Qt::LeftButton) ||
-        (event->type() == QEvent::KeyPress &&
-         static_cast<QKeyEvent*>(event)->key() == Qt::Key_Enter))
+         static_cast<QMouseEvent*>(event)->button() == Qt::LeftButton))
     {
         // Open in editor
         return m_window.openEditor(node);

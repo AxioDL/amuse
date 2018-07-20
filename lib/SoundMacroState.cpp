@@ -6,6 +6,11 @@
 #include "amuse/AudioGroupPool.hpp"
 #include <cstring>
 
+using namespace std::literals;
+
+/* C++17 will error out if an offsetof cannot be computed, so ignore this warning */
+#pragma GCC diagnostic ignored "-Winvalid-offsetof"
+
 /* Squelch Win32 macro pollution >.< */
 #undef SendMessage
 #undef GetMessage
@@ -76,7 +81,7 @@ float SoundMacroState::Evaluator::evaluate(double time, const Voice& vox, const 
             }
         }
         else if (comp.m_varType == VarType::Var)
-            thisValue = st.m_variables[clamp(0, int(comp.m_midiCtrl), 255)];
+            thisValue = st.m_variables[comp.m_midiCtrl & 0x1f];
 
         /* Apply scale */
         thisValue *= comp.m_scale;
@@ -128,22 +133,93 @@ void SoundMacroState::initialize(ObjectId id, const SoundMacro* macro, int step,
     m_loopCountdown = -1;
     m_lastPlayMacroVid = -1;
     m_useAdsrControllers = false;
-    m_portamentoMode = 2;
+    m_portamentoMode = SoundMacro::CmdPortamento::PortState::MIDIControlled;
     m_portamentoTime = 0.5f;
 }
 
+template <class T, std::enable_if_t<!std::is_enum_v<T>, int> = 0>
+constexpr SoundMacro::CmdIntrospection::Field::Type GetFieldType()
+{ return SoundMacro::CmdIntrospection::Field::Type::Invalid; }
+template <class T, std::enable_if_t<std::is_enum_v<T>, int> = 0>
+constexpr SoundMacro::CmdIntrospection::Field::Type GetFieldType()
+{ return SoundMacro::CmdIntrospection::Field::Type::Choice; }
+template <>
+constexpr SoundMacro::CmdIntrospection::Field::Type GetFieldType<bool>()
+{ return SoundMacro::CmdIntrospection::Field::Type::Bool; }
+template <>
+constexpr SoundMacro::CmdIntrospection::Field::Type GetFieldType<atInt8>()
+{ return SoundMacro::CmdIntrospection::Field::Type::Int8; }
+template <>
+constexpr SoundMacro::CmdIntrospection::Field::Type GetFieldType<atUint8>()
+{ return SoundMacro::CmdIntrospection::Field::Type::UInt8; }
+template <>
+constexpr SoundMacro::CmdIntrospection::Field::Type GetFieldType<atInt16>()
+{ return SoundMacro::CmdIntrospection::Field::Type::Int16; }
+template <>
+constexpr SoundMacro::CmdIntrospection::Field::Type GetFieldType<atUint16>()
+{ return SoundMacro::CmdIntrospection::Field::Type::UInt16; }
+template <>
+constexpr SoundMacro::CmdIntrospection::Field::Type GetFieldType<atInt32>()
+{ return SoundMacro::CmdIntrospection::Field::Type::Int32; }
+template <>
+constexpr SoundMacro::CmdIntrospection::Field::Type GetFieldType<atUint32>()
+{ return SoundMacro::CmdIntrospection::Field::Type::UInt32; }
+template <>
+constexpr SoundMacro::CmdIntrospection::Field::Type GetFieldType<SoundMacroIdDNA<athena::Little>>()
+{ return SoundMacro::CmdIntrospection::Field::Type::SoundMacroId; }
+template <>
+constexpr SoundMacro::CmdIntrospection::Field::Type GetFieldType<TableIdDNA<athena::Little>>()
+{ return SoundMacro::CmdIntrospection::Field::Type::TableId; }
+template <>
+constexpr SoundMacro::CmdIntrospection::Field::Type GetFieldType<SampleIdDNA<athena::Little>>()
+{ return SoundMacro::CmdIntrospection::Field::Type::SampleId; }
+
+#define FIELD_HEAD(tp, var) GetFieldType<decltype(var)>(), offsetof(tp, var)
+
+const SoundMacro::CmdIntrospection SoundMacro::CmdEnd::Introspective =
+{
+    "End"sv,
+    "End of the macro. This always appears at the end of a given SoundMacro."sv,
+};
 bool SoundMacro::CmdEnd::Do(SoundMacroState& st, Voice& vox) const
 {
     st._setPC(-1);
     return true;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdStop::Introspective =
+{
+    "Stop"sv,
+    "Stops the macro at any point."sv,
+};
 bool SoundMacro::CmdStop::Do(SoundMacroState& st, Voice& vox) const
 {
     st._setPC(-1);
     return true;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdSplitKey::Introspective =
+{
+    "Split Key"sv,
+    "Conditionally branches macro execution based on MIDI key."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdSplitKey, key),
+            "Key"sv,
+            0, 127, 60
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSplitKey, macro),
+            "SoundMacro"sv,
+            0, 65535, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSplitKey, macroStep),
+            "SoundMacro Step"sv,
+            0, 65535, 0
+        }
+    }
+};
 bool SoundMacro::CmdSplitKey::Do(SoundMacroState& st, Voice& vox) const
 {
     if (st.m_initKey >= key)
@@ -158,6 +234,28 @@ bool SoundMacro::CmdSplitKey::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdSplitVel::Introspective =
+{
+    "Split Velocity"sv,
+    "Conditionally branches macro execution based on velocity."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdSplitVel, velocity),
+            "Key"sv,
+            0, 127, 100
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSplitVel, macro),
+            "SoundMacro"sv,
+            0, 65535, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSplitVel, macroStep),
+            "SoundMacro Step"sv,
+            0, 65535, 0
+        }
+    }
+};
 bool SoundMacro::CmdSplitVel::Do(SoundMacroState& st, Voice& vox) const
 {
     if (st.m_curVel >= velocity)
@@ -172,13 +270,51 @@ bool SoundMacro::CmdSplitVel::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdWaitTicks::Introspective =
+{
+    "Wait Ticks"sv,
+    "Suspend SoundMacro execution for specified length of time. Value of 65535 "
+    "will wait indefinitely, relying on KeyOff or Sample End to signal stop."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdWaitTicks, keyOff),
+            "KeyOff"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdWaitTicks, random),
+            "Random"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdWaitTicks, sampleEnd),
+            "Sample End"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdWaitTicks, absolute),
+            "Absolute"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdWaitTicks, msSwitch),
+            "Use Millisec"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdWaitTicks, ticksOrMs),
+            "Ticks/Millisec"sv,
+            0, 65535, 96
+        }
+    }
+};
 bool SoundMacro::CmdWaitTicks::Do(SoundMacroState& st, Voice& vox) const
 {
     /* Set wait state */
-    if (ticksPerMs >= 0)
+    if (ticksOrMs >= 0)
     {
         float q = msSwitch ? 1000.f : st.m_ticksPerSec;
-        float secTime = ticksPerMs / q;
+        float secTime = ticksOrMs / q;
         /* Randomize at the proper resolution */
         if (random)
             secTime = std::fmod(vox.getEngine().nextRandom() / q, secTime);
@@ -204,6 +340,39 @@ bool SoundMacro::CmdWaitTicks::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdLoop::Introspective =
+{
+    "Loop"sv,
+    "Branch to specified location in a loop for a specified number of Times. "
+    "65535 will cause an endless loop, relying on KeyOff or Sample End to signal stop."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdLoop, keyOff),
+            "KeyOff"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdLoop, random),
+            "Random"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdLoop, sampleEnd),
+            "Sample End"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdLoop, macroStep),
+            "SoundMacro Step"sv,
+            0, 65535, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdLoop, times),
+            "Times"sv,
+            0, 65535, 0
+        }
+    }
+};
 bool SoundMacro::CmdLoop::Do(SoundMacroState& st, Voice& vox) const
 {
     if ((keyOff && st.m_keyoff) || (sampleEnd && st.m_sampleEnd))
@@ -232,6 +401,23 @@ bool SoundMacro::CmdLoop::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdGoto::Introspective =
+{
+    "Goto"sv,
+    "Unconditional branch to specified SoundMacro location."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdGoto, macro),
+            "SoundMacro"sv,
+            0, 65535, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdGoto, macroStep),
+            "SoundMacro Step"sv,
+            0, 65535, 0
+        }
+    }
+};
 bool SoundMacro::CmdGoto::Do(SoundMacroState& st, Voice& vox) const
 {
     /* Do Branch */
@@ -243,6 +429,39 @@ bool SoundMacro::CmdGoto::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdWaitMs::Introspective =
+{
+    "Wait Millisec"sv,
+    "Suspend SoundMacro execution for specified length of time. Value of 65535 "
+    "will wait indefinitely, relying on KeyOff or Sample End to signal stop."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdWaitMs, keyOff),
+            "KeyOff"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdWaitMs, random),
+            "Random"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdWaitMs, sampleEnd),
+            "Sample End"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdWaitMs, absolute),
+            "Absolute"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdWaitMs, ms),
+            "Ticks/Millisec"sv,
+            0, 65535, 96
+        }
+    }
+};
 bool SoundMacro::CmdWaitMs::Do(SoundMacroState& st, Voice& vox) const
 {
     /* Set wait state */
@@ -274,6 +493,39 @@ bool SoundMacro::CmdWaitMs::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdPlayMacro::Introspective =
+{
+    "Play Macro"sv,
+    "Play a SoundMacro in parallel to this one. Add Note is added to the "
+    "current SoundMacro note to evaluate the new note."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdPlayMacro, addNote),
+            "Add Note"sv,
+            -128, 127, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPlayMacro, macro),
+            "SoundMacro"sv,
+            0, 65535, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPlayMacro, macroStep),
+            "SoundMacro Step"sv,
+            0, 65535, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPlayMacro, priority),
+            "Priority"sv,
+            0, 127, 50
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPlayMacro, maxVoices),
+            "Max Voices"sv,
+            0, 255, 255
+        }
+    }
+};
 bool SoundMacro::CmdPlayMacro::Do(SoundMacroState& st, Voice& vox) const
 {
     std::shared_ptr<Voice> sibVox = vox.startChildMacro(addNote, macro.id, macroStep);
@@ -283,6 +535,23 @@ bool SoundMacro::CmdPlayMacro::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdSendKeyOff::Introspective =
+{
+    "Send Keyoff"sv,
+    "Send keyoff to voice specified by VID stored in a variable or the last started voice."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdSendKeyOff, variable),
+            "Variable"sv,
+            0, 31, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSendKeyOff, lastStarted),
+            "Last Started"sv,
+            0, 1, 0
+        }
+    }
+};
 bool SoundMacro::CmdSendKeyOff::Do(SoundMacroState& st, Voice& vox) const
 {
     if (lastStarted)
@@ -296,7 +565,7 @@ bool SoundMacro::CmdSendKeyOff::Do(SoundMacroState& st, Voice& vox) const
     }
     else
     {
-        std::shared_ptr<Voice> otherVox = vox.getEngine().findVoice(st.m_variables[variable]);
+        std::shared_ptr<Voice> otherVox = vox.getEngine().findVoice(st.m_variables[variable & 0x1f]);
         if (otherVox)
             otherVox->keyOff();
     }
@@ -304,6 +573,28 @@ bool SoundMacro::CmdSendKeyOff::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdSplitMod::Introspective =
+{
+    "Split Mod"sv,
+    "Conditionally branch if mod wheel is greater than or equal to specified value."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdSplitMod, modValue),
+            "Mod Value"sv,
+            0, 127, 64
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSplitMod, macro),
+            "SoundMacro"sv,
+            0, 65535, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSplitMod, macroStep),
+            "SoundMacro Step"sv,
+            0, 65535, 0
+        }
+    }
+};
 bool SoundMacro::CmdSplitMod::Do(SoundMacroState& st, Voice& vox) const
 {
     if (st.m_curMod >= modValue)
@@ -318,6 +609,29 @@ bool SoundMacro::CmdSplitMod::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdPianoPan::Introspective =
+{
+    "Piano Pan"sv,
+    "Gives piano-like sounds a natural-sounding stereo spread. The current key delta "
+    "from Center Key is scaled with Scale and biased with Center Pan to evaluate panning."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdPianoPan, scale),
+            "Scale"sv,
+            0, 127, 127
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPianoPan, centerKey),
+            "Center Key"sv,
+            0, 127, 36
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPianoPan, centerPan),
+            "Center Pan"sv,
+            0, 127, 64
+        }
+    }
+};
 bool SoundMacro::CmdPianoPan::Do(SoundMacroState& st, Voice& vox) const
 {
     int32_t pan = int32_t(st.m_initKey - centerKey) * scale / 127 + centerPan;
@@ -327,12 +641,57 @@ bool SoundMacro::CmdPianoPan::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdSetAdsr::Introspective =
+{
+    "Set ADSR"sv,
+    "Specify ADSR envelope using a pool object. DLS mode must match setting in ADSR."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdSetAdsr, table),
+            "ADSR"sv,
+            0, 16383, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSetAdsr, dlsMode),
+            "DLS Mode"sv,
+            0, 1, 0
+        }
+    }
+};
 bool SoundMacro::CmdSetAdsr::Do(SoundMacroState& st, Voice& vox) const
 {
     vox.setAdsr(table.id, dlsMode);
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdScaleVolume::Introspective =
+{
+    "Scale Volume"sv,
+    "Calculates volume by scaling and biasing velocity. "
+    "The result may be passed through an optional Curve."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdScaleVolume, scale),
+            "Scale"sv,
+            0, 127, 127
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdScaleVolume, add),
+            "Add"sv,
+            0, 127, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdScaleVolume, table),
+            "Curve"sv,
+            0, 16383, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdScaleVolume, originalVol),
+            "Original Vol"sv,
+            0, 1, 1
+        }
+    }
+};
 bool SoundMacro::CmdScaleVolume::Do(SoundMacroState& st, Voice& vox) const
 {
     int32_t eval = int32_t(originalVol ? st.m_initVel : st.m_curVel) * scale / 127 + add;
@@ -353,16 +712,72 @@ bool SoundMacro::CmdScaleVolume::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdPanning::Introspective =
+{
+    "Panning"sv,
+    "Start pan-sweep from Pan Position offset by Width over specified time period."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdPanning, panPosition),
+            "Pan Position"sv,
+            0, 127, 64
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPanning, timeMs),
+            "Time Millisec"sv,
+            0, 65535, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPanning, width),
+            "Width"sv,
+            -128, 127, 0
+        }
+    }
+};
 bool SoundMacro::CmdPanning::Do(SoundMacroState& st, Voice& vox) const
 {
     vox.startPanning(timeMs / 1000.0, panPosition, width);
     return false;
 }
 
+
+const SoundMacro::CmdIntrospection SoundMacro::CmdEnvelope::Introspective =
+{
+    "Envelope"sv,
+    "Start a velocity envelope by fading the current velocity to the one "
+    "evaluated by Scale and Add. The result is optionally transformed with a Curve object."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdEnvelope, scale),
+            "Scale"sv,
+            0, 127, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdEnvelope, add),
+            "Add"sv,
+            0, 127, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdEnvelope, table),
+            "Curve"sv,
+            0, 16383, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdEnvelope, msSwitch),
+            "Use Millisec"sv,
+            0, 1, 1
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdEnvelope, ticksOrMs),
+            "Ticks/Millisec"sv,
+            0, 65535, 500
+        }
+    }
+};
 bool SoundMacro::CmdEnvelope::Do(SoundMacroState& st, Voice& vox) const
 {
     double q = msSwitch ? 1000.0 : st.m_ticksPerSec;
-    double secTime = fadeTime / q;
+    double secTime = ticksOrMs / q;
 
     int32_t eval = int32_t(st.m_curVel) * scale / 127 + add;
     eval = clamp(0, eval, 127);
@@ -378,16 +793,44 @@ bool SoundMacro::CmdEnvelope::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdStartSample::Introspective =
+{
+    "Start Sample"sv,
+    "Start a Sample playing on the voice. An Offset in samples may be applied. "
+    "This offset may be scaled with the current velocity."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdStartSample, sample),
+            "Sample"sv,
+            0, 65535, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdStartSample, mode),
+            "Velocity Scale"sv,
+            0, 2, 0,
+            {
+                "No Scale"sv,
+                "Negative"sv,
+                "Positive"sv
+            }
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdStartSample, offset),
+            "Offset"sv,
+            0, 0xffffff, 0
+        }
+    }
+};
 bool SoundMacro::CmdStartSample::Do(SoundMacroState& st, Voice& vox) const
 {
     uint32_t useOffset = offset;
 
     switch (mode)
     {
-    case 1:
+    case Mode::Negative:
         useOffset = offset * (127 - st.m_curVel) / 127;
         break;
-    case 2:
+    case Mode::Positive:
         useOffset = offset * st.m_curVel / 127;
         break;
     default:
@@ -400,18 +843,52 @@ bool SoundMacro::CmdStartSample::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+
+const SoundMacro::CmdIntrospection SoundMacro::CmdStopSample::Introspective =
+{
+    "Stop Sample"sv,
+    "Stops the sample playing on the voice."sv
+};
 bool SoundMacro::CmdStopSample::Do(SoundMacroState& st, Voice& vox) const
 {
     vox.stopSample();
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdKeyOff::Introspective =
+{
+    "KeyOff"sv,
+    "Sends a KeyOff to the current voice."sv
+};
 bool SoundMacro::CmdKeyOff::Do(SoundMacroState& st, Voice& vox) const
 {
     vox._macroKeyOff();
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdSplitRnd::Introspective =
+{
+    "Split Rnd"sv,
+    "Conditionally branch if a random value is greater than or equal to RND. "
+    "A lower RND will cause a higher probability of branching."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdSplitRnd, rnd),
+            "RND"sv,
+            0, 255, 128
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSplitRnd, macro),
+            "SoundMacro"sv,
+            0, 65535, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSplitRnd, macroStep),
+            "SoundMacro Step"sv,
+            0, 65535, 0
+        },
+    }
+};
 bool SoundMacro::CmdSplitRnd::Do(SoundMacroState& st, Voice& vox) const
 {
     if (rnd <= vox.getEngine().nextRandom() % 256)
@@ -426,10 +903,43 @@ bool SoundMacro::CmdSplitRnd::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdFadeIn::Introspective =
+{
+    "Fade In"sv,
+    "Start a velocity envelope by fading from silence to the velocity "
+    "evaluated by Scale and Add. The result is optionally transformed with a Curve object."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdFadeIn, scale),
+            "Scale"sv,
+            0, 127, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdFadeIn, add),
+            "Add"sv,
+            0, 127, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdFadeIn, table),
+            "Curve"sv,
+            0, 16383, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdFadeIn, msSwitch),
+            "Use Millisec"sv,
+            0, 1, 1
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdFadeIn, ticksOrMs),
+            "Ticks/Millisec"sv,
+            0, 65535, 500
+        }
+    }
+};
 bool SoundMacro::CmdFadeIn::Do(SoundMacroState& st, Voice& vox) const
 {
     float q = msSwitch ? 1000.f : st.m_ticksPerSec;
-    float secTime = ticksPerMs / q;
+    float secTime = ticksOrMs / q;
 
     int32_t eval = int32_t(st.m_curVel) * scale / 127 + add;
     eval = clamp(0, eval, 127);
@@ -445,12 +955,61 @@ bool SoundMacro::CmdFadeIn::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdSpanning::Introspective =
+{
+    "Spanning"sv,
+    "Start span-sweep from Span Position offset by Width over specified time period."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdSpanning, spanPosition),
+            "Span Position"sv,
+            0, 127, 64
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSpanning, timeMs),
+            "Time Millisec"sv,
+            0, 65535, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSpanning, width),
+            "Width"sv,
+            -128, 127, 0
+        }
+    }
+};
 bool SoundMacro::CmdSpanning::Do(SoundMacroState& st, Voice& vox) const
 {
     vox.startSpanning(timeMs / 1000.0, spanPosition, width);
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdSetAdsrCtrl::Introspective =
+{
+    "Set ADSR Ctrl"sv,
+    "Bind MIDI controls to ADSR parameters."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdSetAdsrCtrl, attack),
+            "Attack Ctrl"sv,
+            0, 127, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSetAdsrCtrl, decay),
+            "Decay Ctrl"sv,
+            0, 127, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSetAdsrCtrl, sustain),
+            "Sustain Ctrl"sv,
+            0, 127, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSetAdsrCtrl, release),
+            "Release Ctrl"sv,
+            0, 127, 0
+        },
+    }
+};
 bool SoundMacro::CmdSetAdsrCtrl::Do(SoundMacroState& st, Voice& vox) const
 {
     st.m_useAdsrControllers = true;
@@ -470,6 +1029,39 @@ bool SoundMacro::CmdSetAdsrCtrl::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdRndNote::Introspective =
+{
+    "Random Note"sv,
+    "Sets random pitch between Note Lo and Note Hi, biased by Detune in cents. "
+    "If Free is set, the note will not snap to key steps."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdRndNote, noteLo),
+            "Note Lo"sv,
+            -127, 127, 48
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdRndNote, detune),
+            "Detune"sv,
+            0, 99, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdRndNote, noteHi),
+            "Note Hi"sv,
+            -127, 127, 72
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdRndNote, fixedFree),
+            "Free"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdRndNote, absRel),
+            "Absolute"sv,
+            0, 1, 0
+        }
+    }
+};
 bool SoundMacro::CmdRndNote::Do(SoundMacroState& st, Voice& vox) const
 {
     int32_t useNoteLo = noteLo;
@@ -497,13 +1089,49 @@ bool SoundMacro::CmdRndNote::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+
+const SoundMacro::CmdIntrospection SoundMacro::CmdAddNote::Introspective =
+{
+    "Add Note"sv,
+    "Sets new pitch by adding Add, biased by Detune in cents. "
+    "The time parameters behave like a WAIT command when non-zero."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdAddNote, add),
+            "Add"sv,
+            -128, 127, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdAddNote, detune),
+            "Detune"sv,
+            -99, 99, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdAddNote, originalKey),
+            "Original Key"sv,
+            0, 1, 1
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdAddNote, msSwitch),
+            "Use Millisec"sv,
+            0, 1, 1
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdAddNote, ticksOrMs),
+            "Ticks/Millisec"sv,
+            0, 65535, 0
+        }
+    }
+};
 bool SoundMacro::CmdAddNote::Do(SoundMacroState& st, Voice& vox) const
 {
+    st.m_curPitch += add * 100 + detune;
+
     /* Set wait state */
     if (msSwitch)
     {
         float q = msSwitch ? 1000.f : st.m_ticksPerSec;
-        float secTime = ticksPerMs / q;
+        float secTime = ticksOrMs / q;
         st.m_waitCountdown = secTime;
         st.m_inWait = true;
     }
@@ -513,15 +1141,44 @@ bool SoundMacro::CmdAddNote::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+
+const SoundMacro::CmdIntrospection SoundMacro::CmdSetNote::Introspective =
+{
+    "Set Note"sv,
+    "Sets new pitch to Key, biased by Detune in cents. "
+    "The time parameters behave like a WAIT command when non-zero."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdSetNote, key),
+            "Key"sv,
+            0, 127, 60
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSetNote, detune),
+            "Detune"sv,
+            -99, 99, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSetNote, msSwitch),
+            "Use Millisec"sv,
+            0, 1, 1
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSetNote, ticksOrMs),
+            "Ticks/Millisec"sv,
+            0, 65535, 0
+        }
+    }
+};
 bool SoundMacro::CmdSetNote::Do(SoundMacroState& st, Voice& vox) const
 {
     st.m_curPitch = key * 100 + detune;
 
     /* Set wait state */
-    if (ticksPerMs)
+    if (ticksOrMs)
     {
         float q = msSwitch ? 1000.f : st.m_ticksPerSec;
-        float secTime = ticksPerMs / q;
+        float secTime = ticksOrMs / q;
         st.m_waitCountdown = secTime;
         st.m_inWait = true;
     }
@@ -531,6 +1188,34 @@ bool SoundMacro::CmdSetNote::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdLastNote::Introspective =
+{
+    "Last Note"sv,
+    "Sets new pitch by adding Add to last played MIDI note, biased by Detune in cents. "
+    "The time parameters behave like a WAIT command when non-zero."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdLastNote, add),
+            "Key"sv,
+            -128, 127, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdLastNote, detune),
+            "Detune"sv,
+            -99, 99, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdLastNote, msSwitch),
+            "Use Millisec"sv,
+            0, 1, 1
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdLastNote, ticksOrMs),
+            "Ticks/Millisec"sv,
+            0, 65535, 0
+        }
+    }
+};
 bool SoundMacro::CmdLastNote::Do(SoundMacroState& st, Voice& vox) const
 {
     st.m_curPitch = (add + vox.getLastNote()) * 100 + detune;
@@ -539,7 +1224,7 @@ bool SoundMacro::CmdLastNote::Do(SoundMacroState& st, Voice& vox) const
     if (msSwitch)
     {
         float q = msSwitch ? 1000.f : st.m_ticksPerSec;
-        float secTime = ticksPerMs / q;
+        float secTime = ticksOrMs / q;
         st.m_waitCountdown = secTime;
         st.m_inWait = true;
     }
@@ -549,27 +1234,126 @@ bool SoundMacro::CmdLastNote::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdPortamento::Introspective =
+{
+    "Portamento"sv,
+    "Setup portamento mode for this voice."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdPortamento, portState),
+            "Port. State"sv,
+            0, 2, 1,
+            {
+                "Enable"sv,
+                "Disable"sv,
+                "MIDI Controlled"sv
+            }
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPortamento, portType),
+            "Port. Type"sv,
+            0, 1, 0,
+            {
+                "Last Pressed"sv,
+                "Always"sv
+            }
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPortamento, msSwitch),
+            "Use Millisec"sv,
+            0, 1, 1
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPortamento, ticksOrMs),
+            "Ticks/Millisec"sv,
+            0, 65535, 0
+        }
+    }
+};
 bool SoundMacro::CmdPortamento::Do(SoundMacroState& st, Voice& vox) const
 {
+    st.m_portamentoMode = portState;
+    st.m_portamentoType = portType;
     float q = msSwitch ? 1000.f : st.m_ticksPerSec;
-    st.m_portamentoTime = ticksPerMs / q;
+    st.m_portamentoTime = ticksOrMs / q;
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdVibrato::Introspective =
+{
+    "Vibrato"sv,
+    "Setup vibrato mode for this voice. Voice pitch will be "
+    "modulated using the Level magnitude or the modwheel."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdVibrato, levelNote),
+            "Level Note"sv,
+            -127, 127, 0,
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdVibrato, levelFine),
+            "Level Fine"sv,
+            -99, 99, 15,
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdVibrato, modwheelFlag),
+            "Use Modwheel"sv,
+            0, 1, 1
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdVibrato, msSwitch),
+            "Use Millisec"sv,
+            0, 1, 1
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdVibrato, ticksOrMs),
+            "Ticks/Millisec"sv,
+            0, 65535, 250
+        }
+    }
+};
 bool SoundMacro::CmdVibrato::Do(SoundMacroState& st, Voice& vox) const
 {
     float q = msSwitch ? 1000.f : st.m_ticksPerSec;
-    vox.setVibrato(levelNote * 100 + levelFine, modwheelFlag, ticksPerMs / q);
+    vox.setVibrato(levelNote * 100 + levelFine, modwheelFlag, ticksOrMs / q);
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdPitchSweep1::Introspective =
+{
+    "Pitch Sweep 1"sv,
+    "Setup pitch sweep 1 for this voice. Voice pitch will accumulate Add for Times frames. "
+    "If the time values are non-zero, this command also functions as a WAIT."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdPitchSweep1, times),
+            "Level Note"sv,
+            0, 127, 100,
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPitchSweep1, add),
+            "Level Fine"sv,
+            -32768, 32767, 100,
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPitchSweep1, msSwitch),
+            "Use Millisec"sv,
+            0, 1, 1
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPitchSweep1, ticksOrMs),
+            "Ticks/Millisec"sv,
+            0, 65535, 1000
+        }
+    }
+};
 bool SoundMacro::CmdPitchSweep1::Do(SoundMacroState& st, Voice& vox) const
 {
     /* Set wait state */
     if (msSwitch)
     {
         float q = msSwitch ? 1000.f : st.m_ticksPerSec;
-        float secTime = ticksPerMs / q;
+        float secTime = ticksOrMs / q;
         st.m_waitCountdown = secTime;
         st.m_inWait = true;
     }
@@ -579,13 +1363,41 @@ bool SoundMacro::CmdPitchSweep1::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdPitchSweep2::Introspective =
+{
+    "Pitch Sweep 2"sv,
+    "Setup pitch sweep 2 for this voice. Voice pitch will accumulate Add for Times frames. "
+    "If the time values are non-zero, this command also functions as a WAIT."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdPitchSweep2, times),
+            "Level Note"sv,
+            0, 127, 100,
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPitchSweep2, add),
+            "Level Fine"sv,
+            -32768, 32767, 100,
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPitchSweep2, msSwitch),
+            "Use Millisec"sv,
+            0, 1, 1
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPitchSweep2, ticksOrMs),
+            "Ticks/Millisec"sv,
+            0, 65535, 1000
+        }
+    }
+};
 bool SoundMacro::CmdPitchSweep2::Do(SoundMacroState& st, Voice& vox) const
 {
     /* Set wait state */
     if (msSwitch)
     {
         float q = msSwitch ? 1000.f : st.m_ticksPerSec;
-        float secTime = ticksPerMs / q;
+        float secTime = ticksOrMs / q;
         st.m_waitCountdown = secTime;
         st.m_inWait = true;
     }
@@ -595,36 +1407,135 @@ bool SoundMacro::CmdPitchSweep2::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdSetPitch::Introspective =
+{
+    "Set Pitch"sv,
+    "Set the playback sample rate directly."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdSetPitch, hz.val),
+            "Hz"sv,
+            0, 0xffffff, 22050,
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSetPitch, fine),
+            "Level Fine"sv,
+            0, 65535, 0,
+        }
+    }
+};
 bool SoundMacro::CmdSetPitch::Do(SoundMacroState& st, Voice& vox) const
 {
     vox.setPitchFrequency(hz, fine);
     return false;
 }
 
+
+const SoundMacro::CmdIntrospection SoundMacro::CmdSetPitchAdsr::Introspective =
+{
+    "Set Pitch ADSR"sv,
+    "Define the pitch ADSR from a pool object. The pitch range is "
+    "specified using Note and Cents parameters."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdSetPitchAdsr, table),
+            "ADSR"sv,
+            0, 16383, 0,
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSetPitchAdsr, keys),
+            "Note range"sv,
+            -128, 127, 0,
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSetPitchAdsr, cents),
+            "Cents range"sv,
+            -99, 99, 0,
+        }
+    }
+};
 bool SoundMacro::CmdSetPitchAdsr::Do(SoundMacroState& st, Voice& vox) const
 {
     vox.setPitchAdsr(table.id, keys * 100 + cents);
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdScaleVolumeDLS::Introspective =
+{
+    "Scale Volume DLS"sv,
+    "Sets new volume by scaling the velocity. A value of 4096 == 100%."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdScaleVolumeDLS, scale),
+            "Scale"sv,
+            0, 16383, 4096,
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdScaleVolumeDLS, originalVol),
+            "Original Vol"sv,
+            0, 1, 1,
+        }
+    }
+};
 bool SoundMacro::CmdScaleVolumeDLS::Do(SoundMacroState& st, Voice& vox) const
 {
     vox.m_curVol = int32_t(originalVol ? st.m_initVel : st.m_curVel) * scale / 4096.f / 127.f;
     return false;
 }
 
+
+const SoundMacro::CmdIntrospection SoundMacro::CmdMod2Vibrange::Introspective =
+{
+    "Mod 2 Vibrange"sv,
+    "Values used to scale the modwheel control for vibrato."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdMod2Vibrange, keys),
+            "Key range"sv,
+            0, 16383, 4096,
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdMod2Vibrange, cents),
+            "Cent range"sv,
+            0, 1, 1,
+        }
+    }
+};
 bool SoundMacro::CmdMod2Vibrange::Do(SoundMacroState& st, Voice& vox) const
 {
     vox.setMod2VibratoRange(keys * 100 + cents);
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdSetupTremolo::Introspective =
+{
+    "Setup Tremolo"sv,
+    "Setup tremolo effect. Must be combined with Tremolo Select to connect "
+    "with a configured LFO. A value of 4096 == 100%."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdSetupTremolo, scale),
+            "Scale"sv,
+            0, 16383, 8192,
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSetupTremolo, modwAddScale),
+            "Modw. add scale"sv,
+            0, 16383, 0,
+        }
+    }
+};
 bool SoundMacro::CmdSetupTremolo::Do(SoundMacroState& st, Voice& vox) const
 {
     vox.setTremolo(scale / 4096.f, scale / 4096.f);
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdReturn::Introspective =
+{
+    "Return"sv,
+    "Branch to after last Go Subroutine command and pop call stack."sv
+};
 bool SoundMacro::CmdReturn::Do(SoundMacroState& st, Voice& vox) const
 {
     if (st.m_pc.size() > 1)
@@ -635,6 +1546,23 @@ bool SoundMacro::CmdReturn::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdGoSub::Introspective =
+{
+    "Go Subroutine"sv,
+    "Push location onto call stack and branch to specified location."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdSplitRnd, macro),
+            "SoundMacro"sv,
+            0, 65535, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSplitRnd, macroStep),
+            "SoundMacro Step"sv,
+            0, 65535, 0
+        },
+    }
+};
 bool SoundMacro::CmdGoSub::Do(SoundMacroState& st, Voice& vox) const
 {
     if (macro.id == std::get<0>(st.m_pc.back()))
@@ -648,19 +1576,46 @@ bool SoundMacro::CmdGoSub::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdTrapEvent::Introspective =
+{
+    "Trap Event"sv,
+    "Register event-based branch to a specified location."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdTrapEvent, event),
+            "Event"sv,
+            0, 2, 0,
+            {
+                "Key Off"sv,
+                "Sample End"sv,
+                "Message Recv"sv
+            }
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdTrapEvent, macro),
+            "SoundMacro"sv,
+            0, 65535, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdTrapEvent, macroStep),
+            "SoundMacro Step"sv,
+            0, 65535, 0
+        },
+    }
+};
 bool SoundMacro::CmdTrapEvent::Do(SoundMacroState& st, Voice& vox) const
 {
     switch (event)
     {
-    case 0:
+    case EventType::KeyOff:
         vox.m_keyoffTrap.macroId = macro.id;
         vox.m_keyoffTrap.macroStep = macroStep;
         break;
-    case 1:
+    case EventType::SampleEnd:
         vox.m_sampleEndTrap.macroId = macro.id;
         vox.m_sampleEndTrap.macroStep = macroStep;
         break;
-    case 2:
+    case EventType::MessageRecv:
         vox.m_messageTrap.macroId = macro.id;
         vox.m_messageTrap.macroStep = macroStep;
         break;
@@ -671,19 +1626,37 @@ bool SoundMacro::CmdTrapEvent::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+
+const SoundMacro::CmdIntrospection SoundMacro::CmdUntrapEvent::Introspective =
+{
+    "Untrap Event"sv,
+    "Unregister event-based branch."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdUntrapEvent, event),
+            "Event"sv,
+            0, 2, 0,
+            {
+                "Key Off"sv,
+                "Sample End"sv,
+                "Message Recv"sv
+            }
+        }
+    }
+};
 bool SoundMacro::CmdUntrapEvent::Do(SoundMacroState& st, Voice& vox) const
 {
     switch (event)
     {
-    case 0:
+    case CmdTrapEvent::EventType::KeyOff:
         vox.m_keyoffTrap.macroId = 0xffff;
         vox.m_keyoffTrap.macroStep = 0xffff;
         break;
-    case 1:
+    case CmdTrapEvent::EventType::SampleEnd:
         vox.m_sampleEndTrap.macroId = 0xffff;
         vox.m_sampleEndTrap.macroStep = 0xffff;
         break;
-    case 2:
+    case CmdTrapEvent::EventType::MessageRecv:
         vox.m_messageTrap.macroId = 0xffff;
         vox.m_messageTrap.macroStep = 0xffff;
         break;
@@ -694,81 +1667,281 @@ bool SoundMacro::CmdUntrapEvent::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdSendMessage::Introspective =
+{
+    "Send Message"sv,
+    "Send message to SoundMacro or Voice referenced in a variable. "
+    "The message value is retrieved from a variable."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdSendMessage, isVar),
+            "Is Var"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSendMessage, macro),
+            "SoundMacro"sv,
+            1, 16383, 1
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSendMessage, voiceVar),
+            "Voice Var"sv,
+            0, 31, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSendMessage, valueVar),
+            "Value Var"sv,
+            0, 31, 0
+        },
+    }
+};
 bool SoundMacro::CmdSendMessage::Do(SoundMacroState& st, Voice& vox) const
 {
     if (isVar)
     {
-        std::shared_ptr<Voice> findVox = vox.getEngine().findVoice(st.m_variables[vid]);
+        std::shared_ptr<Voice> findVox = vox.getEngine().findVoice(st.m_variables[voiceVar & 0x1f]);
         if (findVox)
-            findVox->message(variable);
+            findVox->message(st.m_variables[valueVar & 0x1f]);
     }
     else
-        vox.getEngine().sendMacroMessage(macro.id, variable);
+        vox.getEngine().sendMacroMessage(macro.id, st.m_variables[valueVar & 0x1f]);
 
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdGetMessage::Introspective =
+{
+    "Get Message"sv,
+    "Get voice's latest received message and store its value in Variable."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdGetMessage, variable),
+            "Variable"sv,
+            0, 31, 0
+        }
+    }
+};
 bool SoundMacro::CmdGetMessage::Do(SoundMacroState& st, Voice& vox) const
 {
-    if (vox.m_messageQueue.size())
-    {
-        st.m_variables[variable] = vox.m_messageQueue.front();
-        vox.m_messageQueue.pop_front();
-    }
-    else
-        st.m_variables[variable] = 0;
-
+    st.m_variables[variable & 0x1f] = vox.m_latestMessage;
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdGetVid::Introspective =
+{
+    "Get VID"sv,
+    "Get ID of current voice or last voice started by Play Macro command and store in Variable."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdGetVid, variable),
+            "Variable"sv,
+            0, 31, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdGetVid, playMacro),
+            "Play Macro"sv,
+            0, 1, 1
+        }
+    }
+};
 bool SoundMacro::CmdGetVid::Do(SoundMacroState& st, Voice& vox) const
 {
-    st.m_variables[variable] = playMacro ? st.m_lastPlayMacroVid : vox.vid();
+    st.m_variables[variable & 0x1f] = playMacro ? st.m_lastPlayMacroVid : vox.vid();
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdAddAgeCount::Introspective =
+{
+    "Add Age Count"sv,
+    "Adds a value to the current voice's age counter."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdAddAgeCount, add),
+            "Add"sv,
+            -32768, 32767, -30000
+        }
+    }
+};
 bool SoundMacro::CmdAddAgeCount::Do(SoundMacroState& st, Voice& vox) const
 {
     return false;
 }
 
+
+const SoundMacro::CmdIntrospection SoundMacro::CmdSetAgeCount::Introspective =
+{
+    "Set Age Count"sv,
+    "Set a value into the current voice's age counter."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdSetAgeCount, counter),
+            "Counter"sv,
+            0, 65535, 0
+        }
+    }
+};
 bool SoundMacro::CmdSetAgeCount::Do(SoundMacroState& st, Voice& vox) const
 {
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdSendFlag::Introspective =
+{
+    "Send Flag"sv,
+    "Send a flag value to the host application."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdSendFlag, flagId),
+            "Flag ID"sv,
+            0, 15, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSendFlag, value),
+            "Value"sv,
+            0, 255, 255
+        }
+    }
+};
 bool SoundMacro::CmdSendFlag::Do(SoundMacroState& st, Voice& vox) const
 {
     /* TODO: figure out a good API */
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdPitchWheelR::Introspective =
+{
+    "Pitch Wheel Range"sv,
+    "Specifies the number of note steps for the range of the pitch wheel."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdPitchWheelR, rangeUp),
+            "Range Up"sv,
+            0, 127, 2
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPitchWheelR, rangeDown),
+            "Range Down"sv,
+            0, 127, 2
+        }
+    }
+};
 bool SoundMacro::CmdPitchWheelR::Do(SoundMacroState& st, Voice& vox) const
 {
     vox.setPitchWheelRange(rangeUp, rangeDown);
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdSetPriority::Introspective =
+{
+    "Set Priority"sv,
+    "Sets the priority of the current voice."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdSetPriority, prio),
+            "Priority"sv,
+            0, 254, 50
+        }
+    }
+};
 bool SoundMacro::CmdSetPriority::Do(SoundMacroState& st, Voice& vox) const
 {
     return false;
 }
 
+
+const SoundMacro::CmdIntrospection SoundMacro::CmdAddPriority::Introspective =
+{
+    "Add Priority"sv,
+    "Adds to the priority of the current voice."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdAddPriority, prio),
+            "Priority"sv,
+            -255, 255, 1
+        }
+    }
+};
 bool SoundMacro::CmdAddPriority::Do(SoundMacroState& st, Voice& vox) const
 {
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdAgeCntSpeed::Introspective =
+{
+    "Age Count Speed"sv,
+    "Sets the speed the current voice's age counter is decremented."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdAgeCntSpeed, time),
+            "Millisec"sv,
+            0, 16777215, 1080000
+        }
+    }
+};
 bool SoundMacro::CmdAgeCntSpeed::Do(SoundMacroState& st, Voice& vox) const
 {
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdAgeCntVel::Introspective =
+{
+    "Age Count Velocity"sv,
+    "Sets the current voice's age counter by scaling the velocity."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdAgeCntVel, ageBase),
+            "Base"sv,
+            0, 65535, 60000
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdAgeCntVel, ageScale),
+            "Scale"sv,
+            0, 65535, 127
+        }
+    }
+};
 bool SoundMacro::CmdAgeCntVel::Do(SoundMacroState& st, Voice& vox) const
 {
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdVolSelect::Introspective =
+{
+    "Volume Select"sv,
+    "Appends an evaluator component for computing the voice's volume."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdVolSelect, midiControl),
+            "MIDI Control"sv,
+            0, 132, 7
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdVolSelect, scalingPercentage),
+            "Scale Percentage"sv,
+            -10000, 10000, 100
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdVolSelect, combine),
+            "Combine Mode"sv,
+            0, 2, 0,
+            {
+                "Set"sv,
+                "Add"sv,
+                "Mult"sv
+            }
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdVolSelect, isVar),
+            "Is Var"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdVolSelect, fineScaling),
+            "Fine Scaling"sv,
+            -100, 100, 0
+        }
+    }
+};
 bool SoundMacro::CmdVolSelect::Do(SoundMacroState& st, Voice& vox) const
 {
     st.m_volumeSel.addComponent(midiControl, (scalingPercentage + fineScaling / 100.f) / 100.f,
@@ -777,6 +1950,43 @@ bool SoundMacro::CmdVolSelect::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdPanSelect::Introspective =
+{
+    "Pan Select"sv,
+    "Appends an evaluator component for computing the voice's pan."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdPanSelect, midiControl),
+            "MIDI Control"sv,
+            0, 132, 10
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPanSelect, scalingPercentage),
+            "Scale Percentage"sv,
+            -10000, 10000, 100
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPanSelect, combine),
+            "Combine Mode"sv,
+            0, 2, 0,
+            {
+                "Set"sv,
+                "Add"sv,
+                "Mult"sv
+            }
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPanSelect, isVar),
+            "Is Var"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPanSelect, fineScaling),
+            "Fine Scaling"sv,
+            -100, 100, 0
+        }
+    }
+};
 bool SoundMacro::CmdPanSelect::Do(SoundMacroState& st, Voice& vox) const
 {
     st.m_panSel.addComponent(midiControl, (scalingPercentage + fineScaling / 100.f) / 100.f,
@@ -785,6 +1995,43 @@ bool SoundMacro::CmdPanSelect::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdPitchWheelSelect::Introspective =
+{
+    "Pitch Wheel Select"sv,
+    "Appends an evaluator component for computing the voice's pitch wheel."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdPitchWheelSelect, midiControl),
+            "MIDI Control"sv,
+            0, 132, 128
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPitchWheelSelect, scalingPercentage),
+            "Scale Percentage"sv,
+            -10000, 10000, 100
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPitchWheelSelect, combine),
+            "Combine Mode"sv,
+            0, 2, 0,
+            {
+                "Set"sv,
+                "Add"sv,
+                "Mult"sv
+            }
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPitchWheelSelect, isVar),
+            "Is Var"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPitchWheelSelect, fineScaling),
+            "Fine Scaling"sv,
+            -100, 100, 0
+        }
+    }
+};
 bool SoundMacro::CmdPitchWheelSelect::Do(SoundMacroState& st, Voice& vox) const
 {
     st.m_pitchWheelSel.addComponent(midiControl, (scalingPercentage + fineScaling / 100.f) / 100.f,
@@ -793,6 +2040,43 @@ bool SoundMacro::CmdPitchWheelSelect::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdModWheelSelect::Introspective =
+{
+    "Mod Wheel Select"sv,
+    "Appends an evaluator component for computing the voice's mod wheel."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdModWheelSelect, midiControl),
+            "MIDI Control"sv,
+            0, 132, 1
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdModWheelSelect, scalingPercentage),
+            "Scale Percentage"sv,
+            -10000, 10000, 100
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdModWheelSelect, combine),
+            "Combine Mode"sv,
+            0, 2, 0,
+            {
+                "Set"sv,
+                "Add"sv,
+                "Mult"sv
+            }
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdModWheelSelect, isVar),
+            "Is Var"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdModWheelSelect, fineScaling),
+            "Fine Scaling"sv,
+            -100, 100, 0
+        }
+    }
+};
 bool SoundMacro::CmdModWheelSelect::Do(SoundMacroState& st, Voice& vox) const
 {
     st.m_modWheelSel.addComponent(midiControl, (scalingPercentage + fineScaling / 100.f) / 100.f,
@@ -801,6 +2085,43 @@ bool SoundMacro::CmdModWheelSelect::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdPedalSelect::Introspective =
+{
+    "Pedal Select"sv,
+    "Appends an evaluator component for computing the voice's pedal."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdPedalSelect, midiControl),
+            "MIDI Control"sv,
+            0, 132, 1
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPedalSelect, scalingPercentage),
+            "Scale Percentage"sv,
+            -10000, 10000, 100
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPedalSelect, combine),
+            "Combine Mode"sv,
+            0, 2, 0,
+            {
+                "Set"sv,
+                "Add"sv,
+                "Mult"sv
+            }
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPedalSelect, isVar),
+            "Is Var"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPedalSelect, fineScaling),
+            "Fine Scaling"sv,
+            -100, 100, 0
+        }
+    }
+};
 bool SoundMacro::CmdPedalSelect::Do(SoundMacroState& st, Voice& vox) const
 {
     st.m_pedalSel.addComponent(midiControl, (scalingPercentage + fineScaling / 100.f) / 100.f,
@@ -809,6 +2130,43 @@ bool SoundMacro::CmdPedalSelect::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdPortamentoSelect::Introspective =
+{
+    "Portamento Select"sv,
+    "Appends an evaluator component for computing the voice's portamento."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdPortamentoSelect, midiControl),
+            "MIDI Control"sv,
+            0, 132, 1
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPortamentoSelect, scalingPercentage),
+            "Scale Percentage"sv,
+            -10000, 10000, 100
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPortamentoSelect, combine),
+            "Combine Mode"sv,
+            0, 2, 0,
+            {
+                "Set"sv,
+                "Add"sv,
+                "Mult"sv
+            }
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPortamentoSelect, isVar),
+            "Is Var"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPortamentoSelect, fineScaling),
+            "Fine Scaling"sv,
+            -100, 100, 0
+        }
+    }
+};
 bool SoundMacro::CmdPortamentoSelect::Do(SoundMacroState& st, Voice& vox) const
 {
     st.m_portamentoSel.addComponent(midiControl, (scalingPercentage + fineScaling / 100.f) / 100.f,
@@ -817,6 +2175,43 @@ bool SoundMacro::CmdPortamentoSelect::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdReverbSelect::Introspective =
+{
+    "Reverb Select"sv,
+    "Appends an evaluator component for computing the voice's reverb."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdReverbSelect, midiControl),
+            "MIDI Control"sv,
+            0, 132, 1
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdReverbSelect, scalingPercentage),
+            "Scale Percentage"sv,
+            -10000, 10000, 100
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdReverbSelect, combine),
+            "Combine Mode"sv,
+            0, 2, 0,
+            {
+                "Set"sv,
+                "Add"sv,
+                "Mult"sv
+            }
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdReverbSelect, isVar),
+            "Is Var"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdReverbSelect, fineScaling),
+            "Fine Scaling"sv,
+            -100, 100, 0
+        }
+    }
+};
 bool SoundMacro::CmdReverbSelect::Do(SoundMacroState& st, Voice& vox) const
 {
     st.m_reverbSel.addComponent(midiControl, (scalingPercentage + fineScaling / 100.f) / 100.f,
@@ -825,6 +2220,43 @@ bool SoundMacro::CmdReverbSelect::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdSpanSelect::Introspective =
+{
+    "Span Select"sv,
+    "Appends an evaluator component for computing the voice's span."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdSpanSelect, midiControl),
+            "MIDI Control"sv,
+            0, 132, 19
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSpanSelect, scalingPercentage),
+            "Scale Percentage"sv,
+            -10000, 10000, 100
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSpanSelect, combine),
+            "Combine Mode"sv,
+            0, 2, 0,
+            {
+                "Set"sv,
+                "Add"sv,
+                "Mult"sv
+            }
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSpanSelect, isVar),
+            "Is Var"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSpanSelect, fineScaling),
+            "Fine Scaling"sv,
+            -100, 100, 0
+        }
+    }
+};
 bool SoundMacro::CmdSpanSelect::Do(SoundMacroState& st, Voice& vox) const
 {
     st.m_spanSel.addComponent(midiControl, (scalingPercentage + fineScaling / 100.f) / 100.f,
@@ -833,6 +2265,43 @@ bool SoundMacro::CmdSpanSelect::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdDopplerSelect::Introspective =
+{
+    "Doppler Select"sv,
+    "Appends an evaluator component for computing the voice's doppler."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdDopplerSelect, midiControl),
+            "MIDI Control"sv,
+            0, 132, 132
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdDopplerSelect, scalingPercentage),
+            "Scale Percentage"sv,
+            -10000, 10000, 100
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdDopplerSelect, combine),
+            "Combine Mode"sv,
+            0, 2, 0,
+            {
+                "Set"sv,
+                "Add"sv,
+                "Mult"sv
+            }
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdDopplerSelect, isVar),
+            "Is Var"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdDopplerSelect, fineScaling),
+            "Fine Scaling"sv,
+            -100, 100, 0
+        }
+    }
+};
 bool SoundMacro::CmdDopplerSelect::Do(SoundMacroState& st, Voice& vox) const
 {
     st.m_dopplerSel.addComponent(midiControl, (scalingPercentage + fineScaling / 100.f) / 100.f,
@@ -841,6 +2310,43 @@ bool SoundMacro::CmdDopplerSelect::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdTremoloSelect::Introspective =
+{
+    "Tremolo Select"sv,
+    "Appends an evaluator component for computing the voice's tremolo."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdTremoloSelect, midiControl),
+            "MIDI Control"sv,
+            0, 132, 1
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdTremoloSelect, scalingPercentage),
+            "Scale Percentage"sv,
+            -10000, 10000, 100
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdTremoloSelect, combine),
+            "Combine Mode"sv,
+            0, 2, 0,
+            {
+                "Set"sv,
+                "Add"sv,
+                "Mult"sv
+            }
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdTremoloSelect, isVar),
+            "Is Var"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdTremoloSelect, fineScaling),
+            "Fine Scaling"sv,
+            -100, 100, 0
+        }
+    }
+};
 bool SoundMacro::CmdTremoloSelect::Do(SoundMacroState& st, Voice& vox) const
 {
     st.m_tremoloSel.addComponent(midiControl, (scalingPercentage + fineScaling / 100.f) / 100.f,
@@ -849,6 +2355,43 @@ bool SoundMacro::CmdTremoloSelect::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdPreASelect::Introspective =
+{
+    "PreA Select"sv,
+    "Appends an evaluator component for computing the voice's pre-AUXA."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdPreASelect, midiControl),
+            "MIDI Control"sv,
+            0, 132, 1
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPreASelect, scalingPercentage),
+            "Scale Percentage"sv,
+            -10000, 10000, 100
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPreASelect, combine),
+            "Combine Mode"sv,
+            0, 2, 0,
+            {
+                "Set"sv,
+                "Add"sv,
+                "Mult"sv
+            }
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPreASelect, isVar),
+            "Is Var"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPreASelect, fineScaling),
+            "Fine Scaling"sv,
+            -100, 100, 0
+        }
+    }
+};
 bool SoundMacro::CmdPreASelect::Do(SoundMacroState& st, Voice& vox) const
 {
     st.m_preAuxASel.addComponent(midiControl, (scalingPercentage + fineScaling / 100.f) / 100.f,
@@ -857,6 +2400,43 @@ bool SoundMacro::CmdPreASelect::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdPreBSelect::Introspective =
+{
+    "PreB Select"sv,
+    "Appends an evaluator component for computing the voice's pre-AUXB."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdPreBSelect, midiControl),
+            "MIDI Control"sv,
+            0, 132, 1
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPreBSelect, scalingPercentage),
+            "Scale Percentage"sv,
+            -10000, 10000, 100
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPreBSelect, combine),
+            "Combine Mode"sv,
+            0, 2, 0,
+            {
+                "Set"sv,
+                "Add"sv,
+                "Mult"sv
+            }
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPreBSelect, isVar),
+            "Is Var"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPreBSelect, fineScaling),
+            "Fine Scaling"sv,
+            -100, 100, 0
+        }
+    }
+};
 bool SoundMacro::CmdPreBSelect::Do(SoundMacroState& st, Voice& vox) const
 {
     st.m_preAuxBSel.addComponent(midiControl, (scalingPercentage + fineScaling / 100.f) / 100.f,
@@ -865,6 +2445,43 @@ bool SoundMacro::CmdPreBSelect::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdPostBSelect::Introspective =
+{
+    "PostB Select"sv,
+    "Appends an evaluator component for computing the voice's post-AUXB."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdPostBSelect, midiControl),
+            "MIDI Control"sv,
+            0, 132, 1
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPostBSelect, scalingPercentage),
+            "Scale Percentage"sv,
+            -10000, 10000, 100
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPostBSelect, combine),
+            "Combine Mode"sv,
+            0, 2, 0,
+            {
+                "Set"sv,
+                "Add"sv,
+                "Mult"sv
+            }
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPostBSelect, isVar),
+            "Is Var"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdPostBSelect, fineScaling),
+            "Fine Scaling"sv,
+            -100, 100, 0
+        }
+    }
+};
 bool SoundMacro::CmdPostBSelect::Do(SoundMacroState& st, Voice& vox) const
 {
     st.m_postAuxB.addComponent(midiControl, (scalingPercentage + fineScaling / 100.f) / 100.f,
@@ -873,22 +2490,126 @@ bool SoundMacro::CmdPostBSelect::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdAuxAFXSelect::Introspective =
+{
+    "AuxA FX Select"sv,
+    "Appends an evaluator component for computing the AUXA Parameter."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdAuxAFXSelect, midiControl),
+            "MIDI Control"sv,
+            0, 132, 1
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdAuxAFXSelect, scalingPercentage),
+            "Scale Percentage"sv,
+            -10000, 10000, 100
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdAuxAFXSelect, combine),
+            "Combine Mode"sv,
+            0, 2, 0,
+            {
+                "Set"sv,
+                "Add"sv,
+                "Mult"sv
+            }
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdAuxAFXSelect, isVar),
+            "Is Var"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdAuxAFXSelect, fineScaling),
+            "Fine Scaling"sv,
+            -100, 100, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdAuxAFXSelect, paramIndex),
+            "Param Index"sv,
+            0, 2, 0
+        }
+    }
+};
 bool SoundMacro::CmdAuxAFXSelect::Do(SoundMacroState& st, Voice& vox) const
 {
-    st.m_auxAFxSel.addComponent(midiControl, (scalingPercentage + fineScaling / 100.f) / 100.f,
-                                SoundMacroState::Evaluator::Combine(combine),
-                                SoundMacroState::Evaluator::VarType(isVar));
+    st.m_auxAFxSel[std::min(paramIndex, atUint8(3))].
+        addComponent(midiControl, (scalingPercentage + fineScaling / 100.f) / 100.f,
+                     SoundMacroState::Evaluator::Combine(combine),
+                     SoundMacroState::Evaluator::VarType(isVar));
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdAuxBFXSelect::Introspective =
+{
+    "AuxB FX Select"sv,
+    "Appends an evaluator component for computing the AUXB Parameter."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdAuxBFXSelect, midiControl),
+            "MIDI Control"sv,
+            0, 132, 1
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdAuxBFXSelect, scalingPercentage),
+            "Scale Percentage"sv,
+            -10000, 10000, 100
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdAuxBFXSelect, combine),
+            "Combine Mode"sv,
+            0, 2, 0,
+            {
+                "Set"sv,
+                "Add"sv,
+                "Mult"sv
+            }
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdAuxBFXSelect, isVar),
+            "Is Var"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdAuxBFXSelect, fineScaling),
+            "Fine Scaling"sv,
+            -100, 100, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdAuxBFXSelect, paramIndex),
+            "Param Index"sv,
+            0, 2, 0
+        }
+    }
+};
 bool SoundMacro::CmdAuxBFXSelect::Do(SoundMacroState& st, Voice& vox) const
 {
-    st.m_auxBFxSel.addComponent(midiControl, (scalingPercentage + fineScaling / 100.f) / 100.f,
-                                SoundMacroState::Evaluator::Combine(combine),
-                                SoundMacroState::Evaluator::VarType(isVar));
+    st.m_auxBFxSel[std::min(paramIndex, atUint8(3))].
+        addComponent(midiControl, (scalingPercentage + fineScaling / 100.f) / 100.f,
+                     SoundMacroState::Evaluator::Combine(combine),
+                     SoundMacroState::Evaluator::VarType(isVar));
     return false;
 }
 
+
+const SoundMacro::CmdIntrospection SoundMacro::CmdSetupLFO::Introspective =
+{
+    "Setup LFO"sv,
+    "Configures voice's LFO period in milliseconds."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdSetupLFO, lfoNumber),
+            "LFO Number"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSetupLFO, periodInMs),
+            "Period"sv,
+            -10000, 10000, 100
+        }
+    }
+};
 bool SoundMacro::CmdSetupLFO::Do(SoundMacroState& st, Voice& vox) const
 {
     if (lfoNumber == 0)
@@ -898,11 +2619,45 @@ bool SoundMacro::CmdSetupLFO::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdModeSelect::Introspective =
+{
+    "Mode Select"sv,
+    "Sets operating modes for current voice."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdModeSelect, dlsVol),
+            "DLS Vol"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdModeSelect, itd),
+            "ITD"sv,
+            0, 1, 0
+        }
+    }
+};
 bool SoundMacro::CmdModeSelect::Do(SoundMacroState& st, Voice& vox) const
 {
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdSetKeygroup::Introspective =
+{
+    "Set Keygroup"sv,
+    "Selects keygroup for current voice."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdSetKeygroup, group),
+            "Group"sv,
+            0, 255, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSetKeygroup, killNow),
+            "Kill now"sv,
+            0, 1, 0
+        }
+    }
+};
 bool SoundMacro::CmdSetKeygroup::Do(SoundMacroState& st, Voice& vox) const
 {
     vox.setKeygroup(0);
@@ -914,11 +2669,65 @@ bool SoundMacro::CmdSetKeygroup::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdSRCmodeSelect::Introspective =
+{
+    "SRC Mode Select"sv,
+    "Sets operating modes for sample rate converter."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdSRCmodeSelect, srcType),
+            "SRC Type"sv,
+            0, 2, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSRCmodeSelect, type0SrcFilter),
+            "Type 0 SRC Filter"sv,
+            0, 2, 1
+        }
+    }
+};
 bool SoundMacro::CmdSRCmodeSelect::Do(SoundMacroState& st, Voice& vox) const
 {
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdAddVars::Introspective =
+{
+    "Add Vars"sv,
+    "A = B + C"sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdAddVars, varCtrlA),
+            "Use Ctrl A"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdAddVars, a),
+            "A"sv,
+            0, 255, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdAddVars, varCtrlB),
+            "Use Ctrl B"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdAddVars, b),
+            "B"sv,
+            0, 255, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdAddVars, varCtrlC),
+            "Use Ctrl C"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdAddVars, c),
+            "C"sv,
+            0, 255, 0
+        },
+    }
+};
 bool SoundMacro::CmdAddVars::Do(SoundMacroState& st, Voice& vox) const
 {
     int32_t useB, useC;
@@ -926,21 +2735,58 @@ bool SoundMacro::CmdAddVars::Do(SoundMacroState& st, Voice& vox) const
     if (varCtrlB)
         useB = vox.getCtrlValue(b);
     else
-        useB = st.m_variables[b];
+        useB = st.m_variables[b & 0x1f];
 
     if (varCtrlC)
         useC = vox.getCtrlValue(c);
     else
-        useC = st.m_variables[c];
+        useC = st.m_variables[c & 0x1f];
 
     if (varCtrlA)
         vox.setCtrlValue(a, useB + useC);
     else
-        st.m_variables[a] = useB + useC;
+        st.m_variables[a & 0x1f] = useB + useC;
 
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdSubVars::Introspective =
+{
+    "Sub Vars"sv,
+    "A = B - C"sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdSubVars, varCtrlA),
+            "Use Ctrl A"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSubVars, a),
+            "A"sv,
+            0, 255, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSubVars, varCtrlB),
+            "Use Ctrl B"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSubVars, b),
+            "B"sv,
+            0, 255, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSubVars, varCtrlC),
+            "Use Ctrl C"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSubVars, c),
+            "C"sv,
+            0, 255, 0
+        },
+    }
+};
 bool SoundMacro::CmdSubVars::Do(SoundMacroState& st, Voice& vox) const
 {
     int32_t useB, useC;
@@ -948,21 +2794,58 @@ bool SoundMacro::CmdSubVars::Do(SoundMacroState& st, Voice& vox) const
     if (varCtrlB)
         useB = vox.getCtrlValue(b);
     else
-        useB = st.m_variables[b];
+        useB = st.m_variables[b & 0x1f];
 
     if (varCtrlC)
         useC = vox.getCtrlValue(c);
     else
-        useC = st.m_variables[c];
+        useC = st.m_variables[c & 0x1f];
 
     if (varCtrlA)
         vox.setCtrlValue(a, useB - useC);
     else
-        st.m_variables[a] = useB - useC;
+        st.m_variables[a & 0x1f] = useB - useC;
 
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdMulVars::Introspective =
+{
+    "Mul Vars"sv,
+    "A = B * C"sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdMulVars, varCtrlA),
+            "Use Ctrl A"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdMulVars, a),
+            "A"sv,
+            0, 255, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdMulVars, varCtrlB),
+            "Use Ctrl B"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdMulVars, b),
+            "B"sv,
+            0, 255, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdMulVars, varCtrlC),
+            "Use Ctrl C"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdMulVars, c),
+            "C"sv,
+            0, 255, 0
+        },
+    }
+};
 bool SoundMacro::CmdMulVars::Do(SoundMacroState& st, Voice& vox) const
 {
     int32_t useB, useC;
@@ -970,21 +2853,58 @@ bool SoundMacro::CmdMulVars::Do(SoundMacroState& st, Voice& vox) const
     if (varCtrlB)
         useB = vox.getCtrlValue(b);
     else
-        useB = st.m_variables[b];
+        useB = st.m_variables[b & 0x1f];
 
     if (varCtrlC)
         useC = vox.getCtrlValue(c);
     else
-        useC = st.m_variables[c];
+        useC = st.m_variables[c & 0x1f];
 
     if (varCtrlA)
         vox.setCtrlValue(a, useB * useC);
     else
-        st.m_variables[a] = useB * useC;
+        st.m_variables[a & 0x1f] = useB * useC;
 
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdDivVars::Introspective =
+{
+    "Div Vars"sv,
+    "A = B / C"sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdDivVars, varCtrlA),
+            "Use Ctrl A"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdDivVars, a),
+            "A"sv,
+            0, 255, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdDivVars, varCtrlB),
+            "Use Ctrl B"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdDivVars, b),
+            "B"sv,
+            0, 255, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdDivVars, varCtrlC),
+            "Use Ctrl C"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdDivVars, c),
+            "C"sv,
+            0, 255, 0
+        },
+    }
+};
 bool SoundMacro::CmdDivVars::Do(SoundMacroState& st, Voice& vox) const
 {
     int32_t useB, useC;
@@ -992,21 +2912,53 @@ bool SoundMacro::CmdDivVars::Do(SoundMacroState& st, Voice& vox) const
     if (varCtrlB)
         useB = vox.getCtrlValue(b);
     else
-        useB = st.m_variables[b];
+        useB = st.m_variables[b & 0x1f];
 
     if (varCtrlC)
         useC = vox.getCtrlValue(c);
     else
-        useC = st.m_variables[c];
+        useC = st.m_variables[c & 0x1f];
 
     if (varCtrlA)
         vox.setCtrlValue(a, useB / useC);
     else
-        st.m_variables[a] = useB / useC;
+        st.m_variables[a & 0x1f] = useB / useC;
 
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdAddIVars::Introspective =
+{
+    "Add Imm Vars"sv,
+    "A = B + Immediate"sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdAddIVars, varCtrlA),
+            "Use Ctrl A"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdAddIVars, a),
+            "A"sv,
+            0, 255, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdAddIVars, varCtrlB),
+            "Use Ctrl B"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdAddIVars, b),
+            "B"sv,
+            0, 255, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdAddIVars, imm),
+            "Immediate"sv,
+            -32768, 32767, 0
+        },
+    }
+};
 bool SoundMacro::CmdAddIVars::Do(SoundMacroState& st, Voice& vox) const
 {
     int32_t useB;
@@ -1014,26 +2966,85 @@ bool SoundMacro::CmdAddIVars::Do(SoundMacroState& st, Voice& vox) const
     if (varCtrlB)
         useB = vox.getCtrlValue(b);
     else
-        useB = st.m_variables[b];
+        useB = st.m_variables[b & 0x1f];
 
     if (varCtrlA)
         vox.setCtrlValue(a, useB + imm);
     else
-        st.m_variables[a] = useB + imm;
+        st.m_variables[a & 0x1f] = useB + imm;
 
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdSetVar::Introspective =
+{
+    "Set Var"sv,
+    "A = Immediate"sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdSetVar, varCtrlA),
+            "Use Ctrl A"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSetVar, a),
+            "A"sv,
+            0, 255, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdSetVar, imm),
+            "Immediate"sv,
+            -32768, 32767, 0
+        },
+    }
+};
 bool SoundMacro::CmdSetVar::Do(SoundMacroState& st, Voice& vox) const
 {
     if (varCtrlA)
         vox.setCtrlValue(a, imm);
     else
-        st.m_variables[a] = imm;
+        st.m_variables[a & 0x1f] = imm;
 
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdIfEqual::Introspective =
+{
+    "If Equal"sv,
+    "Branches to specified step if A == B."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdIfEqual, varCtrlA),
+            "Use Ctrl A"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdIfEqual, a),
+            "A"sv,
+            0, 255, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdIfEqual, varCtrlB),
+            "Use Ctrl B"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdIfEqual, b),
+            "B"sv,
+            0, 255, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdIfEqual, notEq),
+            "Not"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdIfEqual, macroStep),
+            "SoundMacro Step"sv,
+            0, 65535, 0
+        },
+    }
+};
 bool SoundMacro::CmdIfEqual::Do(SoundMacroState& st, Voice& vox) const
 {
     int32_t useA, useB;
@@ -1041,12 +3052,12 @@ bool SoundMacro::CmdIfEqual::Do(SoundMacroState& st, Voice& vox) const
     if (varCtrlA)
         useA = vox.getCtrlValue(a);
     else
-        useA = st.m_variables[a];
+        useA = st.m_variables[a & 0x1f];
 
     if (varCtrlB)
         useB = vox.getCtrlValue(b);
     else
-        useB = st.m_variables[b];
+        useB = st.m_variables[b & 0x1f];
 
     if ((useA == useB) ^ notEq)
         st._setPC(macroStep);
@@ -1054,6 +3065,43 @@ bool SoundMacro::CmdIfEqual::Do(SoundMacroState& st, Voice& vox) const
     return false;
 }
 
+const SoundMacro::CmdIntrospection SoundMacro::CmdIfLess::Introspective =
+{
+    "If Less"sv,
+    "Branches to specified step if A < B."sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdIfLess, varCtrlA),
+            "Use Ctrl A"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdIfLess, a),
+            "A"sv,
+            0, 255, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdIfLess, varCtrlB),
+            "Use Ctrl B"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdIfLess, b),
+            "B"sv,
+            0, 255, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdIfLess, notLt),
+            "Not"sv,
+            0, 1, 0
+        },
+        {
+            FIELD_HEAD(SoundMacro::CmdIfLess, macroStep),
+            "SoundMacro Step"sv,
+            0, 65535, 0
+        },
+    }
+};
 bool SoundMacro::CmdIfLess::Do(SoundMacroState& st, Voice& vox) const
 {
     int32_t useA, useB;
@@ -1061,12 +3109,12 @@ bool SoundMacro::CmdIfLess::Do(SoundMacroState& st, Voice& vox) const
     if (varCtrlA)
         useA = vox.getCtrlValue(a);
     else
-        useA = st.m_variables[a];
+        useA = st.m_variables[a & 0x1f];
 
     if (varCtrlB)
         useB = vox.getCtrlValue(b);
     else
-        useB = st.m_variables[b];
+        useB = st.m_variables[b & 0x1f];
 
     if ((useA < useB) ^ notLt)
         st._setPC(macroStep);

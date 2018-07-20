@@ -311,7 +311,7 @@
      <normaloff>:/icons/IconNewSoundGroup.svg</normaloff>:/icons/IconNewSoundGroup.svg</iconset>
    </property>
    <property name="text">
-    <string>&amp;New SFX Group</string>
+    <string>New SF&amp;X Group</string>
    </property>
   </action>
   <action name="actionNew_Song_Group">
@@ -323,7 +323,7 @@
      <normaloff>:/icons/IconNewSongGroup.svg</normaloff>:/icons/IconNewSongGroup.svg</iconset>
    </property>
    <property name="text">
-    <string>New &amp;Song Group</string>
+    <string>New Son&amp;g Group</string>
    </property>
   </action>
   <action name="actionNew_Sound_Macro">
@@ -409,7 +409,7 @@
      <normaloff>:/icons/IconNewGroup.svg</normaloff>:/icons/IconNewGroup.svg</iconset>
    </property>
    <property name="text">
-    <string>N&amp;ew Subproject</string>
+    <string>&amp;New Subproject</string>
    </property>
   </action>
   <action name="actionNew_ADSR">
@@ -421,7 +421,7 @@
      <normaloff>:/icons/IconNewADSR.svg</normaloff>:/icons/IconNewADSR.svg</iconset>
    </property>
    <property name="text">
-    <string>Ne&amp;w ADSR</string>
+    <string>New &amp;ADSR</string>
    </property>
   </action>
   <action name="actionNew_Curve">

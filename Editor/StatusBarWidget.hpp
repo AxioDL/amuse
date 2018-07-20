@@ -13,7 +13,11 @@ class StatusBarWidget : public QStatusBar
     QLabel* m_normalMessage;
     StatusBarFocus* m_curFocus = nullptr;
 public:
-    explicit StatusBarWidget(QWidget* parent = Q_NULLPTR) : QStatusBar(parent) {}
+    explicit StatusBarWidget(QWidget* parent = Q_NULLPTR) : QStatusBar(parent)
+    {
+        m_normalMessage = new QLabel(this);
+        addWidget(m_normalMessage);
+    }
     void setNormalMessage(const QString& message) { m_normalMessage->setText(message); }
 };
 

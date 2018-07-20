@@ -354,6 +354,16 @@ uint32_t Voice::_GetBlockSampleCount(SampleFormat fmt)
     }
 }
 
+static float TriangleWave(float t)
+{
+    t = std::fmod(t, 1.f);
+    if (t < 0.25f)
+        return t / 0.25f;
+    if (t >= 0.75f)
+        return (t - 0.75f) / 0.25f - 1.f;
+    return (t - 0.25f) / 0.5f * -2.f + 1.f;
+}
+
 void Voice::preSupplyAudio(double dt)
 {
     /* Process SoundMacro; bootstrapping sample if needed */
@@ -452,7 +462,7 @@ void Voice::preSupplyAudio(double dt)
     if (m_vibratoTime >= 0.f)
     {
         m_vibratoTime += dt;
-        float vibrato = std::sin(m_vibratoTime / m_vibratoPeriod * (2.f * M_PIF));
+        float vibrato = TriangleWave(m_vibratoTime / m_vibratoPeriod);
         if (m_vibratoModWheel)
             newPitch += m_vibratoModLevel * vibrato * (m_state.m_curMod / 127.f);
         else
@@ -464,7 +474,13 @@ void Voice::preSupplyAudio(double dt)
     if (m_pitchSweep1It < m_pitchSweep1Times)
     {
         ++m_pitchSweep1It;
-        m_pitchSweep1 = m_pitchSweep1Add * m_pitchSweep1It / m_pitchSweep1Times;
+        m_pitchSweep1 = m_pitchSweep1Add * m_pitchSweep1It;
+        refresh = true;
+    }
+    else if (m_pitchSweep1Times != 0)
+    {
+        m_pitchSweep1It = 0;
+        m_pitchSweep1 = 0;
         refresh = true;
     }
 
@@ -472,7 +488,13 @@ void Voice::preSupplyAudio(double dt)
     if (m_pitchSweep2It < m_pitchSweep2Times)
     {
         ++m_pitchSweep2It;
-        m_pitchSweep2 = m_pitchSweep2Add * m_pitchSweep2It / m_pitchSweep2Times;
+        m_pitchSweep2 = m_pitchSweep2Add * m_pitchSweep2It;
+        refresh = true;
+    }
+    else if (m_pitchSweep2Times != 0)
+    {
+        m_pitchSweep2It = 0;
+        m_pitchSweep2 = 0;
         refresh = true;
     }
 
@@ -891,7 +913,7 @@ void Voice::message(int32_t val)
     if (m_destroyed)
         return;
 
-    m_messageQueue.push_back(val);
+    m_latestMessage = val;
 
     if (m_messageTrap.macroId != 0xffff)
     {
@@ -1358,14 +1380,14 @@ bool Voice::doPortamento(uint8_t newNote)
     bool pState;
     switch (m_state.m_portamentoMode)
     {
-    case 0:
+    case SoundMacro::CmdPortamento::PortState::Disable:
     default:
         pState = false;
         break;
-    case 1:
+    case SoundMacro::CmdPortamento::PortState::Enable:
         pState = true;
         break;
-    case 2:
+    case SoundMacro::CmdPortamento::PortState::MIDIControlled:
         pState = m_state.m_portamentoSel ? (m_state.m_portamentoSel.evaluate(m_voiceTime, *this, m_state) >= 1.f)
                                          : (getCtrlValue(65) >= 64);
         break;

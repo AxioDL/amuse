@@ -53,8 +53,10 @@ struct SoundMacroState
     uint8_t m_midiSustain;     /**< Sustain MIDI controller */
     uint8_t m_midiRelease;     /**< Release MIDI controller */
 
-    uint8_t m_portamentoMode = 2;  /**< (0: Off, 1: On, 2: MIDI specified) */
-    uint8_t m_portamentoType = 0;  /**< (0: New key pressed while old key pressed, 1: Always) */
+    SoundMacro::CmdPortamento::PortState m_portamentoMode =
+        SoundMacro::CmdPortamento::PortState::MIDIControlled; /**< (0: Off, 1: On, 2: MIDI specified) */
+    SoundMacro::CmdPortamento::PortType m_portamentoType =
+        SoundMacro::CmdPortamento::PortType::LastPressed; /**< (0: New key pressed while old key pressed, 1: Always) */
     float m_portamentoTime = 0.5f; /**< portamento transition time, 0.f will perform legato */
 
     /** Used to build a multi-component formula for overriding controllers */
@@ -106,14 +108,14 @@ struct SoundMacroState
     Evaluator m_reverbSel;
     Evaluator m_preAuxASel;
     Evaluator m_preAuxBSel;
-    Evaluator m_auxAFxSel;
-    Evaluator m_auxBFxSel;
+    Evaluator m_auxAFxSel[3];
+    Evaluator m_auxBFxSel[3];
     Evaluator m_postAuxB;
     Evaluator m_spanSel;
     Evaluator m_dopplerSel;
     Evaluator m_tremoloSel;
 
-    int32_t m_variables[256]; /**< 32-bit variables set with relevant commands */
+    int32_t m_variables[32]; /**< 32-bit variables set with relevant commands */
 
     /** Event registration data for TRAP_EVENT */
     struct EventTrap

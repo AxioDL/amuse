@@ -124,6 +124,37 @@ struct SoundMacro
         Invalid = 0xff
     };
 
+    /** Introspection structure used by editors to define user interactivity per command */
+    struct CmdIntrospection
+    {
+        struct Field
+        {
+            enum class Type
+            {
+                Invalid,
+                Bool,
+                Int8,
+                UInt8,
+                Int16,
+                UInt16,
+                Int32,
+                UInt32,
+                SoundMacroId,
+                TableId,
+                SampleId,
+                Choice
+            };
+            Type m_tp;
+            size_t m_offset;
+            std::string_view m_name;
+            int64_t m_min, m_max, m_default;
+            std::string_view m_choices[4];
+        };
+        std::string_view m_name;
+        std::string_view m_description;
+        Field m_fields[7];
+    };
+
     /** Base command interface. All versions of MusyX encode little-endian parameters */
     struct ICmd : LittleDNAV
     {
@@ -136,6 +167,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::End; }
     };
@@ -143,6 +175,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::Stop; }
     };
@@ -150,6 +183,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atInt8> key;
         SoundMacroIdDNA<athena::Little> macro;
         Value<atUint16> macroStep;
@@ -160,6 +194,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atInt8> velocity;
         SoundMacroIdDNA<athena::Little> macro;
         Value<atUint16> macroStep;
@@ -170,12 +205,13 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<bool> keyOff;
         Value<bool> random;
         Value<bool> sampleEnd;
         Value<bool> absolute;
         Value<bool> msSwitch;
-        Value<atUint16> ticksPerMs;
+        Value<atUint16> ticksOrMs;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::WaitTicks; }
     };
@@ -183,6 +219,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<bool> keyOff;
         Value<bool> random;
         Value<bool> sampleEnd;
@@ -195,6 +232,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Seek<1, athena::SeekOrigin::Current> dummy;
         SoundMacroIdDNA<athena::Little> macro;
         Value<atUint16> macroStep;
@@ -205,6 +243,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<bool> keyOff;
         Value<bool> random;
         Value<bool> sampleEnd;
@@ -218,6 +257,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atInt8> addNote;
         SoundMacroIdDNA<athena::Little> macro;
         Value<atUint16> macroStep;
@@ -230,6 +270,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atUint8> variable;
         Value<bool> lastStarted;
         bool Do(SoundMacroState& st, Voice& vox) const;
@@ -239,11 +280,10 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atInt8> modValue;
         SoundMacroIdDNA<athena::Little> macro;
         Value<atUint16> macroStep;
-        Value<atUint8> priority;
-        Value<atUint8> maxVoices;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::SplitMod; }
     };
@@ -251,6 +291,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atInt8> scale;
         Value<atInt8> centerKey;
         Value<atInt8> centerPan;
@@ -261,6 +302,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         TableIdDNA<athena::Little> table;
         Value<bool> dlsMode;
         bool Do(SoundMacroState& st, Voice& vox) const;
@@ -270,6 +312,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atInt8> scale;
         Value<atInt8> add;
         TableIdDNA<athena::Little> table;
@@ -281,6 +324,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atInt8> panPosition;
         Value<atUint16> timeMs;
         Value<atInt8> width;
@@ -291,11 +335,12 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atInt8> scale;
         Value<atInt8> add;
         TableIdDNA<athena::Little> table;
         Value<bool> msSwitch;
-        Value<atUint16> fadeTime;
+        Value<atUint16> ticksOrMs;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::Envelope; }
     };
@@ -303,8 +348,15 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
+        enum class Mode : atInt8
+        {
+            NoScale = 0,
+            Negative = 1,
+            Positive = 2
+        };
         SampleIdDNA<athena::Little> sample;
-        Value<atInt8> mode;
+        Value<Mode> mode;
         Value<atUint32> offset;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::StartSample; }
@@ -313,6 +365,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::StopSample; }
     };
@@ -320,6 +373,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::KeyOff; }
     };
@@ -327,6 +381,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atUint8> rnd;
         SoundMacroIdDNA<athena::Little> macro;
         Value<atUint16> macroStep;
@@ -337,11 +392,12 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atInt8> scale;
         Value<atInt8> add;
         TableIdDNA<athena::Little> table;
         Value<bool> msSwitch;
-        Value<atUint16> ticksPerMs;
+        Value<atUint16> ticksOrMs;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::FadeIn; }
     };
@@ -349,6 +405,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atInt8> spanPosition;
         Value<atUint16> timeMs;
         Value<atInt8> width;
@@ -359,6 +416,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atUint8> attack;
         Value<atUint8> decay;
         Value<atUint8> sustain;
@@ -370,6 +428,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atInt8> noteLo;
         Value<atInt8> detune;
         Value<atInt8> noteHi;
@@ -382,12 +441,13 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atInt8> add;
         Value<atInt8> detune;
         Value<bool> originalKey;
         Seek<1, athena::SeekOrigin::Current> seek;
         Value<bool> msSwitch;
-        Value<atUint16> ticksPerMs;
+        Value<atUint16> ticksOrMs;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::AddNote; }
     };
@@ -395,11 +455,12 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atInt8> key;
         Value<atInt8> detune;
         Seek<2, athena::SeekOrigin::Current> seek;
         Value<bool> msSwitch;
-        Value<atUint16> ticksPerMs;
+        Value<atUint16> ticksOrMs;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::SetNote; }
     };
@@ -407,11 +468,12 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atInt8> add;
         Value<atInt8> detune;
         Seek<2, athena::SeekOrigin::Current> seek;
         Value<bool> msSwitch;
-        Value<atUint16> ticksPerMs;
+        Value<atUint16> ticksOrMs;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::LastNote; }
     };
@@ -419,11 +481,23 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
-        Value<atInt8> portState;
-        Value<atInt8> portType;
+        static const CmdIntrospection Introspective;
+        enum class PortState : atInt8
+        {
+            Disable,
+            Enable,
+            MIDIControlled
+        };
+        Value<PortState> portState;
+        enum class PortType : atInt8
+        {
+            LastPressed,
+            Always
+        };
+        Value<PortType> portType;
         Seek<2, athena::SeekOrigin::Current> seek;
         Value<bool> msSwitch;
-        Value<atUint16> ticksPerMs;
+        Value<atUint16> ticksOrMs;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::Portamento; }
     };
@@ -431,12 +505,13 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atUint8> levelNote;
         Value<atUint8> levelFine;
         Value<bool> modwheelFlag;
         Seek<1, athena::SeekOrigin::Current> seek;
         Value<bool> msSwitch;
-        Value<atUint16> ticksPerMs;
+        Value<atUint16> ticksOrMs;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::Vibrato; }
     };
@@ -444,11 +519,12 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atInt8> times;
         Value<atInt16> add;
         Seek<1, athena::SeekOrigin::Current> seek;
         Value<bool> msSwitch;
-        Value<atUint16> ticksPerMs;
+        Value<atUint16> ticksOrMs;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::PitchSweep1; }
     };
@@ -456,11 +532,12 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atInt8> times;
         Value<atInt16> add;
         Seek<1, athena::SeekOrigin::Current> seek;
         Value<bool> msSwitch;
-        Value<atUint16> ticksPerMs;
+        Value<atUint16> ticksOrMs;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::PitchSweep2; }
     };
@@ -468,6 +545,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         LittleUInt24 hz;
         Value<atUint16> fine;
         bool Do(SoundMacroState& st, Voice& vox) const;
@@ -477,6 +555,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         TableIdDNA<athena::Little> table;
         Seek<1, athena::SeekOrigin::Current> seek;
         Value<atInt8> keys;
@@ -488,6 +567,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atInt16> scale;
         Value<bool> originalVol;
         bool Do(SoundMacroState& st, Voice& vox) const;
@@ -497,6 +577,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atInt8> keys;
         Value<atInt8> cents;
         bool Do(SoundMacroState& st, Voice& vox) const;
@@ -506,6 +587,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atInt16> scale;
         Seek<1, athena::SeekOrigin::Current> seek;
         Value<atInt16> modwAddScale;
@@ -516,6 +598,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::Return; }
     };
@@ -523,6 +606,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Seek<1, athena::SeekOrigin::Current> seek;
         SoundMacroIdDNA<athena::Little> macro;
         Value<atUint16> macroStep;
@@ -533,7 +617,14 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
-        Value<atUint8> event;
+        static const CmdIntrospection Introspective;
+        enum class EventType : atInt8
+        {
+            KeyOff,
+            SampleEnd,
+            MessageRecv
+        };
+        Value<EventType> event;
         SoundMacroIdDNA<athena::Little> macro;
         Value<atUint16> macroStep;
         bool Do(SoundMacroState& st, Voice& vox) const;
@@ -543,7 +634,8 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
-        Value<atUint8> event;
+        static const CmdIntrospection Introspective;
+        Value<CmdTrapEvent::EventType> event;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::UntrapEvent; }
     };
@@ -551,10 +643,11 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<bool> isVar;
         SoundMacroIdDNA<athena::Little> macro;
-        Value<atUint8> vid;
-        Value<atUint8> variable;
+        Value<atUint8> voiceVar;
+        Value<atUint8> valueVar;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::SendMessage; }
     };
@@ -562,6 +655,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atUint8> variable;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::GetMessage; }
@@ -570,6 +664,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atUint8> variable;
         Value<bool> playMacro;
         bool Do(SoundMacroState& st, Voice& vox) const;
@@ -579,8 +674,9 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Seek<1, athena::SeekOrigin::Current> seek;
-        Value<atUint16> add;
+        Value<atInt16> add;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::AddAgeCount; }
     };
@@ -588,6 +684,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Seek<1, athena::SeekOrigin::Current> seek;
         Value<atUint16> counter;
         bool Do(SoundMacroState& st, Voice& vox) const;
@@ -597,8 +694,9 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atUint8> flagId;
-        Value<atInt8> value;
+        Value<atUint8> value;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::SendFlag; }
     };
@@ -606,6 +704,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atInt8> rangeUp;
         Value<atInt8> rangeDown;
         bool Do(SoundMacroState& st, Voice& vox) const;
@@ -615,7 +714,8 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
-        Value<atInt8> prio;
+        static const CmdIntrospection Introspective;
+        Value<atUint8> prio;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::SetPriority; }
     };
@@ -623,6 +723,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Seek<1, athena::SeekOrigin::Current> seek;
         Value<atInt16> prio;
         bool Do(SoundMacroState& st, Voice& vox) const;
@@ -632,6 +733,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Seek<3, athena::SeekOrigin::Current> seek;
         Value<atUint32> time;
         bool Do(SoundMacroState& st, Voice& vox) const;
@@ -641,21 +743,29 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Seek<1, athena::SeekOrigin::Current> seek;
         Value<atUint16> ageBase;
         Value<atUint16> ageScale;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::AgeCntVel; }
     };
+    enum class Combine : atInt8
+    {
+        Set,
+        Add,
+        Mult
+    };
     struct CmdVolSelect : ICmd
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atUint8> midiControl;
-        Value<atUint16> scalingPercentage;
-        Value<atInt8> combine;
+        Value<atInt16> scalingPercentage;
+        Value<Combine> combine;
         Value<bool> isVar;
-        Value<atUint8> fineScaling;
+        Value<atInt8> fineScaling;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::VolSelect; }
     };
@@ -663,11 +773,12 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atUint8> midiControl;
-        Value<atUint16> scalingPercentage;
-        Value<atInt8> combine;
+        Value<atInt16> scalingPercentage;
+        Value<Combine> combine;
         Value<bool> isVar;
-        Value<atUint8> fineScaling;
+        Value<atInt8> fineScaling;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::PanSelect; }
     };
@@ -675,11 +786,12 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atUint8> midiControl;
-        Value<atUint16> scalingPercentage;
-        Value<atInt8> combine;
+        Value<atInt16> scalingPercentage;
+        Value<Combine> combine;
         Value<bool> isVar;
-        Value<atUint8> fineScaling;
+        Value<atInt8> fineScaling;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::PitchWheelSelect; }
     };
@@ -687,11 +799,12 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atUint8> midiControl;
-        Value<atUint16> scalingPercentage;
-        Value<atInt8> combine;
+        Value<atInt16> scalingPercentage;
+        Value<Combine> combine;
         Value<bool> isVar;
-        Value<atUint8> fineScaling;
+        Value<atInt8> fineScaling;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::ModWheelSelect; }
     };
@@ -699,11 +812,12 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atUint8> midiControl;
-        Value<atUint16> scalingPercentage;
-        Value<atInt8> combine;
+        Value<atInt16> scalingPercentage;
+        Value<Combine> combine;
         Value<bool> isVar;
-        Value<atUint8> fineScaling;
+        Value<atInt8> fineScaling;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::PedalSelect; }
     };
@@ -711,11 +825,12 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atUint8> midiControl;
-        Value<atUint16> scalingPercentage;
-        Value<atInt8> combine;
+        Value<atInt16> scalingPercentage;
+        Value<Combine> combine;
         Value<bool> isVar;
-        Value<atUint8> fineScaling;
+        Value<atInt8> fineScaling;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::PortamentoSelect; }
     };
@@ -723,11 +838,12 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atUint8> midiControl;
-        Value<atUint16> scalingPercentage;
-        Value<atInt8> combine;
+        Value<atInt16> scalingPercentage;
+        Value<Combine> combine;
         Value<bool> isVar;
-        Value<atUint8> fineScaling;
+        Value<atInt8> fineScaling;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::ReverbSelect; }
     };
@@ -735,11 +851,12 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atUint8> midiControl;
-        Value<atUint16> scalingPercentage;
-        Value<atInt8> combine;
+        Value<atInt16> scalingPercentage;
+        Value<Combine> combine;
         Value<bool> isVar;
-        Value<atUint8> fineScaling;
+        Value<atInt8> fineScaling;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::SpanSelect; }
     };
@@ -747,11 +864,12 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atUint8> midiControl;
-        Value<atUint16> scalingPercentage;
-        Value<atInt8> combine;
+        Value<atInt16> scalingPercentage;
+        Value<Combine> combine;
         Value<bool> isVar;
-        Value<atUint8> fineScaling;
+        Value<atInt8> fineScaling;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::DopplerSelect; }
     };
@@ -759,11 +877,12 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atUint8> midiControl;
-        Value<atUint16> scalingPercentage;
-        Value<atInt8> combine;
+        Value<atInt16> scalingPercentage;
+        Value<Combine> combine;
         Value<bool> isVar;
-        Value<atUint8> fineScaling;
+        Value<atInt8> fineScaling;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::TremoloSelect; }
     };
@@ -771,11 +890,12 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atUint8> midiControl;
-        Value<atUint16> scalingPercentage;
-        Value<atInt8> combine;
+        Value<atInt16> scalingPercentage;
+        Value<Combine> combine;
         Value<bool> isVar;
-        Value<atUint8> fineScaling;
+        Value<atInt8> fineScaling;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::PreASelect; }
     };
@@ -783,11 +903,12 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atUint8> midiControl;
-        Value<atUint16> scalingPercentage;
-        Value<atInt8> combine;
+        Value<atInt16> scalingPercentage;
+        Value<Combine> combine;
         Value<bool> isVar;
-        Value<atUint8> fineScaling;
+        Value<atInt8> fineScaling;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::PreBSelect; }
     };
@@ -795,11 +916,12 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atUint8> midiControl;
-        Value<atUint16> scalingPercentage;
-        Value<atInt8> combine;
+        Value<atInt16> scalingPercentage;
+        Value<Combine> combine;
         Value<bool> isVar;
-        Value<atUint8> fineScaling;
+        Value<atInt8> fineScaling;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::PostBSelect; }
     };
@@ -807,11 +929,13 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atUint8> midiControl;
-        Value<atUint16> scalingPercentage;
-        Value<atInt8> combine;
+        Value<atInt16> scalingPercentage;
+        Value<Combine> combine;
         Value<bool> isVar;
-        Value<atUint8> fineScaling;
+        Value<atInt8> fineScaling;
+        Value<atUint8> paramIndex;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::AuxAFXSelect; }
     };
@@ -819,11 +943,13 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atUint8> midiControl;
-        Value<atUint16> scalingPercentage;
-        Value<atInt8> combine;
+        Value<atInt16> scalingPercentage;
+        Value<Combine> combine;
         Value<bool> isVar;
-        Value<atUint8> fineScaling;
+        Value<atInt8> fineScaling;
+        Value<atUint8> paramIndex;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::AuxBFXSelect; }
     };
@@ -831,8 +957,9 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atUint8> lfoNumber;
-        Value<atUint16> periodInMs;
+        Value<atInt16> periodInMs;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::SetupLFO; }
     };
@@ -840,8 +967,9 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
-        Value<atUint8> dlsVol;
-        Value<atUint8> itd;
+        static const CmdIntrospection Introspective;
+        Value<bool> dlsVol;
+        Value<bool> itd;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::ModeSelect; }
     };
@@ -849,6 +977,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atUint8> group;
         Value<bool> killNow;
         bool Do(SoundMacroState& st, Voice& vox) const;
@@ -858,6 +987,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<atUint8> srcType;
         Value<atUint8> type0SrcFilter;
         bool Do(SoundMacroState& st, Voice& vox) const;
@@ -867,12 +997,13 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<bool> varCtrlA;
-        Value<atInt8> a;
+        Value<atUint8> a;
         Value<bool> varCtrlB;
-        Value<atInt8> b;
+        Value<atUint8> b;
         Value<bool> varCtrlC;
-        Value<atInt8> c;
+        Value<atUint8> c;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::AddVars; }
     };
@@ -880,6 +1011,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<bool> varCtrlA;
         Value<atInt8> a;
         Value<bool> varCtrlB;
@@ -893,6 +1025,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<bool> varCtrlA;
         Value<atInt8> a;
         Value<bool> varCtrlB;
@@ -906,6 +1039,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<bool> varCtrlA;
         Value<atInt8> a;
         Value<bool> varCtrlB;
@@ -919,6 +1053,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<bool> varCtrlA;
         Value<atInt8> a;
         Value<bool> varCtrlB;
@@ -931,6 +1066,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<bool> varCtrlA;
         Value<atInt8> a;
         Seek<1, athena::Current> pad;
@@ -942,6 +1078,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<bool> varCtrlA;
         Value<atInt8> a;
         Value<bool> varCtrlB;
@@ -955,6 +1092,7 @@ struct SoundMacro
     {
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
         Value<bool> varCtrlA;
         Value<atInt8> a;
         Value<bool> varCtrlB;
@@ -965,8 +1103,9 @@ struct SoundMacro
         CmdOp Isa() const { return CmdOp::IfLess; }
     };
 
-    template <class R>
-    static std::unique_ptr<ICmd> MakeCmd(R& r);
+    template <class Op, class O, class... _Args>
+    static O CmdDo(_Args&&... args);
+    static const CmdIntrospection* GetCmdIntrospection(CmdOp op);
     static std::string_view CmdOpToStr(CmdOp op);
     static CmdOp CmdStrToOp(std::string_view op);
 
