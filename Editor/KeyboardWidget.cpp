@@ -3,8 +3,10 @@
 #include <QSvgRenderer>
 #include <QMouseEvent>
 #include <QScrollArea>
+#include <QApplication>
+#include <QScrollBar>
 
-/* Used for generating transform matrices to map coordinate space */
+/* Used for generating transform matrices to map SVG coordinate space */
 static QTransform RectToRect(const QRectF& from, const QRectF& to)
 {
     QPolygonF orig(from);
@@ -191,6 +193,15 @@ void KeyboardWidget::leaveEvent(QEvent* event)
 {
     if (m_statusFocus)
         m_statusFocus->exit();
+}
+
+void KeyboardWidget::wheelEvent(QWheelEvent* event)
+{
+    if (QScrollArea* scroll = qobject_cast<QScrollArea*>(parentWidget()->parentWidget()))
+    {
+        /* Send wheel event directly to the scroll bar */
+        QApplication::sendEvent(scroll->horizontalScrollBar(), event);
+    }
 }
 
 void KeyboardWidget::showEvent(QShowEvent* event)

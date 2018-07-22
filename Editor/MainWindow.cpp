@@ -27,6 +27,7 @@ MainWindow::MainWindow(QWidget* parent)
     m_backgroundThread.start();
 
     m_ui.setupUi(this);
+    m_ui.splitter->setCollapsible(1, false);
     m_ui.projectOutline->setItemDelegate(&m_treeDelegate);
     connectMessenger(&m_mainMessenger, Qt::DirectConnection);
 
@@ -252,6 +253,7 @@ bool MainWindow::_setEditor(EditorWidget* editor)
     }
     m_ui.editorContents->addWidget(editor);
     m_ui.editorContents->setCurrentWidget(editor);
+    m_ui.editorContents->update();
     return true;
 }
 

@@ -121,6 +121,7 @@ struct SoundMacro
         SetVar,
         IfEqual = 0x70,
         IfLess,
+        CmdOpMAX,
         Invalid = 0xff
     };
 
@@ -1105,6 +1106,7 @@ struct SoundMacro
 
     template <class Op, class O, class... _Args>
     static O CmdDo(_Args&&... args);
+    static std::unique_ptr<SoundMacro::ICmd> MakeCmd(CmdOp op);
     static const CmdIntrospection* GetCmdIntrospection(CmdOp op);
     static std::string_view CmdOpToStr(CmdOp op);
     static CmdOp CmdStrToOp(std::string_view op);

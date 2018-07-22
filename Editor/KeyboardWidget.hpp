@@ -45,6 +45,7 @@ public:
     void mouseReleaseEvent(QMouseEvent* event);
     void enterEvent(QEvent* event);
     void leaveEvent(QEvent* event);
+    void wheelEvent(QWheelEvent *event);
     void showEvent(QShowEvent *event);
 };
 

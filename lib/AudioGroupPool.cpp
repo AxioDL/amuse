@@ -23,6 +23,15 @@ struct MakeCmdOp
     }
 };
 
+struct MakeDefaultCmdOp
+{
+    template <class Tp, class R>
+    static std::unique_ptr<SoundMacro::ICmd> Do(R& r)
+    {
+        return std::make_unique<Tp>();
+    }
+};
+
 struct IntrospectCmdOp
 {
     template <class Tp>
@@ -546,7 +555,13 @@ O SoundMacro::CmdDo(_Args&&... args)
 }
 template std::unique_ptr<SoundMacro::ICmd> SoundMacro::CmdDo<MakeCmdOp>(athena::io::MemoryReader& r);
 template std::unique_ptr<SoundMacro::ICmd> SoundMacro::CmdDo<MakeCmdOp>(athena::io::YAMLDocReader& r);
+template std::unique_ptr<SoundMacro::ICmd> SoundMacro::CmdDo<MakeDefaultCmdOp>(SoundMacro::CmdOp& r);
 template const SoundMacro::CmdIntrospection* SoundMacro::CmdDo<IntrospectCmdOp>(SoundMacro::CmdOp& op);
+
+std::unique_ptr<SoundMacro::ICmd> SoundMacro::MakeCmd(CmdOp op)
+{
+    return CmdDo<MakeDefaultCmdOp, std::unique_ptr<SoundMacro::ICmd>>(op);
+}
 
 const SoundMacro::CmdIntrospection* SoundMacro::GetCmdIntrospection(CmdOp op)
 {

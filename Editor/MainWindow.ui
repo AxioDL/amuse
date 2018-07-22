@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
-    <height>600</height>
+    <width>1024</width>
+    <height>768</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -98,8 +98,8 @@
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>540</width>
-           <height>442</height>
+           <width>764</width>
+           <height>610</height>
           </rect>
          </property>
         </widget>
@@ -174,13 +174,13 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>800</width>
+     <width>1024</width>
      <height>27</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
     <property name="title">
-     <string>Fi&amp;le</string>
+     <string>&amp;File</string>
     </property>
     <addaction name="actionNew_Project"/>
     <addaction name="actionOpen_Project"/>
@@ -204,7 +204,7 @@
    </widget>
    <widget class="QMenu" name="menuAudio">
     <property name="title">
-     <string>A&amp;udio</string>
+     <string>&amp;Audio</string>
     </property>
     <addaction name="actionAuto_Play"/>
     <addaction name="separator"/>
@@ -219,7 +219,7 @@
    </widget>
    <widget class="QMenu" name="menuEdit">
     <property name="title">
-     <string>Edit</string>
+     <string>&amp;Edit</string>
     </property>
     <addaction name="actionUndo"/>
     <addaction name="actionRedo"/>
