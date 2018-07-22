@@ -141,8 +141,8 @@ struct AppCallback : boo::IApplicationCallback
             "<tab>: sustain pedal, <window-Y>: pitch wheel, <window-X>: mod wheel\n"
             "<Z/X>: octave, <C/V>: velocity, <B/N>: channel, <,/.>: program, <Q>: quit\n");
 
-        std::map<int, const std::array<amuse::SongGroupIndex::MIDISetup, 16>*> sortEntries(index.m_midiSetups.cbegin(),
-                                                                                           index.m_midiSetups.cend());
+        std::map<amuse::SongId, std::array<amuse::SongGroupIndex::MIDISetup, 16>> sortEntries(index.m_midiSetups.cbegin(),
+                                                                                               index.m_midiSetups.cend());
         auto setupIt = sortEntries.cbegin();
         if (setupIt != sortEntries.cend())
         {
@@ -280,8 +280,8 @@ struct AppCallback : boo::IApplicationCallback
 
         m_seq = m_engine->seqPlay(m_groupId, 0, nullptr);
 
-        std::map<uint16_t, const amuse::SFXGroupIndex::SFXEntry*> sortEntries(index.m_sfxEntries.cbegin(),
-                                                                              index.m_sfxEntries.cend());
+        std::map<amuse::SFXId, amuse::SFXGroupIndex::SFXEntry> sortEntries(index.m_sfxEntries.cbegin(),
+                                                                           index.m_sfxEntries.cend());
         auto sfxIt = sortEntries.cbegin();
         if (sfxIt != sortEntries.cend())
             SelectSFX(sfxIt->first);
@@ -664,10 +664,10 @@ struct AppCallback : boo::IApplicationCallback
         }
 
         std::list<amuse::AudioGroupProject> m_projs;
-        std::map<int, std::pair<std::pair<amuse::SystemString, amuse::IntrusiveAudioGroupData>*,
+        std::map<amuse::GroupId, std::pair<std::pair<amuse::SystemString, amuse::IntrusiveAudioGroupData>*,
                                 const amuse::SongGroupIndex*>>
             allSongGroups;
-        std::map<int, std::pair<std::pair<amuse::SystemString, amuse::IntrusiveAudioGroupData>*,
+        std::map<amuse::GroupId, std::pair<std::pair<amuse::SystemString, amuse::IntrusiveAudioGroupData>*,
                                 const amuse::SFXGroupIndex*>>
             allSFXGroups;
         size_t totalGroups = 0;
