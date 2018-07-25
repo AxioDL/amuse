@@ -9,6 +9,8 @@
 #include <QLabel>
 #include <QMouseEvent>
 #include <QSpinBox>
+#include <QComboBox>
+#include <QTreeWidget>
 
 class SoundMacroListing;
 class CatalogueItem;
@@ -19,6 +21,17 @@ class FieldSpinBox : public QSpinBox
 public:
     FieldSpinBox(QWidget* parent = Q_NULLPTR)
     : QSpinBox(parent) {}
+
+    /* Don't scroll */
+    void wheelEvent(QWheelEvent* event) { event->ignore(); }
+};
+
+class FieldComboBox : public QComboBox
+{
+Q_OBJECT
+public:
+    FieldComboBox(QWidget* parent = Q_NULLPTR)
+    : QComboBox(parent) {}
 
     /* Don't scroll */
     void wheelEvent(QWheelEvent* event) { event->ignore(); }
@@ -40,7 +53,6 @@ class CommandWidget : public QWidget
     void snapOpen();
     void snapClosed();
     void setIndex(int index);
-    SoundMacroListing* getParent() const;
 private slots:
     void animationDestroyed();
     void boolChanged(int);
@@ -94,16 +106,20 @@ public:
     amuse::SoundMacro::CmdOp getCmdOp() const { return m_op; }
 };
 
-class SoundMacroCatalogue : public QWidget
+class SoundMacroCatalogue : public QTreeWidget
 {
     Q_OBJECT
 public:
     explicit SoundMacroCatalogue(QWidget* parent = Q_NULLPTR);
+    void mousePressEvent(QMouseEvent* event);
+    void mouseReleaseEvent(QMouseEvent* event);
+    void mouseMoveEvent(QMouseEvent* event);
 };
 
 class SoundMacroEditor : public EditorWidget
 {
     Q_OBJECT
+    friend class SoundMacroCatalogue;
     QSplitter* m_splitter;
     SoundMacroListing* m_listing;
     SoundMacroCatalogue* m_catalogue;
@@ -120,6 +136,9 @@ public:
     void mouseReleaseEvent(QMouseEvent* event);
     void mouseMoveEvent(QMouseEvent* event);
     void keyPressEvent(QKeyEvent* event);
+
+public slots:
+    void catalogueDoubleClicked(QTreeWidgetItem* item, int column);
 };
 
 

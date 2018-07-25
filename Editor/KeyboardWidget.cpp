@@ -208,7 +208,7 @@ void KeyboardWidget::showEvent(QShowEvent* event)
 {
     if (QScrollArea* scroll = qobject_cast<QScrollArea*>(parentWidget()->parentWidget()))
     {
-        /* Scroll to C3 */
-        scroll->ensureVisible(141 * 4 + scroll->width(), 0, 0, 0);
+        /* Scroll to C2 */
+        scroll->ensureVisible(141 * 3 + scroll->width(), 0, 0, 0);
     }
 }

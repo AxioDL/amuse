@@ -9,6 +9,7 @@ find_package(Qt5Widgets)
 find_package(Qt5Network)
 find_package(Qt5Xml)
 find_package(Qt5Svg)
+find_package(Qt5LinguistTools)
 
 if(WIN32)
   list(APPEND PLAT_SRCS platforms/win/amuse-gui.rc platforms/win/amuse-gui.manifest)
@@ -22,7 +23,13 @@ add_subdirectory(platforms/freedesktop)
 declare_qticon_target()
 list(APPEND PLAT_SRCS mainicon_qt.cpp)
 
+configure_file(resources/translation_res.qrc translation_res.qrc @ONLY)
+set(TRANSLATIONS
+    resources/lang_de.ts)
+QT5_CREATE_TRANSLATION(QM_FILES ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../lib ${TRANSLATIONS})
+
 QT5_ADD_RESOURCES(qrc_resources.cpp resources/resources.qrc)
+QT5_ADD_RESOURCES(qrc_translation_res.cpp ${CMAKE_CURRENT_BINARY_DIR}/translation_res.qrc OPTIONS -no-compress)
 
 add_executable(amuse-gui WIN32 MACOSX_BUNDLE
         Common.hpp Common.cpp
@@ -42,6 +49,7 @@ add_executable(amuse-gui WIN32 MACOSX_BUNDLE
         SongGroupEditor.hpp SongGroupEditor.cpp
         AudioGroupModel.hpp AudioGroupModel.cpp
         resources/resources.qrc qrc_resources.cpp
+        ${QM_FILES} qrc_translation_res.cpp
         ${PLAT_SRCS}
         main.cpp)
 if(COMMAND add_sanitizers)

@@ -142,7 +142,8 @@ constexpr SoundMacro::CmdIntrospection::Field::Type GetFieldType()
 { return SoundMacro::CmdIntrospection::Field::Type::Invalid; }
 template <class T, std::enable_if_t<std::is_enum_v<T>, int> = 0>
 constexpr SoundMacro::CmdIntrospection::Field::Type GetFieldType()
-{ return SoundMacro::CmdIntrospection::Field::Type::Choice; }
+{ static_assert(sizeof(T) == 1, "Enum must be an 8-bit type");
+  return SoundMacro::CmdIntrospection::Field::Type::Choice; }
 template <>
 constexpr SoundMacro::CmdIntrospection::Field::Type GetFieldType<bool>()
 { return SoundMacro::CmdIntrospection::Field::Type::Bool; }
@@ -178,6 +179,7 @@ constexpr SoundMacro::CmdIntrospection::Field::Type GetFieldType<SampleIdDNA<ath
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdEnd::Introspective =
 {
+    CmdType::Structure,
     "End"sv,
     "End of the macro. This always appears at the end of a given SoundMacro."sv,
 };
@@ -189,7 +191,8 @@ bool SoundMacro::CmdEnd::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdStop::Introspective =
 {
-    "Stop"sv,
+    CmdType::Structure,
+     "Stop"sv,
     "Stops the macro at any point."sv,
 };
 bool SoundMacro::CmdStop::Do(SoundMacroState& st, Voice& vox) const
@@ -200,6 +203,7 @@ bool SoundMacro::CmdStop::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdSplitKey::Introspective =
 {
+    CmdType::Structure,
     "Split Key"sv,
     "Conditionally branches macro execution based on MIDI key."sv,
     {
@@ -236,6 +240,7 @@ bool SoundMacro::CmdSplitKey::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdSplitVel::Introspective =
 {
+    CmdType::Structure,
     "Split Velocity"sv,
     "Conditionally branches macro execution based on velocity."sv,
     {
@@ -272,13 +277,14 @@ bool SoundMacro::CmdSplitVel::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdWaitTicks::Introspective =
 {
+    CmdType::Structure,
     "Wait Ticks"sv,
     "Suspend SoundMacro execution for specified length of time. Value of 65535 "
-    "will wait indefinitely, relying on KeyOff or Sample End to signal stop."sv,
+    "will wait indefinitely, relying on Key Off or Sample End to signal stop."sv,
     {
         {
             FIELD_HEAD(SoundMacro::CmdWaitTicks, keyOff),
-            "KeyOff"sv,
+            "Key Off"sv,
             0, 1, 0
         },
         {
@@ -342,13 +348,14 @@ bool SoundMacro::CmdWaitTicks::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdLoop::Introspective =
 {
+    CmdType::Structure,
     "Loop"sv,
     "Branch to specified location in a loop for a specified number of Times. "
-    "65535 will cause an endless loop, relying on KeyOff or Sample End to signal stop."sv,
+    "65535 will cause an endless loop, relying on Key Off or Sample End to signal stop."sv,
     {
         {
             FIELD_HEAD(SoundMacro::CmdLoop, keyOff),
-            "KeyOff"sv,
+            "Key Off"sv,
             0, 1, 0
         },
         {
@@ -403,6 +410,7 @@ bool SoundMacro::CmdLoop::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdGoto::Introspective =
 {
+    CmdType::Structure,
     "Goto"sv,
     "Unconditional branch to specified SoundMacro location."sv,
     {
@@ -431,13 +439,14 @@ bool SoundMacro::CmdGoto::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdWaitMs::Introspective =
 {
+    CmdType::Structure,
     "Wait Millisec"sv,
     "Suspend SoundMacro execution for specified length of time. Value of 65535 "
-    "will wait indefinitely, relying on KeyOff or Sample End to signal stop."sv,
+    "will wait indefinitely, relying on Key Off or Sample End to signal stop."sv,
     {
         {
             FIELD_HEAD(SoundMacro::CmdWaitMs, keyOff),
-            "KeyOff"sv,
+            "Key Off"sv,
             0, 1, 0
         },
         {
@@ -495,6 +504,7 @@ bool SoundMacro::CmdWaitMs::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdPlayMacro::Introspective =
 {
+    CmdType::Structure,
     "Play Macro"sv,
     "Play a SoundMacro in parallel to this one. Add Note is added to the "
     "current SoundMacro note to evaluate the new note."sv,
@@ -537,8 +547,9 @@ bool SoundMacro::CmdPlayMacro::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdSendKeyOff::Introspective =
 {
-    "Send Keyoff"sv,
-    "Send keyoff to voice specified by VID stored in a variable or the last started voice."sv,
+    CmdType::Structure,
+    "Send Key Off"sv,
+    "Send Key Off to voice specified by VID stored in a variable or the last started voice."sv,
     {
         {
             FIELD_HEAD(SoundMacro::CmdSendKeyOff, variable),
@@ -575,6 +586,7 @@ bool SoundMacro::CmdSendKeyOff::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdSplitMod::Introspective =
 {
+    CmdType::Structure,
     "Split Mod"sv,
     "Conditionally branch if mod wheel is greater than or equal to specified value."sv,
     {
@@ -611,6 +623,7 @@ bool SoundMacro::CmdSplitMod::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdPianoPan::Introspective =
 {
+    CmdType::Control,
     "Piano Pan"sv,
     "Gives piano-like sounds a natural-sounding stereo spread. The current key delta "
     "from Center Key is scaled with Scale and biased with Center Pan to evaluate panning."sv,
@@ -643,6 +656,7 @@ bool SoundMacro::CmdPianoPan::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdSetAdsr::Introspective =
 {
+    CmdType::Volume,
     "Set ADSR"sv,
     "Specify ADSR envelope using a pool object. DLS mode must match setting in ADSR."sv,
     {
@@ -666,6 +680,7 @@ bool SoundMacro::CmdSetAdsr::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdScaleVolume::Introspective =
 {
+    CmdType::Volume,
     "Scale Volume"sv,
     "Calculates volume by scaling and biasing velocity. "
     "The result may be passed through an optional Curve."sv,
@@ -714,6 +729,7 @@ bool SoundMacro::CmdScaleVolume::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdPanning::Introspective =
 {
+    CmdType::Control,
     "Panning"sv,
     "Start pan-sweep from Pan Position offset by Width over specified time period."sv,
     {
@@ -743,6 +759,7 @@ bool SoundMacro::CmdPanning::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdEnvelope::Introspective =
 {
+    CmdType::Volume,
     "Envelope"sv,
     "Start a velocity envelope by fading the current velocity to the one "
     "evaluated by Scale and Add. The result is optionally transformed with a Curve object."sv,
@@ -795,6 +812,7 @@ bool SoundMacro::CmdEnvelope::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdStartSample::Introspective =
 {
+    CmdType::Sample,
     "Start Sample"sv,
     "Start a Sample playing on the voice. An Offset in samples may be applied. "
     "This offset may be scaled with the current velocity."sv,
@@ -846,6 +864,7 @@ bool SoundMacro::CmdStartSample::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdStopSample::Introspective =
 {
+    CmdType::Sample,
     "Stop Sample"sv,
     "Stops the sample playing on the voice."sv
 };
@@ -857,8 +876,9 @@ bool SoundMacro::CmdStopSample::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdKeyOff::Introspective =
 {
-    "KeyOff"sv,
-    "Sends a KeyOff to the current voice."sv
+    CmdType::Control,
+    "Key Off"sv,
+    "Sends a Key Off to the current voice."sv
 };
 bool SoundMacro::CmdKeyOff::Do(SoundMacroState& st, Voice& vox) const
 {
@@ -868,6 +888,7 @@ bool SoundMacro::CmdKeyOff::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdSplitRnd::Introspective =
 {
+    CmdType::Structure,
     "Split Rnd"sv,
     "Conditionally branch if a random value is greater than or equal to RND. "
     "A lower RND will cause a higher probability of branching."sv,
@@ -905,6 +926,7 @@ bool SoundMacro::CmdSplitRnd::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdFadeIn::Introspective =
 {
+    CmdType::Volume,
     "Fade In"sv,
     "Start a velocity envelope by fading from silence to the velocity "
     "evaluated by Scale and Add. The result is optionally transformed with a Curve object."sv,
@@ -957,6 +979,7 @@ bool SoundMacro::CmdFadeIn::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdSpanning::Introspective =
 {
+    CmdType::Control,
     "Spanning"sv,
     "Start span-sweep from Span Position offset by Width over specified time period."sv,
     {
@@ -985,6 +1008,7 @@ bool SoundMacro::CmdSpanning::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdSetAdsrCtrl::Introspective =
 {
+    CmdType::Volume,
     "Set ADSR Ctrl"sv,
     "Bind MIDI controls to ADSR parameters."sv,
     {
@@ -1031,6 +1055,7 @@ bool SoundMacro::CmdSetAdsrCtrl::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdRndNote::Introspective =
 {
+    CmdType::Pitch,
     "Random Note"sv,
     "Sets random pitch between Note Lo and Note Hi, biased by Detune in cents. "
     "If Free is set, the note will not snap to key steps."sv,
@@ -1092,6 +1117,7 @@ bool SoundMacro::CmdRndNote::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdAddNote::Introspective =
 {
+    CmdType::Pitch,
     "Add Note"sv,
     "Sets new pitch by adding Add, biased by Detune in cents. "
     "The time parameters behave like a WAIT command when non-zero."sv,
@@ -1144,6 +1170,7 @@ bool SoundMacro::CmdAddNote::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdSetNote::Introspective =
 {
+    CmdType::Pitch,
     "Set Note"sv,
     "Sets new pitch to Key, biased by Detune in cents. "
     "The time parameters behave like a WAIT command when non-zero."sv,
@@ -1190,6 +1217,7 @@ bool SoundMacro::CmdSetNote::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdLastNote::Introspective =
 {
+    CmdType::Pitch,
     "Last Note"sv,
     "Sets new pitch by adding Add to last played MIDI note, biased by Detune in cents. "
     "The time parameters behave like a WAIT command when non-zero."sv,
@@ -1236,6 +1264,7 @@ bool SoundMacro::CmdLastNote::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdPortamento::Introspective =
 {
+    CmdType::Setup,
     "Portamento"sv,
     "Setup portamento mode for this voice."sv,
     {
@@ -1281,6 +1310,7 @@ bool SoundMacro::CmdPortamento::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdVibrato::Introspective =
 {
+    CmdType::Pitch,
     "Vibrato"sv,
     "Setup vibrato mode for this voice. Voice pitch will be "
     "modulated using the Level magnitude or the modwheel."sv,
@@ -1321,6 +1351,7 @@ bool SoundMacro::CmdVibrato::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdPitchSweep1::Introspective =
 {
+    CmdType::Pitch,
     "Pitch Sweep 1"sv,
     "Setup pitch sweep 1 for this voice. Voice pitch will accumulate Add for Times frames. "
     "If the time values are non-zero, this command also functions as a WAIT."sv,
@@ -1365,6 +1396,7 @@ bool SoundMacro::CmdPitchSweep1::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdPitchSweep2::Introspective =
 {
+    CmdType::Pitch,
     "Pitch Sweep 2"sv,
     "Setup pitch sweep 2 for this voice. Voice pitch will accumulate Add for Times frames. "
     "If the time values are non-zero, this command also functions as a WAIT."sv,
@@ -1409,6 +1441,7 @@ bool SoundMacro::CmdPitchSweep2::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdSetPitch::Introspective =
 {
+    CmdType::Pitch,
     "Set Pitch"sv,
     "Set the playback sample rate directly."sv,
     {
@@ -1433,6 +1466,7 @@ bool SoundMacro::CmdSetPitch::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdSetPitchAdsr::Introspective =
 {
+    CmdType::Pitch,
     "Set Pitch ADSR"sv,
     "Define the pitch ADSR from a pool object. The pitch range is "
     "specified using Note and Cents parameters."sv,
@@ -1462,6 +1496,7 @@ bool SoundMacro::CmdSetPitchAdsr::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdScaleVolumeDLS::Introspective =
 {
+    CmdType::Volume,
     "Scale Volume DLS"sv,
     "Sets new volume by scaling the velocity. A value of 4096 == 100%."sv,
     {
@@ -1486,6 +1521,7 @@ bool SoundMacro::CmdScaleVolumeDLS::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdMod2Vibrange::Introspective =
 {
+    CmdType::Pitch,
     "Mod 2 Vibrange"sv,
     "Values used to scale the modwheel control for vibrato."sv,
     {
@@ -1509,6 +1545,7 @@ bool SoundMacro::CmdMod2Vibrange::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdSetupTremolo::Introspective =
 {
+    CmdType::Special,
     "Setup Tremolo"sv,
     "Setup tremolo effect. Must be combined with Tremolo Select to connect "
     "with a configured LFO. A value of 4096 == 100%."sv,
@@ -1533,6 +1570,7 @@ bool SoundMacro::CmdSetupTremolo::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdReturn::Introspective =
 {
+    CmdType::Structure,
     "Return"sv,
     "Branch to after last Go Subroutine command and pop call stack."sv
 };
@@ -1548,6 +1586,7 @@ bool SoundMacro::CmdReturn::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdGoSub::Introspective =
 {
+    CmdType::Structure,
     "Go Subroutine"sv,
     "Push location onto call stack and branch to specified location."sv,
     {
@@ -1578,6 +1617,7 @@ bool SoundMacro::CmdGoSub::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdTrapEvent::Introspective =
 {
+    CmdType::Structure,
     "Trap Event"sv,
     "Register event-based branch to a specified location."sv,
     {
@@ -1629,6 +1669,7 @@ bool SoundMacro::CmdTrapEvent::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdUntrapEvent::Introspective =
 {
+    CmdType::Structure,
     "Untrap Event"sv,
     "Unregister event-based branch."sv,
     {
@@ -1669,6 +1710,7 @@ bool SoundMacro::CmdUntrapEvent::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdSendMessage::Introspective =
 {
+    CmdType::Special,
     "Send Message"sv,
     "Send message to SoundMacro or Voice referenced in a variable. "
     "The message value is retrieved from a variable."sv,
@@ -1711,6 +1753,7 @@ bool SoundMacro::CmdSendMessage::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdGetMessage::Introspective =
 {
+    CmdType::Special,
     "Get Message"sv,
     "Get voice's latest received message and store its value in Variable."sv,
     {
@@ -1729,6 +1772,7 @@ bool SoundMacro::CmdGetMessage::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdGetVid::Introspective =
 {
+    CmdType::Special,
     "Get VID"sv,
     "Get ID of current voice or last voice started by Play Macro command and store in Variable."sv,
     {
@@ -1752,6 +1796,7 @@ bool SoundMacro::CmdGetVid::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdAddAgeCount::Introspective =
 {
+    CmdType::Special,
     "Add Age Count"sv,
     "Adds a value to the current voice's age counter."sv,
     {
@@ -1770,6 +1815,7 @@ bool SoundMacro::CmdAddAgeCount::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdSetAgeCount::Introspective =
 {
+    CmdType::Special,
     "Set Age Count"sv,
     "Set a value into the current voice's age counter."sv,
     {
@@ -1787,6 +1833,7 @@ bool SoundMacro::CmdSetAgeCount::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdSendFlag::Introspective =
 {
+    CmdType::Special,
     "Send Flag"sv,
     "Send a flag value to the host application."sv,
     {
@@ -1810,6 +1857,7 @@ bool SoundMacro::CmdSendFlag::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdPitchWheelR::Introspective =
 {
+    CmdType::Setup,
     "Pitch Wheel Range"sv,
     "Specifies the number of note steps for the range of the pitch wheel."sv,
     {
@@ -1833,6 +1881,7 @@ bool SoundMacro::CmdPitchWheelR::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdSetPriority::Introspective =
 {
+    CmdType::Special,
     "Set Priority"sv,
     "Sets the priority of the current voice."sv,
     {
@@ -1851,6 +1900,7 @@ bool SoundMacro::CmdSetPriority::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdAddPriority::Introspective =
 {
+    CmdType::Special,
     "Add Priority"sv,
     "Adds to the priority of the current voice."sv,
     {
@@ -1868,6 +1918,7 @@ bool SoundMacro::CmdAddPriority::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdAgeCntSpeed::Introspective =
 {
+    CmdType::Special,
     "Age Count Speed"sv,
     "Sets the speed the current voice's age counter is decremented."sv,
     {
@@ -1885,6 +1936,7 @@ bool SoundMacro::CmdAgeCntSpeed::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdAgeCntVel::Introspective =
 {
+    CmdType::Special,
     "Age Count Velocity"sv,
     "Sets the current voice's age counter by scaling the velocity."sv,
     {
@@ -1907,6 +1959,7 @@ bool SoundMacro::CmdAgeCntVel::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdVolSelect::Introspective =
 {
+    CmdType::Setup,
     "Volume Select"sv,
     "Appends an evaluator component for computing the voice's volume."sv,
     {
@@ -1952,6 +2005,7 @@ bool SoundMacro::CmdVolSelect::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdPanSelect::Introspective =
 {
+    CmdType::Setup,
     "Pan Select"sv,
     "Appends an evaluator component for computing the voice's pan."sv,
     {
@@ -1997,6 +2051,7 @@ bool SoundMacro::CmdPanSelect::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdPitchWheelSelect::Introspective =
 {
+    CmdType::Setup,
     "Pitch Wheel Select"sv,
     "Appends an evaluator component for computing the voice's pitch wheel."sv,
     {
@@ -2042,6 +2097,7 @@ bool SoundMacro::CmdPitchWheelSelect::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdModWheelSelect::Introspective =
 {
+    CmdType::Setup,
     "Mod Wheel Select"sv,
     "Appends an evaluator component for computing the voice's mod wheel."sv,
     {
@@ -2087,6 +2143,7 @@ bool SoundMacro::CmdModWheelSelect::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdPedalSelect::Introspective =
 {
+    CmdType::Setup,
     "Pedal Select"sv,
     "Appends an evaluator component for computing the voice's pedal."sv,
     {
@@ -2132,6 +2189,7 @@ bool SoundMacro::CmdPedalSelect::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdPortamentoSelect::Introspective =
 {
+    CmdType::Setup,
     "Portamento Select"sv,
     "Appends an evaluator component for computing the voice's portamento."sv,
     {
@@ -2177,6 +2235,7 @@ bool SoundMacro::CmdPortamentoSelect::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdReverbSelect::Introspective =
 {
+    CmdType::Setup,
     "Reverb Select"sv,
     "Appends an evaluator component for computing the voice's reverb."sv,
     {
@@ -2222,6 +2281,7 @@ bool SoundMacro::CmdReverbSelect::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdSpanSelect::Introspective =
 {
+    CmdType::Setup,
     "Span Select"sv,
     "Appends an evaluator component for computing the voice's span."sv,
     {
@@ -2267,6 +2327,7 @@ bool SoundMacro::CmdSpanSelect::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdDopplerSelect::Introspective =
 {
+    CmdType::Setup,
     "Doppler Select"sv,
     "Appends an evaluator component for computing the voice's doppler."sv,
     {
@@ -2312,6 +2373,7 @@ bool SoundMacro::CmdDopplerSelect::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdTremoloSelect::Introspective =
 {
+    CmdType::Setup,
     "Tremolo Select"sv,
     "Appends an evaluator component for computing the voice's tremolo."sv,
     {
@@ -2357,6 +2419,7 @@ bool SoundMacro::CmdTremoloSelect::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdPreASelect::Introspective =
 {
+    CmdType::Setup,
     "PreA Select"sv,
     "Appends an evaluator component for computing the voice's pre-AUXA."sv,
     {
@@ -2402,6 +2465,7 @@ bool SoundMacro::CmdPreASelect::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdPreBSelect::Introspective =
 {
+    CmdType::Setup,
     "PreB Select"sv,
     "Appends an evaluator component for computing the voice's pre-AUXB."sv,
     {
@@ -2447,6 +2511,7 @@ bool SoundMacro::CmdPreBSelect::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdPostBSelect::Introspective =
 {
+    CmdType::Setup,
     "PostB Select"sv,
     "Appends an evaluator component for computing the voice's post-AUXB."sv,
     {
@@ -2492,6 +2557,7 @@ bool SoundMacro::CmdPostBSelect::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdAuxAFXSelect::Introspective =
 {
+    CmdType::Setup,
     "AuxA FX Select"sv,
     "Appends an evaluator component for computing the AUXA Parameter."sv,
     {
@@ -2543,6 +2609,7 @@ bool SoundMacro::CmdAuxAFXSelect::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdAuxBFXSelect::Introspective =
 {
+    CmdType::Setup,
     "AuxB FX Select"sv,
     "Appends an evaluator component for computing the AUXB Parameter."sv,
     {
@@ -2595,6 +2662,7 @@ bool SoundMacro::CmdAuxBFXSelect::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdSetupLFO::Introspective =
 {
+    CmdType::Setup,
     "Setup LFO"sv,
     "Configures voice's LFO period in milliseconds."sv,
     {
@@ -2621,6 +2689,7 @@ bool SoundMacro::CmdSetupLFO::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdModeSelect::Introspective =
 {
+    CmdType::Setup,
     "Mode Select"sv,
     "Sets operating modes for current voice."sv,
     {
@@ -2643,6 +2712,7 @@ bool SoundMacro::CmdModeSelect::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdSetKeygroup::Introspective =
 {
+    CmdType::Setup,
     "Set Keygroup"sv,
     "Selects keygroup for current voice."sv,
     {
@@ -2671,6 +2741,7 @@ bool SoundMacro::CmdSetKeygroup::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdSRCmodeSelect::Introspective =
 {
+    CmdType::Setup,
     "SRC Mode Select"sv,
     "Sets operating modes for sample rate converter."sv,
     {
@@ -2693,6 +2764,7 @@ bool SoundMacro::CmdSRCmodeSelect::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdAddVars::Introspective =
 {
+    CmdType::Special,
     "Add Vars"sv,
     "A = B + C"sv,
     {
@@ -2752,6 +2824,7 @@ bool SoundMacro::CmdAddVars::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdSubVars::Introspective =
 {
+    CmdType::Special,
     "Sub Vars"sv,
     "A = B - C"sv,
     {
@@ -2811,6 +2884,7 @@ bool SoundMacro::CmdSubVars::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdMulVars::Introspective =
 {
+    CmdType::Special,
     "Mul Vars"sv,
     "A = B * C"sv,
     {
@@ -2870,6 +2944,7 @@ bool SoundMacro::CmdMulVars::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdDivVars::Introspective =
 {
+    CmdType::Special,
     "Div Vars"sv,
     "A = B / C"sv,
     {
@@ -2929,6 +3004,7 @@ bool SoundMacro::CmdDivVars::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdAddIVars::Introspective =
 {
+    CmdType::Special,
     "Add Imm Vars"sv,
     "A = B + Immediate"sv,
     {
@@ -2978,6 +3054,7 @@ bool SoundMacro::CmdAddIVars::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdSetVar::Introspective =
 {
+    CmdType::Special,
     "Set Var"sv,
     "A = Immediate"sv,
     {
@@ -3010,6 +3087,7 @@ bool SoundMacro::CmdSetVar::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdIfEqual::Introspective =
 {
+    CmdType::Structure,
     "If Equal"sv,
     "Branches to specified step if A == B."sv,
     {
@@ -3067,6 +3145,7 @@ bool SoundMacro::CmdIfEqual::Do(SoundMacroState& st, Voice& vox) const
 
 const SoundMacro::CmdIntrospection SoundMacro::CmdIfLess::Introspective =
 {
+    CmdType::Structure,
     "If Less"sv,
     "Branches to specified step if A < B."sv,
     {

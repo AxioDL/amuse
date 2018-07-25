@@ -125,6 +125,18 @@ struct SoundMacro
         Invalid = 0xff
     };
 
+    enum class CmdType : uint8_t
+    {
+        Control,
+        Pitch,
+        Sample,
+        Setup,
+        Special,
+        Structure,
+        Volume,
+        CmdTypeMAX
+    };
+
     /** Introspection structure used by editors to define user interactivity per command */
     struct CmdIntrospection
     {
@@ -151,6 +163,7 @@ struct SoundMacro
             int64_t m_min, m_max, m_default;
             std::string_view m_choices[4];
         };
+        CmdType m_tp;
         std::string_view m_name;
         std::string_view m_description;
         Field m_fields[7];
@@ -1119,6 +1132,12 @@ struct SoundMacro
     template <athena::Endian DNAE>
     void readCmds(athena::io::IStreamReader& r, uint32_t size);
 };
+
+template <typename T>
+static inline T& AccessField(SoundMacro::ICmd* cmd, const SoundMacro::CmdIntrospection::Field& field)
+{
+    return *reinterpret_cast<T*>(reinterpret_cast<uintptr_t>(std::addressof(*cmd)) + field.m_offset);
+}
 
 /** Converts time-cents representation to seconds */
 static inline double TimeCentsToSeconds(int32_t tc)

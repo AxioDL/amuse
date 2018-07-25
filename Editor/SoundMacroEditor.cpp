@@ -29,20 +29,21 @@ CommandWidget::CommandWidget(amuse::SoundMacro::ICmd* cmd, amuse::SoundMacro::Cm
     QGridLayout* layout = new QGridLayout;
     if (m_introspection)
     {
-        m_titleText.setText(StringViewToQString(m_introspection->m_name));
+        m_titleText.setText(tr(m_introspection->m_name.data()));
         for (int f = 0; f < 7; ++f)
         {
             const amuse::SoundMacro::CmdIntrospection::Field& field = m_introspection->m_fields[f];
             if (!field.m_name.empty())
             {
-                layout->addWidget(new QLabel(StringViewToQString(field.m_name)), 0, f);
+                layout->addWidget(new QLabel(tr(field.m_name.data())), 0, f);
+                int value;
                 switch (field.m_tp)
                 {
                 case amuse::SoundMacro::CmdIntrospection::Field::Type::Bool:
                 {
                     QCheckBox* cb = new QCheckBox;
                     cb->setProperty("fieldIndex", f);
-                    cb->setCheckState(field.m_default ? Qt::Checked : Qt::Unchecked);
+                    cb->setCheckState(amuse::AccessField<bool>(m_cmd, field) ? Qt::Checked : Qt::Unchecked);
                     connect(cb, SIGNAL(stateChanged(int)), this, SLOT(boolChanged(int)));
                     layout->addWidget(cb, 1, f);
                     break;
@@ -58,9 +59,46 @@ CommandWidget::CommandWidget(amuse::SoundMacro::ICmd* cmd, amuse::SoundMacro::Cm
                     sb->setProperty("fieldIndex", f);
                     sb->setMinimum(int(field.m_min));
                     sb->setMaximum(int(field.m_max));
-                    sb->setValue(int(field.m_default));
+                    switch (field.m_tp)
+                    {
+                    case amuse::SoundMacro::CmdIntrospection::Field::Type::Int8:
+                        sb->setValue(amuse::AccessField<int8_t>(m_cmd, field));
+                        break;
+                    case amuse::SoundMacro::CmdIntrospection::Field::Type::UInt8:
+                        sb->setValue(amuse::AccessField<uint8_t>(m_cmd, field));
+                        break;
+                    case amuse::SoundMacro::CmdIntrospection::Field::Type::Int16:
+                        sb->setValue(amuse::AccessField<int16_t>(m_cmd, field));
+                        break;
+                    case amuse::SoundMacro::CmdIntrospection::Field::Type::UInt16:
+                        sb->setValue(amuse::AccessField<uint16_t>(m_cmd, field));
+                        break;
+                    case amuse::SoundMacro::CmdIntrospection::Field::Type::Int32:
+                        sb->setValue(amuse::AccessField<int32_t>(m_cmd, field));
+                        break;
+                    case amuse::SoundMacro::CmdIntrospection::Field::Type::UInt32:
+                        sb->setValue(amuse::AccessField<uint32_t>(m_cmd, field));
+                        break;
+                    default:
+                        break;
+                    }
                     connect(sb, SIGNAL(valueChanged(int)), this, SLOT(numChanged(int)));
                     layout->addWidget(sb, 1, f);
+                    break;
+                }
+                case amuse::SoundMacro::CmdIntrospection::Field::Type::Choice:
+                {
+                    FieldComboBox* cb = new FieldComboBox;
+                    cb->setProperty("fieldIndex", f);
+                    for (int j = 0; j < 4; ++j)
+                    {
+                        if (field.m_choices->empty())
+                            break;
+                        cb->addItem(tr(field.m_choices[j].data()));
+                    }
+                    cb->setCurrentIndex(int(amuse::AccessField<int8_t>(m_cmd, field)));
+                    connect(cb, SIGNAL(currentIndexChanged(int)), this, SLOT(choiceChanged(int)));
+                    layout->addWidget(cb, 1, f);
                     break;
                 }
                 default:
@@ -79,12 +117,6 @@ CommandWidget::CommandWidget(amuse::SoundMacro::ICmd* cmd, QWidget* parent)
 CommandWidget::CommandWidget(amuse::SoundMacro::CmdOp op, QWidget* parent)
 : CommandWidget(nullptr, op, parent) {}
 
-template <typename T>
-static T& AccessField(amuse::SoundMacro::ICmd* cmd, const amuse::SoundMacro::CmdIntrospection::Field& field)
-{
-    return *reinterpret_cast<T*>(reinterpret_cast<uintptr_t>(std::addressof(*cmd)) + field.m_offset);
-}
-
 void CommandWidget::boolChanged(int state)
 {
     if (m_introspection)
@@ -92,7 +124,7 @@ void CommandWidget::boolChanged(int state)
         QCheckBox* cb = static_cast<QCheckBox*>(sender());
         const amuse::SoundMacro::CmdIntrospection::Field& field =
             m_introspection->m_fields[cb->property("fieldIndex").toInt()];
-        AccessField<bool>(m_cmd, field) = state == Qt::Checked;
+        amuse::AccessField<bool>(m_cmd, field) = state == Qt::Checked;
     }
 }
 
@@ -106,22 +138,22 @@ void CommandWidget::numChanged(int value)
         switch (field.m_tp)
         {
         case amuse::SoundMacro::CmdIntrospection::Field::Type::Int8:
-            AccessField<int8_t>(m_cmd, field) = int8_t(value);
+            amuse::AccessField<int8_t>(m_cmd, field) = int8_t(value);
             break;
         case amuse::SoundMacro::CmdIntrospection::Field::Type::UInt8:
-            AccessField<uint8_t>(m_cmd, field) = uint8_t(value);
+            amuse::AccessField<uint8_t>(m_cmd, field) = uint8_t(value);
             break;
         case amuse::SoundMacro::CmdIntrospection::Field::Type::Int16:
-            AccessField<int16_t>(m_cmd, field) = int16_t(value);
+            amuse::AccessField<int16_t>(m_cmd, field) = int16_t(value);
             break;
         case amuse::SoundMacro::CmdIntrospection::Field::Type::UInt16:
-            AccessField<uint16_t>(m_cmd, field) = uint16_t(value);
+            amuse::AccessField<uint16_t>(m_cmd, field) = uint16_t(value);
             break;
         case amuse::SoundMacro::CmdIntrospection::Field::Type::Int32:
-            AccessField<int32_t>(m_cmd, field) = int32_t(value);
+            amuse::AccessField<int32_t>(m_cmd, field) = int32_t(value);
             break;
         case amuse::SoundMacro::CmdIntrospection::Field::Type::UInt32:
-            AccessField<uint32_t>(m_cmd, field) = uint32_t(value);
+            amuse::AccessField<uint32_t>(m_cmd, field) = uint32_t(value);
             break;
         default:
             break;
@@ -177,11 +209,6 @@ void CommandWidget::setIndex(int index)
 void CommandWidget::animationDestroyed()
 {
     m_animation = nullptr;
-}
-
-SoundMacroListing* CommandWidget::getParent() const
-{
-    return qobject_cast<SoundMacroListing*>(parentWidget());
 }
 
 void CommandWidget::paintEvent(QPaintEvent* event)
@@ -433,7 +460,11 @@ CatalogueItem::CatalogueItem(amuse::SoundMacro::CmdOp op, const QString& name,
 {
     QHBoxLayout* layout = new QHBoxLayout;
     QLabel* iconLab = new QLabel;
-    iconLab->setPixmap(QIcon(":/icons/IconOpen.svg").pixmap(32, 32));
+    QString iconPath = QStringLiteral(":/commands/%1.svg").arg(name);
+    if (QFile(iconPath).exists())
+        iconLab->setPixmap(QIcon(iconPath).pixmap(32, 32));
+    else
+        iconLab->setPixmap(QIcon(QStringLiteral(":/icons/IconOpen.svg")).pixmap(32, 32));
     layout->addWidget(iconLab);
     layout->addWidget(new QLabel(name));
     layout->addStretch();
@@ -456,22 +487,74 @@ CatalogueItem::CatalogueItem(const CatalogueItem& other, QWidget* parent)
     setLayout(layout);
 }
 
-SoundMacroCatalogue::SoundMacroCatalogue(QWidget* parent)
-: QWidget(parent)
+static const char* CategoryStrings[] =
 {
-    QVBoxLayout* layout = new QVBoxLayout;
+    QT_TRANSLATE_NOOP("SoundMacroCatalogue", "Control"),
+    QT_TRANSLATE_NOOP("SoundMacroCatalogue", "Pitch"),
+    QT_TRANSLATE_NOOP("SoundMacroCatalogue", "Sample"),
+    QT_TRANSLATE_NOOP("SoundMacroCatalogue", "Setup"),
+    QT_TRANSLATE_NOOP("SoundMacroCatalogue", "Special"),
+    QT_TRANSLATE_NOOP("SoundMacroCatalogue", "Structure"),
+    QT_TRANSLATE_NOOP("SoundMacroCatalogue", "Volume")
+};
+
+static const char* CategoryDocStrings[] =
+{
+    QT_TRANSLATE_NOOP("SoundMacroCatalogue", "Commands to control the voice"),
+    QT_TRANSLATE_NOOP("SoundMacroCatalogue", "Commands to control the voice's pitch"),
+    QT_TRANSLATE_NOOP("SoundMacroCatalogue", "Commands to control the voice's sample playback"),
+    QT_TRANSLATE_NOOP("SoundMacroCatalogue", "Commands to setup the voice's mixing process"),
+    QT_TRANSLATE_NOOP("SoundMacroCatalogue", "Miscellaneous commands"),
+    QT_TRANSLATE_NOOP("SoundMacroCatalogue", "Commands to control macro branching"),
+    QT_TRANSLATE_NOOP("SoundMacroCatalogue", "Commands to control the voice's volume")
+};
+
+SoundMacroCatalogue::SoundMacroCatalogue(QWidget* parent)
+: QTreeWidget(parent)
+{
+    setSelectionMode(QAbstractItemView::NoSelection);
+    setColumnCount(1);
+    setHeaderHidden(true);
+
+    QTreeWidgetItem* rootItems[int(amuse::SoundMacro::CmdType::CmdTypeMAX)];
+    for (int i = 0; i < int(amuse::SoundMacro::CmdType::CmdTypeMAX); ++i)
+    {
+        rootItems[i] = new QTreeWidgetItem(this);
+        setItemWidget(rootItems[i], 0, new CatalogueItem(amuse::SoundMacro::CmdOp::Invalid,
+                                                         tr(CategoryStrings[i]), tr(CategoryDocStrings[i])));
+    }
+
     for (int i = 1; i < int(amuse::SoundMacro::CmdOp::CmdOpMAX); ++i)
     {
         const amuse::SoundMacro::CmdIntrospection* cmd =
             amuse::SoundMacro::GetCmdIntrospection(amuse::SoundMacro::CmdOp(i));
         if (cmd)
         {
-            layout->addWidget(new CatalogueItem(amuse::SoundMacro::CmdOp(i), StringViewToQString(cmd->m_name),
-                                                StringViewToQString(cmd->m_description)));
+            QTreeWidgetItem* item = new QTreeWidgetItem(rootItems[int(cmd->m_tp)]);
+            setItemWidget(item, 0, new CatalogueItem(amuse::SoundMacro::CmdOp(i), tr(cmd->m_name.data()),
+                                                     tr(cmd->m_description.data())));
         }
     }
-    layout->addStretch();
-    setLayout(layout);
+}
+
+void SoundMacroCatalogue::mousePressEvent(QMouseEvent* event)
+{
+    QTreeWidget::mousePressEvent(event);
+    event->ignore();
+}
+
+void SoundMacroCatalogue::mouseReleaseEvent(QMouseEvent* event)
+{
+    QTreeWidget::mouseReleaseEvent(event);
+    event->ignore();
+}
+
+void SoundMacroCatalogue::mouseMoveEvent(QMouseEvent* event)
+{
+    SoundMacroEditor* editor = qobject_cast<SoundMacroEditor*>(parentWidget()->parentWidget());
+    if (!editor || !editor->m_draggedItem)
+        QTreeWidget::mouseMoveEvent(event);
+    event->ignore();
 }
 
 void SoundMacroEditor::beginCommandDrag(CommandWidget* widget, const QPoint& eventPt, const QPoint& pt)
@@ -495,7 +578,7 @@ void SoundMacroEditor::beginCatalogueDrag(CatalogueItem* item, const QPoint& eve
 
 void SoundMacroEditor::mousePressEvent(QMouseEvent* event)
 {
-    if (m_catalogue->parentWidget()->parentWidget()->geometry().contains(event->pos()))
+    if (m_catalogue->geometry().contains(event->pos()))
     {
         QPoint fromParent1 = m_catalogue->mapFrom(this, event->pos());
         QWidget* ch = m_catalogue->childAt(fromParent1);
@@ -504,7 +587,7 @@ void SoundMacroEditor::mousePressEvent(QMouseEvent* event)
             CatalogueItem* child = nullptr;
             while (ch && !(child = qobject_cast<CatalogueItem*>(ch)))
                 ch = ch->parentWidget();
-            if (child)
+            if (child && child->getCmdOp() != amuse::SoundMacro::CmdOp::Invalid)
             {
                 QPoint fromParent2 = child->mapFrom(m_catalogue, fromParent1);
                 beginCatalogueDrag(child, event->pos(), fromParent2);
@@ -571,6 +654,7 @@ void SoundMacroEditor::mouseMoveEvent(QMouseEvent* event)
             m_listing->insertDragout();
             m_dragInsertIdx = -1;
         }
+        m_catalogue->update();
         update();
     }
     else if (m_draggedCmd)
@@ -579,6 +663,7 @@ void SoundMacroEditor::mouseMoveEvent(QMouseEvent* event)
         m_draggedCmd->move(m_draggedCmd->x(), listingPt.y() - m_draggedPt.y());
         if (m_listing->parentWidget()->parentWidget()->geometry().contains(event->pos()))
             m_listing->moveDrag(m_draggedCmd, listingPt, this, event);
+        m_listing->update();
         update();
     }
 }
@@ -601,6 +686,16 @@ void SoundMacroEditor::keyPressEvent(QKeyEvent* event)
     }
 }
 
+void SoundMacroEditor::catalogueDoubleClicked(QTreeWidgetItem* item, int column)
+{
+    if (CatalogueItem* cItem = qobject_cast<CatalogueItem*>(m_catalogue->itemWidget(item, column)))
+    {
+        amuse::SoundMacro::CmdOp op = cItem->getCmdOp();
+        if (op != amuse::SoundMacro::CmdOp::Invalid)
+            m_listing->insert(op);
+    }
+}
+
 SoundMacroEditor::SoundMacroEditor(ProjectModel::SoundMacroNode* node, QWidget* parent)
 : EditorWidget(parent), m_splitter(new QSplitter),
   m_listing(new SoundMacroListing(node)), m_catalogue(new SoundMacroCatalogue)
@@ -618,23 +713,18 @@ SoundMacroEditor::SoundMacroEditor(ProjectModel::SoundMacroNode* node, QWidget* 
     }
 
     {
-        QScrollArea* catalogueScroll = new QScrollArea;
-        catalogueScroll->setWidget(m_catalogue);
-        catalogueScroll->setWidgetResizable(true);
         QSizePolicy sizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
         sizePolicy.setHorizontalStretch(0);
         sizePolicy.setVerticalStretch(0);
-        catalogueScroll->setSizePolicy(sizePolicy);
-        catalogueScroll->setMinimumWidth(150);
-        catalogueScroll->setGeometry(0, 0, 215, 0);
-        catalogueScroll->setMaximumWidth(300);
-        catalogueScroll->setBackgroundRole(QPalette::Base);
-        catalogueScroll->setAutoFillBackground(true);
-        catalogueScroll->setFrameShape(QFrame::StyledPanel);
-        catalogueScroll->setFrameShadow(QFrame::Sunken);
-        catalogueScroll->setLineWidth(1);
-        m_splitter->addWidget(catalogueScroll);
+        m_catalogue->setSizePolicy(sizePolicy);
+        m_catalogue->setMinimumWidth(150);
+        m_catalogue->setGeometry(0, 0, 215, 0);
+        m_catalogue->setMaximumWidth(300);
+        m_splitter->addWidget(m_catalogue);
     }
+
+    connect(m_catalogue, SIGNAL(itemDoubleClicked(QTreeWidgetItem*, int)),
+            this, SLOT(catalogueDoubleClicked(QTreeWidgetItem*, int)));
 
     m_splitter->setCollapsible(0, false);
     QGridLayout* layout = new QGridLayout;

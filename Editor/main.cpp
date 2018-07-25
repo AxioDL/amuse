@@ -1,8 +1,10 @@
 #include <cstdint>
 #include <QApplication>
 #include <QStyleFactory>
+#include <QTranslator>
 #include "MainWindow.hpp"
 #include "boo/IApplication.hpp"
+#include <QResource>
 
 using namespace std::literals;
 
@@ -88,6 +90,11 @@ int main(int argc, char* argv[])
 
     BooInterface booApp;
     boo::APP = &booApp;
+
+    Q_INIT_RESOURCE(translation_res);
+    QTranslator translator;
+    if (translator.load(QLocale(), QLatin1String("lang"), QLatin1String("_"), QLatin1String(":/translations")))
+        a.installTranslator(&translator);
 
     MainWindow w;
     w.show();
