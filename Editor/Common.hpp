@@ -6,6 +6,9 @@
 #include <QDir>
 #include <QMessageBox>
 
+class MainWindow;
+extern MainWindow* g_MainWindow;
+
 class UIMessenger : public QObject
 {
     Q_OBJECT
@@ -37,5 +40,6 @@ static QLatin1String StringViewToQString(std::string_view sv)
 {
     return QLatin1String(sv.data(), int(sv.size()));
 }
+
 
 #endif //AMUSE_COMMON_HPP

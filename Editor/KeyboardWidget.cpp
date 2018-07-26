@@ -150,7 +150,8 @@ void KeyboardWidget::_moveOnKey(int octave, int key)
         m_lastOctave = octave;
         m_lastKey = key;
         if (m_statusFocus)
-            m_statusFocus->setMessage(QStringLiteral("%1%2").arg(KeyStrings[key]).arg(octave - 1));
+            m_statusFocus->setMessage(QStringLiteral("%1%2 (%3)").
+                arg(KeyStrings[key]).arg(octave - 1).arg(octave * 12 + key));
         if (m_holding)
             _startKey(octave, key);
     }

@@ -1,4 +1,5 @@
 #include "SoundMacroEditor.hpp"
+#include "MainWindow.hpp"
 #include <QPainter>
 #include <QPropertyAnimation>
 #include <QGridLayout>
@@ -12,37 +13,65 @@
 CommandWidget::CommandWidget(amuse::SoundMacro::ICmd* cmd, amuse::SoundMacro::CmdOp op, QWidget* parent)
 : QWidget(parent), m_cmd(cmd), m_introspection(amuse::SoundMacro::GetCmdIntrospection(op))
 {
-    m_titleFont.setWeight(QFont::Bold);
+    QFont titleFont = m_titleLabel.font();
+    titleFont.setWeight(QFont::Bold);
+    m_titleLabel.setFont(titleFont);
+    m_titleLabel.setForegroundRole(QPalette::Background);
+    //m_titleLabel.setAutoFillBackground(true);
+    //m_titleLabel.setBackgroundRole(QPalette::Text);
+    m_titleLabel.setContentsMargins(46, 0, 0, 0);
+    m_titleLabel.setFixedHeight(20);
     m_numberText.setTextOption(QTextOption(Qt::AlignRight));
     m_numberText.setTextWidth(25);
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    setMinimumHeight(100);
     m_numberFont.setWeight(QFont::Bold);
     m_numberFont.setStyleHint(QFont::Monospace);
     m_numberFont.setPointSize(16);
 
-    setContentsMargins(54, 4, 0, 4);
+    setContentsMargins(QMargins());
+    setFixedHeight(100);
 
     QVBoxLayout* mainLayout = new QVBoxLayout;
-    mainLayout->addStretch();
+    mainLayout->setContentsMargins(QMargins());
+    mainLayout->setSpacing(0);
+
+    QHBoxLayout* headLayout = new QHBoxLayout;
+    headLayout->setContentsMargins(QMargins());
+    headLayout->setSpacing(0);
+    headLayout->addWidget(&m_titleLabel);
+    if (op != amuse::SoundMacro::CmdOp::End)
+    {
+        m_deleteButton.setFixedSize(21, 21);
+        m_deleteButton.setIcon(QIcon(QStringLiteral(":/icons/IconSoundMacroDelete.svg")));
+        m_deleteButton.setFlat(true);
+        connect(&m_deleteButton, SIGNAL(clicked(bool)), this, SLOT(deleteClicked()));
+        headLayout->addWidget(&m_deleteButton);
+    }
+
+    mainLayout->addLayout(headLayout);
+    mainLayout->addSpacing(8);
 
     QGridLayout* layout = new QGridLayout;
+    layout->setSpacing(6);
+    layout->setContentsMargins(64, 0, 12, 12);
     if (m_introspection)
     {
-        m_titleText.setText(tr(m_introspection->m_name.data()));
+        m_titleLabel.setText(tr(m_introspection->m_name.data()));
+        m_titleLabel.setToolTip(tr(m_introspection->m_description.data()));
         for (int f = 0; f < 7; ++f)
         {
             const amuse::SoundMacro::CmdIntrospection::Field& field = m_introspection->m_fields[f];
             if (!field.m_name.empty())
             {
-                layout->addWidget(new QLabel(tr(field.m_name.data())), 0, f);
-                int value;
+                QString fieldName = tr(field.m_name.data());
+                layout->addWidget(new QLabel(fieldName), 0, f);
                 switch (field.m_tp)
                 {
                 case amuse::SoundMacro::CmdIntrospection::Field::Type::Bool:
                 {
                     QCheckBox* cb = new QCheckBox;
                     cb->setProperty("fieldIndex", f);
+                    cb->setProperty("fieldName", fieldName);
                     cb->setCheckState(amuse::AccessField<bool>(m_cmd, field) ? Qt::Checked : Qt::Unchecked);
                     connect(cb, SIGNAL(stateChanged(int)), this, SLOT(boolChanged(int)));
                     layout->addWidget(cb, 1, f);
@@ -57,6 +86,7 @@ CommandWidget::CommandWidget(amuse::SoundMacro::ICmd* cmd, amuse::SoundMacro::Cm
                 {
                     FieldSpinBox* sb = new FieldSpinBox;
                     sb->setProperty("fieldIndex", f);
+                    sb->setProperty("fieldName", fieldName);
                     sb->setMinimum(int(field.m_min));
                     sb->setMaximum(int(field.m_max));
                     switch (field.m_tp)
@@ -90,9 +120,10 @@ CommandWidget::CommandWidget(amuse::SoundMacro::ICmd* cmd, amuse::SoundMacro::Cm
                 {
                     FieldComboBox* cb = new FieldComboBox;
                     cb->setProperty("fieldIndex", f);
+                    cb->setProperty("fieldName", fieldName);
                     for (int j = 0; j < 4; ++j)
                     {
-                        if (field.m_choices->empty())
+                        if (field.m_choices[j].empty())
                             break;
                         cb->addItem(tr(field.m_choices[j].data()));
                     }
@@ -108,6 +139,8 @@ CommandWidget::CommandWidget(amuse::SoundMacro::ICmd* cmd, amuse::SoundMacro::Cm
         }
     }
     mainLayout->addLayout(layout);
+    layout->setRowMinimumHeight(0, 22);
+    layout->setRowMinimumHeight(1, 37);
     setLayout(mainLayout);
 }
 
@@ -117,6 +150,102 @@ CommandWidget::CommandWidget(amuse::SoundMacro::ICmd* cmd, QWidget* parent)
 CommandWidget::CommandWidget(amuse::SoundMacro::CmdOp op, QWidget* parent)
 : CommandWidget(nullptr, op, parent) {}
 
+class ValChangedUndoCommand : public EditorUndoCommand
+{
+    amuse::SoundMacro::ICmd* m_cmd;
+    const amuse::SoundMacro::CmdIntrospection::Field& m_field;
+    int m_redoVal, m_undoVal;
+    bool m_undid = false;
+public:
+    ValChangedUndoCommand(amuse::SoundMacro::ICmd* cmd, const QString& fieldName,
+                          const amuse::SoundMacro::CmdIntrospection::Field& field,
+                          int redoVal, std::shared_ptr<ProjectModel::SoundMacroNode> node)
+        : EditorUndoCommand(node, QUndoStack::tr("Change %1").arg(fieldName)),
+          m_cmd(cmd), m_field(field), m_redoVal(redoVal) {}
+    void undo()
+    {
+        m_undid = true;
+        switch (m_field.m_tp)
+        {
+        case amuse::SoundMacro::CmdIntrospection::Field::Type::Bool:
+            amuse::AccessField<bool>(m_cmd, m_field) = bool(m_undoVal);
+            break;
+        case amuse::SoundMacro::CmdIntrospection::Field::Type::Int8:
+        case amuse::SoundMacro::CmdIntrospection::Field::Type::Choice:
+            amuse::AccessField<int8_t>(m_cmd, m_field) = int8_t(m_undoVal);
+            break;
+        case amuse::SoundMacro::CmdIntrospection::Field::Type::UInt8:
+            amuse::AccessField<uint8_t>(m_cmd, m_field) = uint8_t(m_undoVal);
+            break;
+        case amuse::SoundMacro::CmdIntrospection::Field::Type::Int16:
+            amuse::AccessField<int16_t>(m_cmd, m_field) = int16_t(m_undoVal);
+            break;
+        case amuse::SoundMacro::CmdIntrospection::Field::Type::UInt16:
+            amuse::AccessField<uint16_t>(m_cmd, m_field) = uint16_t(m_undoVal);
+            break;
+        case amuse::SoundMacro::CmdIntrospection::Field::Type::Int32:
+            amuse::AccessField<int32_t>(m_cmd, m_field) = int32_t(m_undoVal);
+            break;
+        case amuse::SoundMacro::CmdIntrospection::Field::Type::UInt32:
+            amuse::AccessField<uint32_t>(m_cmd, m_field) = uint32_t(m_undoVal);
+            break;
+        default:
+            break;
+        }
+        EditorUndoCommand::undo();
+    }
+    void redo()
+    {
+        switch (m_field.m_tp)
+        {
+        case amuse::SoundMacro::CmdIntrospection::Field::Type::Bool:
+            m_undoVal = amuse::AccessField<bool>(m_cmd, m_field);
+            amuse::AccessField<bool>(m_cmd, m_field) = bool(m_redoVal);
+            break;
+        case amuse::SoundMacro::CmdIntrospection::Field::Type::Int8:
+        case amuse::SoundMacro::CmdIntrospection::Field::Type::Choice:
+            m_undoVal = amuse::AccessField<int8_t>(m_cmd, m_field);
+            amuse::AccessField<int8_t>(m_cmd, m_field) = int8_t(m_redoVal);
+            break;
+        case amuse::SoundMacro::CmdIntrospection::Field::Type::UInt8:
+            m_undoVal = amuse::AccessField<uint8_t>(m_cmd, m_field);
+            amuse::AccessField<uint8_t>(m_cmd, m_field) = uint8_t(m_redoVal);
+            break;
+        case amuse::SoundMacro::CmdIntrospection::Field::Type::Int16:
+            m_undoVal = amuse::AccessField<int16_t>(m_cmd, m_field);
+            amuse::AccessField<int16_t>(m_cmd, m_field) = int16_t(m_redoVal);
+            break;
+        case amuse::SoundMacro::CmdIntrospection::Field::Type::UInt16:
+            m_undoVal = amuse::AccessField<uint16_t>(m_cmd, m_field);
+            amuse::AccessField<uint16_t>(m_cmd, m_field) = uint16_t(m_redoVal);
+            break;
+        case amuse::SoundMacro::CmdIntrospection::Field::Type::Int32:
+            m_undoVal = amuse::AccessField<int32_t>(m_cmd, m_field);
+            amuse::AccessField<int32_t>(m_cmd, m_field) = int32_t(m_redoVal);
+            break;
+        case amuse::SoundMacro::CmdIntrospection::Field::Type::UInt32:
+            m_undoVal = amuse::AccessField<uint32_t>(m_cmd, m_field);
+            amuse::AccessField<uint32_t>(m_cmd, m_field) = uint32_t(m_redoVal);
+            break;
+        default:
+            break;
+        }
+        if (m_undid)
+            EditorUndoCommand::redo();
+    }
+    bool mergeWith(const QUndoCommand* other)
+    {
+        if (other->id() == id() && m_cmd == static_cast<const ValChangedUndoCommand*>(other)->m_cmd &&
+            &m_field == &static_cast<const ValChangedUndoCommand*>(other)->m_field)
+        {
+            m_redoVal = static_cast<const ValChangedUndoCommand*>(other)->m_redoVal;
+            return true;
+        }
+        return false;
+    }
+    int id() const { return int(Id::SMChangeVal); }
+};
+
 void CommandWidget::boolChanged(int state)
 {
     if (m_introspection)
@@ -124,7 +253,8 @@ void CommandWidget::boolChanged(int state)
         QCheckBox* cb = static_cast<QCheckBox*>(sender());
         const amuse::SoundMacro::CmdIntrospection::Field& field =
             m_introspection->m_fields[cb->property("fieldIndex").toInt()];
-        amuse::AccessField<bool>(m_cmd, field) = state == Qt::Checked;
+        g_MainWindow->pushUndoCommand(new ValChangedUndoCommand(m_cmd, cb->property("fieldName").toString(), field,
+                                                                state == Qt::Checked, getParent()->m_node));
     }
 }
 
@@ -135,80 +265,40 @@ void CommandWidget::numChanged(int value)
         FieldSpinBox* sb = static_cast<FieldSpinBox*>(sender());
         const amuse::SoundMacro::CmdIntrospection::Field& field =
             m_introspection->m_fields[sb->property("fieldIndex").toInt()];
-        switch (field.m_tp)
-        {
-        case amuse::SoundMacro::CmdIntrospection::Field::Type::Int8:
-            amuse::AccessField<int8_t>(m_cmd, field) = int8_t(value);
-            break;
-        case amuse::SoundMacro::CmdIntrospection::Field::Type::UInt8:
-            amuse::AccessField<uint8_t>(m_cmd, field) = uint8_t(value);
-            break;
-        case amuse::SoundMacro::CmdIntrospection::Field::Type::Int16:
-            amuse::AccessField<int16_t>(m_cmd, field) = int16_t(value);
-            break;
-        case amuse::SoundMacro::CmdIntrospection::Field::Type::UInt16:
-            amuse::AccessField<uint16_t>(m_cmd, field) = uint16_t(value);
-            break;
-        case amuse::SoundMacro::CmdIntrospection::Field::Type::Int32:
-            amuse::AccessField<int32_t>(m_cmd, field) = int32_t(value);
-            break;
-        case amuse::SoundMacro::CmdIntrospection::Field::Type::UInt32:
-            amuse::AccessField<uint32_t>(m_cmd, field) = uint32_t(value);
-            break;
-        default:
-            break;
-        }
+        g_MainWindow->pushUndoCommand(new ValChangedUndoCommand(m_cmd, sb->property("fieldName").toString(), field,
+                                                                value, getParent()->m_node));
     }
 }
 
-void CommandWidget::animateOpen()
+void CommandWidget::choiceChanged(int choice)
 {
-    int newHeight = 200 + parentWidget()->layout()->spacing();
-    m_animation = new QPropertyAnimation(this, "minimumHeight");
-    m_animation->setDuration(abs(minimumHeight() - newHeight) * 4);
-    m_animation->setStartValue(minimumHeight());
-    m_animation->setEndValue(newHeight);
-    m_animation->setEasingCurve(QEasingCurve::InOutExpo);
-    connect(m_animation, SIGNAL(valueChanged(const QVariant&)), parentWidget(), SLOT(update()));
-    connect(m_animation, SIGNAL(destroyed(QObject*)), this, SLOT(animationDestroyed()));
-    m_animation->start(QAbstractAnimation::DeleteWhenStopped);
+    if (m_introspection)
+    {
+        FieldComboBox* cb = static_cast<FieldComboBox*>(sender());
+        const amuse::SoundMacro::CmdIntrospection::Field& field =
+            m_introspection->m_fields[cb->property("fieldIndex").toInt()];
+        g_MainWindow->pushUndoCommand(new ValChangedUndoCommand(m_cmd, cb->property("fieldName").toString(), field,
+                                                                choice, getParent()->m_node));
+    }
 }
 
-void CommandWidget::animateClosed()
+void CommandWidget::deleteClicked()
 {
-    m_animation = new QPropertyAnimation(this, "minimumHeight");
-    m_animation->setDuration(abs(minimumHeight() - 100) * 4);
-    m_animation->setStartValue(minimumHeight());
-    m_animation->setEndValue(100);
-    m_animation->setEasingCurve(QEasingCurve::InOutExpo);
-    connect(m_animation, SIGNAL(valueChanged(const QVariant&)), parentWidget(), SLOT(update()));
-    connect(m_animation, SIGNAL(destroyed(QObject*)), this, SLOT(animationDestroyed()));
-    m_animation->start(QAbstractAnimation::DeleteWhenStopped);
-}
-
-void CommandWidget::snapOpen()
-{
-    if (m_animation)
-        m_animation->stop();
-    setMinimumHeight(200 + parentWidget()->layout()->spacing());
-}
-
-void CommandWidget::snapClosed()
-{
-    if (m_animation)
-        m_animation->stop();
-    setMinimumHeight(100);
+    if (m_index != -1)
+        if (SoundMacroListing* listing = qobject_cast<SoundMacroListing*>(parentWidget()->parentWidget()))
+            listing->deleteCommand(m_index);
 }
 
 void CommandWidget::setIndex(int index)
 {
+    m_index = index;
     m_numberText.setText(QString::number(index));
     update();
 }
 
-void CommandWidget::animationDestroyed()
+SoundMacroListing* CommandWidget::getParent() const
 {
-    m_animation = nullptr;
+    return qobject_cast<SoundMacroListing*>(parentWidget()->parentWidget());
 }
 
 void CommandWidget::paintEvent(QPaintEvent* event)
@@ -217,8 +307,6 @@ void CommandWidget::paintEvent(QPaintEvent* event)
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
 
-    QTransform mainXf = QTransform::fromTranslate(0, rect().bottom() - 99);
-    painter.setTransform(mainXf);
     QPoint points[] =
     {
         {1, 20},
@@ -248,15 +336,69 @@ void CommandWidget::paintEvent(QPaintEvent* event)
 
     painter.drawRect(17, 51, 32, 32);
 
-    painter.setPen(palette().color(QPalette::Background));
-    painter.setFont(m_titleFont);
-    painter.drawStaticText(40, -1, m_titleText);
-
     QTransform rotate;
     rotate.rotate(-45.0);
-    painter.setTransform(rotate * mainXf);
+    painter.setTransform(rotate);
     painter.setFont(m_numberFont);
+    painter.setPen(palette().color(QPalette::Background));
     painter.drawStaticText(-15, 10, m_numberText);
+}
+
+void CommandWidgetContainer::animateOpen()
+{
+    int newHeight = 200 + parentWidget()->layout()->spacing();
+    m_animation = new QPropertyAnimation(this, "minimumHeight");
+    m_animation->setDuration(abs(minimumHeight() - newHeight) * 4);
+    m_animation->setStartValue(minimumHeight());
+    m_animation->setEndValue(newHeight);
+    m_animation->setEasingCurve(QEasingCurve::InOutExpo);
+    connect(m_animation, SIGNAL(valueChanged(const QVariant&)), parentWidget(), SLOT(update()));
+    connect(m_animation, SIGNAL(destroyed(QObject*)), this, SLOT(animationDestroyed()));
+    m_animation->start(QAbstractAnimation::DeleteWhenStopped);
+}
+
+void CommandWidgetContainer::animateClosed()
+{
+    m_animation = new QPropertyAnimation(this, "minimumHeight");
+    m_animation->setDuration(abs(minimumHeight() - 100) * 4);
+    m_animation->setStartValue(minimumHeight());
+    m_animation->setEndValue(100);
+    m_animation->setEasingCurve(QEasingCurve::InOutExpo);
+    connect(m_animation, SIGNAL(valueChanged(const QVariant&)), parentWidget(), SLOT(update()));
+    connect(m_animation, SIGNAL(destroyed(QObject*)), this, SLOT(animationDestroyed()));
+    m_animation->start(QAbstractAnimation::DeleteWhenStopped);
+}
+
+void CommandWidgetContainer::snapOpen()
+{
+    if (m_animation)
+        m_animation->stop();
+    setMinimumHeight(200 + parentWidget()->layout()->spacing());
+}
+
+void CommandWidgetContainer::snapClosed()
+{
+    if (m_animation)
+        m_animation->stop();
+    setMinimumHeight(100);
+}
+
+void CommandWidgetContainer::animationDestroyed()
+{
+    m_animation = nullptr;
+}
+
+CommandWidgetContainer::CommandWidgetContainer(CommandWidget* child, QWidget* parent)
+: QWidget(parent), m_commandWidget(child)
+{
+    setMinimumHeight(100);
+    setContentsMargins(QMargins());
+    QBoxLayout* outerLayout = new QVBoxLayout;
+    outerLayout->setContentsMargins(QMargins());
+    outerLayout->setSpacing(0);
+    outerLayout->addStretch();
+    outerLayout->addWidget(child);
+    setLayout(outerLayout);
 }
 
 void SoundMacroListing::startAutoscroll(QWidget* source, QMouseEvent* event, int delta)
@@ -298,7 +440,7 @@ void SoundMacroListing::timerEvent(QTimerEvent* event)
 
 bool SoundMacroListing::beginDrag(CommandWidget* widget)
 {
-    int origIdx = m_layout->indexOf(widget);
+    int origIdx = m_layout->indexOf(widget->parentWidget());
     /* Don't allow dragging last command (END command) */
     if (origIdx < 0 || origIdx >= m_layout->count() - 2)
         return false;
@@ -306,7 +448,8 @@ bool SoundMacroListing::beginDrag(CommandWidget* widget)
     {
         // Animate next item open
         m_dragOpenIdx = origIdx;
-        if (CommandWidget* nextItem = qobject_cast<CommandWidget*>(m_layout->itemAt(origIdx + 1)->widget()))
+        if (CommandWidgetContainer* nextItem =
+            qobject_cast<CommandWidgetContainer*>(m_layout->itemAt(origIdx + 1)->widget()))
             nextItem->snapOpen();
     }
     else
@@ -319,24 +462,57 @@ bool SoundMacroListing::beginDrag(CommandWidget* widget)
     return true;
 }
 
-void SoundMacroListing::endDrag(CommandWidget* widget)
+class ReorderCommandsUndoCommand : public EditorUndoCommand
 {
+    int m_a, m_b;
+    bool m_undid = false;
+public:
+    ReorderCommandsUndoCommand(int a, int b, const QString& text, std::shared_ptr<ProjectModel::SoundMacroNode> node)
+    : EditorUndoCommand(node, QUndoStack::tr("Reorder %1").arg(text)), m_a(a), m_b(b) {}
+    void undo()
+    {
+        m_undid = true;
+        std::static_pointer_cast<ProjectModel::SoundMacroNode>(m_node)->
+            m_obj->swapPositions(m_a, m_b);
+        EditorUndoCommand::undo();
+    }
+    void redo()
+    {
+        std::static_pointer_cast<ProjectModel::SoundMacroNode>(m_node)->
+            m_obj->swapPositions(m_a, m_b);
+        if (m_undid)
+            EditorUndoCommand::redo();
+    }
+};
+
+void SoundMacroListing::endDrag()
+{
+    int insertIdx;
     if (m_dragOpenIdx != -1)
     {
-        if (CommandWidget* prevItem = qobject_cast<CommandWidget*>(m_layout->itemAt(m_dragOpenIdx)->widget()))
+        if (CommandWidgetContainer* prevItem =
+            qobject_cast<CommandWidgetContainer*>(m_layout->itemAt(m_dragOpenIdx)->widget()))
             prevItem->snapClosed();
-        m_layout->insertItem(m_dragOpenIdx, m_dragItem);
+        insertIdx = m_dragOpenIdx;
         m_dragOpenIdx = -1;
     }
     else
     {
-        m_layout->insertItem(m_layout->count() - 2, m_dragItem);
+        insertIdx = m_layout->count() - 2;
     }
+
     if (m_prevDragOpen)
     {
         m_prevDragOpen->snapClosed();
         m_prevDragOpen = nullptr;
     }
+
+    if (m_origIdx != insertIdx)
+    {
+        CommandWidget* cmd = static_cast<CommandWidgetContainer*>(m_dragItem->widget())->m_commandWidget;
+        g_MainWindow->pushUndoCommand(new ReorderCommandsUndoCommand(m_origIdx, insertIdx, cmd->getText(), m_node));
+    }
+    m_layout->insertItem(insertIdx, m_dragItem);
     m_dragItem = nullptr;
     stopAutoscroll();
     reindex();
@@ -346,7 +522,8 @@ void SoundMacroListing::cancelDrag()
 {
     if (m_dragOpenIdx != -1)
     {
-        if (CommandWidget* prevItem = qobject_cast<CommandWidget*>(m_layout->itemAt(m_dragOpenIdx)->widget()))
+        if (CommandWidgetContainer* prevItem =
+            qobject_cast<CommandWidgetContainer*>(m_layout->itemAt(m_dragOpenIdx)->widget()))
             prevItem->snapClosed();
         m_dragOpenIdx = -1;
     }
@@ -376,12 +553,14 @@ void SoundMacroListing::_moveDrag(int hoverIdx, const QPoint& pt, QWidget* sourc
     if (hoverIdx != m_dragOpenIdx)
     {
         if (m_dragOpenIdx != -1)
-            if (CommandWidget* prevItem = qobject_cast<CommandWidget*>(m_layout->itemAt(m_dragOpenIdx)->widget()))
+            if (CommandWidgetContainer* prevItem =
+                qobject_cast<CommandWidgetContainer*>(m_layout->itemAt(m_dragOpenIdx)->widget()))
             {
                 m_prevDragOpen = prevItem;
                 prevItem->animateClosed();
             }
-        if (CommandWidget* nextItem = qobject_cast<CommandWidget*>(m_layout->itemAt(hoverIdx)->widget()))
+        if (CommandWidgetContainer* nextItem =
+            qobject_cast<CommandWidgetContainer*>(m_layout->itemAt(hoverIdx)->widget()))
             nextItem->animateOpen();
         m_dragOpenIdx = hoverIdx;
     }
@@ -390,8 +569,9 @@ void SoundMacroListing::_moveDrag(int hoverIdx, const QPoint& pt, QWidget* sourc
 
 void SoundMacroListing::moveDrag(CommandWidget* widget, const QPoint& pt, QWidget* source, QMouseEvent* event)
 {
+    CommandWidgetContainer* container = static_cast<CommandWidgetContainer*>(widget->parentWidget());
     int pitch = 100 + m_layout->spacing();
-    _moveDrag((widget->pos().y() - m_layout->contentsMargins().top() + pitch / 2) / pitch, pt, source, event);
+    _moveDrag((container->pos().y() - m_layout->contentsMargins().top() + pitch / 2) / pitch, pt, source, event);
 }
 
 int SoundMacroListing::moveInsertDrag(const QPoint& pt, QWidget* source, QMouseEvent* event)
@@ -405,7 +585,8 @@ void SoundMacroListing::insertDragout()
 {
     if (m_dragOpenIdx != -1)
     {
-        if (CommandWidget* prevItem = qobject_cast<CommandWidget*>(m_layout->itemAt(m_dragOpenIdx)->widget()))
+        if (CommandWidgetContainer* prevItem =
+            qobject_cast<CommandWidgetContainer*>(m_layout->itemAt(m_dragOpenIdx)->widget()))
         {
             m_prevDragOpen = prevItem;
             prevItem->animateClosed();
@@ -415,40 +596,139 @@ void SoundMacroListing::insertDragout()
     stopAutoscroll();
 }
 
-void SoundMacroListing::insert(amuse::SoundMacro::CmdOp op)
+class InsertCommandUndoCommand : public EditorUndoCommand
 {
-    CommandWidget* newCmd = new CommandWidget(amuse::SoundMacro::MakeCmd(op).release(), this);
+    int m_insertIdx;
+    std::unique_ptr<amuse::SoundMacro::ICmd> m_cmd;
+public:
+    InsertCommandUndoCommand(int insertIdx, const QString& text, std::shared_ptr<ProjectModel::SoundMacroNode> node)
+    : EditorUndoCommand(node, QUndoStack::tr("Insert %1").arg(text)), m_insertIdx(insertIdx) {}
+    void undo()
+    {
+        m_cmd = std::static_pointer_cast<ProjectModel::SoundMacroNode>(m_node)->
+            m_obj->deleteCmd(m_insertIdx);
+        EditorUndoCommand::undo();
+    }
+    void redo()
+    {
+        if (!m_cmd)
+            return;
+        std::static_pointer_cast<ProjectModel::SoundMacroNode>(m_node)->
+            m_obj->insertCmd(m_insertIdx, std::move(m_cmd));
+        m_cmd.reset();
+        EditorUndoCommand::redo();
+    }
+};
+
+void SoundMacroListing::insert(amuse::SoundMacro::CmdOp op, const QString& text)
+{
+    int insertIdx;
     if (m_dragOpenIdx != -1)
     {
-        if (CommandWidget* prevItem = qobject_cast<CommandWidget*>(m_layout->itemAt(m_dragOpenIdx)->widget()))
+        if (CommandWidgetContainer* prevItem =
+            qobject_cast<CommandWidgetContainer*>(m_layout->itemAt(m_dragOpenIdx)->widget()))
             prevItem->snapClosed();
-        m_layout->insertWidget(m_dragOpenIdx, newCmd);
+        insertIdx = m_dragOpenIdx;
         m_dragOpenIdx = -1;
     }
     else
     {
-        m_layout->insertWidget(m_layout->count() - 2, newCmd);
+        insertIdx = m_layout->count() - 2;
     }
+
     if (m_prevDragOpen)
     {
         m_prevDragOpen->snapClosed();
         m_prevDragOpen = nullptr;
     }
+
+    g_MainWindow->pushUndoCommand(new InsertCommandUndoCommand(insertIdx, text, m_node));
+    m_layout->insertWidget(insertIdx,
+        new CommandWidgetContainer(new CommandWidget(m_node->m_obj->insertNewCmd(insertIdx, op))));
+
     stopAutoscroll();
+    reindex();
+}
+
+class DeleteCommandUndoCommand : public EditorUndoCommand
+{
+    int m_deleteIdx;
+    std::unique_ptr<amuse::SoundMacro::ICmd> m_cmd;
+    bool m_undid = false;
+public:
+    DeleteCommandUndoCommand(int deleteIdx, const QString& text, std::shared_ptr<ProjectModel::SoundMacroNode> node)
+    : EditorUndoCommand(node, QUndoStack::tr("Delete %1").arg(text)), m_deleteIdx(deleteIdx) {}
+    void undo()
+    {
+        m_undid = true;
+        std::static_pointer_cast<ProjectModel::SoundMacroNode>(m_node)->
+            m_obj->insertCmd(m_deleteIdx, std::move(m_cmd));
+        m_cmd.reset();
+        EditorUndoCommand::undo();
+    }
+    void redo()
+    {
+        m_cmd = std::static_pointer_cast<ProjectModel::SoundMacroNode>(m_node)->
+            m_obj->deleteCmd(m_deleteIdx);
+        if (m_undid)
+            EditorUndoCommand::redo();
+    }
+};
+
+void SoundMacroListing::deleteCommand(int index)
+{
+    QLayoutItem* item = m_layout->takeAt(index);
+    CommandWidget* cmd = static_cast<CommandWidgetContainer*>(item->widget())->m_commandWidget;
+    g_MainWindow->pushUndoCommand(new DeleteCommandUndoCommand(index, cmd->getText(), m_node));
+    item->widget()->deleteLater();
+    delete item;
     reindex();
 }
 
 void SoundMacroListing::reindex()
 {
     for (int i = 0; i < m_layout->count() - 1; ++i)
-        if (CommandWidget* item = qobject_cast<CommandWidget*>(m_layout->itemAt(i)->widget()))
-            item->setIndex(i);
+        if (CommandWidgetContainer* item =
+            qobject_cast<CommandWidgetContainer*>(m_layout->itemAt(i)->widget()))
+            item->m_commandWidget->setIndex(i);
 }
 
-SoundMacroListing::SoundMacroListing(ProjectModel::SoundMacroNode* node, QWidget* parent)
+void SoundMacroListing::clear()
+{
+    while (m_layout->count() > 2)
+    {
+        QLayoutItem* item = m_layout->takeAt(0);
+        item->widget()->deleteLater();
+        delete item;
+    }
+}
+
+bool SoundMacroListing::loadData(ProjectModel::SoundMacroNode* node)
+{
+    m_node = node->shared_from_this();
+    clear();
+    int i = 0;
+    for (auto& cmd : node->m_obj->m_cmds)
+    {
+        if (cmd->Isa() == amuse::SoundMacro::CmdOp::End)
+            break;
+        m_layout->insertWidget(i++, new CommandWidgetContainer(new CommandWidget(cmd.get())));
+    }
+    reindex();
+    return true;
+}
+
+void SoundMacroListing::unloadData()
+{
+    m_node.reset();
+    clear();
+    reindex();
+}
+
+SoundMacroListing::SoundMacroListing(QWidget* parent)
 : QWidget(parent), m_layout(new QVBoxLayout)
 {
-    m_layout->addWidget(new CommandWidget(amuse::SoundMacro::CmdOp::End, this));
+    m_layout->addWidget(new CommandWidgetContainer(new CommandWidget(amuse::SoundMacro::CmdOp::End)));
     m_layout->addStretch();
     setLayout(m_layout);
     reindex();
@@ -456,17 +736,16 @@ SoundMacroListing::SoundMacroListing(ProjectModel::SoundMacroNode* node, QWidget
 
 CatalogueItem::CatalogueItem(amuse::SoundMacro::CmdOp op, const QString& name,
                              const QString& doc, QWidget* parent)
-: QWidget(parent), m_op(op)
+: QWidget(parent), m_op(op), m_label(name)
 {
     QHBoxLayout* layout = new QHBoxLayout;
-    QLabel* iconLab = new QLabel;
     QString iconPath = QStringLiteral(":/commands/%1.svg").arg(name);
     if (QFile(iconPath).exists())
-        iconLab->setPixmap(QIcon(iconPath).pixmap(32, 32));
+        m_iconLab.setPixmap(QIcon(iconPath).pixmap(32, 32));
     else
-        iconLab->setPixmap(QIcon(QStringLiteral(":/icons/IconOpen.svg")).pixmap(32, 32));
-    layout->addWidget(iconLab);
-    layout->addWidget(new QLabel(name));
+        m_iconLab.setPixmap(QIcon(QStringLiteral(":/icons/IconOpen.svg")).pixmap(32, 32));
+    layout->addWidget(&m_iconLab);
+    layout->addWidget(&m_label);
     layout->addStretch();
     layout->setContentsMargins(QMargins());
     setLayout(layout);
@@ -478,10 +757,10 @@ CatalogueItem::CatalogueItem(const CatalogueItem& other, QWidget* parent)
 {
     QHBoxLayout* layout = new QHBoxLayout;
     QHBoxLayout* oldLayout = static_cast<QHBoxLayout*>(other.layout());
-    QLabel* iconLab = new QLabel;
-    iconLab->setPixmap(*static_cast<QLabel*>(oldLayout->itemAt(0)->widget())->pixmap());
-    layout->addWidget(iconLab);
-    layout->addWidget(new QLabel(static_cast<QLabel*>(oldLayout->itemAt(1)->widget())->text()));
+    m_iconLab.setPixmap(*static_cast<QLabel*>(oldLayout->itemAt(0)->widget())->pixmap());
+    layout->addWidget(&m_iconLab);
+    m_label.setText(static_cast<QLabel*>(oldLayout->itemAt(1)->widget())->text());
+    layout->addWidget(&m_label);
     layout->addStretch();
     layout->setContentsMargins(QMargins());
     setLayout(layout);
@@ -617,13 +896,14 @@ void SoundMacroEditor::mouseReleaseEvent(QMouseEvent* event)
     if (m_draggedItem)
     {
         amuse::SoundMacro::CmdOp op = m_draggedItem->getCmdOp();
+        QString text = m_draggedItem->getText();
         m_draggedItem->deleteLater();
         m_draggedItem = nullptr;
 
         if (m_listing->parentWidget()->parentWidget()->geometry().contains(event->pos()))
         {
             if (m_dragInsertIdx != -1)
-                m_listing->insert(op);
+                m_listing->insert(op, text);
             else
                 m_listing->insertDragout();
         }
@@ -635,7 +915,7 @@ void SoundMacroEditor::mouseReleaseEvent(QMouseEvent* event)
     }
     else if (m_draggedCmd)
     {
-        m_listing->endDrag(m_draggedCmd);
+        m_listing->endDrag();
         m_draggedCmd = nullptr;
     }
 }
@@ -660,7 +940,8 @@ void SoundMacroEditor::mouseMoveEvent(QMouseEvent* event)
     else if (m_draggedCmd)
     {
         QPoint listingPt = m_listing->mapFrom(this, event->pos());
-        m_draggedCmd->move(m_draggedCmd->x(), listingPt.y() - m_draggedPt.y());
+        CommandWidgetContainer* container = static_cast<CommandWidgetContainer*>(m_draggedCmd->parentWidget());
+        container->move(container->x(), listingPt.y() - m_draggedPt.y());
         if (m_listing->parentWidget()->parentWidget()->geometry().contains(event->pos()))
             m_listing->moveDrag(m_draggedCmd, listingPt, this, event);
         m_listing->update();
@@ -692,13 +973,23 @@ void SoundMacroEditor::catalogueDoubleClicked(QTreeWidgetItem* item, int column)
     {
         amuse::SoundMacro::CmdOp op = cItem->getCmdOp();
         if (op != amuse::SoundMacro::CmdOp::Invalid)
-            m_listing->insert(op);
+            m_listing->insert(op, cItem->getText());
     }
 }
 
-SoundMacroEditor::SoundMacroEditor(ProjectModel::SoundMacroNode* node, QWidget* parent)
+bool SoundMacroEditor::loadData(ProjectModel::SoundMacroNode* node)
+{
+    return m_listing->loadData(node);
+}
+
+void SoundMacroEditor::unloadData()
+{
+    m_listing->unloadData();
+}
+
+SoundMacroEditor::SoundMacroEditor(QWidget* parent)
 : EditorWidget(parent), m_splitter(new QSplitter),
-  m_listing(new SoundMacroListing(node)), m_catalogue(new SoundMacroCatalogue)
+  m_listing(new SoundMacroListing), m_catalogue(new SoundMacroCatalogue)
 {
     {
         QScrollArea* listingScroll = new QScrollArea;

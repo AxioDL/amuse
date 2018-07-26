@@ -7,7 +7,8 @@ class SoundGroupEditor : public EditorWidget
 {
     Q_OBJECT
 public:
-    explicit SoundGroupEditor(ProjectModel::SoundGroupNode* node, QWidget* parent = Q_NULLPTR);
+    explicit SoundGroupEditor(QWidget* parent = Q_NULLPTR);
+    bool loadData(ProjectModel::SoundGroupNode* node);
 };
 
 

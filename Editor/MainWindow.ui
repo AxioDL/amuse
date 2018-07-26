@@ -221,9 +221,6 @@
     <property name="title">
      <string>&amp;Edit</string>
     </property>
-    <addaction name="actionUndo"/>
-    <addaction name="actionRedo"/>
-    <addaction name="separator"/>
     <addaction name="actionCut"/>
     <addaction name="actionCopy"/>
     <addaction name="actionPaste"/>
@@ -244,22 +241,6 @@
   <action name="actionOpen_Project">
    <property name="text">
     <string>&amp;Open Project</string>
-   </property>
-  </action>
-  <action name="actionUndo">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
-   <property name="text">
-    <string>&amp;Undo</string>
-   </property>
-  </action>
-  <action name="actionRedo">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
-   <property name="text">
-    <string>&amp;Redo</string>
    </property>
   </action>
   <action name="actionCut">

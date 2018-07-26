@@ -1,6 +1,11 @@
 #include "KeymapEditor.hpp"
 
-KeymapEditor::KeymapEditor(ProjectModel::KeymapNode* node, QWidget* parent)
+bool KeymapEditor::loadData(ProjectModel::KeymapNode* node)
+{
+    return false;
+}
+
+KeymapEditor::KeymapEditor(QWidget* parent)
 : EditorWidget(parent)
 {
 

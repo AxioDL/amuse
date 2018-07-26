@@ -51,6 +51,8 @@ public:
     std::shared_ptr<boo::IWindow> newWindow(boo::SystemStringView title) { return {}; }
 };
 
+MainWindow* g_MainWindow = nullptr;
+
 int main(int argc, char* argv[])
 {
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 6, 0))
@@ -97,6 +99,7 @@ int main(int argc, char* argv[])
         a.installTranslator(&translator);
 
     MainWindow w;
+    g_MainWindow = &w;
     w.show();
     return a.exec();
 }

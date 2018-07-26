@@ -11,7 +11,7 @@ QIcon ProjectModel::SoundGroupNode::Icon;
 ProjectModel::ProjectModel(const QString& path, QObject* parent)
 : QAbstractItemModel(parent), m_dir(path)
 {
-    m_root = std::make_unique<RootNode>();
+    m_root = std::make_shared<RootNode>();
 
     GroupNode::Icon = QIcon(":/icons/IconGroup.svg");
     SongGroupNode::Icon = QIcon(":/icons/IconSongGroup.svg");
@@ -102,7 +102,7 @@ void ProjectModel::_resetModelData()
 {
     beginResetModel();
     m_projectDatabase.setIdDatabases();
-    m_root = std::make_unique<RootNode>();
+    m_root = std::make_shared<RootNode>();
     m_root->reserve(m_groups.size());
     for (auto it = m_groups.begin() ; it != m_groups.end() ; ++it)
     {
@@ -150,7 +150,7 @@ void ProjectModel::_resetModelData()
                 {
                     amuse::ITable::Type tp = t.second.get()->Isa();
                     if (tp == amuse::ITable::Type::ADSR || tp == amuse::ITable::Type::ADSRDLS)
-                        col.makeChild<ADSRNode>(t.first, *t.second.get());
+                        col.makeChild<ADSRNode>(t.first, t.second.get());
                 }
             }
             if (curveCount)
@@ -162,7 +162,7 @@ void ProjectModel::_resetModelData()
                 {
                     amuse::ITable::Type tp = t.second.get()->Isa();
                     if (tp == amuse::ITable::Type::Curve)
-                        col.makeChild<CurveNode>(t.first, static_cast<amuse::Curve&>(*t.second.get()));
+                        col.makeChild<CurveNode>(t.first, std::static_pointer_cast<amuse::Curve>(t.second.get()));
                 }
             }
         }

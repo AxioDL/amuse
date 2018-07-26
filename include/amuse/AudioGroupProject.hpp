@@ -180,8 +180,8 @@ struct SFXGroupIndex : AudioGroupIndex
 /** Collection of SongGroup and SFXGroup indexes */
 class AudioGroupProject
 {
-    std::unordered_map<GroupId, SongGroupIndex> m_songGroups;
-    std::unordered_map<GroupId, SFXGroupIndex> m_sfxGroups;
+    std::unordered_map<GroupId, std::shared_ptr<SongGroupIndex>> m_songGroups;
+    std::unordered_map<GroupId, std::shared_ptr<SFXGroupIndex>> m_sfxGroups;
 
     AudioGroupProject(athena::io::IStreamReader& r, GCNDataTag);
     template <athena::Endian DNAE>
@@ -199,10 +199,10 @@ public:
     const SongGroupIndex* getSongGroupIndex(int groupId) const;
     const SFXGroupIndex* getSFXGroupIndex(int groupId) const;
 
-    const std::unordered_map<GroupId, SongGroupIndex>& songGroups() const { return m_songGroups; }
-    const std::unordered_map<GroupId, SFXGroupIndex>& sfxGroups() const { return m_sfxGroups; }
-    std::unordered_map<GroupId, SongGroupIndex>& songGroups() { return m_songGroups; }
-    std::unordered_map<GroupId, SFXGroupIndex>& sfxGroups() { return m_sfxGroups; }
+    const std::unordered_map<GroupId, std::shared_ptr<SongGroupIndex>>& songGroups() const { return m_songGroups; }
+    const std::unordered_map<GroupId, std::shared_ptr<SFXGroupIndex>>& sfxGroups() const { return m_sfxGroups; }
+    std::unordered_map<GroupId, std::shared_ptr<SongGroupIndex>>& songGroups() { return m_songGroups; }
+    std::unordered_map<GroupId, std::shared_ptr<SFXGroupIndex>>& sfxGroups() { return m_sfxGroups; }
 
     bool toYAML(SystemStringView groupPath) const;
 

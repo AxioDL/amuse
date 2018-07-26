@@ -7,7 +7,8 @@ class KeymapEditor : public EditorWidget
 {
     Q_OBJECT
 public:
-    explicit KeymapEditor(ProjectModel::KeymapNode* node, QWidget* parent = Q_NULLPTR);
+    explicit KeymapEditor(QWidget* parent = Q_NULLPTR);
+    bool loadData(ProjectModel::KeymapNode* node);
 };
 
 

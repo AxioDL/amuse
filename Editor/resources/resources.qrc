@@ -19,6 +19,7 @@
         <file>IconNewADSR.svg</file>
         <file>IconCurve.svg</file>
         <file>IconNewCurve.svg</file>
+        <file>IconSoundMacroDelete.svg</file>
     </qresource>
     <qresource prefix="/bg">
         <file>FaceGrey.svg</file>

@@ -1,6 +1,11 @@
 #include "SongGroupEditor.hpp"
 
-SongGroupEditor::SongGroupEditor(ProjectModel::SongGroupNode* node, QWidget* parent)
+bool SongGroupEditor::loadData(ProjectModel::SongGroupNode* node)
+{
+    return false;
+}
+
+SongGroupEditor::SongGroupEditor(QWidget* parent)
 : EditorWidget(parent)
 {
 

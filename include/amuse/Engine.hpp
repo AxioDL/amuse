@@ -49,7 +49,7 @@ class Engine
     std::list<std::weak_ptr<Studio>> m_activeStudios; /* lifetime dependent on contributing audio entities */
     bool m_defaultStudioReady = false;
     std::shared_ptr<Studio> m_defaultStudio;
-    std::unordered_map<uint16_t, std::tuple<AudioGroup*, int, const SFXGroupIndex::SFXEntry*>> m_sfxLookup;
+    std::unordered_map<SFXId, std::tuple<AudioGroup*, int, const SFXGroupIndex::SFXEntry*>> m_sfxLookup;
     std::linear_congruential_engine<uint32_t, 0x41c64e6d, 0x3039, UINT32_MAX> m_random;
     int m_nextVid = 0;
     float m_masterVolume = 1.f;

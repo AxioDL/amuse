@@ -19,6 +19,13 @@ class MainWindow;
 
 class MainWindow;
 class AudioGroupModel;
+class SongGroupEditor;
+class SoundGroupEditor;
+class SoundMacroEditor;
+class ADSREditor;
+class CurveEditor;
+class KeymapEditor;
+class LayersEditor;
 
 class BackgroundTask : public QObject
 {
@@ -67,6 +74,13 @@ class MainWindow : public QMainWindow
     ProjectModel* m_projectModel = nullptr;
     AudioGroupModel* m_focusAudioGroup = nullptr;
     QWidget* m_faceSvg;
+    SongGroupEditor* m_songGroupEditor = nullptr;
+    SoundGroupEditor* m_soundGroupEditor = nullptr;
+    SoundMacroEditor* m_soundMacroEditor = nullptr;
+    ADSREditor* m_adsrEditor = nullptr;
+    CurveEditor* m_curveEditor = nullptr;
+    KeymapEditor* m_keymapEditor = nullptr;
+    LayersEditor* m_layersEditor = nullptr;
 
     std::unique_ptr<boo::IAudioVoiceEngine> m_voxEngine;
     std::unique_ptr<amuse::BooBackendVoiceAllocator> m_voxAllocator;
@@ -74,10 +88,6 @@ class MainWindow : public QMainWindow
 
     QUndoStack* m_undoStack;
 
-    QMetaObject::Connection m_undoConn;
-    QMetaObject::Connection m_canUndoConn;
-    QMetaObject::Connection m_redoConn;
-    QMetaObject::Connection m_canRedoConn;
     QMetaObject::Connection m_cutConn;
     QMetaObject::Connection m_copyConn;
     QMetaObject::Connection m_pasteConn;
@@ -114,6 +124,8 @@ public:
     bool openEditor(ProjectModel::INode* node);
     void closeEditor();
 
+    void pushUndoCommand(QUndoCommand* cmd);
+
 public slots:
     void newAction();
     void openAction();
@@ -136,7 +148,6 @@ public slots:
     void setMIDIIO();
 
     void onFocusChanged(QWidget* old, QWidget* now);
-    void onTextEdited();
     void onTextSelect();
     void onTextDelete();
 

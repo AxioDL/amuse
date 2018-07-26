@@ -1,6 +1,11 @@
 #include "LayersEditor.hpp"
 
-LayersEditor::LayersEditor(ProjectModel::LayersNode* node, QWidget* parent)
+bool LayersEditor::loadData(ProjectModel::LayersNode* node)
+{
+    return false;
+}
+
+LayersEditor::LayersEditor(QWidget* parent)
 : EditorWidget(parent)
 {
 

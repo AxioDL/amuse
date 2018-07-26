@@ -1,6 +1,11 @@
 #include "CurveEditor.hpp"
 
-CurveEditor::CurveEditor(ProjectModel::CurveNode* node, QWidget* parent)
+bool CurveEditor::loadData(ProjectModel::CurveNode* node)
+{
+    return false;
+}
+
+CurveEditor::CurveEditor(QWidget* parent)
 : EditorWidget(parent)
 {
 

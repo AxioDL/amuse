@@ -7,7 +7,8 @@ class ADSREditor : public EditorWidget
 {
 Q_OBJECT
 public:
-    explicit ADSREditor(ProjectModel::ADSRNode* node, QWidget* parent = Q_NULLPTR);
+    explicit ADSREditor(QWidget* parent = Q_NULLPTR);
+    bool loadData(ProjectModel::ADSRNode* node);
 };
 
 

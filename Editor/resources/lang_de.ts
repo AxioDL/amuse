@@ -34,7 +34,7 @@
         <translation>&amp;Bearbeiten</translation>
     </message>
     <message>
-        <location line="+19"/>
+        <location line="+16"/>
         <source>&amp;New Project</source>
         <translation>&amp;Neues Projekt</translation>
     </message>
@@ -44,14 +44,12 @@
         <translation>&amp;Offenes Projekt</translation>
     </message>
     <message>
-        <location line="+8"/>
         <source>&amp;Undo</source>
-        <translation>&amp;Rückgängig machen</translation>
+        <translation type="vanished">&amp;Rückgängig machen</translation>
     </message>
     <message>
-        <location line="+8"/>
         <source>&amp;Redo</source>
-        <translation>&amp; Wiederholen</translation>
+        <translation type="vanished">&amp; Wiederholen</translation>
     </message>
     <message>
         <location line="+8"/>
@@ -154,7 +152,7 @@
         <translation>Verlassen</translation>
     </message>
     <message>
-        <location line="+86"/>
+        <location line="+106"/>
         <source>The directory at &apos;%1&apos; must exist for the Amuse editor.</source>
         <translation>Das Verzeichnis unter &apos;% 1&apos; muss für den Amuse-Editor vorhanden sein.</translation>
     </message>
@@ -340,9 +338,32 @@
     </message>
 </context>
 <context>
+    <name>QUndoStack</name>
+    <message>
+        <location filename="../SoundMacroEditor.cpp" line="+163"/>
+        <source>Change %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+308"/>
+        <source>Reorder %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+134"/>
+        <source>Insert %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+55"/>
+        <source>Delete %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>SoundMacroCatalogue</name>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="+492"/>
+        <location line="+111"/>
         <source>Control</source>
         <translation>Steuerung</translation>
     </message>

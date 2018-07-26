@@ -46,8 +46,13 @@ MainWindow::MainWindow(QWidget* parent)
     connect(quitAction, SIGNAL(triggered()), qApp, SLOT(quit()));
 #endif
 
-    m_ui.actionUndo->setShortcut(QKeySequence::Undo);
-    m_ui.actionRedo->setShortcut(QKeySequence::Redo);
+    QAction* undoAction = m_undoStack->createUndoAction(this);
+    undoAction->setShortcut(QKeySequence::Undo);
+    m_ui.menuEdit->insertAction(m_ui.actionCut, undoAction);
+    QAction* redoAction = m_undoStack->createRedoAction(this);
+    redoAction->setShortcut(QKeySequence::Redo);
+    m_ui.menuEdit->insertAction(m_ui.actionCut, redoAction);
+    m_ui.menuEdit->insertSeparator(m_ui.actionCut);
     m_ui.actionCut->setShortcut(QKeySequence::Cut);
     m_ui.actionCopy->setShortcut(QKeySequence::Copy);
     m_ui.actionPaste->setShortcut(QKeySequence::Paste);
@@ -62,6 +67,21 @@ MainWindow::MainWindow(QWidget* parent)
     m_faceSvg = new QWidget;
     m_faceSvg->setLayout(faceLayout);
     m_ui.editorContents->addWidget(m_faceSvg);
+    m_songGroupEditor = new SongGroupEditor;
+    m_ui.editorContents->addWidget(m_songGroupEditor);
+    m_soundGroupEditor = new SoundGroupEditor;
+    m_ui.editorContents->addWidget(m_soundGroupEditor);
+    m_soundMacroEditor = new SoundMacroEditor;
+    m_ui.editorContents->addWidget(m_soundMacroEditor);
+    m_adsrEditor = new ADSREditor;
+    m_ui.editorContents->addWidget(m_adsrEditor);
+    m_curveEditor = new CurveEditor;
+    m_ui.editorContents->addWidget(m_curveEditor);
+    m_keymapEditor = new KeymapEditor;
+    m_ui.editorContents->addWidget(m_keymapEditor);
+    m_layersEditor = new LayersEditor;
+    m_ui.editorContents->addWidget(m_layersEditor);
+    m_ui.editorContents->setCurrentWidget(m_faceSvg);
 
     connect(m_ui.actionNew_Subproject, SIGNAL(triggered()), this, SLOT(newSubprojectAction()));
     connect(m_ui.actionNew_SFX_Group, SIGNAL(triggered()), this, SLOT(newSFXGroupAction()));
@@ -239,19 +259,14 @@ void MainWindow::startBackgroundTask(const QString& windowTitle, const QString& 
 
 bool MainWindow::_setEditor(EditorWidget* editor)
 {
-    while (m_ui.editorContents->currentWidget() != m_faceSvg)
+    if (editor != m_ui.editorContents->currentWidget() &&
+        m_ui.editorContents->currentWidget() != m_faceSvg)
+        static_cast<EditorWidget*>(m_ui.editorContents->currentWidget())->unloadData();
+    if (!editor || !editor->valid())
     {
-        m_ui.editorContents->currentWidget()->deleteLater();
-        m_ui.editorContents->removeWidget(m_ui.editorContents->currentWidget());
-    }
-    if (!editor)
-        return false;
-    if (!editor->valid())
-    {
-        editor->deleteLater();
+        m_ui.editorContents->setCurrentWidget(m_faceSvg);
         return false;
     }
-    m_ui.editorContents->addWidget(editor);
     m_ui.editorContents->setCurrentWidget(editor);
     m_ui.editorContents->update();
     return true;
@@ -259,37 +274,37 @@ bool MainWindow::_setEditor(EditorWidget* editor)
 
 bool MainWindow::openEditor(ProjectModel::SongGroupNode* node)
 {
-    return _setEditor(new SongGroupEditor(node));
+    return _setEditor(m_songGroupEditor->loadData(node) ? m_songGroupEditor : nullptr);
 }
 
 bool MainWindow::openEditor(ProjectModel::SoundGroupNode* node)
 {
-    return _setEditor(new SoundGroupEditor(node));
+    return _setEditor(m_soundGroupEditor->loadData(node) ? m_soundGroupEditor : nullptr);
 }
 
 bool MainWindow::openEditor(ProjectModel::SoundMacroNode* node)
 {
-    return _setEditor(new SoundMacroEditor(node));
+    return _setEditor(m_soundMacroEditor->loadData(node) ? m_soundMacroEditor : nullptr);
 }
 
 bool MainWindow::openEditor(ProjectModel::ADSRNode* node)
 {
-    return _setEditor(new ADSREditor(node));
+    return _setEditor(m_adsrEditor->loadData(node) ? m_adsrEditor : nullptr);
 }
 
 bool MainWindow::openEditor(ProjectModel::CurveNode* node)
 {
-    return _setEditor(new CurveEditor(node));
+    return _setEditor(m_curveEditor->loadData(node) ? m_curveEditor : nullptr);
 }
 
 bool MainWindow::openEditor(ProjectModel::KeymapNode* node)
 {
-    return _setEditor(new KeymapEditor(node));
+    return _setEditor(m_keymapEditor->loadData(node) ? m_keymapEditor : nullptr);
 }
 
 bool MainWindow::openEditor(ProjectModel::LayersNode* node)
 {
-    return _setEditor(new LayersEditor(node));
+    return _setEditor(m_layersEditor->loadData(node) ? m_layersEditor : nullptr);
 }
 
 bool MainWindow::openEditor(ProjectModel::INode* node)
@@ -318,6 +333,11 @@ bool MainWindow::openEditor(ProjectModel::INode* node)
 void MainWindow::closeEditor()
 {
     _setEditor(nullptr);
+}
+
+void MainWindow::pushUndoCommand(QUndoCommand* cmd)
+{
+    m_undoStack->push(cmd);
 }
 
 void MainWindow::newAction()
@@ -592,10 +612,6 @@ void MainWindow::setMIDIIO()
 
 void MainWindow::onFocusChanged(QWidget* old, QWidget* now)
 {
-    disconnect(m_undoConn);
-    disconnect(m_canUndoConn);
-    disconnect(m_redoConn);
-    disconnect(m_canRedoConn);
     disconnect(m_cutConn);
     disconnect(m_copyConn);
     disconnect(m_pasteConn);
@@ -604,11 +620,6 @@ void MainWindow::onFocusChanged(QWidget* old, QWidget* now)
 
     if (QLineEdit* le = qobject_cast<QLineEdit*>(now))
     {
-        m_undoConn = connect(m_ui.actionUndo, SIGNAL(triggered()), le, SLOT(undo()));
-        m_canUndoConn = connect(le, SIGNAL(textChanged(const QString&)), this, SLOT(onTextEdited()));
-        m_ui.actionUndo->setEnabled(le->isUndoAvailable());
-        m_redoConn = connect(m_ui.actionRedo, SIGNAL(triggered()), le, SLOT(redo()));
-        m_ui.actionRedo->setEnabled(le->isRedoAvailable());
         m_cutConn = connect(m_ui.actionCut, SIGNAL(triggered()), le, SLOT(cut()));
         m_ui.actionCut->setEnabled(le->hasSelectedText());
         m_copyConn = connect(m_ui.actionCopy, SIGNAL(triggered()), le, SLOT(copy()));
@@ -620,13 +631,6 @@ void MainWindow::onFocusChanged(QWidget* old, QWidget* now)
         m_canEditConn = connect(le, SIGNAL(selectionChanged()), this, SLOT(onTextSelect()));
         return;
     }
-
-    m_undoConn = connect(m_ui.actionUndo, SIGNAL(triggered()), m_undoStack, SLOT(undo()));
-    m_canUndoConn = connect(m_undoStack, SIGNAL(canUndoChanged(bool)), m_ui.actionUndo, SLOT(setEnabled(bool)));
-    m_ui.actionUndo->setEnabled(m_undoStack->canUndo());
-    m_redoConn = connect(m_ui.actionRedo, SIGNAL(triggered()), m_undoStack, SLOT(redo()));
-    m_canRedoConn = connect(m_undoStack, SIGNAL(canRedoChanged(bool)), m_ui.actionRedo, SLOT(setEnabled(bool)));
-    m_ui.actionRedo->setEnabled(m_undoStack->canRedo());
 
     if (now == m_ui.projectOutline || m_ui.projectOutline->isAncestorOf(now))
     {
@@ -646,15 +650,6 @@ void MainWindow::onFocusChanged(QWidget* old, QWidget* now)
 
     }
 
-}
-
-void MainWindow::onTextEdited()
-{
-    if (QLineEdit* le = qobject_cast<QLineEdit*>(sender()))
-    {
-        m_ui.actionUndo->setEnabled(le->isUndoAvailable());
-        m_ui.actionRedo->setEnabled(le->isRedoAvailable());
-    }
 }
 
 void MainWindow::onTextSelect()

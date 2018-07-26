@@ -7,7 +7,8 @@ class LayersEditor : public EditorWidget
 {
     Q_OBJECT
 public:
-    explicit LayersEditor(ProjectModel::LayersNode* node, QWidget* parent = Q_NULLPTR);
+    explicit LayersEditor(QWidget* parent = Q_NULLPTR);
+    bool loadData(ProjectModel::LayersNode* node);
 };
 
 

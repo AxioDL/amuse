@@ -7,7 +7,8 @@ class CurveEditor : public EditorWidget
 {
 Q_OBJECT
 public:
-    explicit CurveEditor(ProjectModel::CurveNode* node, QWidget* parent = Q_NULLPTR);
+    explicit CurveEditor(QWidget* parent = Q_NULLPTR);
+    bool loadData(ProjectModel::CurveNode* node);
 };
 
 
