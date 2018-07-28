@@ -3,6 +3,8 @@
 
 #include <QWidget>
 #include <QSvgWidget>
+#include <QSlider>
+#include <QWheelEvent>
 #include "StatusBarWidget.hpp"
 
 class KeyboardWidget;
@@ -47,7 +49,51 @@ public:
     void leaveEvent(QEvent* event);
     void wheelEvent(QWheelEvent *event);
     void showEvent(QShowEvent *event);
+
+signals:
+    void notePressed(int key);
+    void noteReleased();
 };
 
+class KeyboardSlider : public QSlider
+{
+    Q_OBJECT
+protected:
+    StatusBarFocus* m_statusFocus = nullptr;
+    virtual QString stringOfValue(int value) const = 0;
+public:
+    explicit KeyboardSlider(QWidget* parent = Q_NULLPTR);
+    void enterEvent(QEvent* event);
+    void leaveEvent(QEvent* event);
+    void setStatusFocus(StatusBarFocus* statusFocus);
+    void sliderChange(SliderChange change);
+};
+
+class VelocitySlider : public KeyboardSlider
+{
+    Q_OBJECT
+    QString stringOfValue(int value) const;
+public:
+    explicit VelocitySlider(QWidget* parent = Q_NULLPTR);
+
+};
+
+class ModulationSlider : public KeyboardSlider
+{
+    Q_OBJECT
+    QString stringOfValue(int value) const;
+public:
+    explicit ModulationSlider(QWidget* parent = Q_NULLPTR);
+};
+
+class PitchSlider : public KeyboardSlider
+{
+Q_OBJECT
+    QString stringOfValue(int value) const;
+public:
+    explicit PitchSlider(QWidget* parent = Q_NULLPTR);
+    void mouseReleaseEvent(QMouseEvent *ev);
+    void wheelEvent(QWheelEvent* ev) { ev->ignore(); }
+};
 
 #endif //AMUSE_KEYBOARD_WIDGET_HPP

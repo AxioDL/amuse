@@ -135,12 +135,12 @@ std::pair<int, int> KeyboardWidget::_getOctaveAndKey(QMouseEvent* event) const
 
 void KeyboardWidget::_startKey(int octave, int key)
 {
-    printf("START %d %d\n", octave, key);
+    emit notePressed(octave * 12 + key);
 }
 
 void KeyboardWidget::_stopKey()
 {
-    printf("STOP\n");
+    emit noteReleased();
 }
 
 void KeyboardWidget::_moveOnKey(int octave, int key)
@@ -209,7 +209,75 @@ void KeyboardWidget::showEvent(QShowEvent* event)
 {
     if (QScrollArea* scroll = qobject_cast<QScrollArea*>(parentWidget()->parentWidget()))
     {
-        /* Scroll to C2 */
-        scroll->ensureVisible(141 * 3 + scroll->width(), 0, 0, 0);
+        /* Scroll to C1 */
+        scroll->ensureVisible(141 * 2 + scroll->width(), 0, 0, 0);
     }
+}
+
+KeyboardSlider::KeyboardSlider(QWidget* parent)
+: QSlider(parent)
+{}
+
+void KeyboardSlider::enterEvent(QEvent* event)
+{
+    if (m_statusFocus)
+        m_statusFocus->enter();
+}
+
+void KeyboardSlider::leaveEvent(QEvent* event)
+{
+    if (m_statusFocus)
+        m_statusFocus->exit();
+}
+
+void KeyboardSlider::setStatusFocus(StatusBarFocus* statusFocus)
+{
+    m_statusFocus = statusFocus;
+    QString str = stringOfValue(value());
+    m_statusFocus->setMessage(str);
+    setToolTip(str);
+}
+
+void KeyboardSlider::sliderChange(SliderChange change)
+{
+    QSlider::sliderChange(change);
+    if (m_statusFocus && change == QAbstractSlider::SliderValueChange)
+    {
+        QString str = stringOfValue(value());
+        m_statusFocus->setMessage(str);
+        setToolTip(str);
+    }
+}
+
+VelocitySlider::VelocitySlider(QWidget* parent)
+: KeyboardSlider(parent)
+{}
+
+QString VelocitySlider::stringOfValue(int value) const
+{
+    return tr("Velocity: %1").arg(value);
+}
+
+ModulationSlider::ModulationSlider(QWidget* parent)
+: KeyboardSlider(parent)
+{}
+
+QString ModulationSlider::stringOfValue(int value) const
+{
+    return tr("Modulation: %1").arg(value);
+}
+
+PitchSlider::PitchSlider(QWidget* parent)
+: KeyboardSlider(parent)
+{}
+
+QString PitchSlider::stringOfValue(int value) const
+{
+    return tr("Pitch: %1").arg(value / 2048.0, 0, 'g', 2);
+}
+
+void PitchSlider::mouseReleaseEvent(QMouseEvent *ev)
+{
+    KeyboardSlider::mouseReleaseEvent(ev);
+    setValue(0);
 }

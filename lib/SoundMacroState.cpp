@@ -169,6 +169,9 @@ template <>
 constexpr SoundMacro::CmdIntrospection::Field::Type GetFieldType<SoundMacroIdDNA<athena::Little>>()
 { return SoundMacro::CmdIntrospection::Field::Type::SoundMacroId; }
 template <>
+constexpr SoundMacro::CmdIntrospection::Field::Type GetFieldType<SoundMacroStepDNA<athena::Little>>()
+{ return SoundMacro::CmdIntrospection::Field::Type::SoundMacroStep; }
+template <>
 constexpr SoundMacro::CmdIntrospection::Field::Type GetFieldType<TableIdDNA<athena::Little>>()
 { return SoundMacro::CmdIntrospection::Field::Type::TableId; }
 template <>
@@ -214,12 +217,12 @@ const SoundMacro::CmdIntrospection SoundMacro::CmdSplitKey::Introspective =
         },
         {
             FIELD_HEAD(SoundMacro::CmdSplitKey, macro),
-            "SoundMacro"sv,
-            0, 65535, 0
+            "Macro"sv,
+            0, 65535, 65535
         },
         {
             FIELD_HEAD(SoundMacro::CmdSplitKey, macroStep),
-            "SoundMacro Step"sv,
+            "Macro Step"sv,
             0, 65535, 0
         }
     }
@@ -230,9 +233,9 @@ bool SoundMacro::CmdSplitKey::Do(SoundMacroState& st, Voice& vox) const
     {
         /* Do Branch */
         if (macro.id == std::get<0>(st.m_pc.back()))
-            st._setPC(macroStep);
+            st._setPC(macroStep.step);
         else
-            vox.loadMacroObject(macro.id, macroStep, st.m_ticksPerSec, st.m_initKey, st.m_initVel, st.m_initMod);
+            vox.loadMacroObject(macro.id, macroStep.step, st.m_ticksPerSec, st.m_initKey, st.m_initVel, st.m_initMod);
     }
 
     return false;
@@ -251,12 +254,12 @@ const SoundMacro::CmdIntrospection SoundMacro::CmdSplitVel::Introspective =
         },
         {
             FIELD_HEAD(SoundMacro::CmdSplitVel, macro),
-            "SoundMacro"sv,
-            0, 65535, 0
+            "Macro"sv,
+            0, 65535, 65535
         },
         {
             FIELD_HEAD(SoundMacro::CmdSplitVel, macroStep),
-            "SoundMacro Step"sv,
+            "Macro Step"sv,
             0, 65535, 0
         }
     }
@@ -267,9 +270,9 @@ bool SoundMacro::CmdSplitVel::Do(SoundMacroState& st, Voice& vox) const
     {
         /* Do Branch */
         if (macro.id == std::get<0>(st.m_pc.back()))
-            st._setPC(macroStep);
+            st._setPC(macroStep.step);
         else
-            vox.loadMacroObject(macro.id, macroStep, st.m_ticksPerSec, st.m_initKey, st.m_initVel, st.m_initMod);
+            vox.loadMacroObject(macro.id, macroStep.step, st.m_ticksPerSec, st.m_initKey, st.m_initVel, st.m_initMod);
     }
 
     return false;
@@ -370,7 +373,7 @@ const SoundMacro::CmdIntrospection SoundMacro::CmdLoop::Introspective =
         },
         {
             FIELD_HEAD(SoundMacro::CmdLoop, macroStep),
-            "SoundMacro Step"sv,
+            "Macro Step"sv,
             0, 65535, 0
         },
         {
@@ -400,7 +403,7 @@ bool SoundMacro::CmdLoop::Do(SoundMacroState& st, Voice& vox) const
     {
         /* Loop back to step */
         --st.m_loopCountdown;
-        st._setPC(macroStep);
+        st._setPC(macroStep.step);
     }
     else /* Break out of loop */
         st.m_loopCountdown = -1;
@@ -416,12 +419,12 @@ const SoundMacro::CmdIntrospection SoundMacro::CmdGoto::Introspective =
     {
         {
             FIELD_HEAD(SoundMacro::CmdGoto, macro),
-            "SoundMacro"sv,
-            0, 65535, 0
+            "Macro"sv,
+            0, 65535, 65535
         },
         {
             FIELD_HEAD(SoundMacro::CmdGoto, macroStep),
-            "SoundMacro Step"sv,
+            "Macro Step"sv,
             0, 65535, 0
         }
     }
@@ -430,9 +433,9 @@ bool SoundMacro::CmdGoto::Do(SoundMacroState& st, Voice& vox) const
 {
     /* Do Branch */
     if (macro.id == std::get<0>(st.m_pc.back()))
-        st._setPC(macroStep);
+        st._setPC(macroStep.step);
     else
-        vox.loadMacroObject(macro.id, macroStep, st.m_ticksPerSec, st.m_initKey, st.m_initVel, st.m_initMod);
+        vox.loadMacroObject(macro.id, macroStep.step, st.m_ticksPerSec, st.m_initKey, st.m_initVel, st.m_initMod);
 
     return false;
 }
@@ -516,12 +519,12 @@ const SoundMacro::CmdIntrospection SoundMacro::CmdPlayMacro::Introspective =
         },
         {
             FIELD_HEAD(SoundMacro::CmdPlayMacro, macro),
-            "SoundMacro"sv,
-            0, 65535, 0
+            "Macro"sv,
+            0, 65535, 65535
         },
         {
             FIELD_HEAD(SoundMacro::CmdPlayMacro, macroStep),
-            "SoundMacro Step"sv,
+            "Macro Step"sv,
             0, 65535, 0
         },
         {
@@ -538,7 +541,7 @@ const SoundMacro::CmdIntrospection SoundMacro::CmdPlayMacro::Introspective =
 };
 bool SoundMacro::CmdPlayMacro::Do(SoundMacroState& st, Voice& vox) const
 {
-    std::shared_ptr<Voice> sibVox = vox.startChildMacro(addNote, macro.id, macroStep);
+    std::shared_ptr<Voice> sibVox = vox.startChildMacro(addNote, macro.id, macroStep.step);
     if (sibVox)
         st.m_lastPlayMacroVid = sibVox->vid();
 
@@ -597,12 +600,12 @@ const SoundMacro::CmdIntrospection SoundMacro::CmdSplitMod::Introspective =
         },
         {
             FIELD_HEAD(SoundMacro::CmdSplitMod, macro),
-            "SoundMacro"sv,
-            0, 65535, 0
+            "Macro"sv,
+            0, 65535, 65535
         },
         {
             FIELD_HEAD(SoundMacro::CmdSplitMod, macroStep),
-            "SoundMacro Step"sv,
+            "Macro Step"sv,
             0, 65535, 0
         }
     }
@@ -613,9 +616,9 @@ bool SoundMacro::CmdSplitMod::Do(SoundMacroState& st, Voice& vox) const
     {
         /* Do Branch */
         if (macro.id == std::get<0>(st.m_pc.back()))
-            st._setPC(macroStep);
+            st._setPC(macroStep.step);
         else
-            vox.loadMacroObject(macro.id, macroStep, st.m_ticksPerSec, st.m_initKey, st.m_initVel, st.m_initMod);
+            vox.loadMacroObject(macro.id, macroStep.step, st.m_ticksPerSec, st.m_initKey, st.m_initVel, st.m_initMod);
     }
 
     return false;
@@ -663,7 +666,7 @@ const SoundMacro::CmdIntrospection SoundMacro::CmdSetAdsr::Introspective =
         {
             FIELD_HEAD(SoundMacro::CmdSetAdsr, table),
             "ADSR"sv,
-            0, 16383, 0
+            0, 65535, 65535
         },
         {
             FIELD_HEAD(SoundMacro::CmdSetAdsr, dlsMode),
@@ -698,7 +701,7 @@ const SoundMacro::CmdIntrospection SoundMacro::CmdScaleVolume::Introspective =
         {
             FIELD_HEAD(SoundMacro::CmdScaleVolume, table),
             "Curve"sv,
-            0, 16383, 0
+            0, 65535, 65535
         },
         {
             FIELD_HEAD(SoundMacro::CmdScaleVolume, originalVol),
@@ -777,7 +780,7 @@ const SoundMacro::CmdIntrospection SoundMacro::CmdEnvelope::Introspective =
         {
             FIELD_HEAD(SoundMacro::CmdEnvelope, table),
             "Curve"sv,
-            0, 16383, 0
+            0, 65535, 65535
         },
         {
             FIELD_HEAD(SoundMacro::CmdEnvelope, msSwitch),
@@ -900,12 +903,12 @@ const SoundMacro::CmdIntrospection SoundMacro::CmdSplitRnd::Introspective =
         },
         {
             FIELD_HEAD(SoundMacro::CmdSplitRnd, macro),
-            "SoundMacro"sv,
-            0, 65535, 0
+            "Macro"sv,
+            0, 65535, 65535
         },
         {
             FIELD_HEAD(SoundMacro::CmdSplitRnd, macroStep),
-            "SoundMacro Step"sv,
+            "Macro Step"sv,
             0, 65535, 0
         },
     }
@@ -916,9 +919,9 @@ bool SoundMacro::CmdSplitRnd::Do(SoundMacroState& st, Voice& vox) const
     {
         /* Do branch */
         if (macro.id == std::get<0>(st.m_pc.back()))
-            st._setPC(macroStep);
+            st._setPC(macroStep.step);
         else
-            vox.loadMacroObject(macro.id, macroStep, st.m_ticksPerSec, st.m_initKey, st.m_initVel, st.m_initMod);
+            vox.loadMacroObject(macro.id, macroStep.step, st.m_ticksPerSec, st.m_initKey, st.m_initVel, st.m_initMod);
     }
 
     return false;
@@ -944,7 +947,7 @@ const SoundMacro::CmdIntrospection SoundMacro::CmdFadeIn::Introspective =
         {
             FIELD_HEAD(SoundMacro::CmdFadeIn, table),
             "Curve"sv,
-            0, 16383, 0
+            0, 65535, 65535
         },
         {
             FIELD_HEAD(SoundMacro::CmdFadeIn, msSwitch),
@@ -1474,7 +1477,7 @@ const SoundMacro::CmdIntrospection SoundMacro::CmdSetPitchAdsr::Introspective =
         {
             FIELD_HEAD(SoundMacro::CmdSetPitchAdsr, table),
             "ADSR"sv,
-            0, 16383, 0,
+            0, 65535, 65535,
         },
         {
             FIELD_HEAD(SoundMacro::CmdSetPitchAdsr, keys),
@@ -1592,12 +1595,12 @@ const SoundMacro::CmdIntrospection SoundMacro::CmdGoSub::Introspective =
     {
         {
             FIELD_HEAD(SoundMacro::CmdSplitRnd, macro),
-            "SoundMacro"sv,
-            0, 65535, 0
+            "Macro"sv,
+            0, 65535, 65535
         },
         {
             FIELD_HEAD(SoundMacro::CmdSplitRnd, macroStep),
-            "SoundMacro Step"sv,
+            "Macro Step"sv,
             0, 65535, 0
         },
     }
@@ -1606,9 +1609,9 @@ bool SoundMacro::CmdGoSub::Do(SoundMacroState& st, Voice& vox) const
 {
     if (macro.id == std::get<0>(st.m_pc.back()))
         st.m_pc.emplace_back(std::get<0>(st.m_pc.back()), std::get<1>(st.m_pc.back()),
-            std::get<1>(st.m_pc.back())->assertPC(macroStep));
+            std::get<1>(st.m_pc.back())->assertPC(macroStep.step));
     else
-        vox.loadMacroObject(macro.id, macroStep, st.m_ticksPerSec, st.m_initKey, st.m_initVel, st.m_initMod, true);
+        vox.loadMacroObject(macro.id, macroStep.step, st.m_ticksPerSec, st.m_initKey, st.m_initVel, st.m_initMod, true);
 
     vox._setObjectId(std::get<0>(st.m_pc.back()));
 
@@ -1633,12 +1636,12 @@ const SoundMacro::CmdIntrospection SoundMacro::CmdTrapEvent::Introspective =
         },
         {
             FIELD_HEAD(SoundMacro::CmdTrapEvent, macro),
-            "SoundMacro"sv,
-            0, 65535, 0
+            "Macro"sv,
+            0, 65535, 65535
         },
         {
             FIELD_HEAD(SoundMacro::CmdTrapEvent, macroStep),
-            "SoundMacro Step"sv,
+            "Macro Step"sv,
             0, 65535, 0
         },
     }
@@ -1649,15 +1652,15 @@ bool SoundMacro::CmdTrapEvent::Do(SoundMacroState& st, Voice& vox) const
     {
     case EventType::KeyOff:
         vox.m_keyoffTrap.macroId = macro.id;
-        vox.m_keyoffTrap.macroStep = macroStep;
+        vox.m_keyoffTrap.macroStep = macroStep.step;
         break;
     case EventType::SampleEnd:
         vox.m_sampleEndTrap.macroId = macro.id;
-        vox.m_sampleEndTrap.macroStep = macroStep;
+        vox.m_sampleEndTrap.macroStep = macroStep.step;
         break;
     case EventType::MessageRecv:
         vox.m_messageTrap.macroId = macro.id;
-        vox.m_messageTrap.macroStep = macroStep;
+        vox.m_messageTrap.macroStep = macroStep.step;
         break;
     default:
         break;
@@ -1722,8 +1725,8 @@ const SoundMacro::CmdIntrospection SoundMacro::CmdSendMessage::Introspective =
         },
         {
             FIELD_HEAD(SoundMacro::CmdSendMessage, macro),
-            "SoundMacro"sv,
-            1, 16383, 1
+            "Macro"sv,
+            1, 65535, 65535
         },
         {
             FIELD_HEAD(SoundMacro::CmdSendMessage, voiceVar),
@@ -3118,7 +3121,7 @@ const SoundMacro::CmdIntrospection SoundMacro::CmdIfEqual::Introspective =
         },
         {
             FIELD_HEAD(SoundMacro::CmdIfEqual, macroStep),
-            "SoundMacro Step"sv,
+            "Macro Step"sv,
             0, 65535, 0
         },
     }
@@ -3138,7 +3141,7 @@ bool SoundMacro::CmdIfEqual::Do(SoundMacroState& st, Voice& vox) const
         useB = st.m_variables[b & 0x1f];
 
     if ((useA == useB) ^ notEq)
-        st._setPC(macroStep);
+        st._setPC(macroStep.step);
 
     return false;
 }
@@ -3176,7 +3179,7 @@ const SoundMacro::CmdIntrospection SoundMacro::CmdIfLess::Introspective =
         },
         {
             FIELD_HEAD(SoundMacro::CmdIfLess, macroStep),
-            "SoundMacro Step"sv,
+            "Macro Step"sv,
             0, 65535, 0
         },
     }
@@ -3196,7 +3199,7 @@ bool SoundMacro::CmdIfLess::Do(SoundMacroState& st, Voice& vox) const
         useB = st.m_variables[b & 0x1f];
 
     if ((useA < useB) ^ notLt)
-        st._setPC(macroStep);
+        st._setPC(macroStep.step);
 
     return false;
 }

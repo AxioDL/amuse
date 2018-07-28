@@ -13,6 +13,7 @@ public:
     explicit EditorWidget(QWidget* parent = Q_NULLPTR);
     virtual bool valid() const { return true; }
     virtual void unloadData() {}
+    virtual ProjectModel::INode* currentNode() const { return nullptr; }
 };
 
 class EditorUndoCommand : public QUndoCommand

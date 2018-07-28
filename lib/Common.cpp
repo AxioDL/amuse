@@ -194,6 +194,64 @@ const char* PageObjectIdDNA<DNAE>::DNAType()
 template struct PageObjectIdDNA<athena::Big>;
 template struct PageObjectIdDNA<athena::Little>;
 
+template<> template<>
+void SoundMacroStepDNA<athena::Little>::Enumerate<BigDNA::Read>(athena::io::IStreamReader& reader)
+{
+    step = reader.readUint16Little();
+}
+template<> template<>
+void SoundMacroStepDNA<athena::Little>::Enumerate<BigDNA::Write>(athena::io::IStreamWriter& writer)
+{
+    writer.writeUint16Little(step);
+}
+template<> template<>
+void SoundMacroStepDNA<athena::Little>::Enumerate<BigDNA::BinarySize>(size_t& sz)
+{
+    sz += 2;
+}
+template<> template<>
+void SoundMacroStepDNA<athena::Little>::Enumerate<BigDNA::ReadYaml>(athena::io::YAMLDocReader& reader)
+{
+    step = reader.readUint16(nullptr);
+}
+template<> template<>
+void SoundMacroStepDNA<athena::Little>::Enumerate<BigDNA::WriteYaml>(athena::io::YAMLDocWriter& writer)
+{
+    writer.writeUint16(nullptr, step);
+}
+template<> template<>
+void SoundMacroStepDNA<athena::Big>::Enumerate<BigDNA::Read>(athena::io::IStreamReader& reader)
+{
+    step = reader.readUint16Big();
+}
+template<> template<>
+void SoundMacroStepDNA<athena::Big>::Enumerate<BigDNA::Write>(athena::io::IStreamWriter& writer)
+{
+    writer.writeUint16Big(step);
+}
+template<> template<>
+void SoundMacroStepDNA<athena::Big>::Enumerate<BigDNA::BinarySize>(size_t& sz)
+{
+    sz += 2;
+}
+template<> template<>
+void SoundMacroStepDNA<athena::Big>::Enumerate<BigDNA::ReadYaml>(athena::io::YAMLDocReader& reader)
+{
+    step = reader.readUint16(nullptr);
+}
+template<> template<>
+void SoundMacroStepDNA<athena::Big>::Enumerate<BigDNA::WriteYaml>(athena::io::YAMLDocWriter& writer)
+{
+    writer.writeUint16(nullptr, step);
+}
+template <athena::Endian DNAE>
+const char* SoundMacroStepDNA<DNAE>::DNAType()
+{
+    return "amuse::SoundMacroStepDNA";
+}
+template struct SoundMacroStepDNA<athena::Big>;
+template struct SoundMacroStepDNA<athena::Little>;
+
 ObjectId NameDB::generateId(Type tp) const
 {
     uint16_t maxMatch = uint16_t(tp == Type::Layer ? 0x8000 : 0);

@@ -45,6 +45,7 @@ AudioGroupSampleDirectory::AudioGroupSampleDirectory(athena::io::IStreamReader& 
         EntryDNA<athena::Big> ent;
         ent.read(r);
         m_entries[ent.m_sfxId] = ent;
+        SampleId::CurNameDB->registerPair(NameDB::generateName(ent.m_sfxId, NameDB::Type::Sample), ent.m_sfxId);
     }
 
     for (auto& p : m_entries)
@@ -68,6 +69,7 @@ AudioGroupSampleDirectory::AudioGroupSampleDirectory(athena::io::IStreamReader& 
             MusyX1AbsSdirEntry<athena::Big> ent;
             ent.read(r);
             m_entries[ent.m_sfxId] = ent;
+            SampleId::CurNameDB->registerPair(NameDB::generateName(ent.m_sfxId, NameDB::Type::Sample), ent.m_sfxId);
         }
     }
     else
@@ -77,6 +79,7 @@ AudioGroupSampleDirectory::AudioGroupSampleDirectory(athena::io::IStreamReader& 
             MusyX1SdirEntry<athena::Big> ent;
             ent.read(r);
             m_entries[ent.m_sfxId] = ent;
+            SampleId::CurNameDB->registerPair(NameDB::generateName(ent.m_sfxId, NameDB::Type::Sample), ent.m_sfxId);
         }
     }
 
@@ -98,6 +101,7 @@ AudioGroupSampleDirectory::AudioGroupSampleDirectory(athena::io::IStreamReader& 
             Entry& store = m_entries[ent.m_sfxId];
             store = ent;
             store.m_numSamples |= atUint32(SampleFormat::PCM_PC) << 24;
+            SampleId::CurNameDB->registerPair(NameDB::generateName(ent.m_sfxId, NameDB::Type::Sample), ent.m_sfxId);
         }
     }
     else
@@ -109,6 +113,7 @@ AudioGroupSampleDirectory::AudioGroupSampleDirectory(athena::io::IStreamReader& 
             Entry& store = m_entries[ent.m_sfxId];
             store = ent;
             store.m_numSamples |= atUint32(SampleFormat::PCM_PC) << 24;
+            SampleId::CurNameDB->registerPair(NameDB::generateName(ent.m_sfxId, NameDB::Type::Sample), ent.m_sfxId);
         }
     }
 }

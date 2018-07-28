@@ -21,12 +21,62 @@ static bool AtEnd16(athena::io::IStreamReader& r)
     return v == 0xffff;
 }
 
+template <athena::Endian DNAE>
+static void ReadRangedObjectIds(NameDB* db, athena::io::IStreamReader& r, NameDB::Type tp)
+{
+    uint16_t id;
+    athena::io::Read<athena::io::PropType::None>::Do<decltype(id), DNAE>({}, id, r);
+    if ((id & 0x8000) == 0x8000)
+    {
+        uint16_t endId;
+        athena::io::Read<athena::io::PropType::None>::Do<decltype(endId), DNAE>({}, endId, r);
+        for (uint16_t i = uint16_t(id & 0x7fff); i <= uint16_t(endId & 0x7fff); ++i)
+        {
+            ObjectId useId = i;
+            if (tp == NameDB::Type::Layer)
+                useId.id |= 0x8000;
+            db->registerPair(NameDB::generateName(useId, tp), useId);
+        }
+    }
+    else
+    {
+        db->registerPair(NameDB::generateName(id, tp), id);
+    }
+}
+
 AudioGroupProject::AudioGroupProject(athena::io::IStreamReader& r, GCNDataTag)
 {
     while (!AtEnd32(r))
     {
         GroupHeader<athena::Big> header;
         header.read(r);
+
+        GroupId::CurNameDB->registerPair(NameDB::generateName(header.groupId, NameDB::Type::Group), header.groupId);
+
+        /* Sound Macros */
+        r.seek(header.soundMacroIdsOff, athena::Begin);
+        while (!AtEnd16(r))
+            ReadRangedObjectIds<athena::Big>(SoundMacroId::CurNameDB, r, NameDB::Type::SoundMacro);
+
+        /* Samples */
+        r.seek(header.samplIdsOff, athena::Begin);
+        while (!AtEnd16(r))
+            ReadRangedObjectIds<athena::Big>(SampleId::CurNameDB, r, NameDB::Type::Sample);
+
+        /* Tables */
+        r.seek(header.tableIdsOff, athena::Begin);
+        while (!AtEnd16(r))
+            ReadRangedObjectIds<athena::Big>(TableId::CurNameDB, r, NameDB::Type::Table);
+
+        /* Keymaps */
+        r.seek(header.keymapIdsOff, athena::Begin);
+        while (!AtEnd16(r))
+            ReadRangedObjectIds<athena::Big>(KeymapId::CurNameDB, r, NameDB::Type::Keymap);
+
+        /* Layers */
+        r.seek(header.layerIdsOff, athena::Begin);
+        while (!AtEnd16(r))
+            ReadRangedObjectIds<athena::Big>(LayersId::CurNameDB, r, NameDB::Type::Layer);
 
         if (header.type == GroupType::Song)
         {
@@ -60,6 +110,7 @@ AudioGroupProject::AudioGroupProject(athena::io::IStreamReader& r, GCNDataTag)
                 std::array<SongGroupIndex::MIDISetup, 16>& setup = idx->m_midiSetups[songId];
                 for (int i = 0; i < 16 ; ++i)
                     setup[i].read(r);
+                SongId::CurNameDB->registerPair(NameDB::generateName(songId, NameDB::Type::Song), songId);
             }
         }
         else if (header.type == GroupType::SFX)
@@ -77,6 +128,8 @@ AudioGroupProject::AudioGroupProject(athena::io::IStreamReader& r, GCNDataTag)
                 SFXGroupIndex::SFXEntryDNA<athena::Big> entry;
                 entry.read(r);
                 idx->m_sfxEntries[entry.sfxId.id] = entry;
+                SFXId::CurNameDB->registerPair(
+                    NameDB::generateName(entry.sfxId.id, NameDB::Type::SFX), entry.sfxId.id);
             }
         }
 
@@ -95,6 +148,33 @@ AudioGroupProject AudioGroupProject::_AudioGroupProject(athena::io::IStreamReade
         atInt64 subDataOff = absOffs ? 0 : groupBegin + 8;
         GroupHeader<DNAE> header;
         header.read(r);
+
+        GroupId::CurNameDB->registerPair(NameDB::generateName(header.groupId, NameDB::Type::Group), header.groupId);
+
+        /* Sound Macros */
+        r.seek(subDataOff + header.soundMacroIdsOff, athena::Begin);
+        while (!AtEnd16(r))
+            ReadRangedObjectIds<DNAE>(SoundMacroId::CurNameDB, r, NameDB::Type::SoundMacro);
+
+        /* Samples */
+        r.seek(subDataOff + header.samplIdsOff, athena::Begin);
+        while (!AtEnd16(r))
+            ReadRangedObjectIds<DNAE>(SampleId::CurNameDB, r, NameDB::Type::Sample);
+
+        /* Tables */
+        r.seek(subDataOff + header.tableIdsOff, athena::Begin);
+        while (!AtEnd16(r))
+            ReadRangedObjectIds<DNAE>(TableId::CurNameDB, r, NameDB::Type::Table);
+
+        /* Keymaps */
+        r.seek(subDataOff + header.keymapIdsOff, athena::Begin);
+        while (!AtEnd16(r))
+            ReadRangedObjectIds<DNAE>(KeymapId::CurNameDB, r, NameDB::Type::Keymap);
+
+        /* Layers */
+        r.seek(subDataOff + header.layerIdsOff, athena::Begin);
+        while (!AtEnd16(r))
+            ReadRangedObjectIds<DNAE>(LayersId::CurNameDB, r, NameDB::Type::Layer);
 
         if (header.type == GroupType::Song)
         {
@@ -131,6 +211,7 @@ AudioGroupProject AudioGroupProject::_AudioGroupProject(athena::io::IStreamReade
                     std::array<SongGroupIndex::MIDISetup, 16>& setup = idx->m_midiSetups[songId];
                     for (int i = 0; i < 16 ; ++i)
                         setup[i].read(r);
+                    SongId::CurNameDB->registerPair(NameDB::generateName(songId, NameDB::Type::Song), songId);
                 }
             }
             else
@@ -167,6 +248,7 @@ AudioGroupProject AudioGroupProject::_AudioGroupProject(athena::io::IStreamReade
                         ent.read(r);
                         setup[i] = ent;
                     }
+                    SongId::CurNameDB->registerPair(NameDB::generateName(songId, NameDB::Type::Song), songId);
                 }
             }
         }
@@ -187,6 +269,8 @@ AudioGroupProject AudioGroupProject::_AudioGroupProject(athena::io::IStreamReade
                 entry.read(r);
                 r.seek(2, athena::Current);
                 idx->m_sfxEntries[entry.sfxId.id] = entry;
+                SFXId::CurNameDB->registerPair(
+                    NameDB::generateName(entry.sfxId.id, NameDB::Type::SFX), entry.sfxId.id);
             }
         }
 
@@ -321,29 +405,6 @@ AudioGroupProject AudioGroupProject::CreateAudioGroupProject(SystemStringView gr
     }
 
     return ret;
-}
-
-template <athena::Endian DNAE>
-static void ReadRangedObjectIds(NameDB* db, athena::io::IStreamReader& r, NameDB::Type tp)
-{
-    uint16_t id;
-    athena::io::Read<athena::io::PropType::None>::Do<decltype(id), DNAE>({}, id, r);
-    if ((id & 0x8000) == 0x8000)
-    {
-        uint16_t endId;
-        athena::io::Read<athena::io::PropType::None>::Do<decltype(endId), DNAE>({}, endId, r);
-        for (uint16_t i = uint16_t(id & 0x7fff); i <= uint16_t(endId & 0x7fff); ++i)
-        {
-            ObjectId useId = i;
-            if (tp == NameDB::Type::Layer)
-                useId.id |= 0x8000;
-            db->registerPair(NameDB::generateName(useId, tp), useId);
-        }
-    }
-    else
-    {
-        db->registerPair(NameDB::generateName(id, tp), id);
-    }
 }
 
 void AudioGroupProject::BootstrapObjectIDs(athena::io::IStreamReader& r, GCNDataTag)

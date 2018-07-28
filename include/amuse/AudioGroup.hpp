@@ -36,20 +36,23 @@ public:
     AudioGroupProject& getProj() { return m_proj; }
     AudioGroupPool& getPool() { return m_pool; }
     AudioGroupSampleDirectory& getSdir() { return m_sdir; }
+
+    virtual void setIdDatabases() const {}
 };
 
-class AudioGroupDatabase : public AudioGroup
+class AudioGroupDatabase final : public AudioGroup
 {
-    amuse::NameDB m_soundMacroDb;
-    amuse::NameDB m_sampleDb;
-    amuse::NameDB m_tableDb;
-    amuse::NameDB m_keymapDb;
-    amuse::NameDB m_layersDb;
+    NameDB m_soundMacroDb;
+    NameDB m_sampleDb;
+    NameDB m_tableDb;
+    NameDB m_keymapDb;
+    NameDB m_layersDb;
 
 public:
     AudioGroupDatabase() = default;
     explicit AudioGroupDatabase(const AudioGroupData& data)
     {
+        setIdDatabases();
         assign(data);
     }
     explicit AudioGroupDatabase(SystemStringView groupPath)
@@ -58,28 +61,28 @@ public:
         assign(groupPath);
     }
 
-    void setIdDatabases()
+    void setIdDatabases() const
     {
-        amuse::SoundMacroId::CurNameDB = &m_soundMacroDb;
-        amuse::SampleId::CurNameDB = &m_sampleDb;
-        amuse::TableId::CurNameDB = &m_tableDb;
-        amuse::KeymapId::CurNameDB = &m_keymapDb;
-        amuse::LayersId::CurNameDB = &m_layersDb;
+        SoundMacroId::CurNameDB = const_cast<NameDB*>(&m_soundMacroDb);
+        SampleId::CurNameDB = const_cast<NameDB*>(&m_sampleDb);
+        TableId::CurNameDB = const_cast<NameDB*>(&m_tableDb);
+        KeymapId::CurNameDB = const_cast<NameDB*>(&m_keymapDb);
+        LayersId::CurNameDB = const_cast<NameDB*>(&m_layersDb);
     }
 };
 
 class ProjectDatabase
 {
-    amuse::NameDB m_songDb;
-    amuse::NameDB m_sfxDb;
-    amuse::NameDB m_groupDb;
+    NameDB m_songDb;
+    NameDB m_sfxDb;
+    NameDB m_groupDb;
 
 public:
-    void setIdDatabases()
+    void setIdDatabases() const
     {
-        amuse::SongId::CurNameDB = &m_songDb;
-        amuse::SFXId::CurNameDB = &m_sfxDb;
-        amuse::GroupId::CurNameDB = &m_groupDb;
+        SongId::CurNameDB = const_cast<NameDB*>(&m_songDb);
+        SFXId::CurNameDB = const_cast<NameDB*>(&m_sfxDb);
+        GroupId::CurNameDB = const_cast<NameDB*>(&m_groupDb);
     }
 };
 }

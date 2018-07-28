@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1024</width>
+    <width>1360</width>
     <height>768</height>
    </rect>
   </property>
@@ -98,22 +98,22 @@
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>764</width>
+           <width>1100</width>
            <height>610</height>
           </rect>
          </property>
         </widget>
        </widget>
-       <widget class="QScrollArea" name="keyboardScrollArea">
+       <widget class="QWidget" name="keyboard" native="true">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
         <property name="minimumSize">
          <size>
-          <width>500</width>
+          <width>0</width>
           <height>100</height>
          </size>
         </property>
@@ -123,46 +123,157 @@
           <height>100</height>
          </size>
         </property>
-        <property name="frameShape">
-         <enum>QFrame::NoFrame</enum>
-        </property>
-        <property name="frameShadow">
-         <enum>QFrame::Plain</enum>
-        </property>
-        <property name="lineWidth">
-         <number>0</number>
-        </property>
-        <property name="widgetResizable">
-         <bool>true</bool>
-        </property>
-        <widget class="KeyboardWidget" name="keyboardContents">
-         <property name="geometry">
-          <rect>
-           <x>0</x>
-           <y>0</y>
-           <width>1501</width>
-           <height>85</height>
-          </rect>
+        <layout class="QHBoxLayout" name="horizontalLayout">
+         <property name="spacing">
+          <number>6</number>
          </property>
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
+         <property name="leftMargin">
+          <number>0</number>
          </property>
-         <property name="minimumSize">
-          <size>
-           <width>1501</width>
-           <height>0</height>
-          </size>
+         <property name="topMargin">
+          <number>0</number>
          </property>
-         <property name="maximumSize">
-          <size>
-           <width>16777215</width>
-           <height>16777215</height>
-          </size>
+         <property name="rightMargin">
+          <number>6</number>
          </property>
-        </widget>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QScrollArea" name="keyboardScrollArea">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>500</width>
+             <height>100</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>16777215</width>
+             <height>100</height>
+            </size>
+           </property>
+           <property name="frameShape">
+            <enum>QFrame::NoFrame</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Plain</enum>
+           </property>
+           <property name="lineWidth">
+            <number>0</number>
+           </property>
+           <property name="widgetResizable">
+            <bool>true</bool>
+           </property>
+           <widget class="KeyboardWidget" name="keyboardContents">
+            <property name="geometry">
+             <rect>
+              <x>0</x>
+              <y>0</y>
+              <width>1501</width>
+              <height>85</height>
+             </rect>
+            </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>1501</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>16777215</height>
+             </size>
+            </property>
+           </widget>
+          </widget>
+         </item>
+         <item>
+          <widget class="VelocitySlider" name="velocitySlider">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>100</height>
+            </size>
+           </property>
+           <property name="maximum">
+            <number>127</number>
+           </property>
+           <property name="value">
+            <number>90</number>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="ModulationSlider" name="modulationSlider">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>100</height>
+            </size>
+           </property>
+           <property name="maximum">
+            <number>127</number>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="PitchSlider" name="pitchSlider">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>100</height>
+            </size>
+           </property>
+           <property name="minimum">
+            <number>-2048</number>
+           </property>
+           <property name="maximum">
+            <number>2048</number>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </widget>
       </widget>
      </widget>
@@ -174,7 +285,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1024</width>
+     <width>1360</width>
      <height>27</height>
     </rect>
    </property>
@@ -182,8 +293,20 @@
     <property name="title">
      <string>&amp;File</string>
     </property>
+    <widget class="QMenu" name="menuRecent_Projects">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="title">
+      <string>Recent &amp;Projects</string>
+     </property>
+    </widget>
     <addaction name="actionNew_Project"/>
     <addaction name="actionOpen_Project"/>
+    <addaction name="menuRecent_Projects"/>
+    <addaction name="actionSave_Project"/>
+    <addaction name="actionRevert_Project"/>
+    <addaction name="separator"/>
     <addaction name="actionImport"/>
     <addaction name="actionExport_GameCube_Groups"/>
    </widget>
@@ -417,6 +540,22 @@
     <string>New &amp;Curve</string>
    </property>
   </action>
+  <action name="actionSave_Project">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Save Project</string>
+   </property>
+  </action>
+  <action name="actionRevert_Project">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Revert Project</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
@@ -429,6 +568,21 @@
    <class>StatusBarWidget</class>
    <extends>QStatusBar</extends>
    <header>StatusBarWidget.hpp</header>
+  </customwidget>
+  <customwidget>
+   <class>ModulationSlider</class>
+   <extends>QSlider</extends>
+   <header>KeyboardWidget.hpp</header>
+  </customwidget>
+  <customwidget>
+   <class>PitchSlider</class>
+   <extends>QSlider</extends>
+   <header>KeyboardWidget.hpp</header>
+  </customwidget>
+  <customwidget>
+   <class>VelocitySlider</class>
+   <extends>QSlider</extends>
+   <header>KeyboardWidget.hpp</header>
   </customwidget>
  </customwidgets>
  <resources/>

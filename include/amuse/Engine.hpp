@@ -96,6 +96,15 @@ public:
         return fxStart(sfxId, vol, pan, m_defaultStudio);
     }
 
+    /** Start SoundMacro node playing directly (for editor use) */
+    std::shared_ptr<Voice> macroStart(const AudioGroup* group, SoundMacroId id, uint8_t key,
+                                      uint8_t vel, uint8_t mod, std::weak_ptr<Studio> smx);
+    std::shared_ptr<Voice> macroStart(const AudioGroup* group, SoundMacroId id, uint8_t key,
+                                      uint8_t vel, uint8_t mod)
+    {
+        return macroStart(group, id, key, vel, mod, m_defaultStudio);
+    }
+
     /** Start soundFX playing from loaded audio groups, attach to positional emitter */
     std::shared_ptr<Emitter> addEmitter(const float* pos, const float* dir, float maxDist, float falloff,
                                         int sfxId, float minVol, float maxVol, bool doppler,
@@ -135,6 +144,9 @@ public:
 
     /** Obtain next random number from engine's PRNG */
     uint32_t nextRandom() { return m_random(); }
+
+    /** Obtain list of active voices */
+    std::list<std::shared_ptr<Voice>>& getActiveVoices() { return m_activeVoices; }
 
     /** Obtain list of active sequencers */
     std::list<std::shared_ptr<Sequencer>>& getActiveSequencers() { return m_activeSequencers; }

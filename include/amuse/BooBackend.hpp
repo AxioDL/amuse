@@ -71,6 +71,7 @@ public:
 class BooBackendMIDIReader : public IMIDIReader, public boo::IMIDIReader
 {
     friend class BooBackendVoiceAllocator;
+protected:
     Engine& m_engine;
     std::unique_ptr<boo::IMIDIIn> m_midiIn;
     boo::MIDIDecoder m_decoder;
@@ -119,6 +120,7 @@ public:
 class BooBackendVoiceAllocator : public IBackendVoiceAllocator, public boo::IAudioVoiceEngineCallback
 {
     friend class BooBackendMIDIReader;
+protected:
     boo::IAudioVoiceEngine& m_booEngine;
     Engine* m_cbInterface = nullptr;
 

@@ -104,6 +104,26 @@ PageObjectIdDNA : BigDNA
     operator ObjectId() const { return id; }
 };
 
+struct SoundMacroStep
+{
+    uint16_t step = 0;
+    operator uint16_t() const { return step; }
+    SoundMacroStep() = default;
+    SoundMacroStep(uint16_t idIn) : step(idIn) {}
+    SoundMacroStep& operator=(uint16_t idIn) { step = idIn; return *this; }
+};
+
+template <athena::Endian DNAEn>
+struct AT_SPECIALIZE_PARMS(athena::Endian::Big, athena::Endian::Little)
+SoundMacroStepDNA : BigDNA
+{
+    AT_DECL_EXPLICIT_DNA_YAML
+    SoundMacroStep step;
+    SoundMacroStepDNA() = default;
+    SoundMacroStepDNA(SoundMacroStep idIn) : step(idIn) {}
+    operator SoundMacroStep() const { return step; }
+};
+
 struct LittleUInt24 : LittleDNA
 {
     AT_DECL_EXPLICIT_DNA_YAML

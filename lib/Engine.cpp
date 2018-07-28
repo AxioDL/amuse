@@ -280,12 +280,12 @@ std::shared_ptr<Voice> Engine::fxStart(int sfxId, float vol, float pan, std::wea
 {
     auto search = m_sfxLookup.find(sfxId);
     if (search == m_sfxLookup.end())
-        return nullptr;
+        return {};
 
     AudioGroup* grp = std::get<0>(search->second);
     const SFXGroupIndex::SFXEntry* entry = std::get<2>(search->second);
     if (!grp)
-        return nullptr;
+        return {};
 
     std::list<std::shared_ptr<Voice>>::iterator ret =
         _allocateVoice(*grp, std::get<1>(search->second), NativeSampleRate, true, false, smx);
@@ -301,6 +301,25 @@ std::shared_ptr<Voice> Engine::fxStart(int sfxId, float vol, float pan, std::wea
     return *ret;
 }
 
+/** Start SoundMacro node playing directly (for editor use) */
+std::shared_ptr<Voice> Engine::macroStart(const AudioGroup* group, SoundMacroId id, uint8_t key, uint8_t vel,
+                                          uint8_t mod, std::weak_ptr<Studio> smx)
+{
+    if (!group)
+        return {};
+
+    std::list<std::shared_ptr<Voice>>::iterator ret =
+        _allocateVoice(*group, {}, NativeSampleRate, true, false, smx);
+
+    if (!(*ret)->loadMacroObject(id, 0, 1000.f, key, vel, mod))
+    {
+        _destroyVoice(ret);
+        return {};
+    }
+
+    return *ret;
+}
+
 /** Start soundFX playing from loaded audio groups, attach to positional emitter */
 std::shared_ptr<Emitter> Engine::addEmitter(const float* pos, const float* dir, float maxDist, float falloff,
                                             int sfxId, float minVol, float maxVol, bool doppler,
@@ -308,12 +327,12 @@ std::shared_ptr<Emitter> Engine::addEmitter(const float* pos, const float* dir, 
 {
     auto search = m_sfxLookup.find(sfxId);
     if (search == m_sfxLookup.end())
-        return nullptr;
+        return {};
 
     AudioGroup* grp = std::get<0>(search->second);
     const SFXGroupIndex::SFXEntry* entry = std::get<2>(search->second);
     if (!grp)
-        return nullptr;
+        return {};
 
     std::list<std::shared_ptr<Voice>>::iterator vox =
         _allocateVoice(*grp, std::get<1>(search->second), NativeSampleRate, true, true, smx);

@@ -61,6 +61,7 @@ struct MakeDefaultCmdOp
                         AccessField<uint32_t>(ret.get(), field) = uint32_t(field.m_default);
                         break;
                     case amuse::SoundMacro::CmdIntrospection::Field::Type::SoundMacroId:
+                    case amuse::SoundMacro::CmdIntrospection::Field::Type::SoundMacroStep:
                     case amuse::SoundMacro::CmdIntrospection::Field::Type::TableId:
                     case amuse::SoundMacro::CmdIntrospection::Field::Type::SampleId:
                         AccessField<SoundMacroIdDNA<athena::Little>>(ret.get(), field).id = uint16_t(field.m_default);
@@ -153,7 +154,8 @@ AudioGroupPool AudioGroupPool::_AudioGroupPool(athena::io::IStreamReader& r)
             objHead.read(r);
             KeymapDNA<DNAE> kmData;
             kmData.read(r);
-            *ret.m_keymaps[objHead.objectId.id] = kmData;
+            auto& km = ret.m_keymaps[objHead.objectId.id];
+            km = std::make_shared<Keymap>(kmData);
             r.seek(startPos + objHead.size, athena::Begin);
         }
     }
@@ -166,15 +168,16 @@ AudioGroupPool AudioGroupPool::_AudioGroupPool(athena::io::IStreamReader& r)
             ObjectHeader<DNAE> objHead;
             atInt64 startPos = r.position();
             objHead.read(r);
-            std::vector<LayerMapping>& lm = *ret.m_layers[objHead.objectId.id];
+            auto& lm = ret.m_layers[objHead.objectId.id];
+            lm = std::make_shared<std::vector<LayerMapping>>();
             uint32_t count;
             athena::io::Read<athena::io::PropType::None>::Do<decltype(count), DNAE>({}, count, r);
-            lm.reserve(count);
+            lm->reserve(count);
             for (uint32_t i = 0; i < count; ++i)
             {
                 LayerMappingDNA<DNAE> lmData;
                 lmData.read(r);
-                lm.push_back(lmData);
+                lm->push_back(lmData);
             }
             r.seek(startPos + objHead.size, athena::Begin);
         }

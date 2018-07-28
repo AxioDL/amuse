@@ -31,20 +31,48 @@ MainWindow::MainWindow(QWidget* parent)
     m_ui.projectOutline->setItemDelegate(&m_treeDelegate);
     connectMessenger(&m_mainMessenger, Qt::DirectConnection);
 
+    m_ui.statusbar->connectKillClicked(this, SLOT(killSounds()));
+
     m_ui.keyboardContents->setStatusFocus(new StatusBarFocus(m_ui.statusbar));
+    m_ui.velocitySlider->setStatusFocus(new StatusBarFocus(m_ui.statusbar));
+    m_ui.modulationSlider->setStatusFocus(new StatusBarFocus(m_ui.statusbar));
+    m_ui.pitchSlider->setStatusFocus(new StatusBarFocus(m_ui.statusbar));
+    connect(m_ui.keyboardContents, SIGNAL(notePressed(int)), this, SLOT(notePressed(int)));
+    connect(m_ui.keyboardContents, SIGNAL(noteReleased()), this, SLOT(noteReleased()));
+    connect(m_ui.velocitySlider, SIGNAL(valueChanged(int)), this, SLOT(velocityChanged(int)));
+    connect(m_ui.modulationSlider, SIGNAL(valueChanged(int)), this, SLOT(modulationChanged(int)));
+    connect(m_ui.pitchSlider, SIGNAL(valueChanged(int)), this, SLOT(pitchChanged(int)));
 
     m_ui.actionNew_Project->setShortcut(QKeySequence::New);
     connect(m_ui.actionNew_Project, SIGNAL(triggered()), this, SLOT(newAction()));
     m_ui.actionOpen_Project->setShortcut(QKeySequence::Open);
     connect(m_ui.actionOpen_Project, SIGNAL(triggered()), this, SLOT(openAction()));
+    m_ui.actionSave_Project->setShortcut(QKeySequence::Save);
+    connect(m_ui.actionSave_Project, SIGNAL(triggered()), this, SLOT(saveAction()));
+    connect(m_ui.actionRevert_Project, SIGNAL(triggered()), this, SLOT(revertAction()));
     connect(m_ui.actionImport, SIGNAL(triggered()), this, SLOT(importAction()));
     connect(m_ui.actionExport_GameCube_Groups, SIGNAL(triggered()), this, SLOT(exportAction()));
+
+    for (int i = 0; i < MaxRecentFiles; ++i)
+    {
+        m_recentFileActs[i] = new QAction(this);
+        m_recentFileActs[i]->setVisible(false);
+        m_ui.menuRecent_Projects->addAction(m_recentFileActs[i]);
+        connect(m_recentFileActs[i], SIGNAL(triggered()), this, SLOT(openRecentFileAction()));
+    }
+    m_ui.menuRecent_Projects->addSeparator();
+    m_clearRecentFileAct = new QAction(tr("Clear Recent Projects"), this);
+    connect(m_clearRecentFileAct, SIGNAL(triggered()), this, SLOT(clearRecentFilesAction()));
+    m_ui.menuRecent_Projects->addAction(m_clearRecentFileAct);
+
 #ifndef __APPLE__
     m_ui.menuFile->addSeparator();
     QAction* quitAction = m_ui.menuFile->addAction(tr("Quit"));
     quitAction->setShortcut(QKeySequence::Quit);
     connect(quitAction, SIGNAL(triggered()), qApp, SLOT(quit()));
 #endif
+
+    updateRecentFileActions();
 
     QAction* undoAction = m_undoStack->createUndoAction(this);
     undoAction->setShortcut(QKeySequence::Undo);
@@ -97,11 +125,11 @@ MainWindow::MainWindow(QWidget* parent)
 
     connect(qApp, SIGNAL(focusChanged(QWidget*,QWidget*)), this, SLOT(onFocusChanged(QWidget*,QWidget*)));
 
-    setFocusAudioGroup(nullptr);
-
     m_voxEngine = boo::NewAudioVoiceEngine();
-    m_voxAllocator = std::make_unique<amuse::BooBackendVoiceAllocator>(*m_voxEngine);
+    m_voxAllocator = std::make_unique<VoiceAllocator>(*m_voxEngine);
     m_engine = std::make_unique<amuse::Engine>(*m_voxAllocator);
+
+    startTimer(16);
 }
 
 MainWindow::~MainWindow()
@@ -139,13 +167,39 @@ void MainWindow::connectMessenger(UIMessenger* messenger, Qt::ConnectionType typ
                            QMessageBox::StandardButton)), type);
 }
 
+void MainWindow::updateRecentFileActions()
+{
+    QSettings settings;
+    QStringList files = settings.value("recentFileList").toStringList();
+
+    int numRecentFiles = std::min(files.size(), int(MaxRecentFiles));
+
+    for (int i = 0; i < numRecentFiles; ++i)
+    {
+        QString text = QStringLiteral("&%1 %2").arg(i + 1).arg(QDir(files[i]).dirName());
+        m_recentFileActs[i]->setText(text);
+        m_recentFileActs[i]->setData(files[i]);
+        m_recentFileActs[i]->setVisible(true);
+    }
+    for (int j = numRecentFiles; j < MaxRecentFiles; ++j)
+        m_recentFileActs[j]->setVisible(false);
+
+    m_ui.menuRecent_Projects->setEnabled(numRecentFiles > 0);
+}
+
 bool MainWindow::setProjectPath(const QString& path)
 {
     if (m_projectModel && m_projectModel->path() == path)
         return true;
 
     QDir dir(path);
-    if (!dir.exists())
+    if (dir.path().isEmpty() || dir.path() == QStringLiteral(".") || dir.path() == QStringLiteral(".."))
+    {
+        QString msg = QString(tr("The directory at '%1' must not be empty.")).arg(path);
+        QMessageBox::critical(this, tr("Directory empty"), msg);
+        return false;
+    }
+    else if (!dir.exists())
     {
         QString msg = QString(tr("The directory at '%1' must exist for the Amuse editor.")).arg(path);
         QMessageBox::critical(this, tr("Directory does not exist"), msg);
@@ -165,22 +219,28 @@ bool MainWindow::setProjectPath(const QString& path)
         m_projectModel->deleteLater();
     m_projectModel = new ProjectModel(path, this);
     m_ui.projectOutline->setModel(m_projectModel);
+    connect(m_ui.projectOutline->selectionModel(),
+            SIGNAL(selectionChanged(const QItemSelection&, const QItemSelection&)),
+            this, SLOT(onOutlineSelectionChanged(const QItemSelection&, const QItemSelection&)));
+    m_ui.actionSave_Project->setEnabled(true);
+    m_ui.actionRevert_Project->setEnabled(true);
     m_ui.actionExport_GameCube_Groups->setEnabled(true);
     setWindowFilePath(path);
     setWindowTitle(QString("Amuse [%1]").arg(dir.dirName()));
-    setFocusAudioGroup(nullptr);
     onFocusChanged(nullptr, focusWidget());
+    m_undoStack->clear();
+
+    QSettings settings;
+    QStringList files = settings.value("recentFileList").toStringList();
+    files.removeAll(dir.path());
+    files.prepend(dir.path());
+    while (files.size() > MaxRecentFiles)
+        files.removeLast();
+    settings.setValue("recentFileList", files);
+
+    updateRecentFileActions();
 
     return true;
-}
-
-void MainWindow::setFocusAudioGroup(AudioGroupModel* group)
-{
-    m_focusAudioGroup = group;
-    bool active = m_focusAudioGroup != nullptr;
-    m_ui.actionNew_Sound_Macro->setEnabled(active);
-    m_ui.actionNew_Keymap->setEnabled(active);
-    m_ui.actionNew_Layers->setEnabled(active);
 }
 
 void MainWindow::refreshAudioIO()
@@ -218,6 +278,61 @@ void MainWindow::refreshMIDIIO()
 
     if (!addedDev)
         m_ui.menuMIDI->addAction(tr("No MIDI Devices Found"))->setEnabled(false);
+}
+
+void MainWindow::timerEvent(QTimerEvent* ev)
+{
+    if (m_voxEngine && m_engine)
+    {
+        m_voxEngine->pumpAndMixVoices();
+        m_ui.statusbar->setVoiceCount(int(m_engine->getActiveVoices().size()));
+        if (m_engine->getActiveVoices().empty() && m_uiDisabled)
+        {
+            m_ui.projectOutline->setEnabled(true);
+            m_ui.editorContents->setEnabled(true);
+            m_ui.menubar->setEnabled(true);
+            m_uiDisabled = false;
+        }
+        else if (!m_engine->getActiveVoices().empty() && !m_uiDisabled)
+        {
+            m_ui.projectOutline->setEnabled(false);
+            m_ui.editorContents->setEnabled(false);
+            m_ui.menubar->setEnabled(false);
+            m_uiDisabled = true;
+        }
+    }
+}
+
+void MainWindow::setSustain(bool sustain)
+{
+    if (sustain && !m_sustain)
+    {
+        m_ui.statusbar->setNormalMessage(tr("SUSTAIN"));
+        for (auto& v : m_engine->getActiveVoices())
+            v->setPedal(true);
+        m_sustain = true;
+    }
+    else if (!sustain && m_sustain)
+    {
+        m_ui.statusbar->setNormalMessage({});
+        for (auto& v : m_engine->getActiveVoices())
+            v->setPedal(false);
+        m_sustain = false;
+    }
+}
+
+void MainWindow::keyPressEvent(QKeyEvent* ev)
+{
+    if (ev->key() == Qt::Key_Shift)
+        setSustain(true);
+    else if (ev->key() == Qt::Key_Escape)
+        killSounds();
+}
+
+void MainWindow::keyReleaseEvent(QKeyEvent* ev)
+{
+    if (ev->key() == Qt::Key_Shift)
+        setSustain(false);
 }
 
 void MainWindow::startBackgroundTask(const QString& windowTitle, const QString& label,
@@ -335,9 +450,22 @@ void MainWindow::closeEditor()
     _setEditor(nullptr);
 }
 
+ProjectModel::INode* MainWindow::getEditorNode() const
+{
+    if (m_ui.editorContents->currentWidget() != m_faceSvg)
+        return static_cast<EditorWidget*>(m_ui.editorContents->currentWidget())->currentNode();
+    return nullptr;
+}
+
 void MainWindow::pushUndoCommand(QUndoCommand* cmd)
 {
     m_undoStack->push(cmd);
+}
+
+void MainWindow::aboutToDeleteNode(ProjectModel::INode* node)
+{
+    if (getEditorNode() == node)
+        closeEditor();
 }
 
 void MainWindow::newAction()
@@ -354,18 +482,20 @@ void MainWindow::newAction()
     m_projectModel->ensureModelData();
 }
 
-void MainWindow::openAction()
+bool MainWindow::openProject(const QString& path)
 {
-    QString path = QFileDialog::getExistingDirectory(this, tr("Open Project"));
-    if (path.isEmpty())
-        return;
-
     QDir dir(path);
-    if (!dir.exists())
+    if (dir.path().isEmpty() || dir.path() == QStringLiteral(".") || dir.path() == QStringLiteral(".."))
+    {
+        QString msg = QString(tr("The directory at '%1' must not be empty.")).arg(path);
+        QMessageBox::critical(this, tr("Directory empty"), msg);
+        return false;
+    }
+    else if (!dir.exists())
     {
         QString msg = QString(tr("The directory at '%1' does not exist.")).arg(path);
         QMessageBox::critical(this, tr("Bad Directory"), msg);
-        return;
+        return false;
     }
 
     if (QFileInfo(dir, QStringLiteral("!project.yaml")).exists() &&
@@ -373,7 +503,7 @@ void MainWindow::openAction()
         dir.cdUp();
 
     if (!setProjectPath(dir.path()))
-        return;
+        return false;
 
     ProjectModel* model = m_projectModel;
     startBackgroundTask(tr("Opening"), tr("Scanning Project"),
@@ -394,6 +524,50 @@ void MainWindow::openAction()
             }
         }
     });
+
+    return true;
+}
+
+void MainWindow::openAction()
+{
+    QString path = QFileDialog::getExistingDirectory(this, tr("Open Project"));
+    if (path.isEmpty())
+        return;
+    openProject(path);
+}
+
+void MainWindow::openRecentFileAction()
+{
+    if (QAction *action = qobject_cast<QAction *>(sender()))
+        if (!openProject(action->data().toString()))
+        {
+            QString path = action->data().toString();
+            QSettings settings;
+            QStringList files = settings.value("recentFileList").toStringList();
+            files.removeAll(path);
+            settings.setValue("recentFileList", files);
+            updateRecentFileActions();
+        }
+}
+
+void MainWindow::clearRecentFilesAction()
+{
+    QSettings settings;
+    settings.setValue("recentFileList", QStringList());
+    updateRecentFileActions();
+}
+
+void MainWindow::saveAction()
+{
+
+}
+
+void MainWindow::revertAction()
+{
+    QString path = m_projectModel->path();
+    delete m_projectModel;
+    m_projectModel = nullptr;
+    openProject(path);
 }
 
 void MainWindow::importAction()
@@ -610,6 +784,83 @@ void MainWindow::setMIDIIO()
     //qobject_cast<QAction*>(sender())->data().toString().toUtf8().constData();
 }
 
+void MainWindow::notePressed(int key)
+{
+    if (m_engine)
+    {
+        ProjectModel::INode* node = getEditorNode();
+        if (node && node->type() == ProjectModel::INode::Type::SoundMacro)
+        {
+            ProjectModel::SoundMacroNode* cNode = static_cast<ProjectModel::SoundMacroNode*>(node);
+            amuse::AudioGroupDatabase* group = m_projectModel->getGroupNode(node)->getAudioGroup();
+            if (m_lastSound)
+                m_lastSound->keyOff();
+            m_lastSound = m_engine->macroStart(group, cNode->id(), key, m_velocity, m_modulation);
+            m_lastSound->setPedal(m_sustain);
+            m_lastSound->setPitchWheel(m_pitch);
+        }
+    }
+}
+
+void MainWindow::noteReleased()
+{
+    if (m_lastSound)
+    {
+        m_lastSound->keyOff();
+        m_lastSound.reset();
+    }
+}
+
+void MainWindow::velocityChanged(int vel)
+{
+    m_velocity = vel;
+}
+
+void MainWindow::modulationChanged(int mod)
+{
+    m_modulation = mod;
+    for (auto& v : m_engine->getActiveVoices())
+        v->setCtrlValue(1, int8_t(m_modulation));
+}
+
+void MainWindow::pitchChanged(int pitch)
+{
+    m_pitch = pitch / 2048.f;
+    for (auto& v : m_engine->getActiveVoices())
+        v->setPitchWheel(m_pitch);
+}
+
+void MainWindow::killSounds()
+{
+    for (auto& v : m_engine->getActiveVoices())
+        v->kill();
+}
+
+void MainWindow::outlineCutAction()
+{
+
+}
+
+void MainWindow::outlineCopyAction()
+{
+
+}
+
+void MainWindow::outlinePasteAction()
+{
+
+}
+
+void MainWindow::outlineDeleteAction()
+{
+    if (!m_projectModel)
+        return;
+    QModelIndexList indexes = m_ui.projectOutline->selectionModel()->selectedIndexes();
+    if (indexes.empty())
+        return;
+    m_projectModel->del(indexes.front());
+}
+
 void MainWindow::onFocusChanged(QWidget* old, QWidget* now)
 {
     disconnect(m_cutConn);
@@ -634,22 +885,50 @@ void MainWindow::onFocusChanged(QWidget* old, QWidget* now)
 
     if (now == m_ui.projectOutline || m_ui.projectOutline->isAncestorOf(now))
     {
-        m_ui.actionCut->setEnabled(false);
-        m_ui.actionCopy->setEnabled(false);
-        m_ui.actionPaste->setEnabled(false);
+        setOutlineEditEnabled(canEditOutline());
         if (m_projectModel)
         {
-            m_deleteConn = connect(m_ui.actionDelete, SIGNAL(triggered()), m_projectModel, SLOT(del()));
-            m_ui.actionDelete->setEnabled(m_projectModel->canDelete());
-            m_canEditConn = connect(m_projectModel, SIGNAL(canDeleteChanged(bool)),
-                                    m_ui.actionDelete, SLOT(setEnabled(bool)));
+            m_cutConn = connect(m_ui.actionCut, SIGNAL(triggered()), this, SLOT(outlineCutAction()));
+            m_copyConn = connect(m_ui.actionCopy, SIGNAL(triggered()), this, SLOT(outlineCopyAction()));
+            m_pasteConn = connect(m_ui.actionPaste, SIGNAL(triggered()), this, SLOT(outlinePasteAction()));
+            m_deleteConn = connect(m_ui.actionDelete, SIGNAL(triggered()), this, SLOT(outlineDeleteAction()));
         }
     }
     else if (now == m_ui.editorContents || m_ui.editorContents->isAncestorOf(now))
     {
-
+        setOutlineEditEnabled(false);
     }
 
+}
+
+void MainWindow::setOutlineEditEnabled(bool enabled)
+{
+    m_ui.actionCut->setEnabled(enabled);
+    m_ui.actionCopy->setEnabled(enabled);
+    m_ui.actionPaste->setEnabled(enabled);
+    m_ui.actionDelete->setEnabled(enabled);
+}
+
+bool MainWindow::canEditOutline()
+{
+    if (!m_projectModel)
+        return false;
+    QModelIndexList indexes = m_ui.projectOutline->selectionModel()->selectedIndexes();
+    if (indexes.empty())
+        return false;
+    return m_projectModel->canEdit(indexes.front());
+}
+
+void MainWindow::onOutlineSelectionChanged(const QItemSelection& selected, const QItemSelection& deselected)
+{
+    if (!m_projectModel)
+        return;
+    if (selected.indexes().empty())
+    {
+        setOutlineEditEnabled(false);
+        return;
+    }
+    setOutlineEditEnabled(m_projectModel->canEdit(selected.indexes().front()));
 }
 
 void MainWindow::onTextSelect()

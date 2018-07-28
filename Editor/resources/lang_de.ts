@@ -2,6 +2,14 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="de_DE">
 <context>
+    <name>CommandWidget</name>
+    <message>
+        <location filename="../SoundMacroEditor.cpp" line="+163"/>
+        <source>Delete this SoundMacro</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>MainWindow</name>
     <message>
         <location filename="../MainWindow.ui" line="+14"/>
@@ -9,12 +17,12 @@
         <translation>Amuse</translation>
     </message>
     <message>
-        <location line="+169"/>
+        <location line="+280"/>
         <source>&amp;File</source>
         <translation>&amp;Datei</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="+21"/>
         <source>P&amp;roject</source>
         <translation>Projekt</translation>
     </message>
@@ -52,7 +60,12 @@
         <translation type="vanished">&amp; Wiederholen</translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="-65"/>
+        <source>Recent &amp;Projects</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+73"/>
         <source>&amp;Cut</source>
         <translation>&amp;Schnitt</translation>
     </message>
@@ -147,12 +160,22 @@
         <translation>Neu und Kurve</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="+44"/>
+        <location line="+8"/>
+        <source>&amp;Save Project</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>&amp;Revert Project</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../MainWindow.cpp" line="+70"/>
         <source>Quit</source>
         <translation>Verlassen</translation>
     </message>
     <message>
-        <location line="+106"/>
+        <location line="+134"/>
         <source>The directory at &apos;%1&apos; must exist for the Amuse editor.</source>
         <translation>Das Verzeichnis unter &apos;% 1&apos; muss für den Amuse-Editor vorhanden sein.</translation>
     </message>
@@ -177,7 +200,7 @@
         <translation>Es konnte nicht in das Verzeichnis geschrieben werden</translation>
     </message>
     <message>
-        <location line="+38"/>
+        <location line="+44"/>
         <source>No Audio Devices Found</source>
         <translation>Keine Audiogeräte gefunden</translation>
     </message>
@@ -187,22 +210,44 @@
         <translation>Keine MIDI-Geräte gefunden</translation>
     </message>
     <message>
-        <location line="+125"/>
+        <location line="+193"/>
         <source>New Project</source>
         <translation>Neues Projekt</translation>
     </message>
     <message>
-        <location line="+14"/>
+        <location line="+60"/>
         <source>Open Project</source>
         <translation>Offenes Projekt</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="-37"/>
         <source>The directory at &apos;%1&apos; does not exist.</source>
         <translation>Das Verzeichnis &apos;% 1&apos; existiert nicht.</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="-432"/>
+        <source>Clear Recent Projects</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+134"/>
+        <location line="+292"/>
+        <source>The directory at &apos;%1&apos; must not be empty.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="-291"/>
+        <location line="+292"/>
+        <source>Directory empty</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="-181"/>
+        <source>SUSTAIN</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+187"/>
         <source>Bad Directory</source>
         <translation>Schlechtes Verzeichnis</translation>
     </message>
@@ -213,18 +258,18 @@
     </message>
     <message>
         <location line="+0"/>
-        <location line="+83"/>
+        <location line="+127"/>
         <location line="+45"/>
         <source>Scanning Project</source>
         <translation>Projekt scannen</translation>
     </message>
     <message>
-        <location line="-116"/>
+        <location line="-160"/>
         <source>Opening %1</source>
         <translation>Eröffnung% 1</translation>
     </message>
     <message>
-        <location line="+10"/>
+        <location line="+54"/>
         <source>Import Project</source>
         <translation>Projekt importieren</translation>
     </message>
@@ -297,29 +342,45 @@
     </message>
 </context>
 <context>
+    <name>ModulationSlider</name>
+    <message>
+        <location filename="../KeyboardWidget.cpp" line="+267"/>
+        <source>Modulation: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>PitchSlider</name>
+    <message>
+        <location line="+9"/>
+        <source>Pitch: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>ProjectModel</name>
     <message>
-        <location filename="../ProjectModel.cpp" line="+126"/>
+        <location filename="../ProjectModel.cpp" line="+210"/>
         <source>Sound Macros</source>
         <translation>Sound-Makros</translation>
     </message>
     <message>
-        <location line="+21"/>
+        <location line="+19"/>
         <source>ADSRs</source>
         <translation>ADSRs</translation>
     </message>
     <message>
-        <location line="+12"/>
+        <location line="+11"/>
         <source>Curves</source>
         <translation>Kurven</translation>
     </message>
     <message>
-        <location line="+13"/>
+        <location line="+12"/>
         <source>Keymaps</source>
         <translation>Schlüsselkarten</translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="+7"/>
         <source>Layers</source>
         <translation>Lagen</translation>
     </message>
@@ -340,12 +401,12 @@
 <context>
     <name>QUndoStack</name>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="+163"/>
+        <location filename="../SoundMacroEditor.cpp" line="+157"/>
         <source>Change %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+308"/>
+        <location line="+322"/>
         <source>Reorder %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -355,7 +416,8 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+55"/>
+        <location filename="../ProjectModel.cpp" line="+151"/>
+        <location filename="../SoundMacroEditor.cpp" line="+55"/>
         <source>Delete %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -363,7 +425,7 @@
 <context>
     <name>SoundMacroCatalogue</name>
     <message>
-        <location line="+111"/>
+        <location filename="../SoundMacroEditor.cpp" line="+118"/>
         <source>Control</source>
         <translation>Steuerung</translation>
     </message>
@@ -431,6 +493,30 @@
         <location line="+1"/>
         <source>Commands to control the voice&apos;s volume</source>
         <translation>Befehle zum Steuern der Lautstärke der Stimme</translation>
+    </message>
+</context>
+<context>
+    <name>StatusBarWidget</name>
+    <message>
+        <location filename="../StatusBarWidget.hpp" line="+26"/>
+        <source>Immediately kill active voices</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>TargetButton</name>
+    <message>
+        <location filename="../SoundMacroEditor.cpp" line="-939"/>
+        <source>Set step with target click</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>VelocitySlider</name>
+    <message>
+        <location filename="../KeyboardWidget.cpp" line="-18"/>
+        <source>Velocity: %1</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 </TS>

@@ -47,7 +47,7 @@ add_executable(amuse-gui WIN32 MACOSX_BUNDLE
         SampleEditor.hpp SampleEditor.cpp
         SoundGroupEditor.hpp SoundGroupEditor.cpp
         SongGroupEditor.hpp SongGroupEditor.cpp
-        AudioGroupModel.hpp AudioGroupModel.cpp
+        MIDIReader.hpp MIDIReader.cpp
         resources/resources.qrc qrc_resources.cpp
         ${QM_FILES} qrc_translation_res.cpp
         ${PLAT_SRCS}

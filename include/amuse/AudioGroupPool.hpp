@@ -153,6 +153,7 @@ struct SoundMacro
                 Int32,
                 UInt32,
                 SoundMacroId,
+                SoundMacroStep,
                 TableId,
                 SampleId,
                 Choice
@@ -200,7 +201,7 @@ struct SoundMacro
         static const CmdIntrospection Introspective;
         Value<atInt8> key;
         SoundMacroIdDNA<athena::Little> macro;
-        Value<atUint16> macroStep;
+        SoundMacroStepDNA<athena::Little> macroStep;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::SplitKey; }
     };
@@ -211,7 +212,7 @@ struct SoundMacro
         static const CmdIntrospection Introspective;
         Value<atInt8> velocity;
         SoundMacroIdDNA<athena::Little> macro;
-        Value<atUint16> macroStep;
+        SoundMacroStepDNA<athena::Little> macroStep;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::SplitVel; }
     };
@@ -237,7 +238,7 @@ struct SoundMacro
         Value<bool> keyOff;
         Value<bool> random;
         Value<bool> sampleEnd;
-        Value<atUint16> macroStep;
+        SoundMacroStepDNA<athena::Little> macroStep;
         Value<atUint16> times;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::Loop; }
@@ -249,7 +250,7 @@ struct SoundMacro
         static const CmdIntrospection Introspective;
         Seek<1, athena::SeekOrigin::Current> dummy;
         SoundMacroIdDNA<athena::Little> macro;
-        Value<atUint16> macroStep;
+        SoundMacroStepDNA<athena::Little> macroStep;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::Goto; }
     };
@@ -274,7 +275,7 @@ struct SoundMacro
         static const CmdIntrospection Introspective;
         Value<atInt8> addNote;
         SoundMacroIdDNA<athena::Little> macro;
-        Value<atUint16> macroStep;
+        SoundMacroStepDNA<athena::Little> macroStep;
         Value<atUint8> priority;
         Value<atUint8> maxVoices;
         bool Do(SoundMacroState& st, Voice& vox) const;
@@ -297,7 +298,7 @@ struct SoundMacro
         static const CmdIntrospection Introspective;
         Value<atInt8> modValue;
         SoundMacroIdDNA<athena::Little> macro;
-        Value<atUint16> macroStep;
+        SoundMacroStepDNA<athena::Little> macroStep;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::SplitMod; }
     };
@@ -398,7 +399,7 @@ struct SoundMacro
         static const CmdIntrospection Introspective;
         Value<atUint8> rnd;
         SoundMacroIdDNA<athena::Little> macro;
-        Value<atUint16> macroStep;
+        SoundMacroStepDNA<athena::Little> macroStep;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::SplitRnd; }
     };
@@ -623,7 +624,7 @@ struct SoundMacro
         static const CmdIntrospection Introspective;
         Seek<1, athena::SeekOrigin::Current> seek;
         SoundMacroIdDNA<athena::Little> macro;
-        Value<atUint16> macroStep;
+        SoundMacroStepDNA<athena::Little> macroStep;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::GoSub; }
     };
@@ -640,7 +641,7 @@ struct SoundMacro
         };
         Value<EventType> event;
         SoundMacroIdDNA<athena::Little> macro;
-        Value<atUint16> macroStep;
+        SoundMacroStepDNA<athena::Little> macroStep;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::TrapEvent; }
     };
@@ -1098,7 +1099,7 @@ struct SoundMacro
         Value<bool> varCtrlB;
         Value<atInt8> b;
         Value<bool> notEq;
-        Value<atUint16> macroStep;
+        SoundMacroStepDNA<athena::Little> macroStep;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::IfEqual; }
     };
@@ -1112,7 +1113,7 @@ struct SoundMacro
         Value<bool> varCtrlB;
         Value<atInt8> b;
         Value<bool> notLt;
-        Value<atUint16> macroStep;
+        SoundMacroStepDNA<athena::Little> macroStep;
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::IfLess; }
     };

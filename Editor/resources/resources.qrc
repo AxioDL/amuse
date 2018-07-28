@@ -20,6 +20,9 @@
         <file>IconCurve.svg</file>
         <file>IconNewCurve.svg</file>
         <file>IconSoundMacroDelete.svg</file>
+        <file>IconSoundMacroTarget.svg</file>
+        <file>IconSoundMacroTargetDisabled.svg</file>
+        <file>IconKill.svg</file>
     </qresource>
     <qresource prefix="/bg">
         <file>FaceGrey.svg</file>

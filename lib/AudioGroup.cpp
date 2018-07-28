@@ -14,6 +14,7 @@ void AudioGroup::assign(const AudioGroupData& data)
 void AudioGroup::assign(SystemStringView groupPath)
 {
     /* Reverse order when loading intermediates */
+    m_groupPath = groupPath;
     m_sdir = AudioGroupSampleDirectory::CreateAudioGroupSampleDirectory(groupPath);
     m_pool = AudioGroupPool::CreateAudioGroupPool(groupPath);
     m_proj = AudioGroupProject::CreateAudioGroupProject(groupPath);
@@ -32,6 +33,7 @@ const unsigned char* AudioGroup::getSampleData(SampleId sfxId, const AudioGroupS
 {
     if (sample->m_looseData)
     {
+        setIdDatabases();
 #if _WIN32
         SystemString basePath = m_groupPath + _S('/') +
             athena::utility::utf8ToWide(SampleId::CurNameDB->resolveNameFromId(sfxId));

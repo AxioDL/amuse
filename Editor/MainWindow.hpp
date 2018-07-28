@@ -12,13 +12,15 @@
 #include "boo/audiodev/IAudioVoiceEngine.hpp"
 #include "ProjectModel.hpp"
 #include "EditorWidget.hpp"
+#include "MIDIReader.hpp"
+
+#define MaxRecentFiles 4
 
 namespace Ui {
 class MainWindow;
 }
 
 class MainWindow;
-class AudioGroupModel;
 class SongGroupEditor;
 class SoundGroupEditor;
 class SoundMacroEditor;
@@ -67,12 +69,14 @@ public:
 
 class MainWindow : public QMainWindow
 {
+    friend class MIDIReader;
     Q_OBJECT
     Ui::MainWindow m_ui;
+    QAction* m_clearRecentFileAct;
+    QAction* m_recentFileActs[MaxRecentFiles];
     TreeDelegate m_treeDelegate;
     UIMessenger m_mainMessenger;
     ProjectModel* m_projectModel = nullptr;
-    AudioGroupModel* m_focusAudioGroup = nullptr;
     QWidget* m_faceSvg;
     SongGroupEditor* m_songGroupEditor = nullptr;
     SoundGroupEditor* m_soundGroupEditor = nullptr;
@@ -83,8 +87,14 @@ class MainWindow : public QMainWindow
     LayersEditor* m_layersEditor = nullptr;
 
     std::unique_ptr<boo::IAudioVoiceEngine> m_voxEngine;
-    std::unique_ptr<amuse::BooBackendVoiceAllocator> m_voxAllocator;
+    std::unique_ptr<VoiceAllocator> m_voxAllocator;
     std::unique_ptr<amuse::Engine> m_engine;
+    std::shared_ptr<amuse::Voice> m_lastSound;
+    int m_velocity = 90;
+    int m_modulation = 0;
+    float m_pitch = 0.f;
+    bool m_sustain = false;
+    bool m_uiDisabled = false;
 
     QUndoStack* m_undoStack;
 
@@ -100,10 +110,14 @@ class MainWindow : public QMainWindow
 
     void connectMessenger(UIMessenger* messenger, Qt::ConnectionType type);
 
+    void updateRecentFileActions();
     bool setProjectPath(const QString& path);
-    void setFocusAudioGroup(AudioGroupModel* group);
     void refreshAudioIO();
     void refreshMIDIIO();
+    void timerEvent(QTimerEvent* ev);
+    void setSustain(bool sustain);
+    void keyPressEvent(QKeyEvent* ev);
+    void keyReleaseEvent(QKeyEvent* ev);
 
     void startBackgroundTask(const QString& windowTitle, const QString& label,
                              std::function<void(BackgroundTask&)>&& task);
@@ -113,6 +127,8 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(QWidget* parent = Q_NULLPTR);
     ~MainWindow();
+
+    bool openProject(const QString& path);
 
     bool openEditor(ProjectModel::SongGroupNode* node);
     bool openEditor(ProjectModel::SoundGroupNode* node);
@@ -124,11 +140,19 @@ public:
     bool openEditor(ProjectModel::INode* node);
     void closeEditor();
 
+    ProjectModel::INode* getEditorNode() const;
     void pushUndoCommand(QUndoCommand* cmd);
+    void aboutToDeleteNode(ProjectModel::INode* node);
+
+    ProjectModel* projectModel() const { return m_projectModel; }
 
 public slots:
     void newAction();
     void openAction();
+    void openRecentFileAction();
+    void clearRecentFilesAction();
+    void saveAction();
+    void revertAction();
     void importAction();
     void exportAction();
 
@@ -147,7 +171,22 @@ public slots:
     void setAudioIO();
     void setMIDIIO();
 
+    void notePressed(int key);
+    void noteReleased();
+    void velocityChanged(int vel);
+    void modulationChanged(int mod);
+    void pitchChanged(int pitch);
+    void killSounds();
+
+    void outlineCutAction();
+    void outlineCopyAction();
+    void outlinePasteAction();
+    void outlineDeleteAction();
+
     void onFocusChanged(QWidget* old, QWidget* now);
+    void setOutlineEditEnabled(bool enabled);
+    bool canEditOutline();
+    void onOutlineSelectionChanged(const QItemSelection& selected, const QItemSelection& deselected);
     void onTextSelect();
     void onTextDelete();
 
