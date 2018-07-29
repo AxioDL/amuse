@@ -4,7 +4,7 @@
 <context>
     <name>CommandWidget</name>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="+163"/>
+        <location filename="../SoundMacroEditor.cpp" line="+170"/>
         <source>Delete this SoundMacro</source>
         <translation type="unfinished"></translation>
     </message>
@@ -542,7 +542,7 @@
 <context>
     <name>TargetButton</name>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="-944"/>
+        <location filename="../SoundMacroEditor.cpp" line="-951"/>
         <source>Set step with target click</source>
         <translation type="unfinished"></translation>
     </message>

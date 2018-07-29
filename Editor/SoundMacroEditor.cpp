@@ -158,7 +158,14 @@ CommandWidget::CommandWidget(amuse::SoundMacro::ICmd* cmd, amuse::SoundMacro::Cm
     if (op != amuse::SoundMacro::CmdOp::End)
     {
         m_deleteButton.setFixedSize(21, 21);
-        m_deleteButton.setIcon(QIcon(QStringLiteral(":/icons/IconSoundMacroDelete.svg")));
+        m_deleteButton.setStyleSheet("QPushButton {\n"
+                                     "    background-image: url(\":/icons/IconSoundMacroDelete.svg\");\n"
+                                     "    background-repeat: no-repeat;\n"
+                                     "}\n"
+                                     "QPushButton:hover {\n"
+                                     "    background-image: url(\":/icons/IconSoundMacroDeleteHovered.svg\");\n"
+                                     "    background-repeat: no-repeat;\n"
+                                     "}");
         m_deleteButton.setFlat(true);
         m_deleteButton.setToolTip(tr("Delete this SoundMacro"));
         connect(&m_deleteButton, SIGNAL(clicked(bool)), this, SLOT(deleteClicked()));
