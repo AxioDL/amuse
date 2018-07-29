@@ -23,6 +23,7 @@
         <file>IconSoundMacroTarget.svg</file>
         <file>IconSoundMacroTargetDisabled.svg</file>
         <file>IconKill.svg</file>
+        <file>IconSample.svg</file>
     </qresource>
     <qresource prefix="/bg">
         <file>FaceGrey.svg</file>

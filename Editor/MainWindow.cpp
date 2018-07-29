@@ -16,6 +16,7 @@
 #include "CurveEditor.hpp"
 #include "KeymapEditor.hpp"
 #include "LayersEditor.hpp"
+#include "SampleEditor.hpp"
 
 MainWindow::MainWindow(QWidget* parent)
 : QMainWindow(parent),
@@ -50,7 +51,8 @@ MainWindow::MainWindow(QWidget* parent)
     m_ui.actionSave_Project->setShortcut(QKeySequence::Save);
     connect(m_ui.actionSave_Project, SIGNAL(triggered()), this, SLOT(saveAction()));
     connect(m_ui.actionRevert_Project, SIGNAL(triggered()), this, SLOT(revertAction()));
-    connect(m_ui.actionImport, SIGNAL(triggered()), this, SLOT(importAction()));
+    connect(m_ui.actionReload_Sample_Data, SIGNAL(triggered()), this, SLOT(reloadSampleDataAction()));
+    connect(m_ui.actionImport_Groups, SIGNAL(triggered()), this, SLOT(importAction()));
     connect(m_ui.actionExport_GameCube_Groups, SIGNAL(triggered()), this, SLOT(exportAction()));
 
     for (int i = 0; i < MaxRecentFiles; ++i)
@@ -109,6 +111,8 @@ MainWindow::MainWindow(QWidget* parent)
     m_ui.editorContents->addWidget(m_keymapEditor);
     m_layersEditor = new LayersEditor;
     m_ui.editorContents->addWidget(m_layersEditor);
+    m_sampleEditor = new SampleEditor;
+    m_ui.editorContents->addWidget(m_sampleEditor);
     m_ui.editorContents->setCurrentWidget(m_faceSvg);
 
     connect(m_ui.actionNew_Subproject, SIGNAL(triggered()), this, SLOT(newSubprojectAction()));
@@ -128,6 +132,9 @@ MainWindow::MainWindow(QWidget* parent)
     m_voxEngine = boo::NewAudioVoiceEngine();
     m_voxAllocator = std::make_unique<VoiceAllocator>(*m_voxEngine);
     m_engine = std::make_unique<amuse::Engine>(*m_voxAllocator);
+
+    m_ctrlVals[7] = 127;
+    m_ctrlVals[10] = 64;
 
     startTimer(16);
 }
@@ -165,6 +172,27 @@ void MainWindow::connectMessenger(UIMessenger* messenger, Qt::ConnectionType typ
             this, SLOT(msgCritical(const QString&,
                            const QString&, QMessageBox::StandardButtons,
                            QMessageBox::StandardButton)), type);
+}
+
+void MainWindow::updateWindowTitle()
+{
+    if (!m_projectModel)
+    {
+        setWindowTitle(tr("Amuse"));
+        return;
+    }
+
+    QDir dir(m_projectModel->path());
+    if (m_ui.editorContents->currentWidget() != m_faceSvg)
+    {
+        ProjectModel::BasePoolObjectNode* objNode = static_cast<ProjectModel::BasePoolObjectNode*>(
+            static_cast<EditorWidget*>(m_ui.editorContents->currentWidget())->currentNode());
+        setWindowTitle(tr("Amuse [%1/%2/%3]").arg(dir.dirName()).arg(
+            m_projectModel->getGroupNode(objNode)->text()).arg(objNode->text()));
+        return;
+    }
+
+    setWindowTitle(tr("Amuse [%1]").arg(dir.dirName()));
 }
 
 void MainWindow::updateRecentFileActions()
@@ -215,6 +243,7 @@ bool MainWindow::setProjectPath(const QString& path)
     }
     testWriteFile.remove();
 
+    closeEditor();
     if (m_projectModel)
         m_projectModel->deleteLater();
     m_projectModel = new ProjectModel(path, this);
@@ -224,9 +253,10 @@ bool MainWindow::setProjectPath(const QString& path)
             this, SLOT(onOutlineSelectionChanged(const QItemSelection&, const QItemSelection&)));
     m_ui.actionSave_Project->setEnabled(true);
     m_ui.actionRevert_Project->setEnabled(true);
+    m_ui.actionReload_Sample_Data->setEnabled(true);
     m_ui.actionExport_GameCube_Groups->setEnabled(true);
     setWindowFilePath(path);
-    setWindowTitle(QString("Amuse [%1]").arg(dir.dirName()));
+    updateWindowTitle();
     onFocusChanged(nullptr, focusWidget());
     m_undoStack->clear();
 
@@ -305,19 +335,19 @@ void MainWindow::timerEvent(QTimerEvent* ev)
 
 void MainWindow::setSustain(bool sustain)
 {
-    if (sustain && !m_sustain)
+    if (sustain && m_ctrlVals[64] < 0x40)
     {
         m_ui.statusbar->setNormalMessage(tr("SUSTAIN"));
         for (auto& v : m_engine->getActiveVoices())
             v->setPedal(true);
-        m_sustain = true;
+        m_ctrlVals[64] = 127;
     }
-    else if (!sustain && m_sustain)
+    else if (!sustain && m_ctrlVals[64] >= 0x40)
     {
         m_ui.statusbar->setNormalMessage({});
         for (auto& v : m_engine->getActiveVoices())
             v->setPedal(false);
-        m_sustain = false;
+        m_ctrlVals[64] = 0;
     }
 }
 
@@ -384,6 +414,7 @@ bool MainWindow::_setEditor(EditorWidget* editor)
     }
     m_ui.editorContents->setCurrentWidget(editor);
     m_ui.editorContents->update();
+    updateWindowTitle();
     return true;
 }
 
@@ -422,6 +453,11 @@ bool MainWindow::openEditor(ProjectModel::LayersNode* node)
     return _setEditor(m_layersEditor->loadData(node) ? m_layersEditor : nullptr);
 }
 
+bool MainWindow::openEditor(ProjectModel::SampleNode* node)
+{
+    return _setEditor(m_sampleEditor->loadData(node) ? m_sampleEditor : nullptr);
+}
+
 bool MainWindow::openEditor(ProjectModel::INode* node)
 {
     switch (node->type())
@@ -440,6 +476,8 @@ bool MainWindow::openEditor(ProjectModel::INode* node)
         return openEditor(static_cast<ProjectModel::KeymapNode*>(node));
     case ProjectModel::INode::Type::Layer:
         return openEditor(static_cast<ProjectModel::LayersNode*>(node));
+    case ProjectModel::INode::Type::Sample:
+        return openEditor(static_cast<ProjectModel::SampleNode*>(node));
     default:
         return false;
     }
@@ -565,9 +603,41 @@ void MainWindow::saveAction()
 void MainWindow::revertAction()
 {
     QString path = m_projectModel->path();
+    closeEditor();
+    m_undoStack->clear();
     delete m_projectModel;
     m_projectModel = nullptr;
     openProject(path);
+}
+
+void MainWindow::reloadSampleDataAction()
+{
+    ProjectModel* model = m_projectModel;
+    if (!m_projectModel)
+        return;
+
+    QDir dir(m_projectModel->path());
+    if (!dir.exists())
+        return;
+
+    startBackgroundTask(tr("Reloading Samples"), tr("Scanning Project"),
+    [dir, model](BackgroundTask& task)
+    {
+        QStringList childDirs = dir.entryList(QDir::Dirs);
+        for (const auto& chDir : childDirs)
+        {
+            if (task.isCanceled())
+                return;
+            QString chPath = dir.filePath(chDir);
+            if (QFileInfo(chPath, QStringLiteral("!project.yaml")).exists() &&
+                QFileInfo(chPath, QStringLiteral("!pool.yaml")).exists())
+            {
+                task.setLabelText(tr("Scanning %1").arg(chDir));
+                if (!model->reloadSampleData(chDir, task.uiMessenger()))
+                    return;
+            }
+        }
+    });
 }
 
 void MainWindow::importAction()
@@ -795,9 +865,10 @@ void MainWindow::notePressed(int key)
             amuse::AudioGroupDatabase* group = m_projectModel->getGroupNode(node)->getAudioGroup();
             if (m_lastSound)
                 m_lastSound->keyOff();
-            m_lastSound = m_engine->macroStart(group, cNode->id(), key, m_velocity, m_modulation);
-            m_lastSound->setPedal(m_sustain);
+            m_lastSound = m_engine->macroStart(group, cNode->id(), key, m_velocity, m_ctrlVals[1]);
+            m_lastSound->setPedal(m_ctrlVals[64] >= 0x40);
             m_lastSound->setPitchWheel(m_pitch);
+            m_lastSound->installCtrlValues(m_ctrlVals);
         }
     }
 }
@@ -818,9 +889,9 @@ void MainWindow::velocityChanged(int vel)
 
 void MainWindow::modulationChanged(int mod)
 {
-    m_modulation = mod;
+    m_ctrlVals[1] = int8_t(mod);
     for (auto& v : m_engine->getActiveVoices())
-        v->setCtrlValue(1, int8_t(m_modulation));
+        v->setCtrlValue(1, m_ctrlVals[1]);
 }
 
 void MainWindow::pitchChanged(int pitch)

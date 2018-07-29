@@ -184,11 +184,11 @@ public:
         Value<uint32_t, DNAEn> m_loopStartSample;
         Value<uint32_t, DNAEn> m_loopLengthSamples;
     };
-    struct Entry
+    struct EntryData
     {
         atUint32 m_sampleOff = 0;
         atUint32 m_unk = 0;
-        atUint8 m_pitch = 0;
+        atUint8 m_pitch = 60;
         atUint16 m_sampleRate = 0;
         atUint32 m_numSamples = 0; // Top 8 bits is SampleFormat
         atUint32 m_loopStartSample = 0;
@@ -204,24 +204,24 @@ public:
         time_t m_looseModTime = 0;
         std::unique_ptr<uint8_t[]> m_looseData;
 
-        Entry() = default;
+        EntryData() = default;
 
         template <athena::Endian DNAE>
-        Entry(const EntryDNA<DNAE>& in)
+        EntryData(const EntryDNA<DNAE>& in)
             : m_sampleOff(in.m_sampleOff), m_unk(in.m_unk), m_pitch(in.m_pitch),
               m_sampleRate(in.m_sampleRate), m_numSamples(in.m_numSamples),
               m_loopStartSample(in.m_loopStartSample), m_loopLengthSamples(in.m_loopLengthSamples),
               m_adpcmParmOffset(in.m_adpcmParmOffset) {}
 
         template <athena::Endian DNAE>
-        Entry(const MusyX1SdirEntry<DNAE>& in)
+        EntryData(const MusyX1SdirEntry<DNAE>& in)
             : m_sampleOff(in.m_sampleOff), m_unk(0), m_pitch(in.m_pitchSampleRate >> 24),
               m_sampleRate(in.m_pitchSampleRate & 0xffff), m_numSamples(in.m_numSamples),
               m_loopStartSample(in.m_loopStartSample), m_loopLengthSamples(in.m_loopLengthSamples),
               m_adpcmParmOffset(0) {}
 
         template <athena::Endian DNAE>
-        Entry(const MusyX1AbsSdirEntry<DNAE>& in)
+        EntryData(const MusyX1AbsSdirEntry<DNAE>& in)
             : m_sampleOff(in.m_sampleOff), m_unk(in.m_unk), m_pitch(in.m_pitchSampleRate >> 24),
               m_sampleRate(in.m_pitchSampleRate & 0xffff), m_numSamples(in.m_numSamples),
               m_loopStartSample(in.m_loopStartSample), m_loopLengthSamples(in.m_loopLengthSamples),
@@ -243,14 +243,45 @@ public:
             return ret;
         }
 
+        void loadLooseDSP(SystemStringView dspPath);
+        void loadLooseWAV(SystemStringView wavPath);
+    };
+    /* This double-wrapper allows Voices to keep a strong reference on
+     * a single instance of loaded loose data without being unexpectedly
+     * clobbered */
+    struct Entry
+    {
+        ObjToken<EntryData> m_data;
+
+        Entry()
+            : m_data(MakeObj<EntryData>()) {}
+
+        template <athena::Endian DNAE>
+        Entry(const EntryDNA<DNAE>& in)
+            : m_data(MakeObj<EntryData>(in)) {}
+
+        template <athena::Endian DNAE>
+        Entry(const MusyX1SdirEntry<DNAE>& in)
+            : m_data(MakeObj<EntryData>(in)) {}
+
+        template <athena::Endian DNAE>
+        Entry(const MusyX1AbsSdirEntry<DNAE>& in)
+            : m_data(MakeObj<EntryData>(in)) {}
+
+        template <athena::Endian DNAEn>
+        EntryDNA<DNAEn> toDNA(SFXId id) const
+        {
+            return m_data->toDNA<DNAEn>(id);
+        }
+
         void loadLooseData(SystemStringView basePath);
     };
 
 private:
-    std::unordered_map<SampleId, Entry> m_entries;
-    static void _extractWAV(SampleId id, const Entry& ent, amuse::SystemStringView destDir,
+    std::unordered_map<SampleId, ObjToken<Entry>> m_entries;
+    static void _extractWAV(SampleId id, const EntryData& ent, amuse::SystemStringView destDir,
                             const unsigned char* samp);
-    static void _extractCompressed(SampleId id, const Entry& ent, amuse::SystemStringView destDir,
+    static void _extractCompressed(SampleId id, const EntryData& ent, amuse::SystemStringView destDir,
                                    const unsigned char* samp);
 
 public:
@@ -261,18 +292,23 @@ public:
     static AudioGroupSampleDirectory CreateAudioGroupSampleDirectory(const AudioGroupData& data);
     static AudioGroupSampleDirectory CreateAudioGroupSampleDirectory(SystemStringView groupPath);
 
-    const std::unordered_map<SampleId, Entry>& sampleEntries() const { return m_entries; }
+    const std::unordered_map<SampleId, ObjToken<Entry>>& sampleEntries() const { return m_entries; }
 
     void extractWAV(SampleId id, amuse::SystemStringView destDir, const unsigned char* samp) const;
     void extractAllWAV(amuse::SystemStringView destDir, const unsigned char* samp) const;
     void extractCompressed(SampleId id, amuse::SystemStringView destDir, const unsigned char* samp) const;
     void extractAllCompressed(amuse::SystemStringView destDir, const unsigned char* samp) const;
 
+    void reloadSampleData(SystemStringView groupPath);
+
     AudioGroupSampleDirectory(const AudioGroupSampleDirectory&) = delete;
     AudioGroupSampleDirectory& operator=(const AudioGroupSampleDirectory&) = delete;
     AudioGroupSampleDirectory(AudioGroupSampleDirectory&&) = default;
     AudioGroupSampleDirectory& operator=(AudioGroupSampleDirectory&&) = default;
 };
+
+using SampleEntry = AudioGroupSampleDirectory::Entry;
+using SampleEntryData = AudioGroupSampleDirectory::EntryData;
 }
 
 #endif // __AMUSE_AUDIOGROUPSAMPLEDIR_HPP__

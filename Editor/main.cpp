@@ -5,6 +5,7 @@
 #include "MainWindow.hpp"
 #include "boo/IApplication.hpp"
 #include <QResource>
+#include <QCommandLineParser>
 
 using namespace std::literals;
 
@@ -101,5 +102,12 @@ int main(int argc, char* argv[])
     MainWindow w;
     g_MainWindow = &w;
     w.show();
+
+    QCommandLineParser parser;
+    parser.process(a);
+    QStringList args = parser.positionalArguments();
+    if (!args.empty())
+        w.openProject(args.back());
+
     return a.exec();
 }

@@ -61,7 +61,8 @@ public:
             ADSR,
             Curve,
             Keymap,
-            Layer
+            Layer,
+            Sample
         };
     protected:
         INode* m_parent;
@@ -168,8 +169,8 @@ public:
     {
         amuse::GroupId m_id;
         QString m_name;
-        std::shared_ptr<amuse::SongGroupIndex> m_index;
-        SongGroupNode(INode* parent, int row, amuse::GroupId id, std::shared_ptr<amuse::SongGroupIndex> index)
+        amuse::ObjToken<amuse::SongGroupIndex> m_index;
+        SongGroupNode(INode* parent, int row, amuse::GroupId id, amuse::ObjToken<amuse::SongGroupIndex> index)
         : INode(parent, row), m_id(id), m_name(amuse::GroupId::CurNameDB->resolveNameFromId(id).data()), m_index(index) {}
 
         static QIcon Icon;
@@ -184,8 +185,8 @@ public:
     {
         amuse::GroupId m_id;
         QString m_name;
-        std::shared_ptr<amuse::SFXGroupIndex> m_index;
-        SoundGroupNode(INode* parent, int row, amuse::GroupId id, std::shared_ptr<amuse::SFXGroupIndex> index)
+        amuse::ObjToken<amuse::SFXGroupIndex> m_index;
+        SoundGroupNode(INode* parent, int row, amuse::GroupId id, amuse::ObjToken<amuse::SFXGroupIndex> index)
         : INode(parent, row), m_id(id), m_name(amuse::GroupId::CurNameDB->resolveNameFromId(id).data()), m_index(index) {}
 
         static QIcon Icon;
@@ -221,30 +222,31 @@ public:
     struct BasePoolObjectNode : INode
     {
         amuse::ObjectId m_id;
-        BasePoolObjectNode(INode* parent, int row, amuse::ObjectId id)
-        : INode(parent, row), m_id(id) {}
+        QString m_name;
+        BasePoolObjectNode(INode* parent, int row, amuse::ObjectId id, const QString& name)
+        : INode(parent, row), m_id(id), m_name(name) {}
         amuse::ObjectId id() const { return m_id; }
+        QString text() const { return m_name; }
+        QIcon icon() const { return {}; }
     };
     template <class ID, class T, INode::Type TP>
     struct PoolObjectNode : BasePoolObjectNode
     {
-        QString m_name;
-        std::shared_ptr<T> m_obj;
-        PoolObjectNode(INode* parent, int row, ID id, std::shared_ptr<T> obj)
-        : BasePoolObjectNode(parent, row, id), m_name(ID::CurNameDB->resolveNameFromId(id).data()), m_obj(obj) {}
+        amuse::ObjToken<T> m_obj;
+        PoolObjectNode(INode* parent, int row, ID id, amuse::ObjToken<T> obj)
+        : BasePoolObjectNode(parent, row, id, ID::CurNameDB->resolveNameFromId(id).data()), m_obj(obj) {}
 
         Type type() const { return TP; }
-        QString text() const { return m_name; }
-        QIcon icon() const { return {}; }
 
         std::shared_ptr<PoolObjectNode<ID, T, TP>> shared_from_this()
         { return std::static_pointer_cast<PoolObjectNode<ID, T, TP>>(INode::shared_from_this()); }
     };
     using SoundMacroNode = PoolObjectNode<amuse::SoundMacroId, amuse::SoundMacro, INode::Type::SoundMacro>;
-    using ADSRNode = PoolObjectNode<amuse::TableId, amuse::ITable, INode::Type::ADSR>;
-    using CurveNode = PoolObjectNode<amuse::TableId, amuse::Curve, INode::Type::Curve>;
+    using ADSRNode = PoolObjectNode<amuse::TableId, std::unique_ptr<amuse::ITable>, INode::Type::ADSR>;
+    using CurveNode = PoolObjectNode<amuse::TableId, std::unique_ptr<amuse::ITable>, INode::Type::Curve>;
     using KeymapNode = PoolObjectNode<amuse::KeymapId, amuse::Keymap, INode::Type::Keymap>;
     using LayersNode = PoolObjectNode<amuse::LayersId, std::vector<amuse::LayerMapping>, INode::Type::Layer>;
+    using SampleNode = PoolObjectNode<amuse::SampleId, amuse::SampleEntry, INode::Type::Sample>;
 
     std::shared_ptr<RootNode> m_root;
 
@@ -256,6 +258,7 @@ public:
 
     bool clearProjectData();
     bool openGroupData(const QString& groupName, UIMessenger& messenger);
+    bool reloadSampleData(const QString& groupName, UIMessenger& messenger);
     bool importGroupData(const QString& groupName, const amuse::AudioGroupData& data,
                          ImportMode mode, UIMessenger& messenger);
     bool saveToFile(UIMessenger& messenger);

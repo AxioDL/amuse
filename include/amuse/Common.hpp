@@ -9,6 +9,7 @@
 #include <string>
 #include <string_view>
 #include <cstring>
+#include <atomic>
 #include "athena/DNA.hpp"
 
 #ifndef _WIN32
@@ -133,6 +134,64 @@ struct LittleUInt24 : LittleDNA
     LittleUInt24(uint32_t valIn) : val(valIn) {}
     LittleUInt24& operator=(uint32_t valIn) { val = valIn; return *this; }
 };
+
+class IObj
+{
+    std::atomic_int m_refCount = {0};
+protected:
+    virtual ~IObj() = default;
+public:
+    void increment() { m_refCount++; }
+    void decrement()
+    {
+        if (m_refCount.fetch_sub(1) == 1)
+            delete this;
+    }
+};
+
+template<class SubCls>
+class ObjToken;
+
+template<class SubCls>
+class ObjWrapper : IObj
+{
+    friend class ObjToken<SubCls>;
+    SubCls m_obj;
+    SubCls* get() { return &m_obj; }
+    const SubCls* get() const { return &m_obj; }
+public:
+    template <class... _Args>
+    ObjWrapper(_Args&&... args) : m_obj(std::forward<_Args>(args)...) {}
+};
+
+template<class SubCls>
+class ObjToken
+{
+    ObjWrapper<SubCls>* m_obj = nullptr;
+public:
+    ObjToken() = default;
+    ObjToken(ObjWrapper<SubCls>* obj) : m_obj(obj) { if (m_obj) m_obj->increment(); }
+    ObjToken(const ObjToken& other) : m_obj(other.m_obj) { if (m_obj) m_obj->increment(); }
+    ObjToken(ObjToken&& other) : m_obj(other.m_obj) { other.m_obj = nullptr; }
+    ObjToken& operator=(ObjWrapper<SubCls>* obj)
+    { if (m_obj) m_obj->decrement(); m_obj = obj; if (m_obj) m_obj->increment(); return *this; }
+    ObjToken& operator=(const ObjToken& other)
+    { if (m_obj) m_obj->decrement(); m_obj = other.m_obj; if (m_obj) m_obj->increment(); return *this; }
+    ObjToken& operator=(ObjToken&& other)
+    { if (m_obj) m_obj->decrement(); m_obj = other.m_obj; other.m_obj = nullptr; return *this; }
+    ~ObjToken() { if (m_obj) m_obj->decrement(); }
+    SubCls* get() const { return m_obj->get(); }
+    SubCls* operator->() const { return m_obj->get(); }
+    SubCls& operator*() const { return *m_obj->get(); }
+    operator bool() const { return m_obj != nullptr; }
+    void reset() { if (m_obj) m_obj->decrement(); m_obj = nullptr; }
+};
+
+template <class Tp, class... _Args>
+static inline ObjToken<Tp> MakeObj(_Args&&... args)
+{
+    return new ObjWrapper<Tp>(std::forward<_Args>(args)...);
+}
 
 #ifndef PRISize
 #ifdef _MSC_VER
@@ -480,6 +539,12 @@ DECL_ID_HASH(LayersId)
 DECL_ID_HASH(SongId)
 DECL_ID_HASH(SFXId)
 DECL_ID_HASH(GroupId)
+
+template<class T>
+struct hash<amuse::ObjToken<T>>
+{
+    size_t operator()(const amuse::ObjToken<T>& val) const noexcept { return reinterpret_cast<size_t>(val.get()); }
+};
 }
 
 namespace amuse

@@ -237,6 +237,7 @@ CommandWidget::CommandWidget(amuse::SoundMacro::ICmd* cmd, amuse::SoundMacro::Cm
                 }
                 case amuse::SoundMacro::CmdIntrospection::Field::Type::SoundMacroId:
                 case amuse::SoundMacro::CmdIntrospection::Field::Type::TableId:
+                case amuse::SoundMacro::CmdIntrospection::Field::Type::SampleId:
                 {
                     ProjectModel::INode::Type collectionType;
                     if (field.m_tp == amuse::SoundMacro::CmdIntrospection::Field::Type::SoundMacroId)
@@ -249,6 +250,10 @@ CommandWidget::CommandWidget(amuse::SoundMacro::ICmd* cmd, amuse::SoundMacro::Cm
                             collectionType = ProjectModel::INode::Type::ADSR;
                         else
                             collectionType = ProjectModel::INode::Type::Curve;
+                    }
+                    else if (field.m_tp == amuse::SoundMacro::CmdIntrospection::Field::Type::SampleId)
+                    {
+                        collectionType = ProjectModel::INode::Type::Sample;
                     }
                     auto* collection = g_MainWindow->projectModel()->getGroupNode(listing->currentNode())->
                         getCollectionOfType(collectionType);

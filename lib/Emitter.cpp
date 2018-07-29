@@ -15,7 +15,7 @@ static void Delta(Vector3f& out, const Vector3f& a, const Vector3f& b)
 
 Emitter::~Emitter() {}
 
-Emitter::Emitter(Engine& engine, const AudioGroup& group, const std::shared_ptr<Voice>& vox,
+Emitter::Emitter(Engine& engine, const AudioGroup& group, ObjToken<Voice> vox,
                  float maxDist, float minVol, float falloff, bool doppler)
 : Entity(engine, group, vox->getGroupId(), vox->getObjectId()), m_vox(vox), m_maxDist(maxDist),
   m_minVol(clamp(0.f, minVol, 1.f)), m_falloff(clamp(-1.f, falloff, 1.f)), m_doppler(doppler)

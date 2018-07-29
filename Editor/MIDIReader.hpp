@@ -2,13 +2,14 @@
 #define AMUSE_MIDI_READER_HPP
 
 #include "amuse/BooBackend.hpp"
+#include "amuse/Common.hpp"
 #include <unordered_set>
 
 class MIDIReader : public amuse::BooBackendMIDIReader
 {
-    std::unordered_map<uint8_t, std::shared_ptr<amuse::Voice>> m_chanVoxs;
-    std::unordered_set<std::shared_ptr<amuse::Voice>> m_keyoffVoxs;
-    std::weak_ptr<amuse::Voice> m_lastVoice;
+    std::unordered_map<uint8_t, amuse::ObjToken<amuse::Voice>> m_chanVoxs;
+    std::unordered_set<amuse::ObjToken<amuse::Voice>> m_keyoffVoxs;
+    amuse::ObjToken<amuse::Voice> m_lastVoice;
 public:
     MIDIReader(amuse::Engine& engine, const char* name, bool useLock);
     boo::IMIDIIn* getMidiIn() const { return m_midiIn.get(); }

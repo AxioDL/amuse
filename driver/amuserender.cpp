@@ -163,10 +163,10 @@ int main(int argc, const boo::SystemChar** argv)
 
     std::list<amuse::AudioGroupProject> m_projs;
     std::map<int,
-             std::pair<std::pair<amuse::SystemString, amuse::IntrusiveAudioGroupData>*, const amuse::SongGroupIndex*>>
+             std::pair<std::pair<amuse::SystemString, amuse::IntrusiveAudioGroupData>*, amuse::ObjToken<amuse::SongGroupIndex>>>
         allSongGroups;
     std::map<int,
-             std::pair<std::pair<amuse::SystemString, amuse::IntrusiveAudioGroupData>*, const amuse::SFXGroupIndex*>>
+             std::pair<std::pair<amuse::SystemString, amuse::IntrusiveAudioGroupData>*, amuse::ObjToken<amuse::SFXGroupIndex>>>
         allSFXGroups;
     size_t totalGroups = 0;
 
@@ -178,10 +178,10 @@ int main(int argc, const boo::SystemChar** argv)
         totalGroups += proj.sfxGroups().size() + proj.songGroups().size();
 
         for (auto it = proj.songGroups().begin(); it != proj.songGroups().end(); ++it)
-            allSongGroups[it->first] = std::make_pair(&grp, &it->second);
+            allSongGroups[it->first] = std::make_pair(&grp, it->second);
 
         for (auto it = proj.sfxGroups().begin(); it != proj.sfxGroups().end(); ++it)
-            allSFXGroups[it->first] = std::make_pair(&grp, &it->second);
+            allSFXGroups[it->first] = std::make_pair(&grp, it->second);
     }
 
     /* Attempt loading song */
@@ -393,8 +393,8 @@ int main(int argc, const boo::SystemChar** argv)
 
     /* Make final group selection */
     amuse::IntrusiveAudioGroupData* selData = nullptr;
-    const amuse::SongGroupIndex* songIndex = nullptr;
-    const amuse::SFXGroupIndex* sfxIndex = nullptr;
+    amuse::ObjToken<amuse::SongGroupIndex> songIndex;
+    amuse::ObjToken<amuse::SFXGroupIndex> sfxIndex;
     auto songSearch = allSongGroups.find(m_groupId);
     if (songSearch != allSongGroups.end())
     {
@@ -465,7 +465,7 @@ int main(int argc, const boo::SystemChar** argv)
     }
 
     /* Enter playback loop */
-    std::shared_ptr<amuse::Sequencer> seq = engine.seqPlay(m_groupId, m_setupId, m_arrData->m_data.get());
+    amuse::ObjToken<amuse::Sequencer> seq = engine.seqPlay(m_groupId, m_setupId, m_arrData->m_data.get());
     size_t wroteFrames = 0;
     signal(SIGINT, SIGINTHandler);
     do

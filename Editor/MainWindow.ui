@@ -306,8 +306,9 @@
     <addaction name="menuRecent_Projects"/>
     <addaction name="actionSave_Project"/>
     <addaction name="actionRevert_Project"/>
+    <addaction name="actionReload_Sample_Data"/>
     <addaction name="separator"/>
-    <addaction name="actionImport"/>
+    <addaction name="actionImport_Groups"/>
     <addaction name="actionExport_GameCube_Groups"/>
    </widget>
    <widget class="QMenu" name="menuProject">
@@ -398,9 +399,9 @@
     <string>&amp;Delete</string>
    </property>
   </action>
-  <action name="actionImport">
+  <action name="actionImport_Groups">
    <property name="text">
-    <string>&amp;Import</string>
+    <string>&amp;Import Groups</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+I</string>
@@ -554,6 +555,14 @@
    </property>
    <property name="text">
     <string>&amp;Revert Project</string>
+   </property>
+  </action>
+  <action name="actionReload_Sample_Data">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Reload Sample &amp;Data</string>
    </property>
   </action>
  </widget>

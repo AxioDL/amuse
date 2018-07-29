@@ -122,6 +122,21 @@ bool ProjectModel::openGroupData(const QString& groupName, UIMessenger& messenge
     return true;
 }
 
+bool ProjectModel::reloadSampleData(const QString& groupName, UIMessenger& messenger)
+{
+    m_projectDatabase.setIdDatabases();
+    QString path = QFileInfo(m_dir, groupName).filePath();
+    auto search = m_groups.find(groupName);
+    if (search != m_groups.end())
+    {
+        search->second.setIdDatabases();
+        search->second.getSdir().reloadSampleData(QStringToSysString(path));
+    }
+
+    m_needsReset = true;
+    return true;
+}
+
 bool ProjectModel::importGroupData(const QString& groupName, const amuse::AudioGroupData& data,
                                    ImportMode mode, UIMessenger& messenger)
 {
@@ -200,6 +215,7 @@ void ProjectModel::_resetModelData()
         auto& tables = group.getPool().tables();
         auto& keymaps = group.getPool().keymaps();
         auto& layers = group.getPool().layers();
+        auto& samples = group.getSdir().sampleEntries();
         gn.reserve(songGroups.size() + sfxGroups.size() + 4);
         for (const auto& grp : SortUnorderedMap(songGroups))
             gn.makeChild<SongGroupNode>(grp.first, grp.second.get());
@@ -218,7 +234,7 @@ void ProjectModel::_resetModelData()
             size_t curveCount = 0;
             for (auto& t : tablesSort)
             {
-                amuse::ITable::Type tp = t.second.get()->Isa();
+                amuse::ITable::Type tp = (*t.second.get())->Isa();
                 if (tp == amuse::ITable::Type::ADSR || tp == amuse::ITable::Type::ADSRDLS)
                     ADSRCount += 1;
                 else if (tp == amuse::ITable::Type::Curve)
@@ -230,7 +246,7 @@ void ProjectModel::_resetModelData()
                 col.reserve(ADSRCount);
                 for (auto& t : tablesSort)
                 {
-                    amuse::ITable::Type tp = t.second.get()->Isa();
+                    amuse::ITable::Type tp = (*t.second.get())->Isa();
                     if (tp == amuse::ITable::Type::ADSR || tp == amuse::ITable::Type::ADSRDLS)
                         col.makeChild<ADSRNode>(t.first, t.second.get());
                 }
@@ -241,9 +257,9 @@ void ProjectModel::_resetModelData()
                 col.reserve(curveCount);
                 for (auto& t : tablesSort)
                 {
-                    amuse::ITable::Type tp = t.second.get()->Isa();
+                    amuse::ITable::Type tp = (*t.second.get())->Isa();
                     if (tp == amuse::ITable::Type::Curve)
-                        col.makeChild<CurveNode>(t.first, std::static_pointer_cast<amuse::Curve>(t.second.get()));
+                        col.makeChild<CurveNode>(t.first, t.second.get());
                 }
             }
         }
@@ -260,6 +276,13 @@ void ProjectModel::_resetModelData()
             col.reserve(layers.size());
             for (auto& keymap : SortUnorderedMap(layers))
                 col.makeChild<LayersNode>(keymap.first, keymap.second.get());
+        }
+        {
+            CollectionNode& col =
+                gn.makeChild<CollectionNode>(tr("Samples"), QIcon(":/icons/IconSample.svg"), INode::Type::Sample);
+            col.reserve(samples.size());
+            for (auto& sample : SortUnorderedMap(samples))
+                col.makeChild<SampleNode>(sample.first, sample.second.get());
         }
     }
     endResetModel();

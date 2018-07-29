@@ -3,13 +3,13 @@
 
 #include "Entity.hpp"
 #include "Common.hpp"
+#include "Voice.hpp"
 #include <memory>
 #include <cmath>
 #include <cfloat>
 
 namespace amuse
 {
-class Voice;
 class Listener;
 
 using Vector3f = float[3];
@@ -37,7 +37,7 @@ static inline float Normalize(Vector3f& out)
 /** Voice wrapper with positional-3D level control */
 class Emitter : public Entity
 {
-    std::shared_ptr<Voice> m_vox;
+    ObjToken<Voice> m_vox;
     Vector3f m_pos = {};
     Vector3f m_dir = {};
     float m_maxDist;
@@ -54,13 +54,13 @@ class Emitter : public Entity
 
 public:
     ~Emitter();
-    Emitter(Engine& engine, const AudioGroup& group, const std::shared_ptr<Voice>& vox,
+    Emitter(Engine& engine, const AudioGroup& group, ObjToken<Voice> vox,
             float maxDist, float minVol, float falloff, bool doppler);
 
     void setVectors(const float* pos, const float* dir);
     void setMaxVol(float maxVol) { m_maxVol = clamp(0.f, maxVol, 1.f); m_dirty = true; }
 
-    const std::shared_ptr<Voice>& getVoice() const { return m_vox; }
+    ObjToken<Voice> getVoice() const { return m_vox; }
 };
 }
 

@@ -58,7 +58,7 @@ Sequencer::~Sequencer()
 }
 
 Sequencer::Sequencer(Engine& engine, const AudioGroup& group, int groupId, const SongGroupIndex* songGroup, int setupId,
-                     std::weak_ptr<Studio> studio)
+                     ObjToken<Studio> studio)
 : Entity(engine, group, groupId), m_songGroup(songGroup), m_studio(studio)
 {
     auto it = m_songGroup->m_midiSetups.find(setupId);
@@ -67,7 +67,7 @@ Sequencer::Sequencer(Engine& engine, const AudioGroup& group, int groupId, const
 }
 
 Sequencer::Sequencer(Engine& engine, const AudioGroup& group, int groupId, const SFXGroupIndex* sfxGroup,
-                     std::weak_ptr<Studio> studio)
+                     ObjToken<Studio> studio)
 : Entity(engine, group, groupId), m_sfxGroup(sfxGroup), m_studio(studio)
 {
     std::map<uint16_t, const SFXGroupIndex::SFXEntry*> sortSFX;
@@ -210,13 +210,16 @@ size_t Sequencer::getVoiceCount() const
     return ret;
 }
 
-std::shared_ptr<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velocity)
+ObjToken<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velocity)
 {
     if (m_parent->m_songGroup && !m_page)
         return {};
 
+    if (m_lastVoice->isDestroyed())
+        m_lastVoice.reset();
+
     /* If portamento is enabled for voice, pre-empt spawning new voices */
-    if (std::shared_ptr<Voice> lastVoice = m_lastVoice.lock())
+    if (ObjToken<Voice> lastVoice = m_lastVoice)
     {
         uint8_t lastNote = lastVoice->getLastNote();
         if (lastVoice->doPortamento(note))
@@ -231,7 +234,7 @@ std::shared_ptr<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velo
     auto keySearch = m_chanVoxs.find(note);
     if (keySearch != m_chanVoxs.cend())
     {
-        if (keySearch->second == m_lastVoice.lock())
+        if (keySearch->second == m_lastVoice)
             m_lastVoice.reset();
         keySearch->second->keyOff();
         keySearch->second->setPedal(false);
@@ -239,7 +242,7 @@ std::shared_ptr<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velo
         m_chanVoxs.erase(keySearch);
     }
 
-    std::list<std::shared_ptr<Voice>>::iterator ret = m_parent->m_engine._allocateVoice(
+    std::list<ObjToken<Voice>>::iterator ret = m_parent->m_engine._allocateVoice(
         m_parent->m_audioGroup, m_parent->m_groupId, NativeSampleRate, true, false, m_parent->m_studio);
     if (*ret)
     {
@@ -284,7 +287,7 @@ std::shared_ptr<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velo
     return *ret;
 }
 
-std::shared_ptr<Voice> Sequencer::keyOn(uint8_t chan, uint8_t note, uint8_t velocity)
+ObjToken<Voice> Sequencer::keyOn(uint8_t chan, uint8_t note, uint8_t velocity)
 {
     if (chan > 15)
         return {};
@@ -301,7 +304,7 @@ void Sequencer::ChannelState::keyOff(uint8_t note, uint8_t velocity)
     if (keySearch == m_chanVoxs.cend())
         return;
 
-    if (keySearch->second == m_lastVoice.lock())
+    if (m_lastVoice->isDestroyed() || keySearch->second == m_lastVoice)
         m_lastVoice.reset();
     keySearch->second->keyOff();
     m_keyoffVoxs.emplace(std::move(keySearch->second));
@@ -425,9 +428,11 @@ void Sequencer::setTempo(double ticksPerSec) { m_ticksPerSec = ticksPerSec; }
 
 void Sequencer::ChannelState::allOff()
 {
+    if (m_lastVoice->isDestroyed())
+        m_lastVoice.reset();
     for (auto it = m_chanVoxs.begin(); it != m_chanVoxs.end();)
     {
-        if (it->second == m_lastVoice.lock())
+        if (it->second == m_lastVoice)
             m_lastVoice.reset();
         it->second->keyOff();
         m_keyoffVoxs.emplace(std::move(it->second));
@@ -476,12 +481,15 @@ void Sequencer::allOff(uint8_t chan, bool now)
 
 void Sequencer::ChannelState::killKeygroup(uint8_t kg, bool now)
 {
+    if (m_lastVoice->isDestroyed())
+        m_lastVoice.reset();
+
     for (auto it = m_chanVoxs.begin(); it != m_chanVoxs.end();)
     {
         Voice* vox = it->second.get();
         if (vox->m_keygroup == kg)
         {
-            if (it->second == m_lastVoice.lock())
+            if (it->second == m_lastVoice)
                 m_lastVoice.reset();
             if (now)
             {
@@ -518,7 +526,7 @@ void Sequencer::killKeygroup(uint8_t kg, bool now)
             chan.killKeygroup(kg, now);
 }
 
-std::shared_ptr<Voice> Sequencer::ChannelState::findVoice(int vid)
+ObjToken<Voice> Sequencer::ChannelState::findVoice(int vid)
 {
     for (const auto& vox : m_chanVoxs)
         if (vox.second->vid() == vid)
@@ -529,13 +537,13 @@ std::shared_ptr<Voice> Sequencer::ChannelState::findVoice(int vid)
     return {};
 }
 
-std::shared_ptr<Voice> Sequencer::findVoice(int vid)
+ObjToken<Voice> Sequencer::findVoice(int vid)
 {
     for (auto& chan : m_chanStates)
     {
         if (chan)
         {
-            std::shared_ptr<Voice> ret = chan.findVoice(vid);
+            ObjToken<Voice> ret = chan.findVoice(vid);
             if (ret)
                 return ret;
         }

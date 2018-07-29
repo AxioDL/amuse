@@ -4,7 +4,6 @@
 #include <memory>
 #include <list>
 #include "Entity.hpp"
-#include "Voice.hpp"
 #include "Submix.hpp"
 #include <type_traits>
 
@@ -20,11 +19,11 @@ class Studio
     Submix m_auxB;
     struct StudioSend
     {
-        std::shared_ptr<Studio> m_targetStudio;
+        ObjToken<Studio> m_targetStudio;
         float m_dryLevel;
         float m_auxALevel;
         float m_auxBLevel;
-        StudioSend(std::weak_ptr<Studio> studio, float dry, float auxA, float auxB)
+        StudioSend(ObjToken<Studio> studio, float dry, float auxA, float auxB)
         : m_targetStudio(studio), m_dryLevel(dry), m_auxALevel(auxA), m_auxBLevel(auxB)
         {
         }
@@ -38,7 +37,7 @@ public:
     Studio(Engine& engine, bool mainOut);
 
     /** Register a target Studio to send this Studio's mixing busses */
-    void addStudioSend(std::weak_ptr<Studio> studio, float dry, float auxA, float auxB);
+    void addStudioSend(ObjToken<Studio> studio, float dry, float auxA, float auxB);
 
     /** Advise submixes of changing sample rate */
     void resetOutputSampleRate(double sampleRate);

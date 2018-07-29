@@ -10,11 +10,11 @@
 #include "AudioGroupSampleDirectory.hpp"
 #include "AudioGroup.hpp"
 #include "Envelope.hpp"
+#include "Studio.hpp"
 
 namespace amuse
 {
 class IBackendVoice;
-class Studio;
 struct Keymap;
 struct LayerMapping;
 
@@ -47,7 +47,7 @@ class Voice : public Entity
 
     int m_vid;                        /**< VoiceID of this voice instance */
     bool m_emitter;                   /**< Voice is part of an Emitter */
-    std::shared_ptr<Studio> m_studio; /**< Studio this voice outputs to */
+    ObjToken<Studio> m_studio;        /**< Studio this voice outputs to */
 
     std::unique_ptr<IBackendVoice> m_backendVoice; /**< Handle to client-implemented backend voice */
     SoundMacroState m_state;                       /**< State container for SoundMacro playback */
@@ -55,10 +55,10 @@ class Voice : public Entity
     SoundMacroState::EventTrap m_sampleEndTrap; /**< Trap for sampleend (SoundMacro overrides voice removal) */
     SoundMacroState::EventTrap m_messageTrap;   /**< Trap for messages sent from other SoundMacros */
     int32_t m_latestMessage = 0;                     /**< Latest message received on voice */
-    std::list<std::shared_ptr<Voice>> m_childVoices; /**< Child voices for PLAYMACRO usage */
+    std::list<ObjToken<Voice>> m_childVoices;        /**< Child voices for PLAYMACRO usage */
     uint8_t m_keygroup = 0;                          /**< Keygroup voice is a member of */
 
-    const AudioGroupSampleDirectory::Entry* m_curSample = nullptr; /**< Current sample entry playing */
+    ObjToken<SampleEntryData> m_curSample;   /**< Current sample entry playing */
     const unsigned char* m_curSampleData = nullptr; /**< Current sample data playing */
     SampleFormat m_curFormat;                       /**< Current sample format playing */
     uint32_t m_curSamplePos = 0;                    /**< Current sample position */
@@ -82,9 +82,7 @@ class Voice : public Entity
     float m_curVol = 1.f;           /**< Current volume of voice */
     float m_curReverbVol = 0.f;     /**< Current reverb volume of voice */
     float m_curAuxBVol = 0.f;       /**< Current AuxB volume of voice */
-    float m_userPan = 0.f;          /**< User pan of voice */
     float m_curPan = 0.f;           /**< Current pan of voice */
-    float m_userSpan = -1.f;        /**< User span of voice */
     float m_curSpan = -1.f;         /**< Current surround pan of voice */
     float m_curPitchWheel = 0.f;    /**< Current normalized wheel value for control */
     int32_t m_pitchWheelUp = 600;   /**< Up range for pitchwheel control in cents */
@@ -156,11 +154,11 @@ class Voice : public Entity
     bool _isRecursivelyDead();
     void _bringOutYourDead();
     static uint32_t _GetBlockSampleCount(SampleFormat fmt);
-    std::shared_ptr<Voice> _findVoice(int vid, std::weak_ptr<Voice> thisPtr);
+    ObjToken<Voice> _findVoice(int vid, ObjToken<Voice> thisPtr);
     std::unique_ptr<int8_t[]>& _ensureCtrlVals();
 
-    std::list<std::shared_ptr<Voice>>::iterator _allocateVoice(double sampleRate, bool dynamicPitch);
-    std::list<std::shared_ptr<Voice>>::iterator _destroyVoice(std::list<std::shared_ptr<Voice>>::iterator it);
+    std::list<ObjToken<Voice>>::iterator _allocateVoice(double sampleRate, bool dynamicPitch);
+    std::list<ObjToken<Voice>>::iterator _destroyVoice(std::list<ObjToken<Voice>>::iterator it);
 
     bool _loadSoundMacro(SoundMacroId id, const SoundMacro* macroData, int macroStep, double ticksPerSec,
                          uint8_t midiKey, uint8_t midiVel, uint8_t midiMod, bool pushPc = false);
@@ -168,8 +166,8 @@ class Voice : public Entity
                      uint8_t midiVel, uint8_t midiMod, bool pushPc = false);
     bool _loadLayer(const std::vector<LayerMapping>& layer, double ticksPerSec,
                     uint8_t midiKey, uint8_t midiVel, uint8_t midiMod, bool pushPc = false);
-    std::shared_ptr<Voice> _startChildMacro(ObjectId macroId, int macroStep, double ticksPerSec, uint8_t midiKey,
-                                            uint8_t midiVel, uint8_t midiMod, bool pushPc = false);
+    ObjToken<Voice> _startChildMacro(ObjectId macroId, int macroStep, double ticksPerSec, uint8_t midiKey,
+                                     uint8_t midiVel, uint8_t midiMod, bool pushPc = false);
 
     void _panLaw(float coefsOut[8], float frontPan, float backPan, float totalSpan) const;
     void _setPan(float pan);
@@ -180,9 +178,9 @@ class Voice : public Entity
 
 public:
     ~Voice();
-    Voice(Engine& engine, const AudioGroup& group, int groupId, int vid, bool emitter, std::weak_ptr<Studio> studio);
+    Voice(Engine& engine, const AudioGroup& group, int groupId, int vid, bool emitter, ObjToken<Studio> studio);
     Voice(Engine& engine, const AudioGroup& group, int groupId, ObjectId oid, int vid, bool emitter,
-          std::weak_ptr<Studio> studio);
+          ObjToken<Studio> studio);
 
     /** Called before each supplyAudio invocation to prepare voice
      *  backend for possible parameter updates */
@@ -199,7 +197,7 @@ public:
     void routeAudio(size_t frames, double dt, int busId, float* in, float* out);
 
     /** Obtain pointer to Voice's Studio */
-    std::shared_ptr<Studio> getStudio() { return m_studio; }
+    ObjToken<Studio> getStudio() { return m_studio; }
 
     /** Get current state of voice */
     VoiceState state() const { return m_voxState; }
@@ -211,7 +209,7 @@ public:
     int maxVid() const;
 
     /** Allocate parallel macro and tie to voice for possible emitter influence */
-    std::shared_ptr<Voice> startChildMacro(int8_t addNote, ObjectId macroId, int macroStep);
+    ObjToken<Voice> startChildMacro(int8_t addNote, ObjectId macroId, int macroStep);
 
     /** Load specified SoundMacro Object from within group into voice */
     bool loadMacroObject(SoundMacroId macroId, int macroStep, double ticksPerSec, uint8_t midiKey, uint8_t midiVel,

@@ -45,6 +45,7 @@ public:
     const AudioGroup& getAudioGroup() const { return m_audioGroup; }
     int getGroupId() const { return m_groupId; }
     ObjectId getObjectId() const { return m_objectId; }
+    bool isDestroyed() const { return m_destroyed; }
 };
 
 }

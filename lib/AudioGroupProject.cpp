@@ -81,7 +81,7 @@ AudioGroupProject::AudioGroupProject(athena::io::IStreamReader& r, GCNDataTag)
         if (header.type == GroupType::Song)
         {
             auto& idx = m_songGroups[header.groupId];
-            idx = std::make_shared<SongGroupIndex>();
+            idx = MakeObj<SongGroupIndex>();
 
             /* Normal pages */
             r.seek(header.pageTableOff, athena::Begin);
@@ -116,7 +116,7 @@ AudioGroupProject::AudioGroupProject(athena::io::IStreamReader& r, GCNDataTag)
         else if (header.type == GroupType::SFX)
         {
             auto& idx = m_sfxGroups[header.groupId];
-            idx = std::make_shared<SFXGroupIndex>();
+            idx = MakeObj<SFXGroupIndex>();
 
             /* SFX entries */
             r.seek(header.pageTableOff, athena::Begin);
@@ -179,7 +179,7 @@ AudioGroupProject AudioGroupProject::_AudioGroupProject(athena::io::IStreamReade
         if (header.type == GroupType::Song)
         {
             auto& idx = ret.m_songGroups[header.groupId];
-            idx = std::make_shared<SongGroupIndex>();
+            idx = MakeObj<SongGroupIndex>();
 
             if (absOffs)
             {
@@ -255,7 +255,7 @@ AudioGroupProject AudioGroupProject::_AudioGroupProject(athena::io::IStreamReade
         else if (header.type == GroupType::SFX)
         {
             auto& idx = ret.m_sfxGroups[header.groupId];
-            idx = std::make_shared<SFXGroupIndex>();
+            idx = MakeObj<SFXGroupIndex>();
 
             /* SFX entries */
             r.seek(subDataOff + header.pageTableOff, athena::Begin);
@@ -333,7 +333,7 @@ AudioGroupProject AudioGroupProject::CreateAudioGroupProject(SystemStringView gr
                         GroupId::CurNameDB->registerPair(groupName, groupId);
 
                         auto& idx = ret.m_songGroups[groupId];
-                        idx = std::make_shared<SongGroupIndex>();
+                        idx = MakeObj<SongGroupIndex>();
                         if (auto __v2 = r.enterSubRecord("normPages"))
                         {
                             idx->m_normPages.reserve(r.getCurNode()->m_mapChildren.size());
@@ -387,7 +387,7 @@ AudioGroupProject AudioGroupProject::CreateAudioGroupProject(SystemStringView gr
                         GroupId::CurNameDB->registerPair(groupName, groupId);
 
                         auto& idx = ret.m_sfxGroups[groupId];
-                        idx = std::make_shared<SFXGroupIndex>();
+                        idx = MakeObj<SFXGroupIndex>();
                         for (const auto& sfx : r.getCurNode()->m_mapChildren)
                             if (auto __r2 = r.enterSubRecord(sfx.first.c_str()))
                             {

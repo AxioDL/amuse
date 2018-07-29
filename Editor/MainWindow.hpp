@@ -28,6 +28,7 @@ class ADSREditor;
 class CurveEditor;
 class KeymapEditor;
 class LayersEditor;
+class SampleEditor;
 
 class BackgroundTask : public QObject
 {
@@ -85,15 +86,15 @@ class MainWindow : public QMainWindow
     CurveEditor* m_curveEditor = nullptr;
     KeymapEditor* m_keymapEditor = nullptr;
     LayersEditor* m_layersEditor = nullptr;
+    SampleEditor* m_sampleEditor = nullptr;
 
     std::unique_ptr<boo::IAudioVoiceEngine> m_voxEngine;
     std::unique_ptr<VoiceAllocator> m_voxAllocator;
     std::unique_ptr<amuse::Engine> m_engine;
-    std::shared_ptr<amuse::Voice> m_lastSound;
+    amuse::ObjToken<amuse::Voice> m_lastSound;
     int m_velocity = 90;
-    int m_modulation = 0;
     float m_pitch = 0.f;
-    bool m_sustain = false;
+    int8_t m_ctrlVals[128] = {};
     bool m_uiDisabled = false;
 
     QUndoStack* m_undoStack;
@@ -110,6 +111,7 @@ class MainWindow : public QMainWindow
 
     void connectMessenger(UIMessenger* messenger, Qt::ConnectionType type);
 
+    void updateWindowTitle();
     void updateRecentFileActions();
     bool setProjectPath(const QString& path);
     void refreshAudioIO();
@@ -137,6 +139,7 @@ public:
     bool openEditor(ProjectModel::CurveNode* node);
     bool openEditor(ProjectModel::KeymapNode* node);
     bool openEditor(ProjectModel::LayersNode* node);
+    bool openEditor(ProjectModel::SampleNode* node);
     bool openEditor(ProjectModel::INode* node);
     void closeEditor();
 
@@ -153,6 +156,7 @@ public slots:
     void clearRecentFilesAction();
     void saveAction();
     void revertAction();
+    void reloadSampleDataAction();
     void importAction();
     void exportAction();
 

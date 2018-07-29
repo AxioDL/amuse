@@ -174,7 +174,7 @@ void BooBackendMIDIReader::pumpReader(double dt)
 
 void BooBackendMIDIReader::noteOff(uint8_t chan, uint8_t key, uint8_t velocity)
 {
-    for (std::shared_ptr<Sequencer>& seq : m_engine.getActiveSequencers())
+    for (ObjToken<Sequencer>& seq : m_engine.getActiveSequencers())
         seq->keyOff(chan, key, velocity);
 #if 0
     openlog("LogIt", (LOG_CONS|LOG_PERROR|LOG_PID), LOG_DAEMON);
@@ -185,7 +185,7 @@ void BooBackendMIDIReader::noteOff(uint8_t chan, uint8_t key, uint8_t velocity)
 
 void BooBackendMIDIReader::noteOn(uint8_t chan, uint8_t key, uint8_t velocity)
 {
-    for (std::shared_ptr<Sequencer>& seq : m_engine.getActiveSequencers())
+    for (ObjToken<Sequencer>& seq : m_engine.getActiveSequencers())
         seq->keyOn(chan, key, velocity);
 #if 0
     openlog("LogIt", (LOG_CONS|LOG_PERROR|LOG_PID), LOG_DAEMON);
@@ -198,13 +198,13 @@ void BooBackendMIDIReader::notePressure(uint8_t /*chan*/, uint8_t /*key*/, uint8
 
 void BooBackendMIDIReader::controlChange(uint8_t chan, uint8_t control, uint8_t value)
 {
-    for (std::shared_ptr<Sequencer>& seq : m_engine.getActiveSequencers())
+    for (ObjToken<Sequencer>& seq : m_engine.getActiveSequencers())
         seq->setCtrlValue(chan, control, value);
 }
 
 void BooBackendMIDIReader::programChange(uint8_t chan, uint8_t program)
 {
-    for (std::shared_ptr<Sequencer>& seq : m_engine.getActiveSequencers())
+    for (ObjToken<Sequencer>& seq : m_engine.getActiveSequencers())
         seq->setChanProgram(chan, program);
 }
 
@@ -212,13 +212,13 @@ void BooBackendMIDIReader::channelPressure(uint8_t /*chan*/, uint8_t /*pressure*
 
 void BooBackendMIDIReader::pitchBend(uint8_t chan, int16_t pitch)
 {
-    for (std::shared_ptr<Sequencer>& seq : m_engine.getActiveSequencers())
+    for (ObjToken<Sequencer>& seq : m_engine.getActiveSequencers())
         seq->setPitchWheel(chan, (pitch - 0x2000) / float(0x2000));
 }
 
 void BooBackendMIDIReader::allSoundOff(uint8_t chan)
 {
-    for (std::shared_ptr<Sequencer>& seq : m_engine.getActiveSequencers())
+    for (ObjToken<Sequencer>& seq : m_engine.getActiveSequencers())
         seq->allOff(chan, true);
 }
 
@@ -228,7 +228,7 @@ void BooBackendMIDIReader::localControl(uint8_t /*chan*/, bool /*on*/) {}
 
 void BooBackendMIDIReader::allNotesOff(uint8_t chan)
 {
-    for (std::shared_ptr<Sequencer>& seq : m_engine.getActiveSequencers())
+    for (ObjToken<Sequencer>& seq : m_engine.getActiveSequencers())
         seq->allOff(chan, false);
 }
 

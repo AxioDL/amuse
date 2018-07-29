@@ -10,7 +10,7 @@ void MIDIReader::noteOff(uint8_t chan, uint8_t key, uint8_t velocity)
     if (keySearch == m_chanVoxs.cend())
         return;
 
-    if (keySearch->second == m_lastVoice.lock())
+    if (m_lastVoice->isDestroyed() || keySearch->second == m_lastVoice)
         m_lastVoice.reset();
     keySearch->second->keyOff();
     m_keyoffVoxs.emplace(std::move(keySearch->second));
@@ -19,8 +19,11 @@ void MIDIReader::noteOff(uint8_t chan, uint8_t key, uint8_t velocity)
 
 void MIDIReader::noteOn(uint8_t chan, uint8_t key, uint8_t velocity)
 {
+    if (m_lastVoice->isDestroyed())
+        m_lastVoice.reset();
+
     /* If portamento is enabled for voice, pre-empt spawning new voices */
-    if (std::shared_ptr<amuse::Voice> lastVoice = m_lastVoice.lock())
+    if (amuse::ObjToken<amuse::Voice> lastVoice = m_lastVoice)
     {
         uint8_t lastNote = lastVoice->getLastNote();
         if (lastVoice->doPortamento(key))
@@ -35,7 +38,7 @@ void MIDIReader::noteOn(uint8_t chan, uint8_t key, uint8_t velocity)
     auto keySearch = m_chanVoxs.find(key);
     if (keySearch != m_chanVoxs.cend())
     {
-        if (keySearch->second == m_lastVoice.lock())
+        if (keySearch->second == m_lastVoice)
             m_lastVoice.reset();
         keySearch->second->keyOff();
         keySearch->second->setPedal(false);
@@ -48,10 +51,11 @@ void MIDIReader::noteOn(uint8_t chan, uint8_t key, uint8_t velocity)
     {
         ProjectModel::SoundMacroNode* cNode = static_cast<ProjectModel::SoundMacroNode*>(node);
         amuse::AudioGroupDatabase* group = g_MainWindow->projectModel()->getGroupNode(node)->getAudioGroup();
-        std::shared_ptr<amuse::Voice>& vox = m_chanVoxs[key];
-        vox = m_engine.macroStart(group, cNode->id(), key, velocity, g_MainWindow->m_modulation);
-        vox->setPedal(g_MainWindow->m_sustain);
+        amuse::ObjToken<amuse::Voice>& vox = m_chanVoxs[key];
+        vox = m_engine.macroStart(group, cNode->id(), key, velocity, g_MainWindow->m_ctrlVals[1]);
+        vox->setPedal(g_MainWindow->m_ctrlVals[64] >= 0x40);
         vox->setPitchWheel(g_MainWindow->m_pitch);
+        vox->installCtrlValues(g_MainWindow->m_ctrlVals);
     }
 }
 

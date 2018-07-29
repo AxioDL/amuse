@@ -17,8 +17,12 @@ void Voice::_destroy()
 {
     Entity::_destroy();
 
-    for (std::shared_ptr<Voice>& vox : m_childVoices)
+    for (auto& vox : m_childVoices)
         vox->_destroy();
+
+    m_studio.reset();
+    m_backendVoice.reset();
+    m_curSample.reset();
 }
 
 Voice::~Voice()
@@ -26,14 +30,14 @@ Voice::~Voice()
     // fprintf(stderr, "DEALLOC %d\n", m_vid);
 }
 
-Voice::Voice(Engine& engine, const AudioGroup& group, int groupId, int vid, bool emitter, std::weak_ptr<Studio> studio)
+Voice::Voice(Engine& engine, const AudioGroup& group, int groupId, int vid, bool emitter, ObjToken<Studio> studio)
 : Entity(engine, group, groupId), m_vid(vid), m_emitter(emitter), m_studio(studio)
 {
     // fprintf(stderr, "ALLOC %d\n", m_vid);
 }
 
 Voice::Voice(Engine& engine, const AudioGroup& group, int groupId, ObjectId oid, int vid, bool emitter,
-             std::weak_ptr<Studio> studio)
+             ObjToken<Studio> studio)
 : Entity(engine, group, groupId, oid), m_vid(vid), m_emitter(emitter), m_studio(studio)
 {
     // fprintf(stderr, "ALLOC %d\n", m_vid);
@@ -115,7 +119,7 @@ void Voice::_doKeyOff()
 void Voice::_setTotalPitch(int32_t cents, bool slew)
 {
     // fprintf(stderr, "PITCH %d %d  \n", cents, slew);
-    int32_t interval = cents - m_curSample->m_pitch * 100;
+    int32_t interval = clamp(0, cents, 12700) - m_curSample->m_pitch * 100;
     double ratio = std::exp2(interval / 1200.0) * m_dopplerRatio;
     m_sampleRate = m_curSample->m_sampleRate * ratio;
     m_backendVoice->setPitchRatio(ratio, slew);
@@ -125,7 +129,7 @@ bool Voice::_isRecursivelyDead()
 {
     if (m_voxState != VoiceState::Dead)
         return false;
-    for (std::shared_ptr<Voice>& vox : m_childVoices)
+    for (auto& vox : m_childVoices)
         if (!vox->_isRecursivelyDead())
             return false;
     return true;
@@ -146,14 +150,14 @@ void Voice::_bringOutYourDead()
     }
 }
 
-std::shared_ptr<Voice> Voice::_findVoice(int vid, std::weak_ptr<Voice> thisPtr)
+ObjToken<Voice> Voice::_findVoice(int vid, ObjToken<Voice> thisPtr)
 {
     if (m_vid == vid)
-        return thisPtr.lock();
+        return thisPtr;
 
-    for (std::shared_ptr<Voice>& vox : m_childVoices)
+    for (ObjToken<Voice>& vox : m_childVoices)
     {
-        std::shared_ptr<Voice> ret = vox->_findVoice(vid, vox);
+        ObjToken<Voice> ret = vox->_findVoice(vid, vox);
         if (ret)
             return ret;
     }
@@ -170,16 +174,16 @@ std::unique_ptr<int8_t[]>& Voice::_ensureCtrlVals()
     return m_ctrlValsSelf;
 }
 
-std::list<std::shared_ptr<Voice>>::iterator Voice::_allocateVoice(double sampleRate, bool dynamicPitch)
+std::list<ObjToken<Voice>>::iterator Voice::_allocateVoice(double sampleRate, bool dynamicPitch)
 {
     auto it = m_childVoices.emplace(
-        m_childVoices.end(), new Voice(m_engine, m_audioGroup, m_groupId, m_engine.m_nextVid++, m_emitter, m_studio));
+        m_childVoices.end(), MakeObj<Voice>(m_engine, m_audioGroup, m_groupId, m_engine.m_nextVid++, m_emitter, m_studio));
     m_childVoices.back()->m_backendVoice =
         m_engine.getBackend().allocateVoice(*m_childVoices.back(), sampleRate, dynamicPitch);
     return it;
 }
 
-std::list<std::shared_ptr<Voice>>::iterator Voice::_destroyVoice(std::list<std::shared_ptr<Voice>>::iterator it)
+std::list<ObjToken<Voice>>::iterator Voice::_destroyVoice(std::list<ObjToken<Voice>>::iterator it)
 {
     if ((*it)->m_destroyed)
         return m_childVoices.begin();
@@ -657,7 +661,7 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
         memset(data, 0, sizeof(int16_t) * samples);
 
     if (m_voxState == VoiceState::Dead)
-        m_curSample = nullptr;
+        m_curSample.reset();
 
     return samples;
 }
@@ -749,27 +753,27 @@ void Voice::routeAudio(size_t frames, double dt, int busId, float* in, float* ou
 int Voice::maxVid() const
 {
     int maxVid = m_vid;
-    for (const std::shared_ptr<Voice>& vox : m_childVoices)
+    for (const ObjToken<Voice>& vox : m_childVoices)
         maxVid = std::max(maxVid, vox->maxVid());
     return maxVid;
 }
 
-std::shared_ptr<Voice> Voice::_startChildMacro(ObjectId macroId, int macroStep, double ticksPerSec, uint8_t midiKey,
-                                               uint8_t midiVel, uint8_t midiMod, bool pushPc)
+ObjToken<Voice> Voice::_startChildMacro(ObjectId macroId, int macroStep, double ticksPerSec, uint8_t midiKey,
+                                        uint8_t midiVel, uint8_t midiMod, bool pushPc)
 {
-    std::list<std::shared_ptr<Voice>>::iterator vox = _allocateVoice(NativeSampleRate, true);
+    std::list<ObjToken<Voice>>::iterator vox = _allocateVoice(NativeSampleRate, true);
     if (!(*vox)->loadMacroObject(macroId, macroStep, ticksPerSec, midiKey, midiVel, midiMod, pushPc))
     {
         _destroyVoice(vox);
         return {};
     }
     (*vox)->setVolume(m_targetUserVol);
-    (*vox)->setPan(m_userPan);
-    (*vox)->setSurroundPan(m_userSpan);
+    (*vox)->setPan(m_curPan);
+    (*vox)->setSurroundPan(m_curSpan);
     return *vox;
 }
 
-std::shared_ptr<Voice> Voice::startChildMacro(int8_t addNote, ObjectId macroId, int macroStep)
+ObjToken<Voice> Voice::startChildMacro(int8_t addNote, ObjectId macroId, int macroStep)
 {
     return _startChildMacro(macroId, macroStep, 1000.0, m_state.m_initKey + addNote, m_state.m_initVel,
                             m_state.m_initMod);
@@ -824,7 +828,7 @@ bool Voice::_loadLayer(const std::vector<LayerMapping>& layer, double ticksPerSe
             }
             else
             {
-                std::shared_ptr<Voice> vox =
+                ObjToken<Voice> vox =
                     _startChildMacro(mapping.macro.id, 0, ticksPerSec, mappingKey, midiVel, midiMod, pushPc);
                 if (vox)
                 {
@@ -904,7 +908,7 @@ void Voice::keyOff()
     else if (!m_curSample || m_curSample->m_loopLengthSamples)
         _macroKeyOff();
 
-    for (const std::shared_ptr<Voice>& vox : m_childVoices)
+    for (const ObjToken<Voice>& vox : m_childVoices)
         vox->keyOff();
 }
 
@@ -930,10 +934,9 @@ void Voice::startSample(SampleId sampId, int32_t offset)
     if (m_destroyed)
         return;
 
-    m_curSample = m_audioGroup.getSample(sampId);
-    if (m_curSample)
+    if (const SampleEntry* sample = m_audioGroup.getSample(sampId))
     {
-        m_curSampleData = m_audioGroup.getSampleData(sampId, m_curSample);
+        std::tie(m_curSample, m_curSampleData) = m_audioGroup.getSampleData(sampId, sample);
 
         m_sampleRate = m_curSample->m_sampleRate;
         m_curPitch = m_curSample->m_pitch;
@@ -986,7 +989,7 @@ void Voice::startSample(SampleId sampId, int32_t offset)
     }
 }
 
-void Voice::stopSample() { m_curSample = nullptr; }
+void Voice::stopSample() { m_curSample.reset(); }
 
 void Voice::setVolume(float vol)
 {
@@ -994,7 +997,7 @@ void Voice::setVolume(float vol)
         return;
 
     m_targetUserVol = clamp(0.f, vol, 1.f);
-    for (std::shared_ptr<Voice>& vox : m_childVoices)
+    for (ObjToken<Voice>& vox : m_childVoices)
         vox->setVolume(vol);
 }
 
@@ -1116,8 +1119,8 @@ void Voice::_setPan(float pan)
         return;
 
     m_curPan = clamp(-1.f, pan, 1.f);
-    float totalPan = clamp(-1.f, m_curPan + m_userPan, 1.f);
-    float totalSpan = clamp(-1.f, m_curSpan + m_userSpan, 1.f);
+    float totalPan = clamp(-1.f, m_curPan, 1.f);
+    float totalSpan = clamp(-1.f, m_curSpan, 1.f);
     float coefs[8] = {};
     _panLaw(coefs, totalPan, totalPan, totalSpan);
     _setChannelCoefs(coefs);
@@ -1128,9 +1131,8 @@ void Voice::setPan(float pan)
     if (m_destroyed)
         return;
 
-    m_userPan = pan;
-    _setPan(m_curPan);
-    for (std::shared_ptr<Voice>& vox : m_childVoices)
+    _setPan(pan);
+    for (ObjToken<Voice>& vox : m_childVoices)
         vox->setPan(pan);
 }
 
@@ -1145,9 +1147,8 @@ void Voice::setSurroundPan(float span)
     if (m_destroyed)
         return;
 
-    m_userSpan = span;
-    _setSurroundPan(m_curSpan);
-    for (std::shared_ptr<Voice>& vox : m_childVoices)
+    _setSurroundPan(span);
+    for (ObjToken<Voice>& vox : m_childVoices)
         vox->setSurroundPan(span);
 }
 
@@ -1164,7 +1165,7 @@ void Voice::setChannelCoefs(const float coefs[8])
         return;
 
     _setChannelCoefs(coefs);
-    for (std::shared_ptr<Voice>& vox : m_childVoices)
+    for (ObjToken<Voice>& vox : m_childVoices)
         vox->setChannelCoefs(coefs);
 }
 
@@ -1220,7 +1221,7 @@ void Voice::setPedal(bool pedal)
     }
     m_sustained = pedal;
 
-    for (std::shared_ptr<Voice>& vox : m_childVoices)
+    for (ObjToken<Voice>& vox : m_childVoices)
         vox->setPedal(pedal);
 }
 
@@ -1264,7 +1265,7 @@ void Voice::setReverbVol(float rvol)
         return;
 
     m_curReverbVol = clamp(0.f, rvol, 1.f);
-    for (std::shared_ptr<Voice>& vox : m_childVoices)
+    for (ObjToken<Voice>& vox : m_childVoices)
         vox->setReverbVol(rvol);
 }
 
@@ -1274,7 +1275,7 @@ void Voice::setAuxBVol(float bvol)
         return;
 
     m_curAuxBVol = clamp(0.f, bvol, 1.f);
-    for (std::shared_ptr<Voice>& vox : m_childVoices)
+    for (ObjToken<Voice>& vox : m_childVoices)
         vox->setAuxBVol(bvol);
 }
 
@@ -1351,7 +1352,7 @@ void Voice::setPitchWheel(float pitchWheel)
     m_curPitchWheel = amuse::clamp(-1.f, pitchWheel, 1.f);
     _setPitchWheel(m_curPitchWheel);
 
-    for (std::shared_ptr<Voice>& vox : m_childVoices)
+    for (ObjToken<Voice>& vox : m_childVoices)
         vox->setPitchWheel(pitchWheel);
 }
 
@@ -1371,7 +1372,7 @@ void Voice::setAftertouch(uint8_t aftertouch)
         return;
 
     m_curAftertouch = aftertouch;
-    for (std::shared_ptr<Voice>& vox : m_childVoices)
+    for (ObjToken<Voice>& vox : m_childVoices)
         vox->setAftertouch(aftertouch);
 }
 
@@ -1424,14 +1425,14 @@ void Voice::_notifyCtrlChange(uint8_t ctrl, int8_t val)
         m_state.m_curMod = uint8_t(val);
     }
 
-    for (std::shared_ptr<Voice>& vox : m_childVoices)
+    for (ObjToken<Voice>& vox : m_childVoices)
         vox->_notifyCtrlChange(ctrl, val);
 }
 
 size_t Voice::getTotalVoices() const
 {
     size_t ret = 1;
-    for (const std::shared_ptr<Voice>& vox : m_childVoices)
+    for (const ObjToken<Voice>& vox : m_childVoices)
         ret += vox->getTotalVoices();
     return ret;
 }
@@ -1443,7 +1444,7 @@ void Voice::kill()
 
     m_voxState = VoiceState::Dead;
     m_backendVoice->stop();
-    for (const std::shared_ptr<Voice>& vox : m_childVoices)
+    for (const ObjToken<Voice>& vox : m_childVoices)
         vox->kill();
 }
 }

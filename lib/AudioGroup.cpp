@@ -21,17 +21,18 @@ void AudioGroup::assign(SystemStringView groupPath)
     m_samp = nullptr;
 }
 
-const AudioGroupSampleDirectory::Entry* AudioGroup::getSample(SampleId sfxId) const
+const SampleEntry* AudioGroup::getSample(SampleId sfxId) const
 {
     auto search = m_sdir.m_entries.find(sfxId);
     if (search == m_sdir.m_entries.cend())
         return nullptr;
-    return &search->second;
+    return search->second.get();
 }
 
-const unsigned char* AudioGroup::getSampleData(SampleId sfxId, const AudioGroupSampleDirectory::Entry* sample) const
+std::pair<ObjToken<SampleEntryData>, const unsigned char*>
+    AudioGroup::getSampleData(SampleId sfxId, const SampleEntry* sample) const
 {
-    if (sample->m_looseData)
+    if (sample->m_data->m_looseData)
     {
         setIdDatabases();
 #if _WIN32
@@ -41,9 +42,9 @@ const unsigned char* AudioGroup::getSampleData(SampleId sfxId, const AudioGroupS
         SystemString basePath = m_groupPath + _S('/') +
             SampleId::CurNameDB->resolveNameFromId(sfxId).data();
 #endif
-        const_cast<AudioGroupSampleDirectory::Entry*>(sample)->loadLooseData(basePath);
-        return sample->m_looseData.get();
+        const_cast<SampleEntry*>(sample)->loadLooseData(basePath);
+        return {sample->m_data, sample->m_data->m_looseData.get()};
     }
-    return m_samp + sample->m_sampleOff;
+    return {{}, m_samp + sample->m_data->m_sampleOff};
 }
 }

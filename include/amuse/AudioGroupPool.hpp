@@ -1338,10 +1338,10 @@ struct LayerMapping : BigDNA
 /** Database of functional objects within Audio Group */
 class AudioGroupPool
 {
-    std::unordered_map<SoundMacroId, std::shared_ptr<SoundMacro>> m_soundMacros;
-    std::unordered_map<TableId, std::shared_ptr<ITable>> m_tables;
-    std::unordered_map<KeymapId, std::shared_ptr<Keymap>> m_keymaps;
-    std::unordered_map<LayersId, std::shared_ptr<std::vector<LayerMapping>>> m_layers;
+    std::unordered_map<SoundMacroId, ObjToken<SoundMacro>> m_soundMacros;
+    std::unordered_map<TableId, ObjToken<std::unique_ptr<ITable>>> m_tables;
+    std::unordered_map<KeymapId, ObjToken<Keymap>> m_keymaps;
+    std::unordered_map<LayersId, ObjToken<std::vector<LayerMapping>>> m_layers;
 
     template <athena::Endian DNAE>
     static AudioGroupPool _AudioGroupPool(athena::io::IStreamReader& r);
@@ -1350,14 +1350,14 @@ public:
     static AudioGroupPool CreateAudioGroupPool(const AudioGroupData& data);
     static AudioGroupPool CreateAudioGroupPool(SystemStringView groupPath);
 
-    const std::unordered_map<SoundMacroId, std::shared_ptr<SoundMacro>>& soundMacros() const { return m_soundMacros; }
-    const std::unordered_map<TableId, std::shared_ptr<ITable>>& tables() const { return m_tables; }
-    const std::unordered_map<KeymapId, std::shared_ptr<Keymap>>& keymaps() const { return m_keymaps; }
-    const std::unordered_map<LayersId, std::shared_ptr<std::vector<LayerMapping>>>& layers() const { return m_layers; }
-    std::unordered_map<SoundMacroId, std::shared_ptr<SoundMacro>>& soundMacros() { return m_soundMacros; }
-    std::unordered_map<TableId, std::shared_ptr<ITable>>& tables() { return m_tables; }
-    std::unordered_map<KeymapId, std::shared_ptr<Keymap>>& keymaps() { return m_keymaps; }
-    std::unordered_map<LayersId, std::shared_ptr<std::vector<LayerMapping>>>& layers() { return m_layers; }
+    const std::unordered_map<SoundMacroId, ObjToken<SoundMacro>>& soundMacros() const { return m_soundMacros; }
+    const std::unordered_map<TableId, ObjToken<std::unique_ptr<ITable>>>& tables() const { return m_tables; }
+    const std::unordered_map<KeymapId, ObjToken<Keymap>>& keymaps() const { return m_keymaps; }
+    const std::unordered_map<LayersId, ObjToken<std::vector<LayerMapping>>>& layers() const { return m_layers; }
+    std::unordered_map<SoundMacroId, ObjToken<SoundMacro>>& soundMacros() { return m_soundMacros; }
+    std::unordered_map<TableId, ObjToken<std::unique_ptr<ITable>>>& tables() { return m_tables; }
+    std::unordered_map<KeymapId, ObjToken<Keymap>>& keymaps() { return m_keymaps; }
+    std::unordered_map<LayersId, ObjToken<std::vector<LayerMapping>>>& layers() { return m_layers; }
 
     const SoundMacro* soundMacro(ObjectId id) const;
     const Keymap* keymap(ObjectId id) const;

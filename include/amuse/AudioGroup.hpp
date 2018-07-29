@@ -28,8 +28,9 @@ public:
     void assign(const AudioGroupData& data);
     void assign(SystemStringView groupPath);
 
-    const AudioGroupSampleDirectory::Entry* getSample(SampleId sfxId) const;
-    const unsigned char* getSampleData(SampleId sfxId, const AudioGroupSampleDirectory::Entry* sample) const;
+    const SampleEntry* getSample(SampleId sfxId) const;
+    std::pair<ObjToken<SampleEntryData>, const unsigned char*>
+        getSampleData(SampleId sfxId, const SampleEntry* sample) const;
     const AudioGroupProject& getProj() const { return m_proj; }
     const AudioGroupPool& getPool() const { return m_pool; }
     const AudioGroupSampleDirectory& getSdir() const { return m_sdir; }

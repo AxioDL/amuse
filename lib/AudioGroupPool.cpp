@@ -109,7 +109,7 @@ AudioGroupPool AudioGroupPool::_AudioGroupPool(athena::io::IStreamReader& r)
             atInt64 startPos = r.position();
             objHead.read(r);
             auto& macro = ret.m_soundMacros[objHead.objectId.id];
-            macro = std::make_shared<SoundMacro>();
+            macro = MakeObj<SoundMacro>();
             macro->template readCmds<DNAE>(r, objHead.size - 8);
             r.seek(startPos + objHead.size, athena::Begin);
         }
@@ -127,17 +127,17 @@ AudioGroupPool AudioGroupPool::_AudioGroupPool(athena::io::IStreamReader& r)
             switch (objHead.size)
             {
             case 0x10:
-                ptr = std::make_shared<ADSR>();
-                static_cast<ADSR&>(*ptr).read(r);
+                ptr = MakeObj<std::unique_ptr<ITable>>(std::make_unique<ADSR>());
+                static_cast<ADSR&>(**ptr).read(r);
                 break;
             case 0x1c:
-                ptr = std::make_shared<ADSRDLS>();
-                static_cast<ADSRDLS&>(*ptr).read(r);
+                ptr = MakeObj<std::unique_ptr<ITable>>(std::make_unique<ADSRDLS>());
+                static_cast<ADSRDLS&>(**ptr).read(r);
                 break;
             default:
-                ptr = std::make_shared<Curve>();
-                static_cast<Curve&>(*ptr).data.resize(objHead.size - 8);
-                r.readUBytesToBuf(&static_cast<Curve&>(*ptr).data[0], objHead.size - 8);
+                ptr = MakeObj<std::unique_ptr<ITable>>(std::make_unique<Curve>());
+                static_cast<Curve&>(**ptr).data.resize(objHead.size - 8);
+                r.readUBytesToBuf(&static_cast<Curve&>(**ptr).data[0], objHead.size - 8);
                 break;
             }
             r.seek(startPos + objHead.size, athena::Begin);
@@ -155,7 +155,7 @@ AudioGroupPool AudioGroupPool::_AudioGroupPool(athena::io::IStreamReader& r)
             KeymapDNA<DNAE> kmData;
             kmData.read(r);
             auto& km = ret.m_keymaps[objHead.objectId.id];
-            km = std::make_shared<Keymap>(kmData);
+            km = MakeObj<Keymap>(kmData);
             r.seek(startPos + objHead.size, athena::Begin);
         }
     }
@@ -169,7 +169,7 @@ AudioGroupPool AudioGroupPool::_AudioGroupPool(athena::io::IStreamReader& r)
             atInt64 startPos = r.position();
             objHead.read(r);
             auto& lm = ret.m_layers[objHead.objectId.id];
-            lm = std::make_shared<std::vector<LayerMapping>>();
+            lm = MakeObj<std::vector<LayerMapping>>();
             uint32_t count;
             athena::io::Read<athena::io::PropType::None>::Do<decltype(count), DNAE>({}, count, r);
             lm->reserve(count);
@@ -262,7 +262,7 @@ AudioGroupPool AudioGroupPool::CreateAudioGroupPool(SystemStringView groupPath)
                 for (const auto& sm : r.getCurNode()->m_mapChildren)
                 {
                     auto& smOut = ret.m_soundMacros[SoundMacroId::CurNameDB->resolveIdFromName(sm.first)];
-                    smOut = std::make_shared<SoundMacro>();
+                    smOut = MakeObj<SoundMacro>();
                     size_t cmdCount;
                     if (auto __v = r.enterSubVector(sm.first.c_str(), cmdCount))
                     {
@@ -288,20 +288,20 @@ AudioGroupPool AudioGroupPool::CreateAudioGroupPool(SystemStringView groupPath)
                             if (auto __vta = r.enterSubRecord("velToAttack"))
                             {
                                 __vta.leave();
-                                tableOut = std::make_shared<ADSRDLS>();
-                                static_cast<ADSRDLS&>(*tableOut).read(r);
+                                tableOut = MakeObj<std::unique_ptr<ITable>>(std::make_unique<ADSRDLS>());
+                                static_cast<ADSRDLS&>(**tableOut).read(r);
                             }
                             else
                             {
-                                tableOut = std::make_shared<ADSR>();
-                                static_cast<ADSR&>(*tableOut).read(r);
+                                tableOut = MakeObj<std::unique_ptr<ITable>>(std::make_unique<ADSR>());
+                                static_cast<ADSR&>(**tableOut).read(r);
                             }
                         }
                         else if (auto __dat = r.enterSubRecord("data"))
                         {
                             __dat.leave();
-                            tableOut = std::make_shared<Curve>();
-                            static_cast<Curve&>(*tableOut).read(r);
+                            tableOut = MakeObj<std::unique_ptr<ITable>>(std::make_unique<Curve>());
+                            static_cast<Curve&>(**tableOut).read(r);
                         }
                     }
                 }
@@ -314,7 +314,7 @@ AudioGroupPool AudioGroupPool::CreateAudioGroupPool(SystemStringView groupPath)
                     if (auto __v = r.enterSubRecord(k.first.c_str()))
                     {
                         auto& kmOut = ret.m_keymaps[KeymapId::CurNameDB->resolveIdFromName(k.first)];
-                        kmOut = std::make_shared<Keymap>();
+                        kmOut = MakeObj<Keymap>();
                         kmOut->read(r);
                     }
             }
@@ -328,7 +328,7 @@ AudioGroupPool AudioGroupPool::CreateAudioGroupPool(SystemStringView groupPath)
                     if (auto __v = r.enterSubVector(l.first.c_str(), mappingCount))
                     {
                         auto& layOut = ret.m_layers[LayersId::CurNameDB->resolveIdFromName(l.first)];
-                        layOut = std::make_shared<std::vector<LayerMapping>>();
+                        layOut = MakeObj<std::vector<LayerMapping>>();
                         layOut->reserve(mappingCount);
                         for (int lm = 0; lm < mappingCount; ++lm)
                         {
@@ -402,25 +402,25 @@ const std::vector<LayerMapping>* AudioGroupPool::layer(ObjectId id) const
 const ADSR* AudioGroupPool::tableAsAdsr(ObjectId id) const
 {
     auto search = m_tables.find(id);
-    if (search == m_tables.cend() || search->second->Isa() != ITable::Type::ADSR)
+    if (search == m_tables.cend() || (*search->second)->Isa() != ITable::Type::ADSR)
         return nullptr;
-    return static_cast<const ADSR*>(search->second.get());
+    return static_cast<const ADSR*>((*search->second).get());
 }
 
 const ADSRDLS* AudioGroupPool::tableAsAdsrDLS(ObjectId id) const
 {
     auto search = m_tables.find(id);
-    if (search == m_tables.cend() || search->second->Isa() != ITable::Type::ADSRDLS)
+    if (search == m_tables.cend() || (*search->second)->Isa() != ITable::Type::ADSRDLS)
         return nullptr;
-    return static_cast<const ADSRDLS*>(search->second.get());
+    return static_cast<const ADSRDLS*>((*search->second).get());
 }
 
 const Curve* AudioGroupPool::tableAsCurves(ObjectId id) const
 {
     auto search = m_tables.find(id);
-    if (search == m_tables.cend() || search->second->Isa() != ITable::Type::Curve)
+    if (search == m_tables.cend() || (*search->second)->Isa() != ITable::Type::Curve)
         return nullptr;
-    return static_cast<const Curve*>(search->second.get());
+    return static_cast<const Curve*>((*search->second).get());
 }
 
 static SoundMacro::CmdOp _ReadCmdOp(athena::io::MemoryReader& r)
@@ -979,7 +979,7 @@ bool AudioGroupPool::toYAML(SystemStringView groupPath) const
                 if (auto __v = w.enterSubRecord(TableId::CurNameDB->resolveNameFromId(p.first).data()))
                 {
                     w.setStyle(athena::io::YAMLNodeStyle::Flow);
-                    p.second.get()->write(w);
+                    (*p.second.get())->write(w);
                 }
             }
         }

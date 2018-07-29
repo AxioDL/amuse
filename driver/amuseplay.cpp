@@ -66,12 +66,12 @@ struct AppCallback : boo::IApplicationCallback
     int m_chanId = 0;
     int8_t m_octave = 4;
     int8_t m_velocity = 64;
-    std::shared_ptr<amuse::Sequencer> m_seq;
+    amuse::ObjToken<amuse::Sequencer> m_seq;
     amuse::ContainerRegistry::SongData* m_arrData = nullptr;
 
     /* SFX playback selection */
     int m_sfxId = -1;
-    std::shared_ptr<amuse::Voice> m_vox;
+    amuse::ObjToken<amuse::Voice> m_vox;
     size_t m_lastVoxCount = 0;
     int8_t m_lastChanProg = -1;
 
@@ -665,10 +665,10 @@ struct AppCallback : boo::IApplicationCallback
 
         std::list<amuse::AudioGroupProject> m_projs;
         std::map<amuse::GroupId, std::pair<std::pair<amuse::SystemString, amuse::IntrusiveAudioGroupData>*,
-                                const amuse::SongGroupIndex*>>
+            amuse::ObjToken<amuse::SongGroupIndex>>>
             allSongGroups;
         std::map<amuse::GroupId, std::pair<std::pair<amuse::SystemString, amuse::IntrusiveAudioGroupData>*,
-                                const amuse::SFXGroupIndex*>>
+            amuse::ObjToken<amuse::SFXGroupIndex>>>
             allSFXGroups;
         size_t totalGroups = 0;
 
@@ -680,10 +680,10 @@ struct AppCallback : boo::IApplicationCallback
             totalGroups += proj.sfxGroups().size() + proj.songGroups().size();
 
             for (auto it = proj.songGroups().begin(); it != proj.songGroups().end(); ++it)
-                allSongGroups[it->first] = std::make_pair(&grp, &it->second);
+                allSongGroups[it->first] = std::make_pair(&grp, it->second);
 
             for (auto it = proj.sfxGroups().begin(); it != proj.sfxGroups().end(); ++it)
-                allSFXGroups[it->first] = std::make_pair(&grp, &it->second);
+                allSFXGroups[it->first] = std::make_pair(&grp, it->second);
         }
 
         while (m_running)
@@ -825,14 +825,14 @@ struct AppCallback : boo::IApplicationCallback
                 printf("Multiple Audio Groups discovered:\n");
                 for (const auto& pair : allSFXGroups)
                 {
-                    amuse::Printf(_S("    %d %s (SFXGroup)  %" PRISize " sfx-entries\n"), pair.first,
+                    amuse::Printf(_S("    %d %s (SFXGroup)  %" PRISize " sfx-entries\n"), pair.first.id,
                                   pair.second.first->first.c_str(), pair.second.second->m_sfxEntries.size());
                 }
                 for (const auto& pair : allSongGroups)
                 {
                     amuse::Printf(_S("    %d %s (SongGroup)  %" PRISize " normal-pages, %" PRISize
                                      " drum-pages, %" PRISize " MIDI-setups\n"),
-                                  pair.first, pair.second.first->first.c_str(), pair.second.second->m_normPages.size(),
+                                  pair.first.id, pair.second.first->first.c_str(), pair.second.second->m_normPages.size(),
                                   pair.second.second->m_drumPages.size(), pair.second.second->m_midiSetups.size());
                 }
 
@@ -884,8 +884,8 @@ struct AppCallback : boo::IApplicationCallback
 
             /* Make final group selection */
             amuse::IntrusiveAudioGroupData* selData = nullptr;
-            const amuse::SongGroupIndex* songIndex = nullptr;
-            const amuse::SFXGroupIndex* sfxIndex = nullptr;
+            amuse::ObjToken<amuse::SongGroupIndex> songIndex;
+            amuse::ObjToken<amuse::SFXGroupIndex> sfxIndex;
             auto songSearch = allSongGroups.find(m_groupId);
             if (songSearch != allSongGroups.end())
             {

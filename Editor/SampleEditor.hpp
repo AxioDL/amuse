@@ -8,6 +8,7 @@ class SampleEditor : public EditorWidget
     Q_OBJECT
 public:
     explicit SampleEditor(QWidget* parent = Q_NULLPTR);
+    bool loadData(ProjectModel::SampleNode* node);
 };
 
 

@@ -23,7 +23,7 @@ Studio::Studio(Engine& engine, bool mainOut) : m_engine(engine), m_master(engine
         addStudioSend(engine.getDefaultStudio(), 1.f, 1.f, 1.f);
 }
 
-void Studio::addStudioSend(std::weak_ptr<Studio> studio, float dry, float auxA, float auxB)
+void Studio::addStudioSend(ObjToken<Studio> studio, float dry, float auxA, float auxB)
 {
     m_studiosOut.emplace_back(studio, dry, auxA, auxB);
 

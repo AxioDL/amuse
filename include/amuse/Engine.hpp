@@ -42,13 +42,12 @@ class Engine
     AmplitudeMode m_ampMode;
     std::unique_ptr<IMIDIReader> m_midiReader;
     std::unordered_map<const AudioGroupData*, std::unique_ptr<AudioGroup>> m_audioGroups;
-    std::list<std::shared_ptr<Voice>> m_activeVoices;
-    std::list<std::shared_ptr<Emitter>> m_activeEmitters;
-    std::list<std::shared_ptr<Listener>> m_activeListeners;
-    std::list<std::shared_ptr<Sequencer>> m_activeSequencers;
-    std::list<std::weak_ptr<Studio>> m_activeStudios; /* lifetime dependent on contributing audio entities */
+    std::list<ObjToken<Voice>> m_activeVoices;
+    std::list<ObjToken<Emitter>> m_activeEmitters;
+    std::list<ObjToken<Listener>> m_activeListeners;
+    std::list<ObjToken<Sequencer>> m_activeSequencers;
     bool m_defaultStudioReady = false;
-    std::shared_ptr<Studio> m_defaultStudio;
+    ObjToken<Studio> m_defaultStudio;
     std::unordered_map<SFXId, std::tuple<AudioGroup*, int, const SFXGroupIndex::SFXEntry*>> m_sfxLookup;
     std::linear_congruential_engine<uint32_t, 0x41c64e6d, 0x3039, UINT32_MAX> m_random;
     int m_nextVid = 0;
@@ -59,15 +58,14 @@ class Engine
     std::pair<AudioGroup*, const SongGroupIndex*> _findSongGroup(int groupId) const;
     std::pair<AudioGroup*, const SFXGroupIndex*> _findSFXGroup(int groupId) const;
 
-    std::list<std::shared_ptr<Voice>>::iterator _allocateVoice(const AudioGroup& group, int groupId, double sampleRate,
-                                                               bool dynamicPitch, bool emitter,
-                                                               std::weak_ptr<Studio> studio);
-    std::list<std::shared_ptr<Sequencer>>::iterator _allocateSequencer(const AudioGroup& group, int groupId,
-                                                                       int setupId, std::weak_ptr<Studio> studio);
-    std::shared_ptr<Studio> _allocateStudio(bool mainOut);
-    std::list<std::shared_ptr<Voice>>::iterator _destroyVoice(std::list<std::shared_ptr<Voice>>::iterator it);
-    std::list<std::shared_ptr<Sequencer>>::iterator
-    _destroySequencer(std::list<std::shared_ptr<Sequencer>>::iterator it);
+    std::list<ObjToken<Voice>>::iterator _allocateVoice(const AudioGroup& group, int groupId, double sampleRate,
+                                                        bool dynamicPitch, bool emitter, ObjToken<Studio> studio);
+    std::list<ObjToken<Sequencer>>::iterator _allocateSequencer(const AudioGroup& group, int groupId,
+                                                                int setupId, ObjToken<Studio> studio);
+    ObjToken<Studio> _allocateStudio(bool mainOut);
+    std::list<ObjToken<Voice>>::iterator _destroyVoice(std::list<ObjToken<Voice>>::iterator it);
+    std::list<ObjToken<Sequencer>>::iterator
+    _destroySequencer(std::list<ObjToken<Sequencer>>::iterator it);
     void _bringOutYourDead();
 
 public:
@@ -84,48 +82,46 @@ public:
     void removeAudioGroup(const AudioGroupData& data);
 
     /** Access engine's default studio */
-    std::shared_ptr<Studio> getDefaultStudio() { return m_defaultStudio; }
+    ObjToken<Studio> getDefaultStudio() { return m_defaultStudio; }
 
     /** Create new Studio within engine */
-    std::shared_ptr<Studio> addStudio(bool mainOut);
+    ObjToken<Studio> addStudio(bool mainOut);
 
     /** Start soundFX playing from loaded audio groups */
-    std::shared_ptr<Voice> fxStart(int sfxId, float vol, float pan, std::weak_ptr<Studio> smx);
-    std::shared_ptr<Voice> fxStart(int sfxId, float vol, float pan)
+    ObjToken<Voice> fxStart(int sfxId, float vol, float pan, ObjToken<Studio> smx);
+    ObjToken<Voice> fxStart(int sfxId, float vol, float pan)
     {
         return fxStart(sfxId, vol, pan, m_defaultStudio);
     }
 
     /** Start SoundMacro node playing directly (for editor use) */
-    std::shared_ptr<Voice> macroStart(const AudioGroup* group, SoundMacroId id, uint8_t key,
-                                      uint8_t vel, uint8_t mod, std::weak_ptr<Studio> smx);
-    std::shared_ptr<Voice> macroStart(const AudioGroup* group, SoundMacroId id, uint8_t key,
-                                      uint8_t vel, uint8_t mod)
+    ObjToken<Voice> macroStart(const AudioGroup* group, SoundMacroId id, uint8_t key,
+                               uint8_t vel, uint8_t mod, ObjToken<Studio> smx);
+    ObjToken<Voice> macroStart(const AudioGroup* group, SoundMacroId id, uint8_t key,
+                               uint8_t vel, uint8_t mod)
     {
         return macroStart(group, id, key, vel, mod, m_defaultStudio);
     }
 
     /** Start soundFX playing from loaded audio groups, attach to positional emitter */
-    std::shared_ptr<Emitter> addEmitter(const float* pos, const float* dir, float maxDist, float falloff,
-                                        int sfxId, float minVol, float maxVol, bool doppler,
-                                        std::weak_ptr<Studio> smx);
-    std::shared_ptr<Emitter> addEmitter(const float* pos, const float* dir, float maxDist, float falloff,
-                                        int sfxId, float minVol, float maxVol, bool doppler)
+    ObjToken<Emitter> addEmitter(const float* pos, const float* dir, float maxDist, float falloff,
+                                 int sfxId, float minVol, float maxVol, bool doppler, ObjToken<Studio> smx);
+    ObjToken<Emitter> addEmitter(const float* pos, const float* dir, float maxDist, float falloff,
+                                 int sfxId, float minVol, float maxVol, bool doppler)
     {
         return addEmitter(pos, dir, maxDist, falloff, sfxId, minVol, maxVol, doppler, m_defaultStudio);
     }
 
     /** Build listener and add to engine's listener list */
-    std::shared_ptr<Listener> addListener(const float* pos, const float* dir, const float* heading, const float* up,
-                                          float frontDiff, float backDiff, float soundSpeed, float volume);
+    ObjToken<Listener> addListener(const float* pos, const float* dir, const float* heading, const float* up,
+                                   float frontDiff, float backDiff, float soundSpeed, float volume);
 
     /** Remove listener from engine's listener list */
     void removeListener(Listener* listener);
 
     /** Start song playing from loaded audio groups */
-    std::shared_ptr<Sequencer> seqPlay(int groupId, int songId, const unsigned char* arrData,
-                                       std::weak_ptr<Studio> smx);
-    std::shared_ptr<Sequencer> seqPlay(int groupId, int songId, const unsigned char* arrData)
+    ObjToken<Sequencer> seqPlay(int groupId, int songId, const unsigned char* arrData, ObjToken<Studio> smx);
+    ObjToken<Sequencer> seqPlay(int groupId, int songId, const unsigned char* arrData)
     {
         return seqPlay(groupId, songId, arrData, m_defaultStudio);
     }
@@ -134,7 +130,7 @@ public:
     void setVolume(float vol);
 
     /** Find voice from VoiceId */
-    std::shared_ptr<Voice> findVoice(int vid);
+    ObjToken<Voice> findVoice(int vid);
 
     /** Stop all voices in `kg`, stops immediately (no KeyOff) when `now` set */
     void killKeygroup(uint8_t kg, bool now);
@@ -146,10 +142,10 @@ public:
     uint32_t nextRandom() { return m_random(); }
 
     /** Obtain list of active voices */
-    std::list<std::shared_ptr<Voice>>& getActiveVoices() { return m_activeVoices; }
+    std::list<ObjToken<Voice>>& getActiveVoices() { return m_activeVoices; }
 
     /** Obtain list of active sequencers */
-    std::list<std::shared_ptr<Sequencer>>& getActiveSequencers() { return m_activeSequencers; }
+    std::list<ObjToken<Sequencer>>& getActiveSequencers() { return m_activeSequencers; }
 
     /** All mixing occurs in virtual 5ms intervals;
      *  this is called at the start of each interval for all mixable entities */

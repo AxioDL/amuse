@@ -469,7 +469,7 @@ const SoundMacro::CmdIntrospection SoundMacro::CmdWaitMs::Introspective =
         },
         {
             FIELD_HEAD(SoundMacro::CmdWaitMs, ms),
-            "Ticks/Millisec"sv,
+            "Millisec"sv,
             0, 65535, 96
         }
     }
@@ -541,7 +541,7 @@ const SoundMacro::CmdIntrospection SoundMacro::CmdPlayMacro::Introspective =
 };
 bool SoundMacro::CmdPlayMacro::Do(SoundMacroState& st, Voice& vox) const
 {
-    std::shared_ptr<Voice> sibVox = vox.startChildMacro(addNote, macro.id, macroStep.step);
+    ObjToken<Voice> sibVox = vox.startChildMacro(addNote, macro.id, macroStep.step);
     if (sibVox)
         st.m_lastPlayMacroVid = sibVox->vid();
 
@@ -572,14 +572,14 @@ bool SoundMacro::CmdSendKeyOff::Do(SoundMacroState& st, Voice& vox) const
     {
         if (st.m_lastPlayMacroVid != -1)
         {
-            std::shared_ptr<Voice> otherVox = vox.getEngine().findVoice(st.m_lastPlayMacroVid);
+            ObjToken<Voice> otherVox = vox.getEngine().findVoice(st.m_lastPlayMacroVid);
             if (otherVox)
                 otherVox->keyOff();
         }
     }
     else
     {
-        std::shared_ptr<Voice> otherVox = vox.getEngine().findVoice(st.m_variables[variable & 0x1f]);
+        ObjToken<Voice> otherVox = vox.getEngine().findVoice(st.m_variables[variable & 0x1f]);
         if (otherVox)
             otherVox->keyOff();
     }
@@ -1361,12 +1361,12 @@ const SoundMacro::CmdIntrospection SoundMacro::CmdPitchSweep1::Introspective =
     {
         {
             FIELD_HEAD(SoundMacro::CmdPitchSweep1, times),
-            "Level Note"sv,
+            "Times"sv,
             0, 127, 100,
         },
         {
             FIELD_HEAD(SoundMacro::CmdPitchSweep1, add),
-            "Level Fine"sv,
+            "Add"sv,
             -32768, 32767, 100,
         },
         {
@@ -1406,12 +1406,12 @@ const SoundMacro::CmdIntrospection SoundMacro::CmdPitchSweep2::Introspective =
     {
         {
             FIELD_HEAD(SoundMacro::CmdPitchSweep2, times),
-            "Level Note"sv,
+            "Times"sv,
             0, 127, 100,
         },
         {
             FIELD_HEAD(SoundMacro::CmdPitchSweep2, add),
-            "Level Fine"sv,
+            "Add"sv,
             -32768, 32767, 100,
         },
         {
@@ -1744,7 +1744,7 @@ bool SoundMacro::CmdSendMessage::Do(SoundMacroState& st, Voice& vox) const
 {
     if (isVar)
     {
-        std::shared_ptr<Voice> findVox = vox.getEngine().findVoice(st.m_variables[voiceVar & 0x1f]);
+        ObjToken<Voice> findVox = vox.getEngine().findVoice(st.m_variables[voiceVar & 0x1f]);
         if (findVox)
             findVox->message(st.m_variables[valueVar & 0x1f]);
     }

@@ -4,6 +4,8 @@
 #include "Entity.hpp"
 #include "AudioGroupProject.hpp"
 #include "SongState.hpp"
+#include "Studio.hpp"
+#include "Voice.hpp"
 #include <unordered_map>
 #include <unordered_set>
 #include <memory>
@@ -11,8 +13,6 @@
 
 namespace amuse
 {
-class Studio;
-class Voice;
 
 /** State of sequencer over lifetime */
 enum class SequencerState
@@ -30,7 +30,7 @@ class Sequencer : public Entity
     const SongGroupIndex::MIDISetup* m_midiSetup = nullptr;    /**< Selected MIDI setup (may be null) */
     const SFXGroupIndex* m_sfxGroup = nullptr;                 /**< SFX Groups are alternatively referenced here */
     std::vector<const SFXGroupIndex::SFXEntry*> m_sfxMappings; /**< SFX entries are mapped to MIDI keys this via this */
-    std::shared_ptr<Studio> m_studio;                          /**< Studio this sequencer outputs to */
+    ObjToken<Studio> m_studio;                                 /**< Studio this sequencer outputs to */
 
     const unsigned char* m_arrData = nullptr;             /**< Current playing arrangement data */
     SongState m_songState;                                /**< State of current arrangement playback */
@@ -58,9 +58,9 @@ class Sequencer : public Entity
         operator bool() const { return m_parent != nullptr; }
 
         /** Voices corresponding to currently-pressed keys in channel */
-        std::unordered_map<uint8_t, std::shared_ptr<Voice>> m_chanVoxs;
-        std::unordered_set<std::shared_ptr<Voice>> m_keyoffVoxs;
-        std::weak_ptr<Voice> m_lastVoice;
+        std::unordered_map<uint8_t, ObjToken<Voice>> m_chanVoxs;
+        std::unordered_set<ObjToken<Voice>> m_keyoffVoxs;
+        ObjToken<Voice> m_lastVoice;
         int8_t m_ctrlVals[128] = {}; /**< MIDI controller values */
         float m_curPitchWheel = 0.f; /**< MIDI pitch-wheel */
         int8_t m_curProgram = 0;     /**< MIDI program number */
@@ -69,7 +69,7 @@ class Sequencer : public Entity
 
         void _bringOutYourDead();
         size_t getVoiceCount() const;
-        std::shared_ptr<Voice> keyOn(uint8_t note, uint8_t velocity);
+        ObjToken<Voice> keyOn(uint8_t note, uint8_t velocity);
         void keyOff(uint8_t note, uint8_t velocity);
         void setCtrlValue(uint8_t ctrl, int8_t val);
         bool programChange(int8_t prog);
@@ -80,7 +80,7 @@ class Sequencer : public Entity
         void setPan(float pan);
         void allOff();
         void killKeygroup(uint8_t kg, bool now);
-        std::shared_ptr<Voice> findVoice(int vid);
+        ObjToken<Voice> findVoice(int vid);
         void sendMacroMessage(ObjectId macroId, int32_t val);
     };
     std::array<ChannelState, 16> m_chanStates; /**< Lazily-allocated channel states */
@@ -91,15 +91,15 @@ class Sequencer : public Entity
 public:
     ~Sequencer();
     Sequencer(Engine& engine, const AudioGroup& group, int groupId, const SongGroupIndex* songGroup, int setupId,
-              std::weak_ptr<Studio> studio);
+              ObjToken<Studio> studio);
     Sequencer(Engine& engine, const AudioGroup& group, int groupId, const SFXGroupIndex* sfxGroup,
-              std::weak_ptr<Studio> studio);
+              ObjToken<Studio> studio);
 
     /** Advance current song data (if any) */
     void advance(double dt);
 
     /** Obtain pointer to Sequencer's Submix */
-    std::shared_ptr<Studio> getStudio() { return m_studio; }
+    ObjToken<Studio> getStudio() { return m_studio; }
 
     /** Get current state of sequencer */
     SequencerState state() const { return m_state; }
@@ -108,7 +108,7 @@ public:
     size_t getVoiceCount() const;
 
     /** Register key press with voice set */
-    std::shared_ptr<Voice> keyOn(uint8_t chan, uint8_t note, uint8_t velocity);
+    ObjToken<Voice> keyOn(uint8_t chan, uint8_t note, uint8_t velocity);
 
     /** Register key release with voice set */
     void keyOff(uint8_t chan, uint8_t note, uint8_t velocity);
@@ -129,7 +129,7 @@ public:
     void killKeygroup(uint8_t kg, bool now);
 
     /** Find voice instance contained within Sequencer */
-    std::shared_ptr<Voice> findVoice(int vid);
+    ObjToken<Voice> findVoice(int vid);
 
     /** Send all voices using `macroId` the message `val` */
     void sendMacroMessage(ObjectId macroId, int32_t val);
