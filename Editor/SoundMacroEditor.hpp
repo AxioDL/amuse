@@ -78,13 +78,22 @@ public:
     void cancel();
 };
 
+class SoundMacroDeleteButton : public QPushButton
+{
+    Q_OBJECT
+public:
+    explicit SoundMacroDeleteButton(QWidget* parent = Q_NULLPTR);
+    void enterEvent(QEvent* event);
+    void leaveEvent(QEvent* event);
+};
+
 class CommandWidget : public QWidget
 {
     Q_OBJECT
     friend class SoundMacroListing;
     QFont m_numberFont;
     QLabel m_titleLabel;
-    QPushButton m_deleteButton;
+    SoundMacroDeleteButton m_deleteButton;
     QStaticText m_numberText;
     int m_index = -1;
     amuse::SoundMacro::ICmd* m_cmd;

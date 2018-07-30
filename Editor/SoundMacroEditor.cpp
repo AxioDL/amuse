@@ -126,6 +126,26 @@ FieldSoundMacroStep::FieldSoundMacroStep(FieldProjectNode* macroField, QWidget* 
     setLayout(layout);
 }
 
+void SoundMacroDeleteButton::enterEvent(QEvent* event)
+{
+    setIcon(QIcon(QStringLiteral(":/icons/IconSoundMacroDeleteHovered.svg")));
+}
+
+void SoundMacroDeleteButton::leaveEvent(QEvent* event)
+{
+    setIcon(QIcon(QStringLiteral(":/icons/IconSoundMacroDelete.svg")));
+}
+
+SoundMacroDeleteButton::SoundMacroDeleteButton(QWidget* parent)
+: QPushButton(parent)
+{
+    setVisible(false);
+    setFixedSize(21, 21);
+    setFlat(true);
+    setToolTip(tr("Delete this SoundMacro"));
+    setIcon(QIcon(QStringLiteral(":/icons/IconSoundMacroDelete.svg")));
+}
+
 CommandWidget::CommandWidget(amuse::SoundMacro::ICmd* cmd, amuse::SoundMacro::CmdOp op, SoundMacroListing* listing)
 : QWidget(nullptr), m_cmd(cmd), m_introspection(amuse::SoundMacro::GetCmdIntrospection(op))
 {
@@ -157,17 +177,7 @@ CommandWidget::CommandWidget(amuse::SoundMacro::ICmd* cmd, amuse::SoundMacro::Cm
     headLayout->addWidget(&m_titleLabel);
     if (op != amuse::SoundMacro::CmdOp::End)
     {
-        m_deleteButton.setFixedSize(21, 21);
-        m_deleteButton.setStyleSheet("QPushButton {\n"
-                                     "    background-image: url(\":/icons/IconSoundMacroDelete.svg\");\n"
-                                     "    background-repeat: no-repeat;\n"
-                                     "}\n"
-                                     "QPushButton:hover {\n"
-                                     "    background-image: url(\":/icons/IconSoundMacroDeleteHovered.svg\");\n"
-                                     "    background-repeat: no-repeat;\n"
-                                     "}");
-        m_deleteButton.setFlat(true);
-        m_deleteButton.setToolTip(tr("Delete this SoundMacro"));
+        m_deleteButton.setVisible(true);
         connect(&m_deleteButton, SIGNAL(clicked(bool)), this, SLOT(deleteClicked()));
         headLayout->addWidget(&m_deleteButton);
     }

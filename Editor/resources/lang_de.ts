@@ -2,14 +2,6 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="de_DE">
 <context>
-    <name>CommandWidget</name>
-    <message>
-        <location filename="../SoundMacroEditor.cpp" line="+170"/>
-        <source>Delete this SoundMacro</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
     <name>MainWindow</name>
     <message>
         <location filename="../MainWindow.ui" line="+14"/>
@@ -437,7 +429,7 @@
 <context>
     <name>QUndoStack</name>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="+162"/>
+        <location filename="../SoundMacroEditor.cpp" line="+342"/>
         <source>Change %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -532,6 +524,14 @@
     </message>
 </context>
 <context>
+    <name>SoundMacroDeleteButton</name>
+    <message>
+        <location line="-847"/>
+        <source>Delete this SoundMacro</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>StatusBarWidget</name>
     <message>
         <location filename="../StatusBarWidget.hpp" line="+26"/>
@@ -542,7 +542,7 @@
 <context>
     <name>TargetButton</name>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="-955"/>
+        <location filename="../SoundMacroEditor.cpp" line="-118"/>
         <source>Set step with target click</source>
         <translation type="unfinished"></translation>
     </message>
