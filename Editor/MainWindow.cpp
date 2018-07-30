@@ -410,6 +410,7 @@ bool MainWindow::_setEditor(EditorWidget* editor)
     if (!editor || !editor->valid())
     {
         m_ui.editorContents->setCurrentWidget(m_faceSvg);
+        updateWindowTitle();
         return false;
     }
     m_ui.editorContents->setCurrentWidget(editor);
@@ -540,6 +541,9 @@ bool MainWindow::openProject(const QString& path)
         QFileInfo(dir, QStringLiteral("!pool.yaml")).exists())
         dir.cdUp();
 
+    if (m_projectModel && m_projectModel->path() == dir.path())
+        return true;
+
     if (!setProjectPath(dir.path()))
         return false;
 
@@ -612,6 +616,8 @@ void MainWindow::revertAction()
 
 void MainWindow::reloadSampleDataAction()
 {
+    closeEditor();
+
     ProjectModel* model = m_projectModel;
     if (!m_projectModel)
         return;

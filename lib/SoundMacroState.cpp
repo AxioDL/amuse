@@ -40,25 +40,25 @@ float SoundMacroState::Evaluator::evaluate(double time, const Voice& vox, const 
             {
             case 128:
                 /* Pitchbend */
-                thisValue = vox.getPitchWheel();
+                thisValue = (vox.getPitchWheel() * 0.5f + 0.5f) * 127.f;
                 break;
             case 129:
                 /* Aftertouch */
-                thisValue = vox.getAftertouch() * (2.f / 127.f);
+                thisValue = vox.getAftertouch();
                 break;
             case 130:
                 /* LFO1 */
                 if (vox.m_lfoPeriods[0])
-                    thisValue = std::sin(time / vox.m_lfoPeriods[0] * 2.f * M_PIF);
+                    thisValue = (std::sin(time / vox.m_lfoPeriods[0] * 2.f * M_PIF) * 0.5f + 0.5f) * 127.f;
                 break;
             case 131:
                 /* LFO2 */
                 if (vox.m_lfoPeriods[1])
-                    thisValue = std::sin(time / vox.m_lfoPeriods[1] * 2.f * M_PIF);
+                    thisValue = (std::sin(time / vox.m_lfoPeriods[1] * 2.f * M_PIF) * 0.5f + 0.5f) * 127.f;
                 break;
             case 132:
                 /* Surround panning */
-                thisValue = vox.m_curSpan;
+                thisValue = (vox.m_curSpan * 0.5f + 0.5f) * 127.f;
                 break;
             case 133:
                 /* Macro-starting key */
@@ -73,10 +73,7 @@ float SoundMacroState::Evaluator::evaluate(double time, const Voice& vox, const 
                 thisValue = clamp(0.f, float(st.m_execTime * 1000.f), 16383.f);
                 break;
             default:
-                if (comp.m_midiCtrl == 10) /* Centered pan computation */
-                    thisValue = vox.getCtrlValue(comp.m_midiCtrl) * (2.f / 127.f) - 1.f;
-                else
-                    thisValue = vox.getCtrlValue(comp.m_midiCtrl) * (2.f / 127.f);
+                thisValue = vox.getCtrlValue(comp.m_midiCtrl);
                 break;
             }
         }

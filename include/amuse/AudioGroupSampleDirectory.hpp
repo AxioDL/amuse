@@ -188,7 +188,7 @@ public:
     {
         atUint32 m_sampleOff = 0;
         atUint32 m_unk = 0;
-        atUint8 m_pitch = 60;
+        atUint8 m_pitch = 0;
         atUint16 m_sampleRate = 0;
         atUint32 m_numSamples = 0; // Top 8 bits is SampleFormat
         atUint32 m_loopStartSample = 0;
@@ -203,6 +203,16 @@ public:
          * the sample data into a SAMP block. */
         time_t m_looseModTime = 0;
         std::unique_ptr<uint8_t[]> m_looseData;
+
+        /* Use middle C when pitch is (impossibly low) default */
+        atUint8 getPitch() const { return m_pitch == 0 ? atUint8(60) : m_pitch; }
+        atUint32 getNumSamples() const { return m_numSamples & 0xffffff; }
+        SampleFormat getSampleFormat() const { return SampleFormat(m_numSamples >> 24); }
+        bool isFormatDSP() const
+        {
+            SampleFormat fmt = getSampleFormat();
+            return fmt == SampleFormat::DSP || fmt == SampleFormat::DSP_DRUM;
+        }
 
         EntryData() = default;
 

@@ -19,13 +19,13 @@ public:
 class EditorUndoCommand : public QUndoCommand
 {
 protected:
-    std::shared_ptr<ProjectModel::INode> m_node;
+    amuse::ObjToken<ProjectModel::INode> m_node;
     enum class Id
     {
         SMChangeVal,
     };
 public:
-    EditorUndoCommand(std::shared_ptr<ProjectModel::INode> node,
+    EditorUndoCommand(amuse::ObjToken<ProjectModel::INode> node,
                       const QString& text, QUndoCommand* parent = nullptr)
     : QUndoCommand(text, parent), m_node(node) {}
     void undo();

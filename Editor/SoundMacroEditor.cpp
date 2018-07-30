@@ -321,8 +321,8 @@ class ValChangedUndoCommand : public EditorUndoCommand
 public:
     ValChangedUndoCommand(amuse::SoundMacro::ICmd* cmd, const QString& fieldName,
                           const amuse::SoundMacro::CmdIntrospection::Field& field,
-                          int redoVal, std::shared_ptr<ProjectModel::SoundMacroNode> node)
-        : EditorUndoCommand(node, QUndoStack::tr("Change %1").arg(fieldName)),
+                          int redoVal, amuse::ObjToken<ProjectModel::SoundMacroNode> node)
+        : EditorUndoCommand(node.get(), QUndoStack::tr("Change %1").arg(fieldName)),
           m_cmd(cmd), m_field(field), m_redoVal(redoVal) {}
     void undo()
     {
@@ -434,6 +434,8 @@ void CommandWidget::boolChanged(int state)
 
 void CommandWidget::numChanged(int value)
 {
+    if (value < 0)
+        return;
     if (m_introspection)
     {
         const amuse::SoundMacro::CmdIntrospection::Field& field =
@@ -445,6 +447,8 @@ void CommandWidget::numChanged(int value)
 
 void CommandWidget::nodeChanged(int value)
 {
+    if (value < 0)
+        return;
     if (m_introspection)
     {
         FieldProjectNode* fieldW = static_cast<FieldProjectNode*>(sender());
@@ -643,8 +647,8 @@ class ReorderCommandsUndoCommand : public EditorUndoCommand
     int m_a, m_b;
     bool m_undid = false;
 public:
-    ReorderCommandsUndoCommand(int a, int b, const QString& text, std::shared_ptr<ProjectModel::SoundMacroNode> node)
-    : EditorUndoCommand(node, QUndoStack::tr("Reorder %1").arg(text)), m_a(a), m_b(b) {}
+    ReorderCommandsUndoCommand(int a, int b, const QString& text, amuse::ObjToken<ProjectModel::SoundMacroNode> node)
+    : EditorUndoCommand(node.get(), QUndoStack::tr("Reorder %1").arg(text)), m_a(a), m_b(b) {}
     void undo()
     {
         m_undid = true;
@@ -777,8 +781,8 @@ class InsertCommandUndoCommand : public EditorUndoCommand
     int m_insertIdx;
     std::unique_ptr<amuse::SoundMacro::ICmd> m_cmd;
 public:
-    InsertCommandUndoCommand(int insertIdx, const QString& text, std::shared_ptr<ProjectModel::SoundMacroNode> node)
-    : EditorUndoCommand(node, QUndoStack::tr("Insert %1").arg(text)), m_insertIdx(insertIdx) {}
+    InsertCommandUndoCommand(int insertIdx, const QString& text, amuse::ObjToken<ProjectModel::SoundMacroNode> node)
+    : EditorUndoCommand(node.get(), QUndoStack::tr("Insert %1").arg(text)), m_insertIdx(insertIdx) {}
     void undo()
     {
         m_cmd = static_cast<ProjectModel::SoundMacroNode*>(m_node.get())->
@@ -832,8 +836,8 @@ class DeleteCommandUndoCommand : public EditorUndoCommand
     std::unique_ptr<amuse::SoundMacro::ICmd> m_cmd;
     bool m_undid = false;
 public:
-    DeleteCommandUndoCommand(int deleteIdx, const QString& text, std::shared_ptr<ProjectModel::SoundMacroNode> node)
-    : EditorUndoCommand(node, QUndoStack::tr("Delete %1").arg(text)), m_deleteIdx(deleteIdx) {}
+    DeleteCommandUndoCommand(int deleteIdx, const QString& text, amuse::ObjToken<ProjectModel::SoundMacroNode> node)
+    : EditorUndoCommand(node.get(), QUndoStack::tr("Delete %1").arg(text)), m_deleteIdx(deleteIdx) {}
     void undo()
     {
         m_undid = true;
@@ -881,7 +885,7 @@ void SoundMacroListing::clear()
 
 bool SoundMacroListing::loadData(ProjectModel::SoundMacroNode* node)
 {
-    m_node = node->shared_from_this();
+    m_node = node;
     clear();
     int i = 0;
     for (auto& cmd : node->m_obj->m_cmds)

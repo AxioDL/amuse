@@ -150,45 +150,94 @@ public:
 };
 
 template<class SubCls>
-class ObjToken;
-
-template<class SubCls>
-class ObjWrapper : IObj
+class ObjWrapper : public IObj
 {
-    friend class ObjToken<SubCls>;
     SubCls m_obj;
-    SubCls* get() { return &m_obj; }
-    const SubCls* get() const { return &m_obj; }
 public:
     template <class... _Args>
     ObjWrapper(_Args&&... args) : m_obj(std::forward<_Args>(args)...) {}
+    SubCls* get() { return &m_obj; }
+    const SubCls* get() const { return &m_obj; }
 };
 
 template<class SubCls>
-class ObjToken
+class ObjTokenBase
 {
-    ObjWrapper<SubCls>* m_obj = nullptr;
+protected:
+    IObj* m_obj = nullptr;
+    ObjTokenBase(IObj* obj) : m_obj(obj) { if (m_obj) m_obj->increment(); }
 public:
-    ObjToken() = default;
-    ObjToken(ObjWrapper<SubCls>* obj) : m_obj(obj) { if (m_obj) m_obj->increment(); }
-    ObjToken(const ObjToken& other) : m_obj(other.m_obj) { if (m_obj) m_obj->increment(); }
-    ObjToken(ObjToken&& other) : m_obj(other.m_obj) { other.m_obj = nullptr; }
-    ObjToken& operator=(ObjWrapper<SubCls>* obj)
-    { if (m_obj) m_obj->decrement(); m_obj = obj; if (m_obj) m_obj->increment(); return *this; }
-    ObjToken& operator=(const ObjToken& other)
+    ObjTokenBase() = default;
+    ObjTokenBase(const ObjTokenBase& other) : m_obj(other.m_obj) { if (m_obj) m_obj->increment(); }
+    ObjTokenBase(ObjTokenBase&& other) : m_obj(other.m_obj) { other.m_obj = nullptr; }
+    ObjTokenBase& operator=(const ObjTokenBase& other)
     { if (m_obj) m_obj->decrement(); m_obj = other.m_obj; if (m_obj) m_obj->increment(); return *this; }
-    ObjToken& operator=(ObjToken&& other)
+    ObjTokenBase& operator=(ObjTokenBase&& other)
     { if (m_obj) m_obj->decrement(); m_obj = other.m_obj; other.m_obj = nullptr; return *this; }
-    ~ObjToken() { if (m_obj) m_obj->decrement(); }
-    SubCls* get() const { return m_obj->get(); }
-    SubCls* operator->() const { return m_obj->get(); }
-    SubCls& operator*() const { return *m_obj->get(); }
+    ~ObjTokenBase() { if (m_obj) m_obj->decrement(); }
     operator bool() const { return m_obj != nullptr; }
     void reset() { if (m_obj) m_obj->decrement(); m_obj = nullptr; }
 };
 
+template<class SubCls, class Enable = void>
+class ObjToken : public ObjTokenBase<SubCls>
+{
+    IObj*& _obj() { return ObjTokenBase<SubCls>::m_obj; }
+    IObj*const& _obj() const { return ObjTokenBase<SubCls>::m_obj; }
+public:
+    using ObjTokenBase<SubCls>::ObjTokenBase;
+    ObjToken(ObjWrapper<SubCls>* obj) : ObjTokenBase<SubCls>(obj) {}
+    ObjToken& operator=(ObjWrapper<SubCls>* obj)
+    { if (_obj()) _obj()->decrement(); _obj() = obj; if (_obj()) _obj()->increment(); return *this; }
+    SubCls* get() const { return static_cast<ObjWrapper<SubCls>*>(_obj())->get(); }
+    SubCls* operator->() const { return get(); }
+    SubCls& operator*() const { return *get(); }
+};
+
+template<class SubCls>
+class ObjToken<SubCls, typename std::enable_if_t<std::is_base_of_v<IObj, SubCls>>> : public ObjTokenBase<SubCls>
+{
+    IObj*& _obj() { return ObjTokenBase<SubCls>::m_obj; }
+    IObj*const& _obj() const { return ObjTokenBase<SubCls>::m_obj; }
+public:
+    using ObjTokenBase<SubCls>::ObjTokenBase;
+    ObjToken(IObj* obj) : ObjTokenBase<SubCls>(obj) {}
+    ObjToken& operator=(IObj* obj)
+    { if (_obj()) _obj()->decrement(); _obj() = obj; if (_obj()) _obj()->increment(); return *this; }
+    SubCls* get() const { return static_cast<SubCls*>(_obj()); }
+    SubCls* operator->() const { return get(); }
+    SubCls& operator*() const { return *get(); }
+    template <class T>
+    T* cast() const { return static_cast<T*>(_obj()); }
+};
+
+/* ONLY USE WITH CLASSES DERIVED FROM IOBJ!
+ * Bypasses type_traits tests for incomplete type definitions. */
+template<class SubCls>
+class IObjToken : public ObjTokenBase<SubCls>
+{
+    IObj*& _obj() { return ObjTokenBase<SubCls>::m_obj; }
+    IObj*const& _obj() const { return ObjTokenBase<SubCls>::m_obj; }
+public:
+    using ObjTokenBase<SubCls>::ObjTokenBase;
+    IObjToken(IObj* obj) : ObjTokenBase<SubCls>(obj) {}
+    IObjToken& operator=(IObj* obj)
+    { if (_obj()) _obj()->decrement(); _obj() = obj; if (_obj()) _obj()->increment(); return *this; }
+    SubCls* get() const { return static_cast<SubCls*>(_obj()); }
+    SubCls* operator->() const { return get(); }
+    SubCls& operator*() const { return *get(); }
+    template <class T>
+    T* cast() const { return static_cast<T*>(_obj()); }
+};
+
 template <class Tp, class... _Args>
-static inline ObjToken<Tp> MakeObj(_Args&&... args)
+inline typename std::enable_if_t<std::is_base_of_v<IObj, Tp>, ObjToken<Tp>> MakeObj(_Args&&... args)
+{
+    return new Tp(std::forward<_Args>(args)...);
+}
+
+template <class Tp, class... _Args>
+inline typename std::enable_if_t<!std::is_base_of_v<IObj, Tp>, ObjToken<Tp>> MakeObj(_Args&&... args)
 {
     return new ObjWrapper<Tp>(std::forward<_Args>(args)...);
 }

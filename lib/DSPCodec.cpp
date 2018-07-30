@@ -151,3 +151,32 @@ unsigned DSPDecompressFrameStateOnly(const uint8_t* in,
     }
     return ret;
 }
+
+unsigned DSPDecompressFrameRangedStateOnly(const uint8_t* in,
+                                           const int16_t coefs[8][2], int16_t* prev1, int16_t* prev2,
+                                           unsigned firstSample, unsigned lastSample)
+{
+    uint8_t cIdx = (in[0]>>4) & 0xf;
+    int32_t factor1 = coefs[cIdx][0];
+    int32_t factor2 = coefs[cIdx][1];
+    uint8_t exp = in[0] & 0xf;
+    unsigned ret = 0;
+    for (unsigned s=firstSample ; s<14 && s<lastSample ; ++s)
+    {
+        int32_t sampleData = (s&1)?
+                             NibbleToInt[(in[s/2+1])&0xf]:
+                             NibbleToInt[(in[s/2+1]>>4)&0xf];
+        sampleData <<= exp;
+        sampleData <<= 11;
+        sampleData += 1024;
+        sampleData +=
+        factor1 * ((int32_t)(*prev1)) +
+        factor2 * ((int32_t)(*prev2));
+        sampleData >>= 11;
+        sampleData = DSPSampClamp(sampleData);
+        *prev2 = *prev1;
+        *prev1 = sampleData;
+        ++ret;
+    }
+    return ret;
+}

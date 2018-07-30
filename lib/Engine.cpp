@@ -76,15 +76,15 @@ std::list<ObjToken<Sequencer>>::iterator Engine::_allocateSequencer(const AudioG
     const SongGroupIndex* songGroup = group.getProj().getSongGroupIndex(groupId);
     if (songGroup)
     {
-        auto it = m_activeSequencers.emplace(m_activeSequencers.end(),
-            MakeObj<Sequencer>(*this, group, groupId, songGroup, setupId, studio));
+        amuse::ObjToken<Sequencer> tok = MakeObj<Sequencer>(*this, group, groupId, songGroup, setupId, studio);
+        auto it = m_activeSequencers.emplace(m_activeSequencers.end(), tok);
         return it;
     }
     const SFXGroupIndex* sfxGroup = group.getProj().getSFXGroupIndex(groupId);
     if (sfxGroup)
     {
-        auto it = m_activeSequencers.emplace(m_activeSequencers.end(),
-            MakeObj<Sequencer>(*this, group, groupId, sfxGroup, studio));
+        amuse::ObjToken<Sequencer> tok = MakeObj<Sequencer>(*this, group, groupId, sfxGroup, studio);
+        auto it = m_activeSequencers.emplace(m_activeSequencers.end(), tok);
         return it;
     }
     return {};
@@ -306,6 +306,8 @@ ObjToken<Voice> Engine::macroStart(const AudioGroup* group, SoundMacroId id, uin
         return {};
     }
 
+    (*ret)->setVolume(1.f);
+    (*ret)->setPan(0.f);
     return *ret;
 }
 

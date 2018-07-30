@@ -127,7 +127,7 @@ class SoundMacroListing : public QWidget
     Q_OBJECT
     friend class CommandWidget;
     friend class SoundMacroEditor;
-    std::shared_ptr<ProjectModel::SoundMacroNode> m_node;
+    amuse::ObjToken<ProjectModel::SoundMacroNode> m_node;
     QVBoxLayout* m_layout;
     QLayoutItem* m_dragItem = nullptr;
     int m_origIdx = -1;

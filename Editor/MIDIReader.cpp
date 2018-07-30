@@ -10,7 +10,7 @@ void MIDIReader::noteOff(uint8_t chan, uint8_t key, uint8_t velocity)
     if (keySearch == m_chanVoxs.cend())
         return;
 
-    if (m_lastVoice->isDestroyed() || keySearch->second == m_lastVoice)
+    if ((m_lastVoice && m_lastVoice->isDestroyed()) || keySearch->second == m_lastVoice)
         m_lastVoice.reset();
     keySearch->second->keyOff();
     m_keyoffVoxs.emplace(std::move(keySearch->second));
@@ -19,7 +19,7 @@ void MIDIReader::noteOff(uint8_t chan, uint8_t key, uint8_t velocity)
 
 void MIDIReader::noteOn(uint8_t chan, uint8_t key, uint8_t velocity)
 {
-    if (m_lastVoice->isDestroyed())
+    if (m_lastVoice && m_lastVoice->isDestroyed())
         m_lastVoice.reset();
 
     /* If portamento is enabled for voice, pre-empt spawning new voices */
@@ -76,6 +76,7 @@ void MIDIReader::controlChange(uint8_t chan, uint8_t control, uint8_t value)
         for (auto& v : m_engine.getActiveVoices())
             v->setCtrlValue(control, value);
     }
+    g_MainWindow->m_ctrlVals[control] = value;
 }
 
 void MIDIReader::programChange(uint8_t chan, uint8_t program) {}

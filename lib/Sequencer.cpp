@@ -215,7 +215,7 @@ ObjToken<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velocity)
     if (m_parent->m_songGroup && !m_page)
         return {};
 
-    if (m_lastVoice->isDestroyed())
+    if (m_lastVoice && m_lastVoice->isDestroyed())
         m_lastVoice.reset();
 
     /* If portamento is enabled for voice, pre-empt spawning new voices */
@@ -304,7 +304,7 @@ void Sequencer::ChannelState::keyOff(uint8_t note, uint8_t velocity)
     if (keySearch == m_chanVoxs.cend())
         return;
 
-    if (m_lastVoice->isDestroyed() || keySearch->second == m_lastVoice)
+    if ((m_lastVoice && m_lastVoice->isDestroyed()) || keySearch->second == m_lastVoice)
         m_lastVoice.reset();
     keySearch->second->keyOff();
     m_keyoffVoxs.emplace(std::move(keySearch->second));
@@ -428,7 +428,7 @@ void Sequencer::setTempo(double ticksPerSec) { m_ticksPerSec = ticksPerSec; }
 
 void Sequencer::ChannelState::allOff()
 {
-    if (m_lastVoice->isDestroyed())
+    if (m_lastVoice && m_lastVoice->isDestroyed())
         m_lastVoice.reset();
     for (auto it = m_chanVoxs.begin(); it != m_chanVoxs.end();)
     {
@@ -481,7 +481,7 @@ void Sequencer::allOff(uint8_t chan, bool now)
 
 void Sequencer::ChannelState::killKeygroup(uint8_t kg, bool now)
 {
-    if (m_lastVoice->isDestroyed())
+    if (m_lastVoice && m_lastVoice->isDestroyed())
         m_lastVoice.reset();
 
     for (auto it = m_chanVoxs.begin(); it != m_chanVoxs.end();)

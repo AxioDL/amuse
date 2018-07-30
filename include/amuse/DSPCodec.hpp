@@ -28,4 +28,8 @@ unsigned DSPDecompressFrameStateOnly(const uint8_t* in,
                                      const int16_t coefs[8][2], int16_t* prev1, int16_t* prev2,
                                      unsigned lastSample);
 
+unsigned DSPDecompressFrameRangedStateOnly(const uint8_t* in,
+                                           const int16_t coefs[8][2], int16_t* prev1, int16_t* prev2,
+                                           unsigned firstSample, unsigned lastSample);
+
 #endif // _DSPCODEC_h

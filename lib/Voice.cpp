@@ -119,7 +119,7 @@ void Voice::_doKeyOff()
 void Voice::_setTotalPitch(int32_t cents, bool slew)
 {
     // fprintf(stderr, "PITCH %d %d  \n", cents, slew);
-    int32_t interval = clamp(0, cents, 12700) - m_curSample->m_pitch * 100;
+    int32_t interval = clamp(0, cents, 12700) - m_curSample->getPitch() * 100;
     double ratio = std::exp2(interval / 1200.0) * m_dopplerRatio;
     m_sampleRate = m_curSample->m_sampleRate * ratio;
     m_backendVoice->setPitchRatio(ratio, slew);
@@ -176,8 +176,9 @@ std::unique_ptr<int8_t[]>& Voice::_ensureCtrlVals()
 
 std::list<ObjToken<Voice>>::iterator Voice::_allocateVoice(double sampleRate, bool dynamicPitch)
 {
-    auto it = m_childVoices.emplace(
-        m_childVoices.end(), MakeObj<Voice>(m_engine, m_audioGroup, m_groupId, m_engine.m_nextVid++, m_emitter, m_studio));
+    amuse::ObjToken<Voice> tok =
+        MakeObj<Voice>(m_engine, m_audioGroup, m_groupId, m_engine.m_nextVid++, m_emitter, m_studio);
+    auto it = m_childVoices.emplace(m_childVoices.end(), tok);
     m_childVoices.back()->m_backendVoice =
         m_engine.getBackend().allocateVoice(*m_childVoices.back(), sampleRate, dynamicPitch);
     return it;
@@ -290,11 +291,11 @@ void Voice::_procSamplePre(int16_t& samp)
     /* Apply tremolo */
     if (m_state.m_tremoloSel && (m_tremoloScale || m_tremoloModScale))
     {
-        float t = m_state.m_tremoloSel.evaluate(m_voiceTime, *this, m_state) / 2.f;
+        float t = m_state.m_tremoloSel.evaluate(m_voiceTime, *this, m_state) / 127.f;
         if (m_tremoloScale && m_tremoloModScale)
         {
             float fac = (1.0f - t) + (m_tremoloScale * t);
-            float modT = m_state.m_modWheelSel ? (m_state.m_modWheelSel.evaluate(m_voiceTime, *this, m_state) / 2.f)
+            float modT = m_state.m_modWheelSel ? (m_state.m_modWheelSel.evaluate(m_voiceTime, *this, m_state) / 127.f)
                                                : (getCtrlValue(1) / 127.f);
             float modFac = (1.0f - modT) + (m_tremoloModScale * modT);
             m_nextLevel *= fac * modFac;
@@ -306,7 +307,7 @@ void Voice::_procSamplePre(int16_t& samp)
         }
         else if (m_tremoloModScale)
         {
-            float modT = m_state.m_modWheelSel ? (m_state.m_modWheelSel.evaluate(m_voiceTime, *this, m_state) / 2.f)
+            float modT = m_state.m_modWheelSel ? (m_state.m_modWheelSel.evaluate(m_voiceTime, *this, m_state) / 127.f)
                                                : (getCtrlValue(1) / 127.f);
             float modFac = (1.0f - modT) + (m_tremoloModScale * modT);
             m_nextLevel *= modFac;
@@ -322,25 +323,25 @@ void Voice::_procSamplePre(int16_t& samp)
 template <typename T>
 T Voice::_procSampleMaster(double time, T samp)
 {
-    float evalVol = m_state.m_volumeSel ? (m_state.m_volumeSel.evaluate(time, *this, m_state) / 2.f) : 1.f;
+    float evalVol = m_state.m_volumeSel ? (m_state.m_volumeSel.evaluate(time, *this, m_state) / 127.f) : 1.f;
     return ApplyVolume(clamp(0.f, evalVol, 1.f), samp);
 }
 
 template <typename T>
 T Voice::_procSampleAuxA(double time, T samp)
 {
-    float evalVol = m_state.m_volumeSel ? (m_state.m_volumeSel.evaluate(time, *this, m_state) / 2.f) : 1.f;
-    evalVol *= m_state.m_reverbSel ? (m_state.m_reverbSel.evaluate(time, *this, m_state) / 2.f) : m_curReverbVol;
-    evalVol += m_state.m_preAuxASel ? (m_state.m_preAuxASel.evaluate(time, *this, m_state) / 2.f) : 0.f;
+    float evalVol = m_state.m_volumeSel ? (m_state.m_volumeSel.evaluate(time, *this, m_state) / 127.f) : 1.f;
+    evalVol *= m_state.m_reverbSel ? (m_state.m_reverbSel.evaluate(time, *this, m_state) / 127.f) : m_curReverbVol;
+    evalVol += m_state.m_preAuxASel ? (m_state.m_preAuxASel.evaluate(time, *this, m_state) / 127.f) : 0.f;
     return ApplyVolume(clamp(0.f, evalVol, 1.f), samp);
 }
 
 template <typename T>
 T Voice::_procSampleAuxB(double time, T samp)
 {
-    float evalVol = m_state.m_volumeSel ? (m_state.m_volumeSel.evaluate(time, *this, m_state) / 2.f) : 1.f;
-    evalVol *= m_state.m_postAuxB ? (m_state.m_postAuxB.evaluate(time, *this, m_state) / 2.f) : m_curAuxBVol;
-    evalVol += m_state.m_preAuxBSel ? (m_state.m_preAuxBSel.evaluate(time, *this, m_state) / 2.f) : 0.f;
+    float evalVol = m_state.m_volumeSel ? (m_state.m_volumeSel.evaluate(time, *this, m_state) / 127.f) : 1.f;
+    evalVol *= m_state.m_postAuxB ? (m_state.m_postAuxB.evaluate(time, *this, m_state) / 127.f) : m_curAuxBVol;
+    evalVol += m_state.m_preAuxBSel ? (m_state.m_preAuxBSel.evaluate(time, *this, m_state) / 127.f) : 0.f;
     return ApplyVolume(clamp(0.f, evalVol, 1.f), samp);
 }
 
@@ -376,7 +377,7 @@ void Voice::preSupplyAudio(double dt)
     /* Process per-block evaluators here */
     if (m_state.m_pedalSel)
     {
-        bool pedal = m_state.m_pedalSel.evaluate(m_voiceTime, *this, m_state) >= 1.f;
+        bool pedal = m_state.m_pedalSel.evaluate(m_voiceTime, *this, m_state) >= 64.f;
         if (pedal != m_sustained)
             setPedal(pedal);
     }
@@ -384,7 +385,8 @@ void Voice::preSupplyAudio(double dt)
     bool panDirty = false;
     if (m_state.m_panSel)
     {
-        float evalPan = m_state.m_panSel.evaluate(m_voiceTime, *this, m_state);
+        float evalPan = (m_state.m_panSel.evaluate(m_voiceTime, *this, m_state) - 64.f) / 63.f;
+        evalPan = clamp(-1.f, evalPan, 1.f);
         if (evalPan != m_curPan)
         {
             m_curPan = evalPan;
@@ -393,7 +395,8 @@ void Voice::preSupplyAudio(double dt)
     }
     if (m_state.m_spanSel)
     {
-        float evalSpan = m_state.m_spanSel.evaluate(m_voiceTime, *this, m_state);
+        float evalSpan = (m_state.m_spanSel.evaluate(m_voiceTime, *this, m_state) - 64.f) / 63.f;
+        evalSpan = clamp(-1.f, evalSpan, 1.f);
         if (evalSpan != m_curSpan)
         {
             m_curSpan = evalSpan;
@@ -404,7 +407,10 @@ void Voice::preSupplyAudio(double dt)
         _setPan(m_curPan);
 
     if (m_state.m_pitchWheelSel)
-        _setPitchWheel(m_state.m_pitchWheelSel.evaluate(m_voiceTime, *this, m_state));
+    {
+        float evalPWheel = (m_state.m_pitchWheelSel.evaluate(m_voiceTime, *this, m_state) - 64.f) / 63.f;
+        _setPitchWheel(clamp(-1.f, evalPWheel, 1.f));
+    }
 
     /* Process active pan-sweep */
     bool refresh = false;
@@ -939,13 +945,13 @@ void Voice::startSample(SampleId sampId, int32_t offset)
         std::tie(m_curSample, m_curSampleData) = m_audioGroup.getSampleData(sampId, sample);
 
         m_sampleRate = m_curSample->m_sampleRate;
-        m_curPitch = m_curSample->m_pitch;
+        m_curPitch = m_curSample->getPitch();
         m_pitchDirty = true;
         _setPitchWheel(m_curPitchWheel);
         m_backendVoice->resetSampleRate(m_curSample->m_sampleRate);
         m_needsSlew = false;
 
-        int32_t numSamples = m_curSample->m_numSamples & 0xffffff;
+        int32_t numSamples = m_curSample->getNumSamples();
         if (offset)
         {
             if (m_curSample->m_loopLengthSamples)
@@ -962,7 +968,7 @@ void Voice::startSample(SampleId sampId, int32_t offset)
         m_prev1 = 0;
         m_prev2 = 0;
 
-        m_curFormat = SampleFormat(m_curSample->m_numSamples >> 24);
+        m_curFormat = m_curSample->getSampleFormat();
         if (m_curFormat == SampleFormat::DSP_DRUM)
             m_curFormat = SampleFormat::DSP;
 
@@ -1389,7 +1395,7 @@ bool Voice::doPortamento(uint8_t newNote)
         pState = true;
         break;
     case SoundMacro::CmdPortamento::PortState::MIDIControlled:
-        pState = m_state.m_portamentoSel ? (m_state.m_portamentoSel.evaluate(m_voiceTime, *this, m_state) >= 1.f)
+        pState = m_state.m_portamentoSel ? (m_state.m_portamentoSel.evaluate(m_voiceTime, *this, m_state) >= 64.f)
                                          : (getCtrlValue(65) >= 64);
         break;
     }

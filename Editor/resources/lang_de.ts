@@ -220,22 +220,22 @@
         <translation>Keine MIDI-Geräte gefunden</translation>
     </message>
     <message>
-        <location line="+201"/>
+        <location line="+202"/>
         <source>New Project</source>
         <translation>Neues Projekt</translation>
     </message>
     <message>
-        <location line="+60"/>
+        <location line="+63"/>
         <source>Open Project</source>
         <translation>Offenes Projekt</translation>
     </message>
     <message>
-        <location line="-37"/>
+        <location line="-40"/>
         <source>The directory at &apos;%1&apos; does not exist.</source>
         <translation>Das Verzeichnis &apos;% 1&apos; existiert nicht.</translation>
     </message>
     <message>
-        <location line="-468"/>
+        <location line="-469"/>
         <source>Clear Recent Projects</source>
         <translation type="unfinished"></translation>
     </message>
@@ -251,46 +251,46 @@
     </message>
     <message>
         <location line="+31"/>
-        <location line="+302"/>
+        <location line="+303"/>
         <source>The directory at &apos;%1&apos; must not be empty.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-301"/>
-        <location line="+302"/>
+        <location line="-302"/>
+        <location line="+303"/>
         <source>Directory empty</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-189"/>
+        <location line="-190"/>
         <source>SUSTAIN</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+195"/>
+        <location line="+196"/>
         <source>Bad Directory</source>
         <translation>Schlechtes Verzeichnis</translation>
     </message>
     <message>
-        <location line="+12"/>
+        <location line="+15"/>
         <source>Opening</source>
         <translation>Öffnung</translation>
     </message>
     <message>
         <location line="+0"/>
-        <location line="+76"/>
+        <location line="+78"/>
         <location line="+83"/>
         <location line="+45"/>
         <source>Scanning Project</source>
         <translation>Projekt scannen</translation>
     </message>
     <message>
-        <location line="-192"/>
+        <location line="-194"/>
         <source>Opening %1</source>
         <translation>Eröffnung% 1</translation>
     </message>
     <message>
-        <location line="+64"/>
+        <location line="+66"/>
         <source>Reloading Samples</source>
         <translation type="unfinished"></translation>
     </message>
@@ -391,7 +391,7 @@
 <context>
     <name>ProjectModel</name>
     <message>
-        <location filename="../ProjectModel.cpp" line="+226"/>
+        <location filename="../ProjectModel.cpp" line="+227"/>
         <source>Sound Macros</source>
         <translation>Sound-Makros</translation>
     </message>
@@ -442,7 +442,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+322"/>
+        <location line="+326"/>
         <source>Reorder %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -542,7 +542,7 @@
 <context>
     <name>TargetButton</name>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="-944"/>
+        <location filename="../SoundMacroEditor.cpp" line="-948"/>
         <source>Set step with target click</source>
         <translation type="unfinished"></translation>
     </message>

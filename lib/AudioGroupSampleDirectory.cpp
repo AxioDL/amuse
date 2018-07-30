@@ -157,8 +157,6 @@ void AudioGroupSampleDirectory::EntryData::loadLooseDSP(SystemStringView dspPath
         DSPADPCMHeader header;
         header.read(r);
         m_pitch = header.m_pitch;
-        if (m_pitch == 0)
-            m_pitch = 60;
         m_sampleRate = atUint16(header.x8_sample_rate);
         m_numSamples = header.x0_num_samples;
         if (header.xc_loop_flag)
@@ -209,8 +207,6 @@ void AudioGroupSampleDirectory::EntryData::loadLooseWAV(SystemStringView wavPath
                 WAVSampleChunk smpl;
                 smpl.read(r);
                 m_pitch = atUint8(smpl.midiNote);
-                if (m_pitch == 0)
-                    m_pitch = 60;
 
                 if (smpl.numSampleLoops)
                 {
@@ -415,7 +411,7 @@ void AudioGroupSampleDirectory::extractAllWAV(amuse::SystemStringView destDir, c
 void AudioGroupSampleDirectory::_extractCompressed(SampleId id, const EntryData& ent,
                                                    amuse::SystemStringView destDir, const unsigned char* samp)
 {
-    SampleFormat fmt = SampleFormat(ent.m_numSamples >> 24);
+    SampleFormat fmt = ent.getSampleFormat();
     if (fmt == SampleFormat::PCM || fmt == SampleFormat::PCM_PC)
     {
         _extractWAV(id, ent, destDir, samp);
@@ -430,7 +426,7 @@ void AudioGroupSampleDirectory::_extractCompressed(SampleId id, const EntryData&
     path += SampleId::CurNameDB->resolveNameFromId(id);
 #endif
 
-    uint32_t numSamples = ent.m_numSamples & 0xffffff;
+    uint32_t numSamples = ent.getNumSamples();
     atUint64 dataLen;
     if (fmt == SampleFormat::DSP || fmt == SampleFormat::DSP_DRUM)
     {

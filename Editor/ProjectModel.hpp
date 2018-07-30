@@ -46,7 +46,7 @@ private:
     std::map<QString, amuse::AudioGroupDatabase> m_groups;
 
 public:
-    class INode : public std::enable_shared_from_this<INode>
+    class INode : public amuse::IObj
     {
     public:
         enum class Type
@@ -66,8 +66,8 @@ public:
         };
     protected:
         INode* m_parent;
-        std::vector<std::shared_ptr<INode>> m_children;
-        std::unique_ptr<INode> m_nullChild;
+        std::vector<amuse::IObjToken<INode>> m_children;
+        amuse::IObjToken<INode> m_nullChild;
         int m_row;
     public:
         virtual ~INode() = default;
@@ -95,14 +95,14 @@ public:
             m_nullChild->m_row = row;
         }
 
-        void insertChild(int row, std::shared_ptr<INode>&& n)
+        void insertChild(int row, amuse::ObjToken<INode> n)
         {
-            m_children.insert(m_children.begin() + row, std::move(n));
+            m_children.insert(m_children.begin() + row, n.get());
             reindexRows(row);
         }
-        std::shared_ptr<INode> removeChild(int row)
+        amuse::ObjToken<INode> removeChild(int row)
         {
-            std::shared_ptr<INode> ret = std::move(m_children[row]);
+            amuse::ObjToken<INode> ret = m_children[row].get();
             m_children.erase(m_children.begin() + row);
             reindexRows(row);
             return ret;
@@ -112,7 +112,8 @@ public:
         template<class T, class... _Args>
         T& makeChild(_Args&&... args)
         {
-            m_children.push_back(std::make_shared<T>(this, m_children.size(), std::forward<_Args>(args)...));
+            auto tok = amuse::MakeObj<T>(this, m_children.size(), std::forward<_Args>(args)...);
+            m_children.push_back(tok.get());
             m_nullChild->m_row = int(m_children.size());
             return static_cast<T&>(*m_children.back());
         }
@@ -161,9 +162,6 @@ public:
 
         CollectionNode* getCollectionOfType(Type tp) const;
         amuse::AudioGroupDatabase* getAudioGroup() const { return &m_it->second; }
-
-        std::shared_ptr<GroupNode> shared_from_this()
-        { return std::static_pointer_cast<GroupNode>(INode::shared_from_this()); }
     };
     struct SongGroupNode : INode
     {
@@ -177,9 +175,6 @@ public:
         Type type() const { return Type::SongGroup; }
         QString text() const { return m_name; }
         QIcon icon() const { return Icon; }
-
-        std::shared_ptr<SongGroupNode> shared_from_this()
-        { return std::static_pointer_cast<SongGroupNode>(INode::shared_from_this()); }
     };
     struct SoundGroupNode : INode
     {
@@ -193,9 +188,6 @@ public:
         Type type() const { return Type::SoundGroup; }
         QString text() const { return m_name; }
         QIcon icon() const { return Icon; }
-
-        std::shared_ptr<SoundGroupNode> shared_from_this()
-        { return std::static_pointer_cast<SoundGroupNode>(INode::shared_from_this()); }
     };
     struct BasePoolObjectNode;
     struct CollectionNode : INode
@@ -215,9 +207,6 @@ public:
         int indexOfId(amuse::ObjectId id) const;
         amuse::ObjectId idOfIndex(int idx) const;
         BasePoolObjectNode* nodeOfIndex(int idx) const;
-
-        std::shared_ptr<CollectionNode> shared_from_this()
-        { return std::static_pointer_cast<CollectionNode>(INode::shared_from_this()); }
     };
     struct BasePoolObjectNode : INode
     {
@@ -237,9 +226,6 @@ public:
         : BasePoolObjectNode(parent, row, id, ID::CurNameDB->resolveNameFromId(id).data()), m_obj(obj) {}
 
         Type type() const { return TP; }
-
-        std::shared_ptr<PoolObjectNode<ID, T, TP>> shared_from_this()
-        { return std::static_pointer_cast<PoolObjectNode<ID, T, TP>>(INode::shared_from_this()); }
     };
     using SoundMacroNode = PoolObjectNode<amuse::SoundMacroId, amuse::SoundMacro, INode::Type::SoundMacro>;
     using ADSRNode = PoolObjectNode<amuse::TableId, std::unique_ptr<amuse::ITable>, INode::Type::ADSR>;
@@ -248,7 +234,7 @@ public:
     using LayersNode = PoolObjectNode<amuse::LayersId, std::vector<amuse::LayerMapping>, INode::Type::Layer>;
     using SampleNode = PoolObjectNode<amuse::SampleId, amuse::SampleEntry, INode::Type::Sample>;
 
-    std::shared_ptr<RootNode> m_root;
+    amuse::ObjToken<RootNode> m_root;
 
     bool m_needsReset = false;
     void _resetModelData();
@@ -276,8 +262,8 @@ public:
     INode* node(const QModelIndex& index) const;
     GroupNode* getGroupNode(INode* node) const;
     bool canEdit(const QModelIndex& index) const;
-    void _undoDel(const QModelIndex& index, std::shared_ptr<ProjectModel::INode>&& node);
-    std::shared_ptr<ProjectModel::INode> _redoDel(const QModelIndex& index);
+    void _undoDel(const QModelIndex& index, amuse::ObjToken<ProjectModel::INode> node);
+    amuse::ObjToken<ProjectModel::INode> _redoDel(const QModelIndex& index);
     void del(const QModelIndex& index);
 
     QString path() const { return m_dir.path(); }

@@ -54,7 +54,8 @@ QVariant NullItemProxyModel::data(const QModelIndex& proxyIndex, int role) const
 
 ProjectModel::INode::INode(INode* parent, int row) : m_parent(parent), m_row(row)
 {
-    m_nullChild = std::make_unique<NullNode>(this);
+    auto nullNode = amuse::MakeObj<NullNode>(this);
+    m_nullChild = nullNode.get();
 }
 
 ProjectModel::CollectionNode* ProjectModel::GroupNode::getCollectionOfType(Type tp) const
@@ -96,7 +97,7 @@ ProjectModel::BasePoolObjectNode* ProjectModel::CollectionNode::nodeOfIndex(int 
 ProjectModel::ProjectModel(const QString& path, QObject* parent)
 : QAbstractItemModel(parent), m_dir(path), m_nullProxy(this)
 {
-    m_root = std::make_shared<RootNode>();
+    m_root = amuse::MakeObj<RootNode>();
 
     GroupNode::Icon = QIcon(":/icons/IconGroup.svg");
     SongGroupNode::Icon = QIcon(":/icons/IconSongGroup.svg");
@@ -202,7 +203,7 @@ void ProjectModel::_resetModelData()
 {
     beginResetModel();
     m_projectDatabase.setIdDatabases();
-    m_root = std::make_shared<RootNode>();
+    m_root = amuse::MakeObj<RootNode>();
     m_root->reserve(m_groups.size());
     for (auto it = m_groups.begin() ; it != m_groups.end() ; ++it)
     {
@@ -427,7 +428,7 @@ bool ProjectModel::canEdit(const QModelIndex& index) const
 class DeleteNodeUndoCommand : public QUndoCommand
 {
     QModelIndex m_deleteIdx;
-    std::shared_ptr<ProjectModel::INode> m_node;
+    amuse::ObjToken<ProjectModel::INode> m_node;
 public:
     DeleteNodeUndoCommand(const QModelIndex& index)
      : QUndoCommand(QUndoStack::tr("Delete %1").arg(index.data().toString())), m_deleteIdx(index) {}
@@ -442,14 +443,14 @@ public:
     }
 };
 
-void ProjectModel::_undoDel(const QModelIndex& index, std::shared_ptr<ProjectModel::INode>&& n)
+void ProjectModel::_undoDel(const QModelIndex& index, amuse::ObjToken<ProjectModel::INode> n)
 {
     beginInsertRows(index.parent(), index.row(), index.row());
     node(index.parent())->insertChild(index.row(), std::move(n));
     endInsertRows();
 }
 
-std::shared_ptr<ProjectModel::INode> ProjectModel::_redoDel(const QModelIndex& index)
+amuse::ObjToken<ProjectModel::INode> ProjectModel::_redoDel(const QModelIndex& index)
 {
     node(index)->depthTraverse([](INode* node)
     {
@@ -457,7 +458,7 @@ std::shared_ptr<ProjectModel::INode> ProjectModel::_redoDel(const QModelIndex& i
         return true;
     });
     beginRemoveRows(index.parent(), index.row(), index.row());
-    std::shared_ptr<ProjectModel::INode> ret = node(index.parent())->removeChild(index.row());
+    amuse::ObjToken<ProjectModel::INode> ret = node(index.parent())->removeChild(index.row());
     endRemoveRows();
     return ret;
 }

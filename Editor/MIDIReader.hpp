@@ -1,6 +1,7 @@
 #ifndef AMUSE_MIDI_READER_HPP
 #define AMUSE_MIDI_READER_HPP
 
+#include "amuse/Voice.hpp"
 #include "amuse/BooBackend.hpp"
 #include "amuse/Common.hpp"
 #include <unordered_set>

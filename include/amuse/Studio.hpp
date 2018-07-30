@@ -9,6 +9,7 @@
 
 namespace amuse
 {
+struct StudioSend;
 
 class Studio
 {
@@ -17,17 +18,7 @@ class Studio
     Submix m_master;
     Submix m_auxA;
     Submix m_auxB;
-    struct StudioSend
-    {
-        ObjToken<Studio> m_targetStudio;
-        float m_dryLevel;
-        float m_auxALevel;
-        float m_auxBLevel;
-        StudioSend(ObjToken<Studio> studio, float dry, float auxA, float auxB)
-        : m_targetStudio(studio), m_dryLevel(dry), m_auxALevel(auxA), m_auxBLevel(auxB)
-        {
-        }
-    };
+
     std::list<StudioSend> m_studiosOut;
 #ifndef NDEBUG
     bool _cyclicCheck(Studio* leaf);
@@ -48,6 +39,19 @@ public:
 
     Engine& getEngine() { return m_engine; }
 };
+
+struct StudioSend
+{
+    ObjToken<Studio> m_targetStudio;
+    float m_dryLevel;
+    float m_auxALevel;
+    float m_auxBLevel;
+    StudioSend(ObjToken<Studio> studio, float dry, float auxA, float auxB)
+        : m_targetStudio(studio), m_dryLevel(dry), m_auxALevel(auxA), m_auxBLevel(auxB)
+    {
+    }
+};
+
 }
 
 #endif // __AMUSE_STUDIO_HPP__
