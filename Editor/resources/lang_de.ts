@@ -2,6 +2,19 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="de_DE">
 <context>
+    <name>Core::Internal</name>
+    <message>
+        <location filename="../Common.cpp" line="+49"/>
+        <source>Launching Windows Explorer Failed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Could not find explorer.exe in path to launch Windows Explorer.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>MainWindow</name>
     <message>
         <location filename="../MainWindow.ui" line="+14"/>
@@ -10,7 +23,7 @@
         <translation>Amuse</translation>
     </message>
     <message>
-        <location line="+280"/>
+        <location line="+292"/>
         <source>&amp;File</source>
         <translation>&amp;Datei</translation>
     </message>
@@ -212,7 +225,7 @@
         <translation>Keine MIDI-Geräte gefunden</translation>
     </message>
     <message>
-        <location line="+202"/>
+        <location line="+237"/>
         <source>New Project</source>
         <translation>Neues Projekt</translation>
     </message>
@@ -227,7 +240,7 @@
         <translation>Das Verzeichnis &apos;% 1&apos; existiert nicht.</translation>
     </message>
     <message>
-        <location line="-469"/>
+        <location line="-504"/>
         <source>Clear Recent Projects</source>
         <translation type="unfinished"></translation>
     </message>
@@ -243,23 +256,23 @@
     </message>
     <message>
         <location line="+31"/>
-        <location line="+303"/>
+        <location line="+338"/>
         <source>The directory at &apos;%1&apos; must not be empty.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-302"/>
-        <location line="+303"/>
+        <location line="-337"/>
+        <location line="+338"/>
         <source>Directory empty</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-190"/>
+        <location line="-216"/>
         <source>SUSTAIN</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+196"/>
+        <location line="+222"/>
         <source>Bad Directory</source>
         <translation>Schlechtes Verzeichnis</translation>
     </message>
@@ -416,7 +429,7 @@
 <context>
     <name>QObject</name>
     <message>
-        <location filename="../Common.cpp" line="+33"/>
+        <location filename="../Common.cpp" line="-17"/>
         <source>A directory at &apos;%1/%2&apos; could not be created.</source>
         <translation>Ein Verzeichnis unter &apos;% 1 /% 2&apos; konnte nicht erstellt werden.</translation>
     </message>
@@ -425,11 +438,26 @@
         <source>Unable to create directory</source>
         <translation>Kann kein Verzeichnis erstellen</translation>
     </message>
+    <message>
+        <location line="+47"/>
+        <source>Show in Explorer</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Show in Finder</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Show in Browser</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>QUndoStack</name>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="+342"/>
+        <location filename="../SoundMacroEditor.cpp" line="+350"/>
         <source>Change %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -447,6 +475,55 @@
         <location filename="../ProjectModel.cpp" line="+151"/>
         <location filename="../SoundMacroEditor.cpp" line="+55"/>
         <source>Delete %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>SampleControls</name>
+    <message>
+        <location filename="../SampleEditor.cpp" line="+501"/>
+        <source>Make Compressed Version</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>Up To Date</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+56"/>
+        <location line="+66"/>
+        <source>Nothing Loaded</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="-47"/>
+        <source>Zoom</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Loop</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>Start</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>End</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Base Pitch</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="-115"/>
+        <source>Make WAV Version</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -542,7 +619,7 @@
 <context>
     <name>TargetButton</name>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="-118"/>
+        <location filename="../SoundMacroEditor.cpp" line="-126"/>
         <source>Set step with target click</source>
         <translation type="unfinished"></translation>
     </message>

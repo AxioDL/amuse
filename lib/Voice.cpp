@@ -862,6 +862,18 @@ bool Voice::loadMacroObject(SoundMacroId macroId, int macroStep, double ticksPer
     return false;
 }
 
+bool Voice::loadMacroObject(const SoundMacro* macro, int macroStep, double ticksPerSec,
+                            uint8_t midiKey, uint8_t midiVel, uint8_t midiMod, bool pushPc)
+{
+    if (m_destroyed)
+        return false;
+
+    if (macro)
+        return _loadSoundMacro({}, macro, macroStep, ticksPerSec, midiKey, midiVel, midiMod, pushPc);
+
+    return false;
+}
+
 bool Voice::loadPageObject(ObjectId objectId, double ticksPerSec, uint8_t midiKey, uint8_t midiVel, uint8_t midiMod)
 {
     if (m_destroyed)

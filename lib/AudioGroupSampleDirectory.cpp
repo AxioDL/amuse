@@ -259,6 +259,48 @@ void AudioGroupSampleDirectory::Entry::loadLooseData(SystemStringView basePath)
     }
 }
 
+SampleFileState AudioGroupSampleDirectory::Entry::getFileState(SystemStringView basePath, SystemString* pathOut) const
+{
+    SystemString wavPath = SystemString(basePath) + _S(".wav");
+    SystemString dspPath = SystemString(basePath) + _S(".dsp");
+    Sstat wavStat, dspStat;
+    bool wavValid = !Stat(wavPath.c_str(), &wavStat) && S_ISREG(wavStat.st_mode);
+    bool dspValid = !Stat(dspPath.c_str(), &dspStat) && S_ISREG(dspStat.st_mode);
+
+    EntryData& curData = *m_data;
+    if (!wavValid && !dspValid)
+    {
+        if (!curData.m_looseData)
+            return SampleFileState::NoData;
+        if (curData.isFormatDSP() || curData.getSampleFormat() == SampleFormat::N64)
+            return SampleFileState::MemoryOnlyCompressed;
+        return SampleFileState::MemoryOnlyWAV;
+    }
+
+    if (wavValid && dspValid)
+    {
+        if (wavStat.st_mtime > dspStat.st_mtime)
+        {
+            if (pathOut)
+                *pathOut = wavPath;
+            return SampleFileState::WAVRecent;
+        }
+        if (pathOut)
+            *pathOut = dspPath;
+        return SampleFileState::CompressedRecent;
+    }
+
+    if (dspValid)
+    {
+        if (pathOut)
+            *pathOut = dspPath;
+        return SampleFileState::CompressedNoWAV;
+    }
+    if (pathOut)
+        *pathOut = wavPath;
+    return SampleFileState::WAVNoCompressed;
+}
+
 AudioGroupSampleDirectory AudioGroupSampleDirectory::CreateAudioGroupSampleDirectory(SystemStringView groupPath)
 {
     AudioGroupSampleDirectory ret;

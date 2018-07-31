@@ -311,6 +311,27 @@ ObjToken<Voice> Engine::macroStart(const AudioGroup* group, SoundMacroId id, uin
     return *ret;
 }
 
+/** Start SoundMacro object playing directly (for editor use) */
+ObjToken<Voice> Engine::macroStart(const AudioGroup* group, const SoundMacro* macro, uint8_t key,
+                                   uint8_t vel, uint8_t mod, ObjToken<Studio> smx)
+{
+    if (!group)
+        return {};
+
+    std::list<ObjToken<Voice>>::iterator ret =
+        _allocateVoice(*group, {}, NativeSampleRate, true, false, smx);
+
+    if (!(*ret)->loadMacroObject(macro, 0, 1000.f, key, vel, mod))
+    {
+        _destroyVoice(ret);
+        return {};
+    }
+
+    (*ret)->setVolume(1.f);
+    (*ret)->setPan(0.f);
+    return *ret;
+}
+
 /** Start soundFX playing from loaded audio groups, attach to positional emitter */
 ObjToken<Emitter> Engine::addEmitter(const float* pos, const float* dir, float maxDist, float falloff,
                                      int sfxId, float minVol, float maxVol, bool doppler, ObjToken<Studio> smx)

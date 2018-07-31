@@ -116,6 +116,17 @@ enum class SampleFormat : uint8_t
     PCM_PC    /**< Little-endian PCM found in PC Rogue Squadron (actually enum 0 which conflicts with DSP-ADPCM) */
 };
 
+enum class SampleFileState
+{
+    NoData,
+    MemoryOnlyWAV,
+    MemoryOnlyCompressed,
+    WAVRecent,
+    CompressedRecent,
+    CompressedNoWAV,
+    WAVNoCompressed
+};
+
 /** Indexes individual samples in SAMP chunk */
 class AudioGroupSampleDirectory
 {
@@ -214,6 +225,16 @@ public:
             return fmt == SampleFormat::DSP || fmt == SampleFormat::DSP_DRUM;
         }
 
+        void setLoopStartSample(atUint32 sample)
+        {
+            m_loopLengthSamples += m_loopStartSample - sample;
+            m_loopStartSample = sample;
+        }
+        void setLoopEndSample(atUint32 sample)
+        {
+            m_loopLengthSamples = sample + 1 - m_loopStartSample;
+        }
+
         EntryData() = default;
 
         template <athena::Endian DNAE>
@@ -285,6 +306,7 @@ public:
         }
 
         void loadLooseData(SystemStringView basePath);
+        SampleFileState getFileState(SystemStringView basePath, SystemString* pathOut = nullptr) const;
     };
 
 private:

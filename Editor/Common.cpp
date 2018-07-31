@@ -1,6 +1,7 @@
 #include "Common.hpp"
 #include <QMessageBox>
 #include <QObject>
+#include <QProcess>
 
 boo::SystemString QStringToSysString(const QString& str)
 {
@@ -35,4 +36,53 @@ bool MkPath(const QDir& dir, const QString& file, UIMessenger& messenger)
         return false;
     }
     return true;
+}
+
+void ShowInGraphicalShell(QWidget* parent, const QString& pathIn)
+{
+    const QFileInfo fileInfo(pathIn);
+    // Mac, Windows support folder or file.
+#if defined(Q_OS_WIN)
+    const FileName explorer = Environment::systemEnvironment().searchInPath(QLatin1String("explorer.exe"));
+    if (explorer.isEmpty()) {
+        QMessageBox::warning(parent,
+                             QApplication::translate("Core::Internal",
+                                                     "Launching Windows Explorer Failed"),
+                             QApplication::translate("Core::Internal",
+                                                     "Could not find explorer.exe in path to launch Windows Explorer."));
+        return;
+    }
+    QStringList param;
+    if (!fileInfo.isDir())
+        param += QLatin1String("/select,");
+    param += QDir::toNativeSeparators(fileInfo.canonicalFilePath());
+    QProcess::startDetached(explorer.toString(), param);
+#elif defined(Q_OS_MAC)
+    QStringList scriptArgs;
+    scriptArgs << QLatin1String("-e")
+               << QString::fromLatin1("tell application \"Finder\" to reveal POSIX file \"%1\"")
+                   .arg(fileInfo.canonicalFilePath());
+    QProcess::execute(QLatin1String("/usr/bin/osascript"), scriptArgs);
+    scriptArgs.clear();
+    scriptArgs << QLatin1String("-e")
+               << QLatin1String("tell application \"Finder\" to activate");
+    QProcess::execute(QLatin1String("/usr/bin/osascript"), scriptArgs);
+#else
+    // we cannot select a file here, because no file browser really supports it...
+    const QString folder = fileInfo.isDir() ? fileInfo.absoluteFilePath() : fileInfo.filePath();
+    QProcess browserProc;
+    const QString browserArgs = QStringLiteral("xdg-open \"%1\"").arg(QFileInfo(folder).path());
+    browserProc.startDetached(browserArgs);
+#endif
+}
+
+QString ShowInGraphicalShellString()
+{
+#if defined(Q_OS_WIN)
+    return QObject::tr("Show in Explorer");
+#elif defined(Q_OS_MAC)
+    return QObject::tr("Show in Finder");
+#else
+    return QObject::tr("Show in Browser");
+#endif
 }

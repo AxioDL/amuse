@@ -46,17 +46,7 @@ void MIDIReader::noteOn(uint8_t chan, uint8_t key, uint8_t velocity)
         m_chanVoxs.erase(keySearch);
     }
 
-    ProjectModel::INode* node = g_MainWindow->getEditorNode();
-    if (node && node->type() == ProjectModel::INode::Type::SoundMacro)
-    {
-        ProjectModel::SoundMacroNode* cNode = static_cast<ProjectModel::SoundMacroNode*>(node);
-        amuse::AudioGroupDatabase* group = g_MainWindow->projectModel()->getGroupNode(node)->getAudioGroup();
-        amuse::ObjToken<amuse::Voice>& vox = m_chanVoxs[key];
-        vox = m_engine.macroStart(group, cNode->id(), key, velocity, g_MainWindow->m_ctrlVals[1]);
-        vox->setPedal(g_MainWindow->m_ctrlVals[64] >= 0x40);
-        vox->setPitchWheel(g_MainWindow->m_pitch);
-        vox->installCtrlValues(g_MainWindow->m_ctrlVals);
-    }
+    m_chanVoxs[key] = g_MainWindow->startEditorVoice(key, velocity);
 }
 
 void MIDIReader::notePressure(uint8_t /*chan*/, uint8_t /*key*/, uint8_t /*pressure*/) {}

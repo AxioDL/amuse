@@ -29,22 +29,40 @@ const SampleEntry* AudioGroup::getSample(SampleId sfxId) const
     return search->second.get();
 }
 
+SystemString AudioGroup::getSampleBasePath(SampleId sfxId) const
+{
+#if _WIN32
+    return m_groupPath + _S('/') +
+    athena::utility::utf8ToWide(SampleId::CurNameDB->resolveNameFromId(sfxId));
+#else
+    return m_groupPath + _S('/') +
+    SampleId::CurNameDB->resolveNameFromId(sfxId).data();
+#endif
+}
+
 std::pair<ObjToken<SampleEntryData>, const unsigned char*>
     AudioGroup::getSampleData(SampleId sfxId, const SampleEntry* sample) const
 {
     if (sample->m_data->m_looseData)
     {
         setIdDatabases();
-#if _WIN32
-        SystemString basePath = m_groupPath + _S('/') +
-            athena::utility::utf8ToWide(SampleId::CurNameDB->resolveNameFromId(sfxId));
-#else
-        SystemString basePath = m_groupPath + _S('/') +
-            SampleId::CurNameDB->resolveNameFromId(sfxId).data();
-#endif
+        SystemString basePath = getSampleBasePath(sfxId);
         const_cast<SampleEntry*>(sample)->loadLooseData(basePath);
         return {sample->m_data, sample->m_data->m_looseData.get()};
     }
     return {{}, m_samp + sample->m_data->m_sampleOff};
+}
+
+SampleFileState AudioGroup::getSampleFileState(SampleId sfxId, const SampleEntry* sample, SystemString* pathOut)
+{
+    if (sample->m_data->m_looseData)
+    {
+        setIdDatabases();
+        SystemString basePath = getSampleBasePath(sfxId);
+        return sample->getFileState(basePath, pathOut);
+    }
+    if (sample->m_data->isFormatDSP() || sample->m_data->getSampleFormat() == SampleFormat::N64)
+        return SampleFileState::MemoryOnlyCompressed;
+    return SampleFileState::MemoryOnlyWAV;
 }
 }

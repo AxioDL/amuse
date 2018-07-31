@@ -19,6 +19,8 @@ class AudioGroup
     SystemString m_groupPath;
     bool m_valid;
 
+    SystemString getSampleBasePath(SampleId sfxId) const;
+
 public:
     operator bool() const { return m_valid; }
     AudioGroup() = default;
@@ -31,6 +33,8 @@ public:
     const SampleEntry* getSample(SampleId sfxId) const;
     std::pair<ObjToken<SampleEntryData>, const unsigned char*>
         getSampleData(SampleId sfxId, const SampleEntry* sample) const;
+    SampleFileState getSampleFileState(SampleId sfxId,
+        const SampleEntry* sample, SystemString* pathOut = nullptr);
     const AudioGroupProject& getProj() const { return m_proj; }
     const AudioGroupPool& getPool() const { return m_pool; }
     const AudioGroupSampleDirectory& getSdir() const { return m_sdir; }

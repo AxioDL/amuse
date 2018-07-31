@@ -330,6 +330,15 @@ void MainWindow::timerEvent(QTimerEvent* ev)
             m_ui.menubar->setEnabled(false);
             m_uiDisabled = true;
         }
+
+        if (SampleEditor* sampleEditor = qobject_cast<SampleEditor*>(m_ui.editorContents->currentWidget()))
+        {
+            const auto& activeVoxs = m_engine->getActiveVoices();
+            if (activeVoxs.size() && activeVoxs.back()->state() != amuse::VoiceState::Dead)
+                sampleEditor->setSamplePos(activeVoxs.back()->getSamplePos());
+            else
+                sampleEditor->setSamplePos(-1);
+        }
     }
 }
 
@@ -494,6 +503,32 @@ ProjectModel::INode* MainWindow::getEditorNode() const
     if (m_ui.editorContents->currentWidget() != m_faceSvg)
         return static_cast<EditorWidget*>(m_ui.editorContents->currentWidget())->currentNode();
     return nullptr;
+}
+
+amuse::ObjToken<amuse::Voice> MainWindow::startEditorVoice(uint8_t key, uint8_t velocity)
+{
+    amuse::ObjToken<amuse::Voice> vox;
+    if (ProjectModel::INode* node = getEditorNode())
+    {
+        amuse::AudioGroupDatabase* group = projectModel()->getGroupNode(node)->getAudioGroup();
+        if (node->type() == ProjectModel::INode::Type::SoundMacro)
+        {
+            ProjectModel::SoundMacroNode* cNode = static_cast<ProjectModel::SoundMacroNode*>(node);
+            vox = m_engine->macroStart(group, cNode->id(), key, velocity, m_ctrlVals[1]);
+        }
+        else if (node->type() == ProjectModel::INode::Type::Sample)
+        {
+            SampleEditor* editor = static_cast<SampleEditor*>(m_ui.editorContents->currentWidget());
+            vox = m_engine->macroStart(group, editor->soundMacro(), key, velocity, m_ctrlVals[1]);
+        }
+        if (vox)
+        {
+            vox->setPedal(m_ctrlVals[64] >= 0x40);
+            vox->setPitchWheel(m_pitch);
+            vox->installCtrlValues(m_ctrlVals);
+        }
+    }
+    return vox;
 }
 
 void MainWindow::pushUndoCommand(QUndoCommand* cmd)
@@ -863,20 +898,7 @@ void MainWindow::setMIDIIO()
 void MainWindow::notePressed(int key)
 {
     if (m_engine)
-    {
-        ProjectModel::INode* node = getEditorNode();
-        if (node && node->type() == ProjectModel::INode::Type::SoundMacro)
-        {
-            ProjectModel::SoundMacroNode* cNode = static_cast<ProjectModel::SoundMacroNode*>(node);
-            amuse::AudioGroupDatabase* group = m_projectModel->getGroupNode(node)->getAudioGroup();
-            if (m_lastSound)
-                m_lastSound->keyOff();
-            m_lastSound = m_engine->macroStart(group, cNode->id(), key, m_velocity, m_ctrlVals[1]);
-            m_lastSound->setPedal(m_ctrlVals[64] >= 0x40);
-            m_lastSound->setPitchWheel(m_pitch);
-            m_lastSound->installCtrlValues(m_ctrlVals);
-        }
-    }
+        m_lastSound = startEditorVoice(key, m_velocity);
 }
 
 void MainWindow::noteReleased()

@@ -215,6 +215,10 @@ public:
     bool loadMacroObject(SoundMacroId macroId, int macroStep, double ticksPerSec, uint8_t midiKey, uint8_t midiVel,
                          uint8_t midiMod, bool pushPc = false);
 
+    /** Load specified SoundMacro Object into voice */
+    bool loadMacroObject(const SoundMacro* macro, int macroStep, double ticksPerSec, uint8_t midiKey, uint8_t midiVel,
+                         uint8_t midiMod, bool pushPc = false);
+
     /** Load specified song page object (Keymap/Layer) from within group into voice */
     bool loadPageObject(ObjectId objectId, double ticksPerSec, uint8_t midiKey, uint8_t midiVel, uint8_t midiMod);
 
@@ -357,6 +361,9 @@ public:
 
     /** Get count of all voices in hierarchy, including this one */
     size_t getTotalVoices() const;
+
+    /** Get latest decoded sample index */
+    uint32_t getSamplePos() const { return m_curSamplePos; }
 
     /** Recursively mark voice as dead for Engine to deallocate on next cycle */
     void kill();

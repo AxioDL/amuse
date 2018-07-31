@@ -36,6 +36,9 @@ QString SysStringToQString(const boo::SystemString& str);
 bool MkPath(const QString& path, UIMessenger& messenger);
 bool MkPath(const QDir& dir, const QString& file, UIMessenger& messenger);
 
+void ShowInGraphicalShell(QWidget* parent, const QString& pathIn);
+QString ShowInGraphicalShellString();
+
 static QLatin1String StringViewToQString(std::string_view sv)
 {
     return QLatin1String(sv.data(), int(sv.size()));

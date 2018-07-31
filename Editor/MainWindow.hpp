@@ -144,6 +144,7 @@ public:
     void closeEditor();
 
     ProjectModel::INode* getEditorNode() const;
+    amuse::ObjToken<amuse::Voice> startEditorVoice(uint8_t key, uint8_t vel);
     void pushUndoCommand(QUndoCommand* cmd);
     void aboutToDeleteNode(ProjectModel::INode* node);
 
