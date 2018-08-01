@@ -481,7 +481,12 @@
 <context>
     <name>SampleControls</name>
     <message>
-        <location filename="../SampleEditor.cpp" line="+501"/>
+        <location filename="../SampleEditor.cpp" line="+546"/>
+        <source>Make WAV Version</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+7"/>
         <source>Make Compressed Version</source>
         <translation type="unfinished"></translation>
     </message>
@@ -519,11 +524,6 @@
     <message>
         <location line="+6"/>
         <source>Base Pitch</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="-115"/>
-        <source>Make WAV Version</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

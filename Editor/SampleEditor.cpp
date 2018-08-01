@@ -30,16 +30,30 @@ void SampleView::seekToSample(qreal sample)
         uint32_t endRem = uint32_t(sample) % 14;
 
         if (startRem)
+        {
+            uint32_t end = 14;
+            if (startBlock == endBlock)
+            {
+                end = endRem;
+                endRem = 0;
+            }
             DSPDecompressFrameRangedStateOnly(m_sampleData + 8 * startBlock, m_sample->m_ADPCMParms.dsp.m_coefs,
-                                              &m_prev1, &m_prev2, startRem, startBlock == endBlock ? endRem : 14);
+                                              &m_prev1, &m_prev2, startRem, end);
+            if (end == 14)
+                ++startBlock;
+        }
 
         for (uint32_t b = startBlock; b < endBlock; ++b)
+        {
             DSPDecompressFrameStateOnly(m_sampleData + 8 * b, m_sample->m_ADPCMParms.dsp.m_coefs,
                                         &m_prev1, &m_prev2, 14);
+        }
 
         if (endRem)
+        {
             DSPDecompressFrameStateOnly(m_sampleData + 8 * endBlock, m_sample->m_ADPCMParms.dsp.m_coefs,
                                         &m_prev1, &m_prev2, endRem);
+        }
     }
 
     m_curSamplePos = sample;
@@ -72,11 +86,18 @@ std::pair<std::pair<qreal, qreal>, std::pair<qreal, qreal>> SampleView::iterateS
 
         if (startRem)
         {
-            uint32_t end = startBlock == endBlock ? endRem : 14;
+            uint32_t end = 14;
+            if (startBlock == endBlock)
+            {
+                end = endRem;
+                endRem = 0;
+            }
             DSPDecompressFrameRanged(sampleBlock, m_sampleData + 8 * startBlock, m_sample->m_ADPCMParms.dsp.m_coefs,
                                      &m_prev1, &m_prev2, startRem, end);
             for (int s = 0; s < end - startRem; ++s)
                 accumulate(sampleBlock[s]);
+            if (end == 14)
+                ++startBlock;
         }
 
         for (uint32_t b = startBlock; b < endBlock; ++b)
@@ -129,11 +150,19 @@ void SampleView::paintEvent(QPaintEvent* ev)
     constexpr int rulerHeight = 28;
     int sampleHeight = height() - rulerHeight;
 
+    qreal deviceRatio = devicePixelRatioF();
     qreal rectStart = ev->rect().x();
+    qreal deviceWidth = ev->rect().width() * deviceRatio;
+    qreal increment = 1.0 / deviceRatio;
+    qreal deviceSamplesPerPx = m_samplesPerPx / deviceRatio;
     qreal startSample = rectStart * m_samplesPerPx;
-    qreal deviceWidth = ev->rect().width() * devicePixelRatioF();
-    qreal increment = 1.0 / devicePixelRatioF();
-    qreal deviceSamplesPerPx = m_samplesPerPx / devicePixelRatioF();
+    qreal startSampleRem = std::fmod(startSample, deviceSamplesPerPx);
+    if (startSampleRem > DBL_EPSILON)
+    {
+        startSample -= startSampleRem;
+        deviceWidth += startSampleRem;
+        rectStart = startSample / m_samplesPerPx;
+    }
 
     if (m_sample)
     {
@@ -145,11 +174,15 @@ void SampleView::paintEvent(QPaintEvent* ev)
 
         seekToSample(startSample);
 
+        std::pair<std::pair<qreal, qreal>, std::pair<qreal, qreal>> avgPeak;
         for (qreal i = 0.0; i < deviceWidth; i += increment)
         {
             if (m_curSamplePos + deviceSamplesPerPx > m_sample->getNumSamples())
                 break;
-            auto avgPeak = iterateSampleInterval(deviceSamplesPerPx);
+            if (i == 0.0 || std::floor(m_curSamplePos) != std::floor(m_curSamplePos + deviceSamplesPerPx))
+                avgPeak = iterateSampleInterval(deviceSamplesPerPx);
+            else
+                m_curSamplePos += deviceSamplesPerPx;
             painter.setPen(peakPen);
             painter.drawLine(QPointF(rectStart + i, avgPeak.first.second * scale + trans),
                              QPointF(rectStart + i, avgPeak.second.second * scale + trans));
@@ -172,13 +205,14 @@ void SampleView::paintEvent(QPaintEvent* ev)
     qreal numSpacing = binaryDiv / m_samplesPerPx;
     qreal tickSpacing = numSpacing / 5;
 
-    int lastNumDiv = int(ev->rect().x() / numSpacing);
-    int lastTickDiv = int(ev->rect().x() / tickSpacing);
+    int startX = std::max(0, int(ev->rect().x() - numSpacing));
+    int lastNumDiv = int(startX / numSpacing);
+    int lastTickDiv = int(startX / tickSpacing);
 
-    qreal samplePos = startSample;
+    qreal samplePos = startX * m_samplesPerPx;
     painter.setFont(m_rulerFont);
     painter.setPen(QPen(QColor(127, 127, 127), increment));
-    for (int i = ev->rect().x(); i < ev->rect().x() + ev->rect().width(); ++i)
+    for (int i = startX; i < ev->rect().x() + ev->rect().width() + numSpacing; ++i)
     {
         int thisNumDiv = int(i / numSpacing);
         int thisTickDiv = int(i / tickSpacing);
@@ -327,11 +361,6 @@ void SampleView::wheelEvent(QWheelEvent* ev)
     }
 }
 
-void SampleView::moveEvent(QMoveEvent* ev)
-{
-    update();
-}
-
 void SampleView::loadData(ProjectModel::SampleNode* node)
 {
     m_node = node;
@@ -376,9 +405,26 @@ void SampleView::setSamplePos(int pos)
 {
     if (pos != m_displaySamplePos)
     {
-        m_displaySamplePos = pos;
-        update();
+        if (pos >= 0)
+        {
+            int lastPos = m_displaySamplePos;
+            m_displaySamplePos = pos;
+            updateSampleRange(lastPos, pos);
+        }
+        else
+        {
+            m_displaySamplePos = pos;
+            update();
+        }
     }
+}
+
+void SampleView::updateSampleRange(int oldSamp, int newSamp)
+{
+    qreal lastPos = oldSamp / m_samplesPerPx;
+    qreal newPos = newSamp / m_samplesPerPx;
+    update(int(std::min(lastPos, newPos)) - 10, 0,
+           int(std::fabs(newPos - lastPos)) + 20, height());
 }
 
 SampleView::SampleView(QWidget* parent)
@@ -431,9 +477,12 @@ void SampleControls::startValueChanged(int val)
     {
         SampleEditor* editor = qobject_cast<SampleEditor*>(parentWidget());
         amuse::SampleEntryData* data = editor->m_sampleView->entryData();
+
+        int oldPos = data->getLoopStartSample();
         data->setLoopStartSample(atUint32(val));
         m_loopEnd->setMinimum(val);
-        editor->m_sampleView->update();
+
+        editor->m_sampleView->updateSampleRange(oldPos, val);
     }
 }
 
@@ -443,9 +492,12 @@ void SampleControls::endValueChanged(int val)
     {
         SampleEditor* editor = qobject_cast<SampleEditor*>(parentWidget());
         amuse::SampleEntryData* data = editor->m_sampleView->entryData();
+
+        int oldPos = data->getLoopEndSample();
         data->setLoopEndSample(atUint32(val));
         m_loopStart->setMaximum(val);
-        editor->m_sampleView->update();
+
+        editor->m_sampleView->updateSampleRange(oldPos, val);
     }
 }
 

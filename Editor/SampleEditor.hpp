@@ -44,6 +44,7 @@ public:
     amuse::SampleEntryData* entryData() const;
     const amuse::SoundMacro* soundMacro() const;
     void setSamplePos(int pos);
+    void updateSampleRange(int oldSamp, int newSamp);
 
     void paintEvent(QPaintEvent* ev);
     void resetZoom();
@@ -53,7 +54,6 @@ public:
     void mouseReleaseEvent(QMouseEvent* ev);
     void mouseMoveEvent(QMouseEvent* ev);
     void wheelEvent(QWheelEvent* ev);
-    void moveEvent(QMoveEvent* ev);
 };
 
 class SampleControls : public QFrame

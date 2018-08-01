@@ -230,9 +230,17 @@ public:
             m_loopLengthSamples += m_loopStartSample - sample;
             m_loopStartSample = sample;
         }
+        atUint32 getLoopStartSample() const
+        {
+            return m_loopStartSample;
+        }
         void setLoopEndSample(atUint32 sample)
         {
             m_loopLengthSamples = sample + 1 - m_loopStartSample;
+        }
+        atUint32 getLoopEndSample() const
+        {
+            return m_loopStartSample + m_loopLengthSamples - 1;
         }
 
         EntryData() = default;
