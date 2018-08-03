@@ -677,14 +677,12 @@ public:
     void undo()
     {
         m_undid = true;
-        static_cast<ProjectModel::SoundMacroNode*>(m_node.get())->
-            m_obj->swapPositions(m_a, m_b);
+        m_node.cast<ProjectModel::SoundMacroNode>()->m_obj->swapPositions(m_a, m_b);
         EditorUndoCommand::undo();
     }
     void redo()
     {
-        static_cast<ProjectModel::SoundMacroNode*>(m_node.get())->
-            m_obj->swapPositions(m_a, m_b);
+        m_node.cast<ProjectModel::SoundMacroNode>()->m_obj->swapPositions(m_a, m_b);
         if (m_undid)
             EditorUndoCommand::redo();
     }
@@ -810,16 +808,14 @@ public:
     : EditorUndoCommand(node.get(), QUndoStack::tr("Insert %1").arg(text)), m_insertIdx(insertIdx) {}
     void undo()
     {
-        m_cmd = static_cast<ProjectModel::SoundMacroNode*>(m_node.get())->
-            m_obj->deleteCmd(m_insertIdx);
+        m_cmd = m_node.cast<ProjectModel::SoundMacroNode>()->m_obj->deleteCmd(m_insertIdx);
         EditorUndoCommand::undo();
     }
     void redo()
     {
         if (!m_cmd)
             return;
-        static_cast<ProjectModel::SoundMacroNode*>(m_node.get())->
-            m_obj->insertCmd(m_insertIdx, std::move(m_cmd));
+        m_node.cast<ProjectModel::SoundMacroNode>()->m_obj->insertCmd(m_insertIdx, std::move(m_cmd));
         m_cmd.reset();
         EditorUndoCommand::redo();
     }
@@ -866,15 +862,13 @@ public:
     void undo()
     {
         m_undid = true;
-        static_cast<ProjectModel::SoundMacroNode*>(m_node.get())->
-            m_obj->insertCmd(m_deleteIdx, std::move(m_cmd));
+        m_node.cast<ProjectModel::SoundMacroNode>()->m_obj->insertCmd(m_deleteIdx, std::move(m_cmd));
         m_cmd.reset();
         EditorUndoCommand::undo();
     }
     void redo()
     {
-        m_cmd = static_cast<ProjectModel::SoundMacroNode*>(m_node.get())->
-            m_obj->deleteCmd(m_deleteIdx);
+        m_cmd = m_node.cast<ProjectModel::SoundMacroNode>()->m_obj->deleteCmd(m_deleteIdx);
         if (m_undid)
             EditorUndoCommand::redo();
     }

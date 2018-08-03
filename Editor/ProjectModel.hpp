@@ -249,7 +249,7 @@ public:
                          ImportMode mode, UIMessenger& messenger);
     bool saveToFile(UIMessenger& messenger);
 
-    void ensureModelData();
+    bool ensureModelData();
 
     QModelIndex proxyCreateIndex(int arow, int acolumn, void *adata) const;
     QModelIndex index(int row, int column, const QModelIndex& parent = QModelIndex()) const;

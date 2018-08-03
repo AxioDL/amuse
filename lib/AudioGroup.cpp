@@ -53,7 +53,7 @@ std::pair<ObjToken<SampleEntryData>, const unsigned char*>
     return {{}, m_samp + sample->m_data->m_sampleOff};
 }
 
-SampleFileState AudioGroup::getSampleFileState(SampleId sfxId, const SampleEntry* sample, SystemString* pathOut)
+SampleFileState AudioGroup::getSampleFileState(SampleId sfxId, const SampleEntry* sample, SystemString* pathOut) const
 {
     if (sample->m_data->m_looseData)
     {
@@ -64,5 +64,33 @@ SampleFileState AudioGroup::getSampleFileState(SampleId sfxId, const SampleEntry
     if (sample->m_data->isFormatDSP() || sample->m_data->getSampleFormat() == SampleFormat::N64)
         return SampleFileState::MemoryOnlyCompressed;
     return SampleFileState::MemoryOnlyWAV;
+}
+
+void AudioGroup::patchSampleMetadata(SampleId sfxId, const SampleEntry* sample) const
+{
+    if (sample->m_data->m_looseData)
+    {
+        setIdDatabases();
+        SystemString basePath = getSampleBasePath(sfxId);
+        sample->patchSampleMetadata(basePath);
+    }
+}
+
+void AudioGroup::makeWAVVersion(SampleId sfxId, const SampleEntry* sample) const
+{
+    if (sample->m_data->m_looseData)
+    {
+        setIdDatabases();
+        m_sdir._extractWAV(sfxId, *sample->m_data, m_groupPath, sample->m_data->m_looseData.get());
+    }
+}
+
+void AudioGroup::makeCompressedVersion(SampleId sfxId, const SampleEntry* sample) const
+{
+    if (sample->m_data->m_looseData)
+    {
+        setIdDatabases();
+        m_sdir._extractCompressed(sfxId, *sample->m_data, m_groupPath, sample->m_data->m_looseData.get(), true);
+    }
 }
 }

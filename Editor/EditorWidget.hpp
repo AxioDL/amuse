@@ -23,6 +23,8 @@ protected:
     enum class Id
     {
         SMChangeVal,
+        SampLoop,
+        SampPitch
     };
 public:
     EditorUndoCommand(amuse::ObjToken<ProjectModel::INode> node,

@@ -15,17 +15,17 @@ struct DSPADPCMHeader : BigDNA
     Value<atUint32> x0_num_samples;
     Value<atUint32> x4_num_nibbles;
     Value<atUint32> x8_sample_rate;
-    Value<atUint16> xc_loop_flag;
+    Value<atUint16> xc_loop_flag = 0;
     Value<atUint16> xe_format = 0; /* 0 for ADPCM */
     Value<atUint32> x10_loop_start_nibble = 0;
     Value<atUint32> x14_loop_end_nibble = 0;
     Value<atUint32> x18_ca = 0;
     Value<atInt16> x1c_coef[8][2];
     Value<atInt16> x3c_gain = 0;
-    Value<atInt16> x3e_ps;
-    Value<atInt16> x40_hist1;
-    Value<atInt16> x42_hist2;
-    Value<atInt16> x44_loop_ps;
+    Value<atInt16> x3e_ps = 0;
+    Value<atInt16> x40_hist1 = 0;
+    Value<atInt16> x42_hist2 = 0;
+    Value<atInt16> x44_loop_ps = 0;
     Value<atInt16> x46_loop_hist1 = 0;
     Value<atInt16> x48_loop_hist2 = 0;
     Value<atUint8> m_pitch = 0; // Stash this in the padding
@@ -62,8 +62,8 @@ struct WAVSampleLoop : LittleDNA
     AT_DECL_DNA
     Value<atUint32> cuePointId = 0;
     Value<atUint32> loopType = 0; // 0: forward loop
-    Value<atUint32> start; // in bytes
-    Value<atUint32> end; // in bytes
+    Value<atUint32> start;
+    Value<atUint32> end;
     Value<atUint32> fraction = 0;
     Value<atUint32> playCount = 0;
 };
@@ -225,11 +225,12 @@ public:
             return fmt == SampleFormat::DSP || fmt == SampleFormat::DSP_DRUM;
         }
 
-        void setLoopStartSample(atUint32 sample)
+        void _setLoopStartSample(atUint32 sample)
         {
             m_loopLengthSamples += m_loopStartSample - sample;
             m_loopStartSample = sample;
         }
+        void setLoopStartSample(atUint32 sample);
         atUint32 getLoopStartSample() const
         {
             return m_loopStartSample;
@@ -284,6 +285,9 @@ public:
 
         void loadLooseDSP(SystemStringView dspPath);
         void loadLooseWAV(SystemStringView wavPath);
+
+        void patchMetadataDSP(SystemStringView dspPath);
+        void patchMetadataWAV(SystemStringView wavPath);
     };
     /* This double-wrapper allows Voices to keep a strong reference on
      * a single instance of loaded loose data without being unexpectedly
@@ -315,6 +319,7 @@ public:
 
         void loadLooseData(SystemStringView basePath);
         SampleFileState getFileState(SystemStringView basePath, SystemString* pathOut = nullptr) const;
+        void patchSampleMetadata(SystemStringView basePath) const;
     };
 
 private:
@@ -322,7 +327,7 @@ private:
     static void _extractWAV(SampleId id, const EntryData& ent, amuse::SystemStringView destDir,
                             const unsigned char* samp);
     static void _extractCompressed(SampleId id, const EntryData& ent, amuse::SystemStringView destDir,
-                                   const unsigned char* samp);
+                                   const unsigned char* samp, bool compressWAV = false);
 
 public:
     AudioGroupSampleDirectory() = default;

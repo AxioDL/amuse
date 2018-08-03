@@ -13,6 +13,7 @@ class SampleEditor;
 class SampleView : public QWidget
 {
     Q_OBJECT
+    friend class SampleControls;
     qreal m_baseSamplesPerPx = 100.0;
     qreal m_samplesPerPx = 100.0;
     qreal m_zoomFactor = 1.0;
@@ -38,7 +39,7 @@ class SampleView : public QWidget
     SampleEditor* getEditor() const;
 public:
     explicit SampleView(QWidget* parent = Q_NULLPTR);
-    void loadData(ProjectModel::SampleNode* node);
+    bool loadData(ProjectModel::SampleNode* node);
     void unloadData();
     ProjectModel::INode* currentNode() const;
     amuse::SampleEntryData* entryData() const;
@@ -68,9 +69,12 @@ class SampleControls : public QFrame
     QPushButton* m_makeOtherVersion;
     QMetaObject::Connection m_makeOtherConn;
     QPushButton* m_showInBrowser;
-    bool m_updateFile = true;
+    bool m_enableUpdate = true;
+    bool m_enableFileWrite = true;
 public:
     SampleControls(QWidget* parent = Q_NULLPTR);
+    void doFileWrite();
+    void setFileWrite(bool w);
 public slots:
     void zoomSliderChanged(int val);
     void loopStateChanged(int state);
@@ -85,7 +89,7 @@ public slots:
     void setLoopStartSample(int sample) { m_loopStart->setValue(sample); }
     void setLoopEndSample(int sample) { m_loopEnd->setValue(sample); }
 
-    void loadData();
+    void loadData(bool reset);
     void unloadData();
 };
 
@@ -94,6 +98,8 @@ class SampleEditor : public EditorWidget
     Q_OBJECT
     friend class SampleView;
     friend class SampleControls;
+    friend class SampLoopUndoCommand;
+    friend class SampPitchUndoCommand;
     QScrollArea* m_scrollArea;
     SampleView* m_sampleView;
     SampleControls* m_controls;

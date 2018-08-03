@@ -16,7 +16,7 @@ class AudioGroup
     AudioGroupPool m_pool;
     AudioGroupSampleDirectory m_sdir;
     const unsigned char* m_samp = nullptr;
-    SystemString m_groupPath;
+    SystemString m_groupPath; /* Typically only set by editor */
     bool m_valid;
 
     SystemString getSampleBasePath(SampleId sfxId) const;
@@ -29,12 +29,16 @@ public:
 
     void assign(const AudioGroupData& data);
     void assign(SystemStringView groupPath);
+    void setGroupPath(SystemStringView groupPath) { m_groupPath = groupPath; }
 
     const SampleEntry* getSample(SampleId sfxId) const;
     std::pair<ObjToken<SampleEntryData>, const unsigned char*>
         getSampleData(SampleId sfxId, const SampleEntry* sample) const;
     SampleFileState getSampleFileState(SampleId sfxId,
-        const SampleEntry* sample, SystemString* pathOut = nullptr);
+        const SampleEntry* sample, SystemString* pathOut = nullptr) const;
+    void patchSampleMetadata(SampleId sfxId, const SampleEntry* sample) const;
+    void makeWAVVersion(SampleId sfxId, const SampleEntry* sample) const;
+    void makeCompressedVersion(SampleId sfxId, const SampleEntry* sample) const;
     const AudioGroupProject& getProj() const { return m_proj; }
     const AudioGroupPool& getPool() const { return m_pool; }
     const AudioGroupSampleDirectory& getSdir() const { return m_sdir; }

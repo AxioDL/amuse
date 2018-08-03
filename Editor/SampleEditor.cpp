@@ -335,6 +335,8 @@ void SampleView::mousePressEvent(QMouseEvent* ev)
         else if (endPass)
             m_dragState = DragState::End;
 
+        getEditor()->m_controls->setFileWrite(m_dragState == DragState::None);
+
         mouseMoveEvent(ev);
     }
 }
@@ -342,6 +344,7 @@ void SampleView::mousePressEvent(QMouseEvent* ev)
 void SampleView::mouseReleaseEvent(QMouseEvent* ev)
 {
     m_dragState = DragState::None;
+    getEditor()->m_controls->setFileWrite(true);
 }
 
 void SampleView::mouseMoveEvent(QMouseEvent* ev)
@@ -361,12 +364,15 @@ void SampleView::wheelEvent(QWheelEvent* ev)
     }
 }
 
-void SampleView::loadData(ProjectModel::SampleNode* node)
+bool SampleView::loadData(ProjectModel::SampleNode* node)
 {
+    bool reset = m_node.get() != node;
     m_node = node;
+
     ProjectModel::GroupNode* group = g_MainWindow->projectModel()->getGroupNode(m_node.get());
     std::tie(m_sample, m_sampleData) = group->getAudioGroup()->getSampleData(m_node->id(), m_node->m_obj.get());
-    resetZoom();
+    if (reset)
+        resetZoom();
 
     m_playbackMacro = amuse::MakeObj<amuse::SoundMacro>();
     amuse::SoundMacro::CmdStartSample* startSample =
@@ -376,6 +382,8 @@ void SampleView::loadData(ProjectModel::SampleNode* node)
     m_playbackMacro->insertNewCmd(1, amuse::SoundMacro::CmdOp::End);
 
     update();
+
+    return reset;
 }
 
 void SampleView::unloadData()
@@ -440,85 +448,197 @@ void SampleControls::zoomSliderChanged(int val)
     editor->m_sampleView->setZoom(val);
 }
 
+class SampLoopUndoCommand : public EditorUndoCommand
+{
+    uint32_t m_redoStartVal, m_redoEndVal, m_undoStartVal, m_undoEndVal;
+    int m_fieldIdx;
+    bool m_undid = false;
+public:
+    SampLoopUndoCommand(uint32_t redoStart, uint32_t redoEnd, const QString& fieldName,
+                        int fieldIdx, amuse::ObjToken<ProjectModel::SampleNode> node)
+    : EditorUndoCommand(node.get(), QUndoStack::tr("Change %1").arg(fieldName)),
+      m_redoStartVal(redoStart), m_redoEndVal(redoEnd), m_fieldIdx(fieldIdx) {}
+    void undo()
+    {
+        m_undid = true;
+        amuse::SampleEntryData* data = m_node.cast<ProjectModel::SampleNode>()->m_obj->m_data.get();
+        data->setLoopStartSample(m_undoStartVal);
+        data->setLoopEndSample(m_undoEndVal);
+        EditorUndoCommand::undo();
+        if (SampleEditor* e = static_cast<SampleEditor*>(g_MainWindow->getEditorWidget()))
+            e->m_controls->doFileWrite();
+    }
+    void redo()
+    {
+        amuse::SampleEntryData* data = m_node.cast<ProjectModel::SampleNode>()->m_obj->m_data.get();
+        m_undoStartVal = data->getLoopStartSample();
+        m_undoEndVal = data->getLoopEndSample();
+        data->setLoopStartSample(m_redoStartVal);
+        data->setLoopEndSample(m_redoEndVal);
+        if (m_undid)
+        {
+            EditorUndoCommand::redo();
+            if (SampleEditor* e = static_cast<SampleEditor*>(g_MainWindow->getEditorWidget()))
+                e->m_controls->doFileWrite();
+        }
+    }
+    bool mergeWith(const QUndoCommand* other)
+    {
+        if (other->id() == id() && static_cast<const SampLoopUndoCommand*>(other)->m_fieldIdx == m_fieldIdx)
+        {
+            m_redoStartVal = static_cast<const SampLoopUndoCommand*>(other)->m_redoStartVal;
+            m_redoEndVal = static_cast<const SampLoopUndoCommand*>(other)->m_redoEndVal;
+            return true;
+        }
+        return false;
+    }
+    int id() const { return int(Id::SampLoop); }
+};
+
 void SampleControls::loopStateChanged(int state)
 {
-    if (m_updateFile)
+    if (m_enableUpdate)
     {
         SampleEditor* editor = qobject_cast<SampleEditor*>(parentWidget());
         amuse::SampleEntryData* data = editor->m_sampleView->entryData();
         if (state == Qt::Checked)
         {
+            g_MainWindow->pushUndoCommand(new SampLoopUndoCommand(atUint32(m_loopStart->value()),
+                uint32_t(m_loopEnd->value()), tr("Loop"), 0, editor->m_sampleView->m_node));
             m_loopStart->setEnabled(true);
             m_loopEnd->setEnabled(true);
             if (m_loopStart->value() == 0 && m_loopEnd->value() == 0)
             {
-                m_updateFile = false;
+                m_enableUpdate = false;
                 m_loopEnd->setValue(data->getNumSamples() - 1);
                 m_loopStart->setMaximum(m_loopEnd->value());
-                m_updateFile = true;
+                m_enableUpdate = true;
             }
             data->m_loopStartSample = atUint32(m_loopStart->value());
             data->m_loopLengthSamples = m_loopEnd->value() + 1 - data->m_loopStartSample;
         }
         else
         {
+            g_MainWindow->pushUndoCommand(new SampLoopUndoCommand(0, 0, tr("Loop"), 0, editor->m_sampleView->m_node));
             m_loopStart->setEnabled(false);
             m_loopEnd->setEnabled(false);
             data->m_loopStartSample = 0;
             data->m_loopLengthSamples = 0;
         }
         editor->m_sampleView->update();
+        doFileWrite();
     }
 }
 
 void SampleControls::startValueChanged(int val)
 {
-    if (m_updateFile)
+    if (m_enableUpdate)
     {
         SampleEditor* editor = qobject_cast<SampleEditor*>(parentWidget());
         amuse::SampleEntryData* data = editor->m_sampleView->entryData();
 
         int oldPos = data->getLoopStartSample();
+        g_MainWindow->pushUndoCommand(new SampLoopUndoCommand(atUint32(val), data->getLoopEndSample(), tr("Loop Start"),
+                                                              1, editor->m_sampleView->m_node));
+
         data->setLoopStartSample(atUint32(val));
         m_loopEnd->setMinimum(val);
 
         editor->m_sampleView->updateSampleRange(oldPos, val);
+        doFileWrite();
     }
 }
 
 void SampleControls::endValueChanged(int val)
 {
-    if (m_updateFile)
+    if (m_enableUpdate)
     {
         SampleEditor* editor = qobject_cast<SampleEditor*>(parentWidget());
         amuse::SampleEntryData* data = editor->m_sampleView->entryData();
 
         int oldPos = data->getLoopEndSample();
+        g_MainWindow->pushUndoCommand(new SampLoopUndoCommand(data->getLoopStartSample(), atUint32(val), tr("Loop End"),
+                                                              2, editor->m_sampleView->m_node));
+
         data->setLoopEndSample(atUint32(val));
         m_loopStart->setMaximum(val);
 
         editor->m_sampleView->updateSampleRange(oldPos, val);
+        doFileWrite();
     }
 }
 
+class SampPitchUndoCommand : public EditorUndoCommand
+{
+    uint8_t m_redoPitchVal, m_undoPitchVal;
+    bool m_undid = false;
+public:
+    SampPitchUndoCommand(atUint8 redoPitch, amuse::ObjToken<ProjectModel::SampleNode> node)
+    : EditorUndoCommand(node.get(), QUndoStack::tr("Change Base Pitch")),
+      m_redoPitchVal(redoPitch) {}
+    void undo()
+    {
+        m_undid = true;
+        amuse::SampleEntryData* data = m_node.cast<ProjectModel::SampleNode>()->m_obj->m_data.get();
+        data->m_pitch = m_undoPitchVal;
+        EditorUndoCommand::undo();
+        if (SampleEditor* e = static_cast<SampleEditor*>(g_MainWindow->getEditorWidget()))
+            e->m_controls->doFileWrite();
+    }
+    void redo()
+    {
+        amuse::SampleEntryData* data = m_node.cast<ProjectModel::SampleNode>()->m_obj->m_data.get();
+        m_undoPitchVal = data->m_pitch;
+        data->m_pitch = m_redoPitchVal;
+        if (m_undid)
+        {
+            EditorUndoCommand::redo();
+            if (SampleEditor* e = static_cast<SampleEditor*>(g_MainWindow->getEditorWidget()))
+                e->m_controls->doFileWrite();
+        }
+    }
+    bool mergeWith(const QUndoCommand* other)
+    {
+        if (other->id() == id())
+        {
+            m_redoPitchVal = static_cast<const SampPitchUndoCommand*>(other)->m_redoPitchVal;
+            return true;
+        }
+        return false;
+    }
+    int id() const { return int(Id::SampPitch); }
+};
+
 void SampleControls::pitchValueChanged(int val)
 {
-    if (m_updateFile)
+    if (m_enableUpdate)
     {
         SampleEditor* editor = qobject_cast<SampleEditor*>(parentWidget());
         amuse::SampleEntryData* data = editor->m_sampleView->entryData();
+
+        g_MainWindow->pushUndoCommand(new SampPitchUndoCommand(atUint8(val), editor->m_sampleView->m_node));
+
         data->m_pitch = atUint8(val);
+        doFileWrite();
     }
 }
 
 void SampleControls::makeWAVVersion()
 {
-
+    SampleEditor* editor = qobject_cast<SampleEditor*>(parentWidget());
+    ProjectModel::SampleNode* node = static_cast<ProjectModel::SampleNode*>(editor->currentNode());
+    g_MainWindow->projectModel()->getGroupNode(node)->getAudioGroup()->
+        makeWAVVersion(node->id(), node->m_obj.get());
+    updateFileState();
 }
 
 void SampleControls::makeCompressedVersion()
 {
-
+    SampleEditor* editor = qobject_cast<SampleEditor*>(parentWidget());
+    ProjectModel::SampleNode* node = static_cast<ProjectModel::SampleNode*>(editor->currentNode());
+    g_MainWindow->projectModel()->getGroupNode(node)->getAudioGroup()->
+        makeCompressedVersion(node->id(), node->m_obj.get());
+    updateFileState();
 }
 
 void SampleControls::showInBrowser()
@@ -528,7 +648,7 @@ void SampleControls::showInBrowser()
 
 void SampleControls::updateFileState()
 {
-    m_updateFile = false;
+    m_enableUpdate = false;
 
     SampleEditor* editor = qobject_cast<SampleEditor*>(parentWidget());
     ProjectModel::SampleNode* node = static_cast<ProjectModel::SampleNode*>(editor->currentNode());
@@ -590,17 +710,35 @@ void SampleControls::updateFileState()
         m_showInBrowser->setDisabled(true);
     }
 
-    m_updateFile = true;
+    m_enableUpdate = true;
 }
 
-void SampleControls::loadData()
+void SampleControls::doFileWrite()
+{
+    if (m_enableFileWrite)
+    {
+        SampleEditor* editor = qobject_cast<SampleEditor*>(parentWidget());
+        ProjectModel::SampleNode* node = static_cast<ProjectModel::SampleNode*>(editor->currentNode());
+        g_MainWindow->projectModel()->getGroupNode(node)->getAudioGroup()->
+            patchSampleMetadata(node->id(), node->m_obj.get());
+    }
+}
+
+void SampleControls::setFileWrite(bool w)
+{
+    m_enableFileWrite = w;
+    doFileWrite();
+}
+
+void SampleControls::loadData(bool reset)
 {
     m_zoomSlider->setDisabled(false);
     m_loopCheck->setDisabled(false);
     m_loopStart->setDisabled(false);
     m_loopEnd->setDisabled(false);
     m_basePitch->setDisabled(false);
-    m_zoomSlider->setValue(0);
+    if (reset)
+        m_zoomSlider->setValue(0);
     updateFileState();
 }
 
@@ -695,8 +833,7 @@ SampleControls::SampleControls(QWidget* parent)
 
 bool SampleEditor::loadData(ProjectModel::SampleNode* node)
 {
-    m_sampleView->loadData(node);
-    m_controls->loadData();
+    m_controls->loadData(m_sampleView->loadData(node));
     return true;
 }
 

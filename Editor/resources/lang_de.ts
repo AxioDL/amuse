@@ -190,7 +190,7 @@
         <translation>Verlassen</translation>
     </message>
     <message>
-        <location line="+160"/>
+        <location line="+159"/>
         <source>The directory at &apos;%1&apos; must exist for the Amuse editor.</source>
         <translation>Das Verzeichnis unter &apos;% 1&apos; muss für den Amuse-Editor vorhanden sein.</translation>
     </message>
@@ -225,7 +225,7 @@
         <translation>Keine MIDI-Geräte gefunden</translation>
     </message>
     <message>
-        <location line="+237"/>
+        <location line="+244"/>
         <source>New Project</source>
         <translation>Neues Projekt</translation>
     </message>
@@ -240,12 +240,12 @@
         <translation>Das Verzeichnis &apos;% 1&apos; existiert nicht.</translation>
     </message>
     <message>
-        <location line="-504"/>
+        <location line="-510"/>
         <source>Clear Recent Projects</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+124"/>
+        <location line="+123"/>
         <source>Amuse [%1/%2/%3]</source>
         <translation type="unfinished"></translation>
     </message>
@@ -256,23 +256,23 @@
     </message>
     <message>
         <location line="+31"/>
-        <location line="+338"/>
+        <location line="+345"/>
         <source>The directory at &apos;%1&apos; must not be empty.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-337"/>
-        <location line="+338"/>
+        <location line="-344"/>
+        <location line="+345"/>
         <source>Directory empty</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-216"/>
+        <location line="-223"/>
         <source>SUSTAIN</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+222"/>
+        <location line="+229"/>
         <source>Bad Directory</source>
         <translation>Schlechtes Verzeichnis</translation>
     </message>
@@ -396,7 +396,7 @@
 <context>
     <name>ProjectModel</name>
     <message>
-        <location filename="../ProjectModel.cpp" line="+227"/>
+        <location filename="../ProjectModel.cpp" line="+226"/>
         <source>Sound Macros</source>
         <translation>Sound-Makros</translation>
     </message>
@@ -457,23 +457,29 @@
 <context>
     <name>QUndoStack</name>
     <message>
+        <location filename="../SampleEditor.cpp" line="+459"/>
         <location filename="../SoundMacroEditor.cpp" line="+350"/>
         <source>Change %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+326"/>
+        <location line="+118"/>
+        <source>Change Base Pitch</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../SoundMacroEditor.cpp" line="+326"/>
         <source>Reorder %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+134"/>
+        <location line="+132"/>
         <source>Insert %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="+151"/>
-        <location filename="../SoundMacroEditor.cpp" line="+55"/>
+        <location filename="../ProjectModel.cpp" line="+152"/>
+        <location filename="../SoundMacroEditor.cpp" line="+53"/>
         <source>Delete %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -481,7 +487,7 @@
 <context>
     <name>SampleControls</name>
     <message>
-        <location filename="../SampleEditor.cpp" line="+546"/>
+        <location filename="../SampleEditor.cpp" line="+89"/>
         <source>Make WAV Version</source>
         <translation type="unfinished"></translation>
     </message>
@@ -496,7 +502,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+56"/>
+        <location line="+74"/>
         <location line="+66"/>
         <source>Nothing Loaded</source>
         <translation type="unfinished"></translation>
@@ -507,12 +513,24 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="-264"/>
+        <location line="+15"/>
+        <location line="+256"/>
         <source>Loop</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="-237"/>
+        <source>Loop Start</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+19"/>
+        <source>Loop End</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+227"/>
         <source>Start</source>
         <translation type="unfinished"></translation>
     </message>
@@ -530,7 +548,7 @@
 <context>
     <name>SoundMacroCatalogue</name>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="+118"/>
+        <location filename="../SoundMacroEditor.cpp" line="+116"/>
         <source>Control</source>
         <translation>Steuerung</translation>
     </message>
@@ -603,7 +621,7 @@
 <context>
     <name>SoundMacroDeleteButton</name>
     <message>
-        <location line="-847"/>
+        <location line="-841"/>
         <source>Delete this SoundMacro</source>
         <translation type="unfinished"></translation>
     </message>

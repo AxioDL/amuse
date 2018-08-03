@@ -8,6 +8,9 @@
 #include "athena/FileWriter.hpp"
 #include "athena/FileReader.hpp"
 #include <cstring>
+#ifndef _WIN32
+#include <fcntl.h>
+#endif
 
 namespace amuse
 {
@@ -149,6 +152,28 @@ static uint32_t DSPNibbleToSample(uint32_t nibble)
     return ret;
 }
 
+void AudioGroupSampleDirectory::EntryData::setLoopStartSample(atUint32 sample)
+{
+    _setLoopStartSample(sample);
+
+    if (m_looseData && isFormatDSP())
+    {
+        uint32_t block = m_loopStartSample / 14;
+        uint32_t rem = m_loopStartSample % 14;
+        int16_t prev1 = 0;
+        int16_t prev2 = 0;
+        for (uint32_t b = 0; b < block; ++b)
+            DSPDecompressFrameStateOnly(m_looseData.get() + 8 * b, m_ADPCMParms.dsp.m_coefs,
+                                        &prev1, &prev2, 14);
+        if (rem)
+            DSPDecompressFrameStateOnly(m_looseData.get() + 8 * block, m_ADPCMParms.dsp.m_coefs,
+                                        &prev1, &prev2, rem);
+        m_ADPCMParms.dsp.m_hist1 = prev1;
+        m_ADPCMParms.dsp.m_hist2 = prev2;
+        m_ADPCMParms.dsp.m_lps = m_looseData[8 * block];
+    }
+}
+
 void AudioGroupSampleDirectory::EntryData::loadLooseDSP(SystemStringView dspPath)
 {
     athena::io::FileReader r(dspPath);
@@ -161,8 +186,8 @@ void AudioGroupSampleDirectory::EntryData::loadLooseDSP(SystemStringView dspPath
         m_numSamples = header.x0_num_samples;
         if (header.xc_loop_flag)
         {
-            m_loopStartSample = DSPNibbleToSample(header.x10_loop_start_nibble);
-            m_loopLengthSamples = DSPNibbleToSample(header.x14_loop_end_nibble) - m_loopStartSample;
+            _setLoopStartSample(DSPNibbleToSample(header.x10_loop_start_nibble));
+            setLoopEndSample(DSPNibbleToSample(header.x14_loop_end_nibble));
         }
         m_ADPCMParms.dsp.m_ps = uint8_t(header.x3e_ps);
         m_ADPCMParms.dsp.m_lps = uint8_t(header.x44_loop_ps);
@@ -212,8 +237,8 @@ void AudioGroupSampleDirectory::EntryData::loadLooseWAV(SystemStringView wavPath
                 {
                     WAVSampleLoop loop;
                     loop.read(r);
-                    m_loopStartSample = loop.start;
-                    m_loopLengthSamples = loop.end - loop.start + 1;
+                    _setLoopStartSample(loop.start);
+                    setLoopEndSample(loop.end);
                 }
             }
             else if (chunkMagic == SBIG('data'))
@@ -301,6 +326,213 @@ SampleFileState AudioGroupSampleDirectory::Entry::getFileState(SystemStringView 
     return SampleFileState::WAVNoCompressed;
 }
 
+void AudioGroupSampleDirectory::EntryData::patchMetadataDSP(SystemStringView dspPath)
+{
+    athena::io::FileReader r(dspPath);
+    if (!r.hasError())
+    {
+        DSPADPCMHeader head;
+        head.read(r);
+
+        if (m_loopLengthSamples != 0)
+        {
+            uint32_t block = getLoopStartSample() / 14;
+            uint32_t rem = getLoopStartSample() % 14;
+            int16_t prev1 = 0;
+            int16_t prev2 = 0;
+            uint8_t blockBuf[8];
+            for (uint32_t b = 0; b < block; ++b)
+            {
+                r.readBytesToBuf(blockBuf, 8);
+                DSPDecompressFrameStateOnly(blockBuf, head.x1c_coef, &prev1, &prev2, 14);
+            }
+            if (rem)
+            {
+                r.readBytesToBuf(blockBuf, 8);
+                DSPDecompressFrameStateOnly(blockBuf, head.x1c_coef, &prev1, &prev2, rem);
+            }
+            head.xc_loop_flag = 1;
+            head.x44_loop_ps = blockBuf[0];
+            head.x46_loop_hist1 = prev1;
+            head.x48_loop_hist2 = prev2;
+        }
+        else
+        {
+            head.xc_loop_flag = 0;
+            head.x44_loop_ps = 0;
+            head.x46_loop_hist1 = 0;
+            head.x48_loop_hist2 = 0;
+        }
+        head.x10_loop_start_nibble = DSPSampleToNibble(getLoopStartSample());
+        head.x14_loop_end_nibble = DSPSampleToNibble(getLoopEndSample());
+        head.m_pitch = m_pitch;
+        r.close();
+
+        athena::io::FileWriter w(dspPath, false);
+        if (!w.hasError())
+        {
+            w.seek(0, athena::Begin);
+            head.write(w);
+        }
+    }
+}
+
+void AudioGroupSampleDirectory::EntryData::patchMetadataWAV(SystemStringView wavPath)
+{
+    athena::io::FileReader r(wavPath);
+    if (!r.hasError())
+    {
+        atUint32 riffMagic = r.readUint32Little();
+        if (riffMagic == SBIG('RIFF'))
+        {
+            atUint32 wavChuckSize = r.readUint32Little();
+            atUint32 wavMagic = r.readUint32Little();
+            if (wavMagic == SBIG('WAVE'))
+            {
+                atInt64 smplOffset = -1;
+                atInt64 loopOffset = -1;
+                WAVFormatChunk fmt;
+                int readSec = 0;
+
+                while (r.position() < wavChuckSize + 8)
+                {
+                    atUint32 chunkMagic = r.readUint32Little();
+                    atUint32 chunkSize = r.readUint32Little();
+                    atUint64 startPos = r.position();
+                    if (chunkMagic == SBIG('fmt '))
+                    {
+                        fmt.read(r);
+                        ++readSec;
+                    }
+                    else if (chunkMagic == SBIG('smpl'))
+                    {
+                        smplOffset = startPos;
+                        if (chunkSize >= 60)
+                            loopOffset = startPos + 36;
+                        ++readSec;
+                    }
+                    r.seek(startPos + chunkSize, athena::Begin);
+                }
+
+                if (smplOffset == -1 || loopOffset == -1)
+                {
+                    /* Complete rewrite of RIFF layout - new smpl chunk */
+                    r.seek(12, athena::Begin);
+                    athena::io::FileWriter w(wavPath);
+                    if (!w.hasError())
+                    {
+                        w.writeUint32Little(SBIG('RIFF'));
+                        w.writeUint32Little(0);
+                        w.writeUint32Little(SBIG('WAVE'));
+
+                        bool wroteSMPL = false;
+                        while (r.position() < wavChuckSize + 8)
+                        {
+                            atUint32 chunkMagic = r.readUint32Little();
+                            atUint32 chunkSize = r.readUint32Little();
+                            if (!wroteSMPL && (chunkMagic == SBIG('smpl') || chunkMagic == SBIG('data')))
+                            {
+                                wroteSMPL = true;
+                                w.writeUint32Little(SBIG('smpl'));
+                                w.writeUint32Little(60);
+                                WAVSampleChunk smpl;
+                                smpl.smplPeriod = 1000000000 / fmt.sampleRate;
+                                smpl.midiNote = m_pitch;
+                                if (m_loopLengthSamples != 0)
+                                {
+                                    smpl.numSampleLoops = 1;
+                                    smpl.additionalDataSize = 0;
+                                }
+                                else
+                                {
+                                    smpl.numSampleLoops = 0;
+                                    smpl.additionalDataSize = 24;
+                                }
+                                smpl.write(w);
+                                WAVSampleLoop loop;
+                                loop.start = getLoopStartSample();
+                                loop.end = getLoopEndSample();
+                                loop.write(w);
+                                if (chunkMagic == SBIG('smpl'))
+                                {
+                                    r.seek(chunkSize, athena::Current);
+                                    continue;
+                                }
+                            }
+                            w.writeUint32Little(chunkMagic);
+                            w.writeUint32Little(chunkSize);
+                            w.writeUBytes(r.readUBytes(chunkSize).get(), chunkSize);
+                        }
+
+                        atUint64 wavLen = w.position();
+                        w.seek(4, athena::Begin);
+                        w.writeUint32Little(wavLen - 8);
+                    }
+                    r.close();
+                }
+                else
+                {
+                    /* In-place patch of RIFF layout - edit smpl chunk */
+                    r.close();
+                    athena::io::FileWriter w(wavPath, false);
+                    if (!w.hasError())
+                    {
+                        w.seek(smplOffset, athena::Begin);
+                        WAVSampleChunk smpl;
+                        smpl.smplPeriod = 1000000000 / fmt.sampleRate;
+                        smpl.midiNote = m_pitch;
+                        if (m_loopLengthSamples != 0)
+                        {
+                            smpl.numSampleLoops = 1;
+                            smpl.additionalDataSize = 0;
+                        }
+                        else
+                        {
+                            smpl.numSampleLoops = 0;
+                            smpl.additionalDataSize = 24;
+                        }
+                        smpl.write(w);
+                        WAVSampleLoop loop;
+                        loop.start = getLoopStartSample();
+                        loop.end = getLoopEndSample();
+                        loop.write(w);
+                    }
+                }
+            }
+        }
+    }
+}
+
+/* File timestamps reflect actual audio content, not loop/pitch data */
+static void SetAudioFileTime(const SystemString& path, const Sstat& stat)
+{
+    struct timespec times[] = { stat.st_atim, stat.st_mtim };
+    utimensat(AT_FDCWD, path.c_str(), times, 0);
+}
+
+void AudioGroupSampleDirectory::Entry::patchSampleMetadata(SystemStringView basePath) const
+{
+    SystemString wavPath = SystemString(basePath) + _S(".wav");
+    SystemString dspPath = SystemString(basePath) + _S(".dsp");
+    Sstat wavStat, dspStat;
+    bool wavValid = !Stat(wavPath.c_str(), &wavStat) && S_ISREG(wavStat.st_mode);
+    bool dspValid = !Stat(dspPath.c_str(), &dspStat) && S_ISREG(dspStat.st_mode);
+
+    EntryData& curData = *m_data;
+
+    if (wavValid)
+    {
+        curData.patchMetadataWAV(wavPath);
+        SetAudioFileTime(wavPath, wavStat);
+    }
+
+    if (dspValid)
+    {
+        curData.patchMetadataDSP(dspPath);
+        SetAudioFileTime(dspPath, dspStat);
+    }
+}
+
 AudioGroupSampleDirectory AudioGroupSampleDirectory::CreateAudioGroupSampleDirectory(SystemStringView groupPath)
 {
     AudioGroupSampleDirectory ret;
@@ -336,14 +568,16 @@ AudioGroupSampleDirectory AudioGroupSampleDirectory::CreateAudioGroupSampleDirec
 void AudioGroupSampleDirectory::_extractWAV(SampleId id, const EntryData& ent,
                                             amuse::SystemStringView destDir, const unsigned char* samp)
 {
-    amuse::SystemString path(destDir);
+    SystemString path(destDir);
     path += _S("/");
 #ifdef _WIN32
     path += athena::utility::utf8ToWide(SampleId::CurNameDB->resolveNameFromId(id));
 #else
     path += SampleId::CurNameDB->resolveNameFromId(id);
 #endif
+    SystemString dspPath = path;
     path += _S(".wav");
+    dspPath += _S(".dsp");
     athena::io::FileWriter w(path);
 
     SampleFormat fmt = SampleFormat(ent.m_numSamples >> 24);
@@ -356,8 +590,8 @@ void AudioGroupSampleDirectory::_extractWAV(SampleId id, const EntryData& ent,
         header.smplChunk.smplPeriod = 1000000000u / ent.m_sampleRate;
         header.smplChunk.midiNote = ent.m_pitch;
         header.smplChunk.numSampleLoops = 1;
-        header.sampleLoop.start = ent.m_loopStartSample;
-        header.sampleLoop.end = ent.m_loopStartSample + ent.m_loopLengthSamples - 1;
+        header.sampleLoop.start = ent.getLoopStartSample();
+        header.sampleLoop.end = ent.getLoopEndSample();
         header.dataChunkSize = numSamples * 2u;
         header.wavChuckSize = 36 + 68 + header.dataChunkSize;
         header.write(w);
@@ -379,7 +613,7 @@ void AudioGroupSampleDirectory::_extractWAV(SampleId id, const EntryData& ent,
     {
         uint32_t remSamples = numSamples;
         uint32_t numFrames = (remSamples + 13) / 14;
-        const unsigned char* cur = samp + ent.m_sampleOff;
+        const unsigned char* cur = samp;
         int16_t prev1 = ent.m_ADPCMParms.dsp.m_hist1;
         int16_t prev2 = ent.m_ADPCMParms.dsp.m_hist2;
         for (uint32_t i = 0; i < numFrames; ++i)
@@ -392,13 +626,18 @@ void AudioGroupSampleDirectory::_extractWAV(SampleId id, const EntryData& ent,
             w.writeBytes(decomp, thisSamples * 2);
         }
 
+        w.close();
+        Sstat dspStat;
+        if (!Stat(dspPath.c_str(), &dspStat) && S_ISREG(dspStat.st_mode))
+            SetAudioFileTime(path.c_str(), dspStat);
+
         dataLen = (DSPSampleToNibble(numSamples) + 1) / 2;
     }
     else if (fmt == SampleFormat::N64)
     {
         uint32_t remSamples = numSamples;
         uint32_t numFrames = (remSamples + 31) / 32;
-        const unsigned char* cur = samp + ent.m_sampleOff + sizeof(ADPCMParms::VADPCMParms);
+        const unsigned char* cur = samp + sizeof(ADPCMParms::VADPCMParms);
         for (uint32_t i = 0; i < numFrames; ++i)
         {
             int16_t decomp[32] = {};
@@ -414,14 +653,14 @@ void AudioGroupSampleDirectory::_extractWAV(SampleId id, const EntryData& ent,
     else if (fmt == SampleFormat::PCM)
     {
         dataLen = numSamples * 2;
-        const int16_t* cur = reinterpret_cast<const int16_t*>(samp + ent.m_sampleOff);
+        const int16_t* cur = reinterpret_cast<const int16_t*>(samp);
         for (int i = 0; i < numSamples; ++i)
             w.writeInt16Big(cur[i]);
     }
     else // PCM_PC
     {
         dataLen = numSamples * 2;
-        w.writeBytes(samp + ent.m_sampleOff, dataLen);
+        w.writeBytes(samp, dataLen);
     }
 
     std::unique_ptr<uint8_t[]>& ld = const_cast<std::unique_ptr<uint8_t[]>&>(ent.m_looseData);
@@ -432,7 +671,7 @@ void AudioGroupSampleDirectory::_extractWAV(SampleId id, const EntryData& ent,
 
         const_cast<time_t&>(ent.m_looseModTime) = theStat.st_mtime;
         ld.reset(new uint8_t[dataLen]);
-        memcpy(ld.get(), samp + ent.m_sampleOff, dataLen);
+        memcpy(ld.get(), samp, dataLen);
     }
 }
 
@@ -441,20 +680,21 @@ void AudioGroupSampleDirectory::extractWAV(SampleId id, amuse::SystemStringView 
     auto search = m_entries.find(id);
     if (search == m_entries.cend())
         return;
-    _extractWAV(id, *search->second->m_data, destDir, samp);
+    _extractWAV(id, *search->second->m_data, destDir, samp + search->second->m_data->m_sampleOff);
 }
 
 void AudioGroupSampleDirectory::extractAllWAV(amuse::SystemStringView destDir, const unsigned char* samp) const
 {
     for (const auto& ent : m_entries)
-        _extractWAV(ent.first, *ent.second->m_data, destDir, samp);
+        _extractWAV(ent.first, *ent.second->m_data, destDir, samp + ent.second->m_data->m_sampleOff);
 }
 
 void AudioGroupSampleDirectory::_extractCompressed(SampleId id, const EntryData& ent,
-                                                   amuse::SystemStringView destDir, const unsigned char* samp)
+                                                   amuse::SystemStringView destDir, const unsigned char* samp,
+                                                   bool compressWAV)
 {
     SampleFormat fmt = ent.getSampleFormat();
-    if (fmt == SampleFormat::PCM || fmt == SampleFormat::PCM_PC)
+    if (!compressWAV && (fmt == SampleFormat::PCM || fmt == SampleFormat::PCM_PC))
     {
         _extractWAV(id, ent, destDir, samp);
         return;
@@ -479,8 +719,8 @@ void AudioGroupSampleDirectory::_extractCompressed(SampleId id, const EntryData&
         header.xc_loop_flag = atUint16(ent.m_loopLengthSamples != 0);
         if (header.xc_loop_flag)
         {
-            header.x10_loop_start_nibble = DSPSampleToNibble(ent.m_loopStartSample);
-            header.x14_loop_end_nibble = DSPSampleToNibble(ent.m_loopStartSample + ent.m_loopLengthSamples);
+            header.x10_loop_start_nibble = DSPSampleToNibble(ent.getLoopStartSample());
+            header.x14_loop_end_nibble = DSPSampleToNibble(ent.getLoopEndSample());
         }
         for (int i = 0; i < 8; ++i)
             for (int j = 0; j < 2; ++j)
@@ -495,14 +735,77 @@ void AudioGroupSampleDirectory::_extractCompressed(SampleId id, const EntryData&
         athena::io::FileWriter w(path);
         header.write(w);
         dataLen = (header.x4_num_nibbles + 1) / 2;
-        w.writeUBytes(samp + ent.m_sampleOff, dataLen);
+        w.writeUBytes(samp, dataLen);
     }
     else if (fmt == SampleFormat::N64)
     {
         path += _S(".vadpcm");
         athena::io::FileWriter w(path);
         dataLen = sizeof(ADPCMParms::VADPCMParms) + (numSamples + 31) / 32 * 16;
-        w.writeUBytes(samp + ent.m_sampleOff, dataLen);
+        w.writeUBytes(samp, dataLen);
+    }
+    else if (fmt == SampleFormat::PCM_PC || fmt == SampleFormat::PCM)
+    {
+        const int16_t* samps = reinterpret_cast<const int16_t*>(samp);
+        std::unique_ptr<int16_t[]> sampsSwapped;
+        if (fmt == SampleFormat::PCM)
+        {
+            sampsSwapped.reset(new int16_t[numSamples]);
+            for (uint32_t i = 0; i < numSamples; ++i)
+                sampsSwapped[i] = SBig(samps[i]);
+            samps = sampsSwapped.get();
+        }
+
+        int32_t loopStartSample = ent.getLoopStartSample();
+        int32_t loopEndSample = ent.getLoopEndSample();
+
+        DSPADPCMHeader header = {};
+        header.x0_num_samples = numSamples;
+        header.x4_num_nibbles = DSPSampleToNibble(numSamples);
+        header.x8_sample_rate = ent.m_sampleRate;
+        header.xc_loop_flag = atUint16(ent.m_loopLengthSamples != 0);
+        header.m_pitch = ent.m_pitch;
+        if (header.xc_loop_flag)
+        {
+            header.x10_loop_start_nibble = DSPSampleToNibble(loopStartSample);
+            header.x14_loop_end_nibble = DSPSampleToNibble(loopEndSample);
+        }
+        DSPCorrelateCoefs(samps, numSamples, header.x1c_coef);
+
+        path += _S(".dsp");
+        athena::io::FileWriter w(path);
+        header.write(w);
+
+        uint32_t remSamples = numSamples;
+        uint32_t curSample = 0;
+        int16_t convSamps[16] = {};
+        while (remSamples)
+        {
+            uint32_t sampleCount = std::min(14u, remSamples);
+            convSamps[0] = convSamps[14];
+            convSamps[1] = convSamps[15];
+            memcpy(convSamps + 2, samps, sampleCount * 2);
+            unsigned char adpcmOut[8];
+            DSPEncodeFrame(convSamps, sampleCount, adpcmOut, header.x1c_coef);
+            w.writeUBytes(adpcmOut, 8);
+            if (curSample == 0)
+                header.x3e_ps = adpcmOut[0];
+            if (header.xc_loop_flag)
+            {
+                if (loopStartSample >= curSample && loopStartSample < curSample + 14)
+                    header.x44_loop_ps = adpcmOut[0];
+                if (loopStartSample - 1 >= curSample && loopStartSample - 1 < curSample + 14)
+                    header.x46_loop_hist1 = convSamps[2 + (loopStartSample - 1 - curSample)];
+                if (loopStartSample - 2 >= curSample && loopStartSample - 2 < curSample + 14)
+                    header.x48_loop_hist2 = convSamps[2 + (loopStartSample - 2 - curSample)];
+            }
+            remSamples -= sampleCount;
+            curSample += sampleCount;
+            samps += sampleCount;
+        }
+
+        w.seek(0, athena::Begin);
+        header.write(w);
     }
     else
     {
@@ -517,7 +820,7 @@ void AudioGroupSampleDirectory::_extractCompressed(SampleId id, const EntryData&
 
         const_cast<time_t&>(ent.m_looseModTime) = theStat.st_mtime;
         ld.reset(new uint8_t[dataLen]);
-        memcpy(ld.get(), samp + ent.m_sampleOff, dataLen);
+        memcpy(ld.get(), samp, dataLen);
     }
 }
 
@@ -527,14 +830,14 @@ void AudioGroupSampleDirectory::extractCompressed(SampleId id, amuse::SystemStri
     auto search = m_entries.find(id);
     if (search == m_entries.cend())
         return;
-    _extractCompressed(id, *search->second->m_data, destDir, samp);
+    _extractCompressed(id, *search->second->m_data, destDir, samp + search->second->m_data->m_sampleOff);
 }
 
 void AudioGroupSampleDirectory::extractAllCompressed(amuse::SystemStringView destDir,
                                                      const unsigned char* samp) const
 {
     for (const auto& ent : m_entries)
-        _extractCompressed(ent.first, *ent.second->m_data, destDir, samp);
+        _extractCompressed(ent.first, *ent.second->m_data, destDir, samp + ent.second->m_data->m_sampleOff);
 }
 
 void AudioGroupSampleDirectory::reloadSampleData(SystemStringView groupPath)

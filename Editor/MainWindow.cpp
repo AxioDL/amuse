@@ -183,10 +183,9 @@ void MainWindow::updateWindowTitle()
     }
 
     QDir dir(m_projectModel->path());
-    if (m_ui.editorContents->currentWidget() != m_faceSvg)
+    if (EditorWidget* w = getEditorWidget())
     {
-        ProjectModel::BasePoolObjectNode* objNode = static_cast<ProjectModel::BasePoolObjectNode*>(
-            static_cast<EditorWidget*>(m_ui.editorContents->currentWidget())->currentNode());
+        ProjectModel::BasePoolObjectNode* objNode = static_cast<ProjectModel::BasePoolObjectNode*>(w->currentNode());
         setWindowTitle(tr("Amuse [%1/%2/%3]").arg(dir.dirName()).arg(
             m_projectModel->getGroupNode(objNode)->text()).arg(objNode->text()));
         return;
@@ -415,7 +414,7 @@ bool MainWindow::_setEditor(EditorWidget* editor)
 {
     if (editor != m_ui.editorContents->currentWidget() &&
         m_ui.editorContents->currentWidget() != m_faceSvg)
-        static_cast<EditorWidget*>(m_ui.editorContents->currentWidget())->unloadData();
+        getEditorWidget()->unloadData();
     if (!editor || !editor->valid())
     {
         m_ui.editorContents->setCurrentWidget(m_faceSvg);
@@ -500,8 +499,15 @@ void MainWindow::closeEditor()
 
 ProjectModel::INode* MainWindow::getEditorNode() const
 {
+    if (EditorWidget* w = getEditorWidget())
+        return w->currentNode();
+    return nullptr;
+}
+
+EditorWidget* MainWindow::getEditorWidget() const
+{
     if (m_ui.editorContents->currentWidget() != m_faceSvg)
-        return static_cast<EditorWidget*>(m_ui.editorContents->currentWidget())->currentNode();
+        return static_cast<EditorWidget*>(m_ui.editorContents->currentWidget());
     return nullptr;
 }
 
@@ -553,7 +559,7 @@ void MainWindow::newAction()
         return;
 
     m_projectModel->clearProjectData();
-    m_projectModel->ensureModelData();
+    m_ui.actionImport_Groups->setDisabled(m_projectModel->ensureModelData());
 }
 
 bool MainWindow::openProject(const QString& path)
@@ -898,7 +904,11 @@ void MainWindow::setMIDIIO()
 void MainWindow::notePressed(int key)
 {
     if (m_engine)
+    {
+        if (m_lastSound)
+            m_lastSound->keyOff();
         m_lastSound = startEditorVoice(key, m_velocity);
+    }
 }
 
 void MainWindow::noteReleased()
@@ -1054,7 +1064,7 @@ void MainWindow::onBackgroundTaskFinished()
     m_backgroundDialog = nullptr;
     m_backgroundTask->deleteLater();
     m_backgroundTask = nullptr;
-    m_projectModel->ensureModelData();
+    m_ui.actionImport_Groups->setDisabled(m_projectModel->ensureModelData());
     setEnabled(true);
 }
 

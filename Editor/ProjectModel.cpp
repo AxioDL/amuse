@@ -144,8 +144,6 @@ bool ProjectModel::importGroupData(const QString& groupName, const amuse::AudioG
     m_projectDatabase.setIdDatabases();
 
     amuse::AudioGroupDatabase& grp = m_groups.insert(std::make_pair(groupName, data)).first->second;
-    //grp.setIdDatabases();
-    //amuse::AudioGroupProject::BootstrapObjectIDs(data);
 
     if (!MkPath(m_dir.path(), messenger))
         return false;
@@ -154,6 +152,7 @@ bool ProjectModel::importGroupData(const QString& groupName, const amuse::AudioG
         return false;
 
     amuse::SystemString sysDir = QStringToSysString(dir.path());
+    grp.setGroupPath(sysDir);
     switch (mode)
     {
     case ImportMode::Original:
@@ -289,13 +288,14 @@ void ProjectModel::_resetModelData()
     endResetModel();
 }
 
-void ProjectModel::ensureModelData()
+bool ProjectModel::ensureModelData()
 {
     if (m_needsReset)
     {
         _resetModelData();
         m_needsReset = false;
     }
+    return !m_groups.empty();
 }
 
 QModelIndex ProjectModel::proxyCreateIndex(int arow, int acolumn, void *adata) const
