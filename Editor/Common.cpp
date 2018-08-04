@@ -1,4 +1,5 @@
 #include "Common.hpp"
+#include "MainWindow.hpp"
 #include <QMessageBox>
 #include <QObject>
 #include <QProcess>
@@ -31,8 +32,8 @@ bool MkPath(const QDir& dir, const QString& file, UIMessenger& messenger)
 {
     if (!dir.mkpath(file))
     {
-        QString msg = QString(QObject::tr("A directory at '%1/%2' could not be created.")).arg(dir.path()).arg(file);
-        messenger.critical(QObject::tr("Unable to create directory"), msg);
+        QString msg = QString(MainWindow::tr("A directory at '%1/%2' could not be created.")).arg(dir.path()).arg(file);
+        messenger.critical(MainWindow::tr("Unable to create directory"), msg);
         return false;
     }
     return true;
@@ -46,10 +47,8 @@ void ShowInGraphicalShell(QWidget* parent, const QString& pathIn)
     const FileName explorer = Environment::systemEnvironment().searchInPath(QLatin1String("explorer.exe"));
     if (explorer.isEmpty()) {
         QMessageBox::warning(parent,
-                             QApplication::translate("Core::Internal",
-                                                     "Launching Windows Explorer Failed"),
-                             QApplication::translate("Core::Internal",
-                                                     "Could not find explorer.exe in path to launch Windows Explorer."));
+                             MainWindow::tr("Launching Windows Explorer Failed"),
+                             MainWindow::tr("Could not find explorer.exe in path to launch Windows Explorer."));
         return;
     }
     QStringList param;
@@ -79,10 +78,10 @@ void ShowInGraphicalShell(QWidget* parent, const QString& pathIn)
 QString ShowInGraphicalShellString()
 {
 #if defined(Q_OS_WIN)
-    return QObject::tr("Show in Explorer");
+    return MainWindow::tr("Show in Explorer");
 #elif defined(Q_OS_MAC)
-    return QObject::tr("Show in Finder");
+    return MainWindow::tr("Show in Finder");
 #else
-    return QObject::tr("Show in Browser");
+    return MainWindow::tr("Show in Browser");
 #endif
 }

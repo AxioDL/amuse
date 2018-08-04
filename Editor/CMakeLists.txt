@@ -1,9 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTOUIC ON)
-set(AUTORCC ON)
 
 find_package(Qt5Widgets)
 find_package(Qt5Network)
@@ -31,9 +28,28 @@ QT5_CREATE_TRANSLATION(QM_FILES ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOUR
 QT5_ADD_RESOURCES(qrc_resources.cpp resources/resources.qrc)
 QT5_ADD_RESOURCES(qrc_translation_res.cpp ${CMAKE_CURRENT_BINARY_DIR}/translation_res.qrc OPTIONS -no-compress)
 
+QT5_WRAP_UI(MAIN_WINDOW_UI MainWindow.ui)
+
+QT5_WRAP_CPP(AMUSE_MOC
+        Common.hpp
+        MainWindow.hpp
+        KeyboardWidget.hpp
+        StatusBarWidget.hpp
+        ProjectModel.hpp
+        ProjectStatistics.hpp
+        EditorWidget.hpp
+        SoundMacroEditor.hpp
+        ADSREditor.hpp
+        CurveEditor.hpp
+        KeymapEditor.hpp
+        LayersEditor.hpp
+        SampleEditor.hpp
+        SoundGroupEditor.hpp
+        SongGroupEditor.hpp)
+
 add_executable(amuse-gui WIN32 MACOSX_BUNDLE
         Common.hpp Common.cpp
-        MainWindow.ui MainWindow.hpp MainWindow.cpp
+        MainWindow.ui ${MAIN_WINDOW_UI} MainWindow.hpp MainWindow.cpp
         KeyboardWidget.hpp KeyboardWidget.cpp
         StatusBarWidget.hpp
         ProjectModel.hpp ProjectModel.cpp
@@ -50,7 +66,7 @@ add_executable(amuse-gui WIN32 MACOSX_BUNDLE
         MIDIReader.hpp MIDIReader.cpp
         resources/resources.qrc qrc_resources.cpp
         ${QM_FILES} qrc_translation_res.cpp
-        ${PLAT_SRCS}
+        ${AMUSE_MOC} ${PLAT_SRCS}
         main.cpp)
 if(COMMAND add_sanitizers)
   add_sanitizers(amuse-gui)

@@ -431,7 +431,7 @@ class DeleteNodeUndoCommand : public QUndoCommand
     amuse::ObjToken<ProjectModel::INode> m_node;
 public:
     DeleteNodeUndoCommand(const QModelIndex& index)
-     : QUndoCommand(QUndoStack::tr("Delete %1").arg(index.data().toString())), m_deleteIdx(index) {}
+     : QUndoCommand(ProjectModel::tr("Delete %1").arg(index.data().toString())), m_deleteIdx(index) {}
     void undo()
     {
         g_MainWindow->projectModel()->_undoDel(m_deleteIdx, std::move(m_node));

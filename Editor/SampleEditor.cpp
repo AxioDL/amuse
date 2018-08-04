@@ -456,7 +456,7 @@ class SampLoopUndoCommand : public EditorUndoCommand
 public:
     SampLoopUndoCommand(uint32_t redoStart, uint32_t redoEnd, const QString& fieldName,
                         int fieldIdx, amuse::ObjToken<ProjectModel::SampleNode> node)
-    : EditorUndoCommand(node.get(), QUndoStack::tr("Change %1").arg(fieldName)),
+    : EditorUndoCommand(node.get(), SampleControls::tr("Change %1").arg(fieldName)),
       m_redoStartVal(redoStart), m_redoEndVal(redoEnd), m_fieldIdx(fieldIdx) {}
     void undo()
     {
@@ -574,7 +574,7 @@ class SampPitchUndoCommand : public EditorUndoCommand
     bool m_undid = false;
 public:
     SampPitchUndoCommand(atUint8 redoPitch, amuse::ObjToken<ProjectModel::SampleNode> node)
-    : EditorUndoCommand(node.get(), QUndoStack::tr("Change Base Pitch")),
+    : EditorUndoCommand(node.get(), SampleControls::tr("Change Base Pitch")),
       m_redoPitchVal(redoPitch) {}
     void undo()
     {

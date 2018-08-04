@@ -347,7 +347,7 @@ public:
     ValChangedUndoCommand(amuse::SoundMacro::ICmd* cmd, const QString& fieldName,
                           const amuse::SoundMacro::CmdIntrospection::Field& field,
                           int redoVal, amuse::ObjToken<ProjectModel::SoundMacroNode> node)
-        : EditorUndoCommand(node.get(), QUndoStack::tr("Change %1").arg(fieldName)),
+        : EditorUndoCommand(node.get(), CommandWidget::tr("Change %1").arg(fieldName)),
           m_cmd(cmd), m_field(field), m_redoVal(redoVal) {}
     void undo()
     {
@@ -673,7 +673,7 @@ class ReorderCommandsUndoCommand : public EditorUndoCommand
     bool m_undid = false;
 public:
     ReorderCommandsUndoCommand(int a, int b, const QString& text, amuse::ObjToken<ProjectModel::SoundMacroNode> node)
-    : EditorUndoCommand(node.get(), QUndoStack::tr("Reorder %1").arg(text)), m_a(a), m_b(b) {}
+    : EditorUndoCommand(node.get(), SoundMacroListing::tr("Reorder %1").arg(text)), m_a(a), m_b(b) {}
     void undo()
     {
         m_undid = true;
@@ -805,7 +805,7 @@ class InsertCommandUndoCommand : public EditorUndoCommand
     std::unique_ptr<amuse::SoundMacro::ICmd> m_cmd;
 public:
     InsertCommandUndoCommand(int insertIdx, const QString& text, amuse::ObjToken<ProjectModel::SoundMacroNode> node)
-    : EditorUndoCommand(node.get(), QUndoStack::tr("Insert %1").arg(text)), m_insertIdx(insertIdx) {}
+    : EditorUndoCommand(node.get(), SoundMacroListing::tr("Insert %1").arg(text)), m_insertIdx(insertIdx) {}
     void undo()
     {
         m_cmd = m_node.cast<ProjectModel::SoundMacroNode>()->m_obj->deleteCmd(m_insertIdx);
@@ -858,7 +858,7 @@ class DeleteCommandUndoCommand : public EditorUndoCommand
     bool m_undid = false;
 public:
     DeleteCommandUndoCommand(int deleteIdx, const QString& text, amuse::ObjToken<ProjectModel::SoundMacroNode> node)
-    : EditorUndoCommand(node.get(), QUndoStack::tr("Delete %1").arg(text)), m_deleteIdx(deleteIdx) {}
+    : EditorUndoCommand(node.get(), SoundMacroListing::tr("Delete %1").arg(text)), m_deleteIdx(deleteIdx) {}
     void undo()
     {
         m_undid = true;
