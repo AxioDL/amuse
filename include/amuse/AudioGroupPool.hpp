@@ -1169,6 +1169,14 @@ static inline double TimeCentsToSeconds(int32_t tc)
     return std::exp2(tc / (1200.0 * 65536.0));
 }
 
+/** Converts seconds representation to time-cents */
+static inline int32_t SecondsToTimeCents(double sec)
+{
+    if (sec == 0.0)
+        return 0x80000000;
+    return int32_t(std::log2(sec) * (1200.0 * 65536.0));
+}
+
 /** Polymorphic interface for representing table data */
 struct ITable : LittleDNAV
 {
@@ -1188,15 +1196,19 @@ struct ADSR : ITable
 {
     AT_DECL_DNA_YAML
     AT_DECL_DNAV
-    Value<atUint16> attack;
-    Value<atUint16> decay;
-    Value<atUint16> sustain;     /* 0x1000 == 100% */
-    Value<atUint16> release;     /* milliseconds */
+    Value<atUint16> attack = 0;
+    Value<atUint16> decay = 0x8000;
+    Value<atUint16> sustain = 0;     /* 0x1000 == 100% */
+    Value<atUint16> release = 0;     /* milliseconds */
 
     double getAttack() const { return attack / 1000.0; }
+    void setAttack(double v) { attack = v * 1000.0; }
     double getDecay() const { return (decay == 0x8000) ? 0.0 : (decay / 1000.0); }
+    void setDecay(double v) { decay = v == 0.0 ? 0x8000 : v * 1000.0; }
     double getSustain() const { return sustain / double(0x1000); }
+    void setSustain(double v) { sustain = v * double(0x1000); }
     double getRelease() const { return release / 1000.0; }
+    void setRelease(double v) { release = v * 1000.0; }
 
     Type Isa() const { return ITable::Type::ADSR; }
 };
@@ -1206,23 +1218,61 @@ struct ADSRDLS : ITable
 {
     AT_DECL_DNA_YAML
     AT_DECL_DNAV
-    Value<atUint32> attack;      /* 16.16 Time-cents */
-    Value<atUint32> decay;       /* 16.16 Time-cents */
-    Value<atUint16> sustain;     /* 0x1000 == 100% */
-    Value<atUint16> release;     /* milliseconds */
-    Value<atUint32> velToAttack; /* 16.16, 1000.0 == 100%; attack = <attack> + (vel/128) * <velToAttack> */
-    Value<atUint32> keyToDecay;  /* 16.16, 1000.0 == 100%; decay = <decay> + (note/128) * <keyToDecay> */
+    Value<atUint32> attack = 0x80000000; /* 16.16 Time-cents */
+    Value<atUint32> decay = 0x80000000;  /* 16.16 Time-cents */
+    Value<atUint16> sustain = 0;     /* 0x1000 == 100% */
+    Value<atUint16> release = 0;     /* milliseconds */
+    Value<atUint32> velToAttack = 0x80000000; /* 16.16, 1000.0 == 100%; attack = <attack> + (vel/128) * <velToAttack> */
+    Value<atUint32> keyToDecay = 0x80000000;  /* 16.16, 1000.0 == 100%; decay = <decay> + (note/128) * <keyToDecay> */
 
     double getAttack() const { return TimeCentsToSeconds(attack); }
+    void setAttack(double v) { attack = SecondsToTimeCents(v); }
     double getDecay() const { return TimeCentsToSeconds(decay); }
+    void setDecay(double v) { decay = SecondsToTimeCents(v); }
     double getSustain() const { return sustain / double(0x1000); }
+    void setSustain(double v) { sustain = v * double(0x1000); }
     double getRelease() const { return release / 1000.0; }
+    void setRelease(double v) { release = v * 1000.0; }
+
+    double _getVelToAttack() const
+    {
+        if (velToAttack == 0x80000000)
+            return 0.0;
+        else
+            return velToAttack / 65536.0 / 1000.0;
+    }
+
+    void _setVelToAttack(double v)
+    {
+        if (v == 0.0)
+            velToAttack = 0x80000000;
+        else
+            velToAttack = atUint32(v * 1000.0 * 65536.0);
+    }
+
+    double _getKeyToDecay() const
+    {
+        if (keyToDecay == 0x80000000)
+            return 0.0;
+        else
+            return keyToDecay / 65536.0 / 1000.0;
+    }
+
+    void _setKeyToDecay(double v)
+    {
+        if (v == 0.0)
+            keyToDecay = 0x80000000;
+        else
+            keyToDecay = atUint32(v * 1000.0 * 65536.0);
+    }
+
     double getVelToAttack(int8_t vel) const
     {
         if (velToAttack == 0x80000000)
             return getAttack();
         return getAttack() + vel * (velToAttack / 65536.0 / 1000.0) / 128.0;
     }
+
     double getKeyToDecay(int8_t note) const
     {
         if (keyToDecay == 0x80000000)

@@ -72,9 +72,14 @@ class SampleControls : public QFrame
     bool m_enableUpdate = true;
     bool m_enableFileWrite = true;
 public:
-    SampleControls(QWidget* parent = Q_NULLPTR);
+    explicit SampleControls(QWidget* parent = Q_NULLPTR);
     void doFileWrite();
     void setFileWrite(bool w);
+    void updateFileState();
+    void setLoopStartSample(int sample) { m_loopStart->setValue(sample); }
+    void setLoopEndSample(int sample) { m_loopEnd->setValue(sample); }
+    void loadData(bool reset);
+    void unloadData();
 public slots:
     void zoomSliderChanged(int val);
     void loopStateChanged(int state);
@@ -84,13 +89,6 @@ public slots:
     void makeWAVVersion();
     void makeCompressedVersion();
     void showInBrowser();
-    void updateFileState();
-
-    void setLoopStartSample(int sample) { m_loopStart->setValue(sample); }
-    void setLoopEndSample(int sample) { m_loopEnd->setValue(sample); }
-
-    void loadData(bool reset);
-    void unloadData();
 };
 
 class SampleEditor : public EditorWidget

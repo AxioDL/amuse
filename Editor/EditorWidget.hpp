@@ -24,7 +24,16 @@ protected:
     {
         SMChangeVal,
         SampLoop,
-        SampPitch
+        SampPitch,
+        ADSRAttack,
+        ADSRDecay,
+        ADSRSustain,
+        ADSRAttackAndDecay,
+        ADSRDecayAndSustain,
+        ADSRRelease,
+        ADSRDLS,
+        ADSRVelToAttack,
+        ADSRKeyToDecay
     };
 public:
     EditorUndoCommand(amuse::ObjToken<ProjectModel::INode> node,
