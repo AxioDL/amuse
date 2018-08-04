@@ -30,6 +30,9 @@ ProjectModel::INode* ADSRView::currentNode() const
 
 void ADSRView::paintEvent(QPaintEvent* ev)
 {
+    if (!m_node)
+        return;
+
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
 
@@ -232,17 +235,17 @@ void ADSRView::mouseMoveEvent(QMouseEvent* ev)
     {
         qreal newAttack = std::max(0.0, (ev->localPos().x() - 30.0) / (width() - 30.0) * totalTime);
         qreal delta = newAttack - aTime;
-        ctrls->setAttackAndDecay(newAttack, ctrls->m_decay->value() - delta);
+        ctrls->setAttackAndDecay(newAttack, std::max(0.0, ctrls->m_decay->value() - delta));
     }
     else if (m_dragPoint == 1)
     {
-        qreal newDecay = (ev->localPos().x() - 30.0) * totalTime / (width() - 30.0) - aTime;
+        qreal newDecay = std::max(0.0, (ev->localPos().x() - 30.0) * totalTime / (width() - 30.0) - aTime);
         qreal newSustain = (-ev->localPos().y() + (height() - 16.0)) / (height() - 16.0);
         ctrls->setDecayAndSustain(newDecay, newSustain * 100.0);
     }
     else if (m_dragPoint == 2)
     {
-        qreal newRelease = (width() - 30.0) * (adTime + 1.0) / (ev->localPos().x() - 30.0) - (adTime + 1.0);
+        qreal newRelease = std::max(0.0, (width() - 30.0) * (adTime + 1.0) / (ev->localPos().x() - 30.0) - (adTime + 1.0));
         ctrls->m_release->setValue(newRelease);
     }
 }
@@ -961,6 +964,7 @@ ADSRControls::ADSRControls(QWidget* parent)
     QGridLayout* leftLayout = new QGridLayout;
 
     QPalette palette = QWidget::palette();
+    palette.setColor(QPalette::Base, palette.color(QPalette::Background));
 
     palette.setColor(QPalette::Text, Red);
     QLabel* lab = new QLabel(tr("Attack"));
@@ -990,12 +994,14 @@ ADSRControls::ADSRControls(QWidget* parent)
     connect(m_decay, SIGNAL(valueChanged(double)), this, SLOT(decayChanged(double)));
     leftLayout->addWidget(m_decay, 1, 1);
 
+    palette.setColor(QPalette::Text, Qt::white);
     leftLayout->addWidget(new QLabel(tr("Sustain")), 0, 2);
     m_sustain = new QDoubleSpinBox;
     m_sustain->setDisabled(true);
     m_sustain->setRange(0.0, 100.0);
     m_sustain->setDecimals(3);
     m_sustain->setSuffix(tr(" %"));
+    m_sustain->setPalette(palette);
     connect(m_sustain, SIGNAL(valueChanged(double)), this, SLOT(sustainChanged(double)));
     leftLayout->addWidget(m_sustain, 1, 2);
 
@@ -1013,10 +1019,9 @@ ADSRControls::ADSRControls(QWidget* parent)
     connect(m_release, SIGNAL(valueChanged(double)), this, SLOT(releaseChanged(double)));
     leftLayout->addWidget(m_release, 1, 3);
 
+    palette.setColor(QPalette::Text, Qt::white);
     leftLayout->addWidget(new QLabel(tr("DLS")), 0, 4);
     m_dls = new QCheckBox;
-    palette = m_dls->palette();
-    palette.setColor(QPalette::Base, palette.color(QPalette::Background));
     m_dls->setPalette(palette);
     m_dls->setDisabled(true);
     m_dls->setChecked(false);
@@ -1031,6 +1036,7 @@ ADSRControls::ADSRControls(QWidget* parent)
     m_velToAttack->setRange(0.0, 9999.999);
     m_velToAttack->setDecimals(3);
     m_velToAttack->setSingleStep(1.0);
+    m_velToAttack->setPalette(palette);
     connect(m_velToAttack, SIGNAL(valueChanged(double)), this, SLOT(velToAttackChanged(double)));
     leftLayout->addWidget(m_velToAttack, 1, 5);
 
@@ -1042,6 +1048,7 @@ ADSRControls::ADSRControls(QWidget* parent)
     m_keyToDecay->setRange(0.0, 9999.999);
     m_keyToDecay->setDecimals(3);
     m_keyToDecay->setSingleStep(1.0);
+    m_keyToDecay->setPalette(palette);
     connect(m_keyToDecay, SIGNAL(valueChanged(double)), this, SLOT(keyToDecayChanged(double)));
     leftLayout->addWidget(m_keyToDecay, 1, 6);
 

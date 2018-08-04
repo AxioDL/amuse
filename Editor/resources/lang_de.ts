@@ -4,94 +4,94 @@
 <context>
     <name>ADSRControls</name>
     <message>
-        <location filename="../ADSREditor.cpp" line="332"/>
+        <location filename="../ADSREditor.cpp" line="335"/>
         <source>Change Attack</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ADSREditor.cpp" line="396"/>
+        <location filename="../ADSREditor.cpp" line="399"/>
         <source>Change Decay</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ADSREditor.cpp" line="460"/>
+        <location filename="../ADSREditor.cpp" line="463"/>
         <source>Change Sustain</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ADSREditor.cpp" line="525"/>
+        <location filename="../ADSREditor.cpp" line="528"/>
         <source>Change Attack/Decay</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ADSREditor.cpp" line="599"/>
+        <location filename="../ADSREditor.cpp" line="602"/>
         <source>Change Decay/Sustain</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ADSREditor.cpp" line="672"/>
+        <location filename="../ADSREditor.cpp" line="675"/>
         <source>Change Release</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ADSREditor.cpp" line="762"/>
+        <location filename="../ADSREditor.cpp" line="765"/>
         <source>Change DLS</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ADSREditor.cpp" line="849"/>
+        <location filename="../ADSREditor.cpp" line="852"/>
         <source>Change Vel To Attack</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ADSREditor.cpp" line="902"/>
+        <location filename="../ADSREditor.cpp" line="905"/>
         <source>Change Key To Decay</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ADSREditor.cpp" line="966"/>
+        <location filename="../ADSREditor.cpp" line="970"/>
         <source>Attack</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ADSREditor.cpp" line="974"/>
-        <location filename="../ADSREditor.cpp" line="988"/>
-        <location filename="../ADSREditor.cpp" line="1011"/>
+        <location filename="../ADSREditor.cpp" line="978"/>
+        <location filename="../ADSREditor.cpp" line="992"/>
+        <location filename="../ADSREditor.cpp" line="1017"/>
         <source> sec</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ADSREditor.cpp" line="980"/>
+        <location filename="../ADSREditor.cpp" line="984"/>
         <source>Decay</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ADSREditor.cpp" line="993"/>
+        <location filename="../ADSREditor.cpp" line="998"/>
         <source>Sustain</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ADSREditor.cpp" line="998"/>
+        <location filename="../ADSREditor.cpp" line="1003"/>
         <source> %</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ADSREditor.cpp" line="1003"/>
+        <location filename="../ADSREditor.cpp" line="1009"/>
         <source>Release</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ADSREditor.cpp" line="1016"/>
+        <location filename="../ADSREditor.cpp" line="1023"/>
         <source>DLS</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ADSREditor.cpp" line="1026"/>
+        <location filename="../ADSREditor.cpp" line="1031"/>
         <source>Vel To Attack</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ADSREditor.cpp" line="1037"/>
+        <location filename="../ADSREditor.cpp" line="1043"/>
         <source>Key To Decay</source>
         <translation type="unfinished"></translation>
     </message>
@@ -101,6 +101,35 @@
     <message>
         <location filename="../SoundMacroEditor.cpp" line="350"/>
         <source>Change %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>CurveControls</name>
+    <message>
+        <location filename="../CurveEditor.cpp" line="16"/>
+        <source>Edit Curve</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../CurveEditor.cpp" line="228"/>
+        <source>Did not evaluate as a number</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../CurveEditor.cpp" line="253"/>
+        <source>Expression</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../CurveEditor.cpp" line="262"/>
+        <source>Apply</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../CurveEditor.cpp" line="286"/>
+        <source>Expression interpreter mapping x:[0,1] to y:[0,1] with the following constants and functions available:
+</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -554,7 +583,7 @@
     <message>
         <location filename="../SampleEditor.cpp" line="507"/>
         <location filename="../SampleEditor.cpp" line="522"/>
-        <location filename="../SampleEditor.cpp" line="778"/>
+        <location filename="../SampleEditor.cpp" line="781"/>
         <source>Loop</source>
         <translation type="unfinished"></translation>
     </message>
@@ -590,27 +619,27 @@
     </message>
     <message>
         <location filename="../SampleEditor.cpp" line="752"/>
-        <location filename="../SampleEditor.cpp" line="818"/>
+        <location filename="../SampleEditor.cpp" line="822"/>
         <source>Nothing Loaded</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SampleEditor.cpp" line="771"/>
+        <location filename="../SampleEditor.cpp" line="774"/>
         <source>Zoom</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SampleEditor.cpp" line="787"/>
+        <location filename="../SampleEditor.cpp" line="788"/>
         <source>Start</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SampleEditor.cpp" line="793"/>
+        <location filename="../SampleEditor.cpp" line="795"/>
         <source>End</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SampleEditor.cpp" line="799"/>
+        <location filename="../SampleEditor.cpp" line="802"/>
         <source>Base Pitch</source>
         <translation type="unfinished"></translation>
     </message>

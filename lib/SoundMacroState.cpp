@@ -715,9 +715,9 @@ bool SoundMacro::CmdScaleVolume::Do(SoundMacroState& st, Voice& vox) const
     if (table.id != 0)
     {
         const Curve* curveData = vox.getAudioGroup().getPool().tableAsCurves(table.id);
-        if (curveData)
+        if (curveData && curveData->data.size() >= 128)
         {
-            vox.m_curVol = curveData->data.at(eval) / 127.f;
+            vox.m_curVol = curveData->data[eval] / 127.f;
             return false;
         }
     }

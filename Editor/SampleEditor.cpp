@@ -764,6 +764,9 @@ SampleControls::SampleControls(QWidget* parent)
     setBackgroundRole(QPalette::Base);
     setAutoFillBackground(true);
 
+    QPalette palette = QWidget::palette();
+    palette.setColor(QPalette::Base, palette.color(QPalette::Background));
+
     QHBoxLayout* mainLayout = new QHBoxLayout;
 
     QGridLayout* leftLayout = new QGridLayout;
@@ -777,8 +780,6 @@ SampleControls::SampleControls(QWidget* parent)
 
     leftLayout->addWidget(new QLabel(tr("Loop")), 0, 1);
     m_loopCheck = new QCheckBox;
-    QPalette palette = m_loopCheck->palette();
-    palette.setColor(QPalette::Base, palette.color(QPalette::Background));
     m_loopCheck->setPalette(palette);
     m_loopCheck->setDisabled(true);
     connect(m_loopCheck, SIGNAL(stateChanged(int)), this, SLOT(loopStateChanged(int)));
@@ -786,18 +787,21 @@ SampleControls::SampleControls(QWidget* parent)
 
     leftLayout->addWidget(new QLabel(tr("Start")), 0, 2);
     m_loopStart = new QSpinBox;
+    m_loopStart->setPalette(palette);
     m_loopStart->setDisabled(true);
     connect(m_loopStart, SIGNAL(valueChanged(int)), this, SLOT(startValueChanged(int)));
     leftLayout->addWidget(m_loopStart, 1, 2);
 
     leftLayout->addWidget(new QLabel(tr("End")), 0, 3);
     m_loopEnd = new QSpinBox;
+    m_loopEnd->setPalette(palette);
     m_loopEnd->setDisabled(true);
     connect(m_loopEnd, SIGNAL(valueChanged(int)), this, SLOT(endValueChanged(int)));
     leftLayout->addWidget(m_loopEnd, 1, 3);
 
     leftLayout->addWidget(new QLabel(tr("Base Pitch")), 0, 4);
     m_basePitch = new QSpinBox;
+    m_basePitch->setPalette(palette);
     m_basePitch->setDisabled(true);
     m_basePitch->setMinimum(0);
     m_basePitch->setMaximum(127);

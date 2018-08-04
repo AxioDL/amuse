@@ -33,7 +33,8 @@ protected:
         ADSRRelease,
         ADSRDLS,
         ADSRVelToAttack,
-        ADSRKeyToDecay
+        ADSRKeyToDecay,
+        CurveEdit
     };
 public:
     EditorUndoCommand(amuse::ObjToken<ProjectModel::INode> node,

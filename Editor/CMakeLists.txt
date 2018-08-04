@@ -6,6 +6,7 @@ find_package(Qt5Widgets)
 find_package(Qt5Network)
 find_package(Qt5Xml)
 find_package(Qt5Svg)
+find_package(Qt5Script)
 find_package(Qt5LinguistTools)
 
 if(WIN32)
@@ -80,4 +81,5 @@ target_link_libraries(amuse-gui ${PLAT_LIBS}
         ${Qt5Network_LIBRARIES}
         ${Qt5Xml_LIBRARIES}
         ${Qt5Svg_LIBRARIES}
+        ${Qt5Script_LIBRARIES}
         amuse boo ${BOO_SYS_LIBS} logvisor athena-core athena-libyaml xxhash ${ZLIB_LIBRARIES} ${LZO_LIB})
