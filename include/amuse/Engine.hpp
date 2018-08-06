@@ -112,6 +112,15 @@ public:
         return macroStart(group, macro, key, vel, mod, m_defaultStudio);
     }
 
+    /** Start PageObject node playing directly (for editor use) */
+    ObjToken<Voice> pageObjectStart(const AudioGroup* group, ObjectId id, uint8_t key,
+                                    uint8_t vel, uint8_t mod, ObjToken<Studio> smx);
+    ObjToken<Voice> pageObjectStart(const AudioGroup* group, ObjectId id, uint8_t key,
+                                    uint8_t vel, uint8_t mod)
+    {
+        return pageObjectStart(group, id, key, vel, mod, m_defaultStudio);
+    }
+
     /** Start soundFX playing from loaded audio groups, attach to positional emitter */
     ObjToken<Emitter> addEmitter(const float* pos, const float* dir, float maxDist, float falloff,
                                  int sfxId, float minVol, float maxVol, bool doppler, ObjToken<Studio> smx);

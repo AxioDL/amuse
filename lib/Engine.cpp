@@ -332,6 +332,25 @@ ObjToken<Voice> Engine::macroStart(const AudioGroup* group, const SoundMacro* ma
     return *ret;
 }
 
+/** Start PageObject node playing directly (for editor use) */
+ObjToken<Voice> Engine::pageObjectStart(const AudioGroup* group, ObjectId id, uint8_t key,
+                                        uint8_t vel, uint8_t mod, ObjToken<Studio> smx)
+{
+    if (!group)
+        return {};
+
+    std::list<ObjToken<Voice>>::iterator ret =
+        _allocateVoice(*group, {}, NativeSampleRate, true, false, smx);
+
+    if (!(*ret)->loadPageObject(id, 1000.f, key, vel, mod))
+    {
+        _destroyVoice(ret);
+        return {};
+    }
+
+    return *ret;
+}
+
 /** Start soundFX playing from loaded audio groups, attach to positional emitter */
 ObjToken<Emitter> Engine::addEmitter(const float* pos, const float* dir, float maxDist, float falloff,
                                      int sfxId, float minVol, float maxVol, bool doppler, ObjToken<Studio> smx)

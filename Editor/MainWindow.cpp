@@ -522,6 +522,12 @@ amuse::ObjToken<amuse::Voice> MainWindow::startEditorVoice(uint8_t key, uint8_t 
             ProjectModel::SoundMacroNode* cNode = static_cast<ProjectModel::SoundMacroNode*>(node);
             vox = m_engine->macroStart(group, cNode->id(), key, velocity, m_ctrlVals[1]);
         }
+        else if (node->type() == ProjectModel::INode::Type::Keymap ||
+                 node->type() == ProjectModel::INode::Type::Layer)
+        {
+            ProjectModel::BasePoolObjectNode* cNode = static_cast<ProjectModel::BasePoolObjectNode*>(node);
+            vox = m_engine->pageObjectStart(group, cNode->id(), key, velocity, m_ctrlVals[1]);
+        }
         else if (node->type() == ProjectModel::INode::Type::Sample)
         {
             SampleEditor* editor = static_cast<SampleEditor*>(m_ui.editorContents->currentWidget());

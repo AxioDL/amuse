@@ -353,6 +353,11 @@ AudioGroupPool AudioGroupPool::CreateAudioGroupPool(SystemStringView groupPath)
         }
     }
 
+    amuse::KeymapId id = 42;
+    amuse::KeymapId::CurNameDB->registerPair("test", id);
+    auto& kmOut = ret.m_keymaps[id];
+    kmOut = MakeObj<std::array<Keymap, 128>>();
+
     return ret;
 }
 
