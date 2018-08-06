@@ -17,37 +17,6 @@ class SoundMacroEditor;
 class SoundMacroListing;
 class CatalogueItem;
 
-class FieldSpinBox : public QSpinBox
-{
-    Q_OBJECT
-public:
-    explicit FieldSpinBox(QWidget* parent = Q_NULLPTR)
-    : QSpinBox(parent) {}
-
-    /* Don't scroll */
-    void wheelEvent(QWheelEvent* event) { event->ignore(); }
-};
-
-class FieldComboBox : public QComboBox
-{
-    Q_OBJECT
-public:
-    explicit FieldComboBox(QWidget* parent = Q_NULLPTR)
-    : QComboBox(parent) {}
-
-    /* Don't scroll */
-    void wheelEvent(QWheelEvent* event) { event->ignore(); }
-};
-
-class FieldProjectNode : public FieldComboBox
-{
-    Q_OBJECT
-    ProjectModel::CollectionNode* m_collection;
-public:
-    explicit FieldProjectNode(ProjectModel::CollectionNode* collection, QWidget* parent = Q_NULLPTR);
-    ProjectModel::CollectionNode* collection() const { return m_collection; }
-};
-
 class TargetButton : public QPushButton
 {
     Q_OBJECT

@@ -195,6 +195,7 @@ void ADSRView::mousePressEvent(QMouseEvent* ev)
 
     if (dists[minDist] < 10.0)
     {
+        ++m_cycleIdx;
         m_dragPoint = minDist;
         mouseMoveEvent(ev);
     }
@@ -235,17 +236,18 @@ void ADSRView::mouseMoveEvent(QMouseEvent* ev)
     {
         qreal newAttack = std::max(0.0, (ev->localPos().x() - 30.0) / (width() - 30.0) * totalTime);
         qreal delta = newAttack - aTime;
-        ctrls->setAttackAndDecay(newAttack, std::max(0.0, ctrls->m_decay->value() - delta));
+        ctrls->setAttackAndDecay(newAttack, std::max(0.0, ctrls->m_decay->value() - delta), m_cycleIdx);
     }
     else if (m_dragPoint == 1)
     {
         qreal newDecay = std::max(0.0, (ev->localPos().x() - 30.0) * totalTime / (width() - 30.0) - aTime);
         qreal newSustain = (-ev->localPos().y() + (height() - 16.0)) / (height() - 16.0);
-        ctrls->setDecayAndSustain(newDecay, newSustain * 100.0);
+        ctrls->setDecayAndSustain(newDecay, newSustain * 100.0, m_cycleIdx);
     }
     else if (m_dragPoint == 2)
     {
         qreal newRelease = std::max(0.0, (width() - 30.0) * (adTime + 1.0) / (ev->localPos().x() - 30.0) - (adTime + 1.0));
+        ctrls->setRelease(newRelease, m_cycleIdx);
         ctrls->m_release->setValue(newRelease);
     }
 }
@@ -522,11 +524,13 @@ class ADSRAttackAndDecayUndoCommand : public EditorUndoCommand
 {
     double m_redoAttack, m_redoDecay;
     double m_undoAttack, m_undoDecay;
+    uint64_t m_cycleCount;
     bool m_undid = false;
 public:
-    ADSRAttackAndDecayUndoCommand(double redoAttack, double redoDecay, amuse::ObjToken<ProjectModel::ADSRNode> node)
+    ADSRAttackAndDecayUndoCommand(double redoAttack, double redoDecay, uint64_t cycleCount,
+                                  amuse::ObjToken<ProjectModel::ADSRNode> node)
     : EditorUndoCommand(node.get(), ADSRControls::tr("Change Attack/Decay")),
-      m_redoAttack(redoAttack), m_redoDecay(redoDecay) {}
+      m_redoAttack(redoAttack), m_redoDecay(redoDecay), m_cycleCount(cycleCount) {}
     void undo()
     {
         m_undid = true;
@@ -569,7 +573,8 @@ public:
     }
     bool mergeWith(const QUndoCommand* other)
     {
-        if (other->id() == id())
+        if (other->id() == id() && m_cycleCount ==
+            static_cast<const ADSRAttackAndDecayUndoCommand*>(other)->m_cycleCount)
         {
             m_redoAttack = static_cast<const ADSRAttackAndDecayUndoCommand*>(other)->m_redoAttack;
             m_redoDecay = static_cast<const ADSRAttackAndDecayUndoCommand*>(other)->m_redoDecay;
@@ -580,7 +585,7 @@ public:
     int id() const { return int(Id::ADSRAttackAndDecay); }
 };
 
-void ADSRControls::setAttackAndDecay(double attack, double decay)
+void ADSRControls::setAttackAndDecay(double attack, double decay, uint64_t cycleCount)
 {
     m_enableUpdate = false;
     m_attack->setValue(attack);
@@ -588,7 +593,8 @@ void ADSRControls::setAttackAndDecay(double attack, double decay)
     m_enableUpdate = true;
 
     ADSRView* view = getEditor()->m_adsrView;
-    g_MainWindow->pushUndoCommand(new ADSRAttackAndDecayUndoCommand(attack, decay, view->m_node));
+    g_MainWindow->pushUndoCommand(new ADSRAttackAndDecayUndoCommand(m_attack->value(), m_decay->value(),
+                                                                    cycleCount, view->m_node));
     view->update();
 }
 
@@ -596,11 +602,13 @@ class ADSRDecayAndSustainUndoCommand : public EditorUndoCommand
 {
     double m_redoDecay, m_redoSustain;
     double m_undoDecay, m_undoSustain;
+    uint64_t m_cycleCount;
     bool m_undid = false;
 public:
-    ADSRDecayAndSustainUndoCommand(double redoDecay, double redoSustain, amuse::ObjToken<ProjectModel::ADSRNode> node)
+    ADSRDecayAndSustainUndoCommand(double redoDecay, double redoSustain, uint64_t cycleCount,
+                                   amuse::ObjToken<ProjectModel::ADSRNode> node)
     : EditorUndoCommand(node.get(), ADSRControls::tr("Change Decay/Sustain")),
-      m_redoDecay(redoDecay), m_redoSustain(redoSustain) {}
+      m_redoDecay(redoDecay), m_redoSustain(redoSustain), m_cycleCount(cycleCount) {}
     void undo()
     {
         m_undid = true;
@@ -643,7 +651,8 @@ public:
     }
     bool mergeWith(const QUndoCommand* other)
     {
-        if (other->id() == id())
+        if (other->id() == id() && m_cycleCount ==
+            static_cast<const ADSRDecayAndSustainUndoCommand*>(other)->m_cycleCount)
         {
             m_redoDecay = static_cast<const ADSRDecayAndSustainUndoCommand*>(other)->m_redoDecay;
             m_redoSustain = static_cast<const ADSRDecayAndSustainUndoCommand*>(other)->m_redoSustain;
@@ -654,7 +663,7 @@ public:
     int id() const { return int(Id::ADSRDecayAndSustain); }
 };
 
-void ADSRControls::setDecayAndSustain(double decay, double sustain)
+void ADSRControls::setDecayAndSustain(double decay, double sustain, uint64_t cycleCount)
 {
     m_enableUpdate = false;
     m_decay->setValue(decay);
@@ -662,18 +671,21 @@ void ADSRControls::setDecayAndSustain(double decay, double sustain)
     m_enableUpdate = true;
 
     ADSRView* view = getEditor()->m_adsrView;
-    g_MainWindow->pushUndoCommand(new ADSRDecayAndSustainUndoCommand(decay, sustain / 100.0, view->m_node));
+    g_MainWindow->pushUndoCommand(new ADSRDecayAndSustainUndoCommand(m_decay->value(), m_sustain->value() / 100.0,
+                                                                     cycleCount, view->m_node));
     view->update();
 }
 
 class ADSRReleaseUndoCommand : public EditorUndoCommand
 {
     double m_redoVal, m_undoVal;
+    uint64_t m_cycleCount;
     bool m_undid = false;
 public:
-    ADSRReleaseUndoCommand(double redoVal, amuse::ObjToken<ProjectModel::ADSRNode> node)
+    ADSRReleaseUndoCommand(double redoVal, uint64_t cycleCount,
+                           amuse::ObjToken<ProjectModel::ADSRNode> node)
     : EditorUndoCommand(node.get(), ADSRControls::tr("Change Release")),
-      m_redoVal(redoVal) {}
+      m_redoVal(redoVal), m_cycleCount(cycleCount) {}
     void undo()
     {
         m_undid = true;
@@ -710,7 +722,8 @@ public:
     }
     bool mergeWith(const QUndoCommand* other)
     {
-        if (other->id() == id())
+        if (other->id() == id() && m_cycleCount ==
+            static_cast<const ADSRReleaseUndoCommand*>(other)->m_cycleCount)
         {
             m_redoVal = static_cast<const ADSRReleaseUndoCommand*>(other)->m_redoVal;
             return true;
@@ -720,12 +733,23 @@ public:
     int id() const { return int(Id::ADSRRelease); }
 };
 
+void ADSRControls::setRelease(double release, uint64_t cycleCount)
+{
+    m_enableUpdate = false;
+    m_release->setValue(release);
+    m_enableUpdate = true;
+
+    ADSRView* view = getEditor()->m_adsrView;
+    g_MainWindow->pushUndoCommand(new ADSRReleaseUndoCommand(m_release->value(), cycleCount, view->m_node));
+    view->update();
+}
+
 void ADSRControls::releaseChanged(double val)
 {
     if (m_enableUpdate)
     {
         ADSRView* view = getEditor()->m_adsrView;
-        g_MainWindow->pushUndoCommand(new ADSRReleaseUndoCommand(val, view->m_node));
+        g_MainWindow->pushUndoCommand(new ADSRReleaseUndoCommand(val, ~0ull, view->m_node));
         view->update();
     }
 }

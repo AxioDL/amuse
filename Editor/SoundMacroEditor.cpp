@@ -10,14 +10,6 @@
 #include <QApplication>
 #include <QCheckBox>
 
-FieldProjectNode::FieldProjectNode(ProjectModel::CollectionNode* collection, QWidget* parent)
-: FieldComboBox(parent), m_collection(collection)
-{
-    ProjectModel* model = g_MainWindow->projectModel();
-    setModel(model->getNullProxy());
-    setRootModelIndex(model->getNullProxy()->mapFromSource(model->index(collection)));
-}
-
 TargetButton::TargetButton(QWidget* parent)
 : QPushButton(parent)
 {

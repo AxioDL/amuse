@@ -20,6 +20,7 @@ Q_OBJECT
     QStaticText m_percentTexts[11];
     std::vector<QStaticText> m_timeTexts;
     int m_dragPoint = -1;
+    uint64_t m_cycleIdx = 0;
     ADSREditor* getEditor() const;
 public:
     explicit ADSRView(QWidget* parent = Q_NULLPTR);
@@ -48,8 +49,9 @@ Q_OBJECT
     QDoubleSpinBox* m_keyToDecay;
     bool m_enableUpdate = true;
     ADSREditor* getEditor() const;
-    void setAttackAndDecay(double attack, double decay);
-    void setDecayAndSustain(double decay, double sustain);
+    void setAttackAndDecay(double attack, double decay, uint64_t cycleCount);
+    void setDecayAndSustain(double decay, double sustain, uint64_t cycleCount);
+    void setRelease(double release, uint64_t cycleCount);
 public:
     explicit ADSRControls(QWidget* parent = Q_NULLPTR);
     void loadData();

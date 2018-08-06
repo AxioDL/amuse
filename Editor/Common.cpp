@@ -85,3 +85,14 @@ QString ShowInGraphicalShellString()
     return MainWindow::tr("Show in Browser");
 #endif
 }
+
+QTransform RectToRect(const QRectF& from, const QRectF& to)
+{
+    QPolygonF orig(from);
+    orig.pop_back();
+    QPolygonF resize(to);
+    resize.pop_back();
+    QTransform ret;
+    QTransform::quadToQuad(orig, resize, ret);
+    return ret;
+}

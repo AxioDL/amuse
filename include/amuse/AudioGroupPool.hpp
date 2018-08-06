@@ -1310,9 +1310,9 @@ struct Keymap : BigDNA
 {
     AT_DECL_DNA_YAML
     SoundMacroIdDNA<athena::Big> macro;
-    Value<atInt8> transpose;
-    Value<atInt8> pan; /* -128 for surround-channel only */
-    Value<atInt8> prioOffset;
+    Value<atInt8> transpose = 0;
+    Value<atInt8> pan = 64; /* -128 for surround-channel only */
+    Value<atInt8> prioOffset = 0;
 
     Keymap() = default;
 
@@ -1330,6 +1330,11 @@ struct Keymap : BigDNA
         ret.pan = pan;
         ret.prioOffset = prioOffset;
         return ret;
+    }
+
+    uint64_t configKey() const
+    {
+        return uint64_t(macro.id) | (uint64_t(transpose) << 16) | (uint64_t(pan) << 24) | (uint64_t(prioOffset) << 32);
     }
 };
 
@@ -1390,7 +1395,7 @@ class AudioGroupPool
 {
     std::unordered_map<SoundMacroId, ObjToken<SoundMacro>> m_soundMacros;
     std::unordered_map<TableId, ObjToken<std::unique_ptr<ITable>>> m_tables;
-    std::unordered_map<KeymapId, ObjToken<Keymap>> m_keymaps;
+    std::unordered_map<KeymapId, ObjToken<std::array<Keymap, 128>>> m_keymaps;
     std::unordered_map<LayersId, ObjToken<std::vector<LayerMapping>>> m_layers;
 
     template <athena::Endian DNAE>
@@ -1402,11 +1407,11 @@ public:
 
     const std::unordered_map<SoundMacroId, ObjToken<SoundMacro>>& soundMacros() const { return m_soundMacros; }
     const std::unordered_map<TableId, ObjToken<std::unique_ptr<ITable>>>& tables() const { return m_tables; }
-    const std::unordered_map<KeymapId, ObjToken<Keymap>>& keymaps() const { return m_keymaps; }
+    const std::unordered_map<KeymapId, ObjToken<std::array<Keymap, 128>>>& keymaps() const { return m_keymaps; }
     const std::unordered_map<LayersId, ObjToken<std::vector<LayerMapping>>>& layers() const { return m_layers; }
     std::unordered_map<SoundMacroId, ObjToken<SoundMacro>>& soundMacros() { return m_soundMacros; }
     std::unordered_map<TableId, ObjToken<std::unique_ptr<ITable>>>& tables() { return m_tables; }
-    std::unordered_map<KeymapId, ObjToken<Keymap>>& keymaps() { return m_keymaps; }
+    std::unordered_map<KeymapId, ObjToken<std::array<Keymap, 128>>>& keymaps() { return m_keymaps; }
     std::unordered_map<LayersId, ObjToken<std::vector<LayerMapping>>>& layers() { return m_layers; }
 
     const SoundMacro* soundMacro(ObjectId id) const;

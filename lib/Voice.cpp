@@ -811,8 +811,15 @@ bool Voice::_loadKeymap(const Keymap* keymap, double ticksPerSec,
     midiKey += km.transpose;
     bool ret = loadMacroObject(km.macro.id, 0, ticksPerSec, midiKey, midiVel, midiMod, pushPc);
     m_curVol = 1.f;
-    _setPan((km.pan - 64) / 64.f);
-    _setSurroundPan(-1.f);
+    if (km.pan == -128)
+    {
+        _setSurroundPan(1.f);
+    }
+    else
+    {
+        _setPan((km.pan - 64) / 64.f);
+        _setSurroundPan(-1.f);
+    }
     return ret;
 }
 

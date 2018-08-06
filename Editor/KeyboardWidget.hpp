@@ -6,6 +6,13 @@
 #include <QSlider>
 #include <QWheelEvent>
 #include "StatusBarWidget.hpp"
+#include "Common.hpp"
+
+extern const QString NaturalKeyNames[7];
+extern const QString SharpKeyNames[5];
+extern const QString KeyStrings[12];
+extern const int NaturalKeyNumbers[7];
+extern const int SharpKeyNumbers[5];
 
 class KeyboardWidget;
 

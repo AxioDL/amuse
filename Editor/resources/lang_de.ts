@@ -4,94 +4,94 @@
 <context>
     <name>ADSRControls</name>
     <message>
-        <location filename="../ADSREditor.cpp" line="335"/>
+        <location filename="../ADSREditor.cpp" line="337"/>
         <source>Change Attack</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ADSREditor.cpp" line="399"/>
+        <location filename="../ADSREditor.cpp" line="401"/>
         <source>Change Decay</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ADSREditor.cpp" line="463"/>
+        <location filename="../ADSREditor.cpp" line="465"/>
         <source>Change Sustain</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ADSREditor.cpp" line="528"/>
+        <location filename="../ADSREditor.cpp" line="532"/>
         <source>Change Attack/Decay</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ADSREditor.cpp" line="602"/>
+        <location filename="../ADSREditor.cpp" line="610"/>
         <source>Change Decay/Sustain</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ADSREditor.cpp" line="675"/>
+        <location filename="../ADSREditor.cpp" line="687"/>
         <source>Change Release</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ADSREditor.cpp" line="765"/>
+        <location filename="../ADSREditor.cpp" line="789"/>
         <source>Change DLS</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ADSREditor.cpp" line="852"/>
+        <location filename="../ADSREditor.cpp" line="876"/>
         <source>Change Vel To Attack</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ADSREditor.cpp" line="905"/>
+        <location filename="../ADSREditor.cpp" line="929"/>
         <source>Change Key To Decay</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ADSREditor.cpp" line="970"/>
+        <location filename="../ADSREditor.cpp" line="994"/>
         <source>Attack</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ADSREditor.cpp" line="978"/>
-        <location filename="../ADSREditor.cpp" line="992"/>
-        <location filename="../ADSREditor.cpp" line="1017"/>
+        <location filename="../ADSREditor.cpp" line="1002"/>
+        <location filename="../ADSREditor.cpp" line="1016"/>
+        <location filename="../ADSREditor.cpp" line="1041"/>
         <source> sec</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ADSREditor.cpp" line="984"/>
+        <location filename="../ADSREditor.cpp" line="1008"/>
         <source>Decay</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ADSREditor.cpp" line="998"/>
+        <location filename="../ADSREditor.cpp" line="1022"/>
         <source>Sustain</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ADSREditor.cpp" line="1003"/>
+        <location filename="../ADSREditor.cpp" line="1027"/>
         <source> %</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ADSREditor.cpp" line="1009"/>
+        <location filename="../ADSREditor.cpp" line="1033"/>
         <source>Release</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ADSREditor.cpp" line="1023"/>
+        <location filename="../ADSREditor.cpp" line="1047"/>
         <source>DLS</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ADSREditor.cpp" line="1031"/>
+        <location filename="../ADSREditor.cpp" line="1055"/>
         <source>Vel To Attack</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ADSREditor.cpp" line="1043"/>
+        <location filename="../ADSREditor.cpp" line="1067"/>
         <source>Key To Decay</source>
         <translation type="unfinished"></translation>
     </message>
@@ -99,7 +99,7 @@
 <context>
     <name>CommandWidget</name>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="350"/>
+        <location filename="../SoundMacroEditor.cpp" line="342"/>
         <source>Change %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -107,29 +107,77 @@
 <context>
     <name>CurveControls</name>
     <message>
-        <location filename="../CurveEditor.cpp" line="16"/>
+        <location filename="../CurveEditor.cpp" line="18"/>
         <source>Edit Curve</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../CurveEditor.cpp" line="228"/>
+        <location filename="../CurveEditor.cpp" line="230"/>
         <source>Did not evaluate as a number</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../CurveEditor.cpp" line="253"/>
+        <location filename="../CurveEditor.cpp" line="255"/>
         <source>Expression</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../CurveEditor.cpp" line="262"/>
+        <location filename="../CurveEditor.cpp" line="264"/>
         <source>Apply</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../CurveEditor.cpp" line="286"/>
+        <location filename="../CurveEditor.cpp" line="288"/>
         <source>Expression interpreter mapping x:[0,1] to y:[0,1] with the following constants and functions available:
 </source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>KeymapControls</name>
+    <message>
+        <location filename="../KeymapEditor.cpp" line="356"/>
+        <source>SoundMacro</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../KeymapEditor.cpp" line="362"/>
+        <source>Transpose</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../KeymapEditor.cpp" line="367"/>
+        <source>Offset resulting MIDI note</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../KeymapEditor.cpp" line="371"/>
+        <source>Pan</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../KeymapEditor.cpp" line="376"/>
+        <source>Set initial pan</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../KeymapEditor.cpp" line="380"/>
+        <source>Surround</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../KeymapEditor.cpp" line="384"/>
+        <source>Initially play through surround channels</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../KeymapEditor.cpp" line="388"/>
+        <source>Prio Offset</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../KeymapEditor.cpp" line="393"/>
+        <source>Offset resulting priority</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -153,7 +201,7 @@
     </message>
     <message>
         <location filename="../MainWindow.ui" line="328"/>
-        <source>P&amp;roject</source>
+        <source>Pro&amp;ject</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -522,15 +570,23 @@
 <context>
     <name>ModulationSlider</name>
     <message>
-        <location filename="../KeyboardWidget.cpp" line="267"/>
+        <location filename="../KeyboardWidget.cpp" line="255"/>
         <source>Modulation: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>PaintButton</name>
+    <message>
+        <location filename="../KeymapEditor.cpp" line="93"/>
+        <source>Activate brush to apply values to keys</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
     <name>PitchSlider</name>
     <message>
-        <location filename="../KeyboardWidget.cpp" line="276"/>
+        <location filename="../KeyboardWidget.cpp" line="264"/>
         <source>Pitch: %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -558,17 +614,17 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="275"/>
+        <location filename="../ProjectModel.cpp" line="279"/>
         <source>Layers</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="282"/>
+        <location filename="../ProjectModel.cpp" line="286"/>
         <source>Samples</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="434"/>
+        <location filename="../ProjectModel.cpp" line="438"/>
         <source>Delete %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -647,72 +703,72 @@
 <context>
     <name>SoundMacroCatalogue</name>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="977"/>
+        <location filename="../SoundMacroEditor.cpp" line="969"/>
         <source>Control</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="978"/>
+        <location filename="../SoundMacroEditor.cpp" line="970"/>
         <source>Pitch</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="979"/>
+        <location filename="../SoundMacroEditor.cpp" line="971"/>
         <source>Sample</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="980"/>
+        <location filename="../SoundMacroEditor.cpp" line="972"/>
         <source>Setup</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="981"/>
+        <location filename="../SoundMacroEditor.cpp" line="973"/>
         <source>Special</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="982"/>
+        <location filename="../SoundMacroEditor.cpp" line="974"/>
         <source>Structure</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="983"/>
+        <location filename="../SoundMacroEditor.cpp" line="975"/>
         <source>Volume</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="988"/>
+        <location filename="../SoundMacroEditor.cpp" line="980"/>
         <source>Commands to control the voice</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="989"/>
+        <location filename="../SoundMacroEditor.cpp" line="981"/>
         <source>Commands to control the voice&apos;s pitch</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="990"/>
+        <location filename="../SoundMacroEditor.cpp" line="982"/>
         <source>Commands to control the voice&apos;s sample playback</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="991"/>
+        <location filename="../SoundMacroEditor.cpp" line="983"/>
         <source>Commands to setup the voice&apos;s mixing process</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="992"/>
+        <location filename="../SoundMacroEditor.cpp" line="984"/>
         <source>Miscellaneous commands</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="993"/>
+        <location filename="../SoundMacroEditor.cpp" line="985"/>
         <source>Commands to control macro branching</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="994"/>
+        <location filename="../SoundMacroEditor.cpp" line="986"/>
         <source>Commands to control the voice&apos;s volume</source>
         <translation type="unfinished"></translation>
     </message>
@@ -720,7 +776,7 @@
 <context>
     <name>SoundMacroDeleteButton</name>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="153"/>
+        <location filename="../SoundMacroEditor.cpp" line="145"/>
         <source>Delete this SoundMacro</source>
         <translation type="unfinished"></translation>
     </message>
@@ -728,17 +784,17 @@
 <context>
     <name>SoundMacroListing</name>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="676"/>
+        <location filename="../SoundMacroEditor.cpp" line="668"/>
         <source>Reorder %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="808"/>
+        <location filename="../SoundMacroEditor.cpp" line="800"/>
         <source>Insert %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="861"/>
+        <location filename="../SoundMacroEditor.cpp" line="853"/>
         <source>Delete %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -754,7 +810,7 @@
 <context>
     <name>TargetButton</name>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="27"/>
+        <location filename="../SoundMacroEditor.cpp" line="19"/>
         <source>Set step with target click</source>
         <translation type="unfinished"></translation>
     </message>
@@ -762,7 +818,7 @@
 <context>
     <name>VelocitySlider</name>
     <message>
-        <location filename="../KeyboardWidget.cpp" line="258"/>
+        <location filename="../KeyboardWidget.cpp" line="246"/>
         <source>Velocity: %1</source>
         <translation type="unfinished"></translation>
     </message>

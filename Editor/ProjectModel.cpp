@@ -269,6 +269,10 @@ void ProjectModel::_resetModelData()
             col.reserve(keymaps.size());
             for (auto& keymap : SortUnorderedMap(keymaps))
                 col.makeChild<KeymapNode>(keymap.first, keymap.second.get());
+            amuse::KeymapId id = 42;
+            amuse::KeymapId::CurNameDB->registerPair("test", id);
+            auto km = amuse::MakeObj<std::array<amuse::Keymap, 128>>();
+            col.makeChild<KeymapNode>(id, km);
         }
         {
             CollectionNode& col =

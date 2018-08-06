@@ -10,10 +10,12 @@ class CurveEditUndoCommand : public EditorUndoCommand
 {
     uint8_t m_redoData[128];
     uint8_t m_undoData[128];
+    bool m_usedExpr;
     bool m_undid = false;
 public:
-    CurveEditUndoCommand(const uint8_t* redoData, amuse::ObjToken<ProjectModel::CurveNode> node)
-    : EditorUndoCommand(node.get(), CurveControls::tr("Edit Curve"))
+    CurveEditUndoCommand(const uint8_t* redoData, bool usedExpr,
+                         amuse::ObjToken<ProjectModel::CurveNode> node)
+    : EditorUndoCommand(node.get(), CurveControls::tr("Edit Curve")), m_usedExpr(usedExpr)
     {
         std::memcpy(m_redoData, redoData, 128);
     }
@@ -44,7 +46,7 @@ public:
     }
     bool mergeWith(const QUndoCommand* other)
     {
-        if (other->id() == id())
+        if (other->id() == id() && !m_usedExpr && !static_cast<const CurveEditUndoCommand*>(other)->m_usedExpr)
         {
             std::memcpy(m_redoData, static_cast<const CurveEditUndoCommand*>(other)->m_redoData, 128);
             return true;
@@ -153,7 +155,7 @@ void CurveView::mouseMoveEvent(QMouseEvent* ev)
     std::memcpy(newData, curve.data.data(), 128);
     newData[idx] = uint8_t(val);
 
-    g_MainWindow->pushUndoCommand(new CurveEditUndoCommand(newData, m_node));
+    g_MainWindow->pushUndoCommand(new CurveEditUndoCommand(newData, false, m_node));
     update();
 }
 
@@ -227,7 +229,7 @@ void CurveControls::exprCommit()
     if (notANumber)
         m_errLabel->setText(tr("Did not evaluate as a number"));
 
-    g_MainWindow->pushUndoCommand(new CurveEditUndoCommand(newData, view->m_node));
+    g_MainWindow->pushUndoCommand(new CurveEditUndoCommand(newData, true, view->m_node));
     view->update();
 }
 

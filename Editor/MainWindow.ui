@@ -110,8 +110,8 @@
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>1100</width>
-           <height>610</height>
+           <width>1103</width>
+           <height>606</height>
           </rect>
          </property>
         </widget>
@@ -152,6 +152,78 @@
           <number>0</number>
          </property>
          <item>
+          <widget class="PitchSlider" name="pitchSlider">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>100</height>
+            </size>
+           </property>
+           <property name="minimum">
+            <number>-2048</number>
+           </property>
+           <property name="maximum">
+            <number>2048</number>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="ModulationSlider" name="modulationSlider">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>100</height>
+            </size>
+           </property>
+           <property name="maximum">
+            <number>127</number>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="VelocitySlider" name="velocitySlider">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>100</height>
+            </size>
+           </property>
+           <property name="maximum">
+            <number>127</number>
+           </property>
+           <property name="value">
+            <number>90</number>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QScrollArea" name="keyboardScrollArea">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -189,7 +261,7 @@
               <x>0</x>
               <y>0</y>
               <width>1501</width>
-              <height>85</height>
+              <height>80</height>
              </rect>
             </property>
             <property name="sizePolicy">
@@ -213,78 +285,6 @@
            </widget>
           </widget>
          </item>
-         <item>
-          <widget class="VelocitySlider" name="velocitySlider">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>100</height>
-            </size>
-           </property>
-           <property name="maximum">
-            <number>127</number>
-           </property>
-           <property name="value">
-            <number>90</number>
-           </property>
-           <property name="orientation">
-            <enum>Qt::Vertical</enum>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="ModulationSlider" name="modulationSlider">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>100</height>
-            </size>
-           </property>
-           <property name="maximum">
-            <number>127</number>
-           </property>
-           <property name="orientation">
-            <enum>Qt::Vertical</enum>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="PitchSlider" name="pitchSlider">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>100</height>
-            </size>
-           </property>
-           <property name="minimum">
-            <number>-2048</number>
-           </property>
-           <property name="maximum">
-            <number>2048</number>
-           </property>
-           <property name="orientation">
-            <enum>Qt::Vertical</enum>
-           </property>
-          </widget>
-         </item>
         </layout>
        </widget>
       </widget>
@@ -298,7 +298,7 @@
      <x>0</x>
      <y>0</y>
      <width>1360</width>
-     <height>27</height>
+     <height>34</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -325,7 +325,7 @@
    </widget>
    <widget class="QMenu" name="menuProject">
     <property name="title">
-     <string>P&amp;roject</string>
+     <string>Pro&amp;ject</string>
     </property>
     <addaction name="actionNew_Subproject"/>
     <addaction name="separator"/>

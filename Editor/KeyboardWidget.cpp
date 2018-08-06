@@ -6,19 +6,7 @@
 #include <QApplication>
 #include <QScrollBar>
 
-/* Used for generating transform matrices to map SVG coordinate space */
-static QTransform RectToRect(const QRectF& from, const QRectF& to)
-{
-    QPolygonF orig(from);
-    orig.pop_back();
-    QPolygonF resize(to);
-    resize.pop_back();
-    QTransform ret;
-    QTransform::quadToQuad(orig, resize, ret);
-    return ret;
-}
-
-static const QString NaturalKeyNames[] =
+const QString NaturalKeyNames[] =
 {
     QStringLiteral("C"),
     QStringLiteral("D"),
@@ -29,7 +17,7 @@ static const QString NaturalKeyNames[] =
     QStringLiteral("B")
 };
 
-static const QString SharpKeyNames[] =
+const QString SharpKeyNames[] =
 {
     QStringLiteral("Cs"),
     QStringLiteral("Ds"),
@@ -38,7 +26,7 @@ static const QString SharpKeyNames[] =
     QStringLiteral("As")
 };
 
-static const QString KeyStrings[] =
+const QString KeyStrings[] =
 {
     QStringLiteral("C"),
     QStringLiteral("C#"),
@@ -54,12 +42,12 @@ static const QString KeyStrings[] =
     QStringLiteral("B")
 };
 
-static const int NaturalKeyNumbers[] =
+const int NaturalKeyNumbers[] =
 {
     0, 2, 4, 5, 7, 9, 11
 };
 
-static const int SharpKeyNumbers[] =
+const int SharpKeyNumbers[] =
 {
     1, 3, 6, 8, 10
 };

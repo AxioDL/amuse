@@ -152,10 +152,14 @@ AudioGroupPool AudioGroupPool::_AudioGroupPool(athena::io::IStreamReader& r)
             ObjectHeader<DNAE> objHead;
             atInt64 startPos = r.position();
             objHead.read(r);
-            KeymapDNA<DNAE> kmData;
-            kmData.read(r);
             auto& km = ret.m_keymaps[objHead.objectId.id];
-            km = MakeObj<Keymap>(kmData);
+            km = MakeObj<std::array<Keymap, 128>>();
+            for (int i = 0; i < 128; ++i)
+            {
+                KeymapDNA<DNAE> kmData;
+                kmData.read(r);
+                (*km)[i] = kmData;
+            }
             r.seek(startPos + objHead.size, athena::Begin);
         }
     }
@@ -311,12 +315,17 @@ AudioGroupPool AudioGroupPool::CreateAudioGroupPool(SystemStringView groupPath)
             {
                 ret.m_keymaps.reserve(r.getCurNode()->m_mapChildren.size());
                 for (const auto& k : r.getCurNode()->m_mapChildren)
-                    if (auto __v = r.enterSubRecord(k.first.c_str()))
+                {
+                    size_t mappingCount;
+                    if (auto __v = r.enterSubVector(k.first.c_str(), mappingCount))
                     {
                         auto& kmOut = ret.m_keymaps[KeymapId::CurNameDB->resolveIdFromName(k.first)];
-                        kmOut = MakeObj<Keymap>();
-                        kmOut->read(r);
+                        kmOut = MakeObj<std::array<Keymap, 128>>();
+                        for (int i = 0; i < mappingCount && i < 128; ++i)
+                            if (auto __r2 = r.enterSubRecord(nullptr))
+                                (*kmOut)[i].read(r);
                     }
+                }
             }
 
             if (auto __r = r.enterSubRecord("layers"))
@@ -388,7 +397,7 @@ const Keymap* AudioGroupPool::keymap(ObjectId id) const
     auto search = m_keymaps.find(id);
     if (search == m_keymaps.cend())
         return nullptr;
-    return search->second.get();
+    return search->second.get()->data();
 }
 
 const std::vector<LayerMapping>* AudioGroupPool::layer(ObjectId id) const
@@ -991,10 +1000,16 @@ bool AudioGroupPool::toYAML(SystemStringView groupPath) const
         {
             for (const auto& p : SortUnorderedMap(m_keymaps))
             {
-                if (auto __v = w.enterSubRecord(KeymapId::CurNameDB->resolveNameFromId(p.first).data()))
+                if (auto __v = w.enterSubVector(KeymapId::CurNameDB->resolveNameFromId(p.first).data()))
                 {
-                    w.setStyle(athena::io::YAMLNodeStyle::Flow);
-                    p.second.get()->write(w);
+                    for (const auto& km : *p.second.get())
+                    {
+                        if (auto __r2 = w.enterSubRecord(nullptr))
+                        {
+                            w.setStyle(athena::io::YAMLNodeStyle::Flow);
+                            km.write(w);
+                        }
+                    }
                 }
             }
         }
