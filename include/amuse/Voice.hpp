@@ -351,6 +351,8 @@ public:
     {
         m_ctrlValsSelf.reset();
         m_extCtrlVals = cvs;
+        for (ObjToken<Voice>& vox : m_childVoices)
+            vox->installCtrlValues(cvs);
     }
 
     /** Get MIDI pitch wheel value on voice */

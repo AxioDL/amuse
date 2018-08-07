@@ -35,11 +35,17 @@ static void ReadRangedObjectIds(NameDB* db, athena::io::IStreamReader& r, NameDB
             ObjectId useId = i;
             if (tp == NameDB::Type::Layer)
                 useId.id |= 0x8000;
+            else if (tp == NameDB::Type::Keymap)
+                useId.id |= 0x4000;
             db->registerPair(NameDB::generateName(useId, tp), useId);
         }
     }
     else
     {
+        if (tp == NameDB::Type::Layer)
+            id |= 0x8000;
+        else if (tp == NameDB::Type::Keymap)
+            id |= 0x4000;
         db->registerPair(NameDB::generateName(id, tp), id);
     }
 }

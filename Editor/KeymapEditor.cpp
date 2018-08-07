@@ -483,7 +483,7 @@ int KeymapEditor::allocateConfigIdx(uint64_t key)
         ++search->second.second;
         return search->second.first;
     }
-    for (int i = 0; i < 128; ++i)
+    for (int i = 0; i < 129; ++i)
         if (!m_idxBitmap[i])
         {
             m_configToIdx[key] = std::make_pair(i, 1);
@@ -514,7 +514,7 @@ int KeymapEditor::getConfigIdx(uint64_t key) const
     auto search = m_configToIdx.find(key);
     if (search != m_configToIdx.end())
         return search->second.first;
-    for (int i = 0; i < 128; ++i)
+    for (int i = 0; i < 129; ++i)
         if (!m_idxBitmap[i])
             return i;
     Q_UNREACHABLE();
@@ -585,7 +585,7 @@ KeymapEditor::KeymapEditor(QWidget* parent)
 
     int k = 0;
     for (int i = 0; i < 13; ++i)
-        for (int j = 0; j < 10 && k < 128; ++j)
+        for (int j = 0; j < 10 && k < 129; ++j)
             m_paintPalette[k++].setHsv(HueTable[j], SaturationTable[i], ValueTable[i]);
 
     m_scrollArea->setWidget(m_kmView);

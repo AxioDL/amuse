@@ -776,6 +776,8 @@ ObjToken<Voice> Voice::_startChildMacro(ObjectId macroId, int macroStep, double 
     (*vox)->setVolume(m_targetUserVol);
     (*vox)->setPan(m_curPan);
     (*vox)->setSurroundPan(m_curSpan);
+    if (m_extCtrlVals)
+        (*vox)->installCtrlValues(m_extCtrlVals);
     return *vox;
 }
 
@@ -835,7 +837,7 @@ bool Voice::_loadLayer(const std::vector<LayerMapping>& layer, double ticksPerSe
             if (m_voxState != VoiceState::Playing)
             {
                 ret |= loadMacroObject(mapping.macro.id, 0, ticksPerSec, mappingKey, midiVel, midiMod, pushPc);
-                m_curVol = mapping.volume / 127.f;
+                m_curUserVol = m_targetUserVol = mapping.volume / 127.f;
                 _setPan((mapping.pan - 64) / 64.f);
                 _setSurroundPan((mapping.span - 64) / 64.f);
             }
@@ -845,7 +847,7 @@ bool Voice::_loadLayer(const std::vector<LayerMapping>& layer, double ticksPerSe
                     _startChildMacro(mapping.macro.id, 0, ticksPerSec, mappingKey, midiVel, midiMod, pushPc);
                 if (vox)
                 {
-                    vox->m_curVol = mapping.volume / 127.f;
+                    vox->m_curUserVol = vox->m_targetUserVol = mapping.volume / 127.f;
                     vox->_setPan((mapping.pan - 64) / 64.f);
                     vox->_setSurroundPan((mapping.span - 64) / 64.f);
                     ret = true;
@@ -892,11 +894,17 @@ bool Voice::loadPageObject(ObjectId objectId, double ticksPerSec, uint8_t midiKe
         if (layer)
             return _loadLayer(*layer, ticksPerSec, midiKey, midiVel, midiMod);
     }
-    else
+    else if (objectId.id & 0x4000)
     {
         const Keymap* keymap = m_audioGroup.getPool().keymap(objectId);
         if (keymap)
             return _loadKeymap(keymap, ticksPerSec, midiKey, midiVel, midiMod);
+    }
+    else
+    {
+        const SoundMacro* sm = m_audioGroup.getPool().soundMacro(objectId);
+        if (sm)
+            return _loadSoundMacro(objectId, sm, 0, ticksPerSec, midiKey, midiVel, midiMod);
     }
 
     return false;

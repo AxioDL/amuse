@@ -1358,13 +1358,13 @@ struct LayerMapping : BigDNA
 {
     AT_DECL_DNA_YAML
     SoundMacroIdDNA<athena::Big> macro;
-    Value<atInt8> keyLo;
-    Value<atInt8> keyHi;
-    Value<atInt8> transpose;
-    Value<atInt8> volume;
-    Value<atInt8> prioOffset;
-    Value<atInt8> span;
-    Value<atInt8> pan;
+    Value<atInt8> keyLo = 0;
+    Value<atInt8> keyHi = 127;
+    Value<atInt8> transpose = 0;
+    Value<atInt8> volume = 127;
+    Value<atInt8> prioOffset = 0;
+    Value<atInt8> span = 0;
+    Value<atInt8> pan = 64;
 
     LayerMapping() = default;
 

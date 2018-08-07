@@ -87,10 +87,10 @@ Q_OBJECT
     QScrollArea* m_scrollArea;
     KeymapView* m_kmView;
     KeymapControls* m_controls;
-    QColor m_paintPalette[128];
+    QColor m_paintPalette[129];
     amuse::Keymap m_controlKeymap;
     std::unordered_map<uint64_t, std::pair<int, int>> m_configToIdx;
-    std::bitset<128> m_idxBitmap;
+    std::bitset<129> m_idxBitmap;
     bool m_inPaint = false;
     void _touch();
     void touchKey(int key, bool bulk = false);

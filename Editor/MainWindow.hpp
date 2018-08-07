@@ -147,6 +147,7 @@ public:
     EditorWidget* getEditorWidget() const;
     amuse::ObjToken<amuse::Voice> startEditorVoice(uint8_t key, uint8_t vel);
     void pushUndoCommand(QUndoCommand* cmd);
+    void updateFocus();
     void aboutToDeleteNode(ProjectModel::INode* node);
 
     ProjectModel* projectModel() const { return m_projectModel; }
@@ -190,7 +191,7 @@ public slots:
     void outlineDeleteAction();
 
     void onFocusChanged(QWidget* old, QWidget* now);
-    void setOutlineEditEnabled(bool enabled);
+    void setItemEditEnabled(bool enabled);
     bool canEditOutline();
     void onOutlineSelectionChanged(const QItemSelection& selected, const QItemSelection& deselected);
     void onTextSelect();

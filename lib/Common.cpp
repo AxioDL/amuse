@@ -1,6 +1,8 @@
 #include "amuse/Common.hpp"
 #include "logvisor/logvisor.hpp"
 
+using namespace std::literals;
+
 namespace amuse
 {
 static logvisor::Module Log("amuse");
@@ -180,9 +182,14 @@ void PageObjectIdDNA<DNAE>::_write(athena::io::YAMLDocWriter& w)
         std::string_view name = LayersId::CurNameDB->resolveNameFromId(id);
         w.writeString(nullptr, name);
     }
-    else
+    else if (id.id & 0x4000)
     {
         std::string_view name = KeymapId::CurNameDB->resolveNameFromId(id);
+        w.writeString(nullptr, name);
+    }
+    else
+    {
+        std::string_view name = SoundMacroId::CurNameDB->resolveNameFromId(id);
         w.writeString(nullptr, name);
     }
 }
@@ -307,7 +314,10 @@ std::string_view NameDB::resolveNameFromId(ObjectId id) const
 {
     auto search = m_idToString.find(id);
     if (search == m_idToString.cend())
-        Log.report(logvisor::Fatal, "Unable to resolve ID 0x%04X", id.id);
+    {
+        Log.report(logvisor::Error, "Unable to resolve ID 0x%04X", id.id);
+        return ""sv;
+    }
     return search->second;
 }
 
@@ -315,7 +325,10 @@ ObjectId NameDB::resolveIdFromName(std::string_view str) const
 {
     auto search = m_stringToId.find(std::string(str));
     if (search == m_stringToId.cend())
-        Log.report(logvisor::Fatal, "Unable to resolve name %s", str.data());
+    {
+        Log.report(logvisor::Error, "Unable to resolve name %s", str.data());
+        return {};
+    }
     return search->second;
 }
 

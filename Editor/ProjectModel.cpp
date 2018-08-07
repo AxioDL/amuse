@@ -94,6 +94,14 @@ ProjectModel::BasePoolObjectNode* ProjectModel::CollectionNode::nodeOfIndex(int 
     return static_cast<BasePoolObjectNode*>(m_children[idx].get());
 }
 
+ProjectModel::BasePoolObjectNode* ProjectModel::CollectionNode::nodeOfId(amuse::ObjectId id) const
+{
+    int idx = indexOfId(id);
+    if (idx < 0)
+        return nullptr;
+    return nodeOfIndex(idx);
+}
+
 ProjectModel::ProjectModel(const QString& path, QObject* parent)
 : QAbstractItemModel(parent), m_dir(path), m_nullProxy(this)
 {

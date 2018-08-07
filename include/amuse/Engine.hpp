@@ -162,6 +162,9 @@ public:
     /** Obtain list of active voices */
     std::list<ObjToken<Voice>>& getActiveVoices() { return m_activeVoices; }
 
+    /** Obtain total active voice count (including child voices) */
+    size_t getNumTotalActiveVoices() const;
+
     /** Obtain list of active sequencers */
     std::list<ObjToken<Sequencer>>& getActiveSequencers() { return m_activeSequencers; }
 

@@ -496,4 +496,12 @@ void Engine::sendMacroMessage(ObjectId macroId, int32_t val)
     for (ObjToken<Sequencer>& seq : m_activeSequencers)
         seq->sendMacroMessage(macroId, val);
 }
+
+size_t Engine::getNumTotalActiveVoices() const
+{
+    size_t ret = 0;
+    for (const auto& vox : m_activeVoices)
+        ret += vox->getTotalVoices();
+    return ret;
+}
 }

@@ -26,6 +26,8 @@
         <file>IconKill.svg</file>
         <file>IconSample.svg</file>
         <file>IconPaintbrush.svg</file>
+        <file>IconAdd.svg</file>
+        <file>IconRemove.svg</file>
     </qresource>
     <qresource prefix="/bg">
         <file>FaceGrey.svg</file>

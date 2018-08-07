@@ -256,7 +256,7 @@ bool MainWindow::setProjectPath(const QString& path)
     m_ui.actionExport_GameCube_Groups->setEnabled(true);
     setWindowFilePath(path);
     updateWindowTitle();
-    onFocusChanged(nullptr, focusWidget());
+    updateFocus();
     m_undoStack->clear();
 
     QSettings settings;
@@ -314,7 +314,7 @@ void MainWindow::timerEvent(QTimerEvent* ev)
     if (m_voxEngine && m_engine)
     {
         m_voxEngine->pumpAndMixVoices();
-        m_ui.statusbar->setVoiceCount(int(m_engine->getActiveVoices().size()));
+        m_ui.statusbar->setVoiceCount(int(m_engine->getNumTotalActiveVoices()));
         if (m_engine->getActiveVoices().empty() && m_uiDisabled)
         {
             m_ui.projectOutline->setEnabled(true);
@@ -546,6 +546,11 @@ amuse::ObjToken<amuse::Voice> MainWindow::startEditorVoice(uint8_t key, uint8_t 
 void MainWindow::pushUndoCommand(QUndoCommand* cmd)
 {
     m_undoStack->push(cmd);
+}
+
+void MainWindow::updateFocus()
+{
+    onFocusChanged(nullptr, focusWidget());
 }
 
 void MainWindow::aboutToDeleteNode(ProjectModel::INode* node)
@@ -1000,7 +1005,7 @@ void MainWindow::onFocusChanged(QWidget* old, QWidget* now)
 
     if (now == m_ui.projectOutline || m_ui.projectOutline->isAncestorOf(now))
     {
-        setOutlineEditEnabled(canEditOutline());
+        setItemEditEnabled(canEditOutline());
         if (m_projectModel)
         {
             m_cutConn = connect(m_ui.actionCut, SIGNAL(triggered()), this, SLOT(outlineCutAction()));
@@ -1011,12 +1016,23 @@ void MainWindow::onFocusChanged(QWidget* old, QWidget* now)
     }
     else if (now == m_ui.editorContents || m_ui.editorContents->isAncestorOf(now))
     {
-        setOutlineEditEnabled(false);
+        setItemEditEnabled(false);
+        if (EditorWidget* editor = getEditorWidget())
+        {
+            if (editor->isItemEditEnabled())
+            {
+                setItemEditEnabled(true);
+                m_cutConn = connect(m_ui.actionCut, SIGNAL(triggered()), editor, SLOT(itemCutAction()));
+                m_copyConn = connect(m_ui.actionCopy, SIGNAL(triggered()), editor, SLOT(itemCopyAction()));
+                m_pasteConn = connect(m_ui.actionPaste, SIGNAL(triggered()), editor, SLOT(itemPasteAction()));
+                m_deleteConn = connect(m_ui.actionDelete, SIGNAL(triggered()), editor, SLOT(itemDeleteAction()));
+            }
+        }
     }
 
 }
 
-void MainWindow::setOutlineEditEnabled(bool enabled)
+void MainWindow::setItemEditEnabled(bool enabled)
 {
     m_ui.actionCut->setEnabled(enabled);
     m_ui.actionCopy->setEnabled(enabled);
@@ -1040,10 +1056,10 @@ void MainWindow::onOutlineSelectionChanged(const QItemSelection& selected, const
         return;
     if (selected.indexes().empty())
     {
-        setOutlineEditEnabled(false);
+        setItemEditEnabled(false);
         return;
     }
-    setOutlineEditEnabled(m_projectModel->canEdit(selected.indexes().front()));
+    setItemEditEnabled(m_projectModel->canEdit(selected.indexes().front()));
 }
 
 void MainWindow::onTextSelect()

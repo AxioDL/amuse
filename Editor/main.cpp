@@ -6,6 +6,7 @@
 #include "boo/IApplication.hpp"
 #include <QResource>
 #include <QCommandLineParser>
+#include <logvisor/logvisor.hpp>
 
 using namespace std::literals;
 
@@ -90,6 +91,9 @@ int main(int argc, char* argv[])
 #ifdef __APPLE__
     MacOSSetDarkAppearance();
 #endif
+
+    logvisor::RegisterConsoleLogger();
+    logvisor::RegisterStandardExceptions();
 
     BooInterface booApp;
     boo::APP = &booApp;

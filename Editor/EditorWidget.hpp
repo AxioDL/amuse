@@ -17,6 +17,12 @@ public:
     virtual bool valid() const { return true; }
     virtual void unloadData() {}
     virtual ProjectModel::INode* currentNode() const { return nullptr; }
+public slots:
+    virtual bool isItemEditEnabled() const { return false; }
+    virtual void itemCutAction() {}
+    virtual void itemCopyAction() {}
+    virtual void itemPasteAction() {}
+    virtual void itemDeleteAction() {}
 };
 
 class EditorUndoCommand : public QUndoCommand

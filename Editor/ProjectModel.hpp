@@ -207,6 +207,7 @@ public:
         int indexOfId(amuse::ObjectId id) const;
         amuse::ObjectId idOfIndex(int idx) const;
         BasePoolObjectNode* nodeOfIndex(int idx) const;
+        BasePoolObjectNode* nodeOfId(amuse::ObjectId id) const;
     };
     struct BasePoolObjectNode : INode
     {
