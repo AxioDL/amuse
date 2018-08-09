@@ -620,6 +620,8 @@ struct NameDB
     std::string_view registerPair(std::string_view str, ObjectId id);
     std::string_view resolveNameFromId(ObjectId id) const;
     ObjectId resolveIdFromName(std::string_view str) const;
+    void remove(ObjectId id);
+    void rename(ObjectId id, std::string_view str);
 };
 }
 

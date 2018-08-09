@@ -71,8 +71,8 @@ struct SongGroupIndex : AudioGroupIndex
     {
         AT_DECL_DNA_YAML
         PageObjectIdDNA<athena::Big> objId;
-        Value<atUint8> priority;
-        Value<atUint8> maxVoices;
+        Value<atUint8> priority = 0;
+        Value<atUint8> maxVoices = 255;
 
         PageEntry() = default;
 
@@ -112,11 +112,11 @@ struct SongGroupIndex : AudioGroupIndex
     struct MIDISetup : BigDNA
     {
         AT_DECL_DNA_YAML
-        Value<atUint8> programNo;
-        Value<atUint8> volume;
-        Value<atUint8> panning;
-        Value<atUint8> reverb;
-        Value<atUint8> chorus;
+        Value<atUint8> programNo = 0;
+        Value<atUint8> volume = 127;
+        Value<atUint8> panning = 64;
+        Value<atUint8> reverb = 0;
+        Value<atUint8> chorus = 0;
         MIDISetup() = default;
         MIDISetup(const MusyX1MIDISetup& setup)
         : programNo(setup.programNo), volume(setup.volume), panning(setup.panning),

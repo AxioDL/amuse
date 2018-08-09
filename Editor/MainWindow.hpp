@@ -191,6 +191,7 @@ public slots:
     void outlineDeleteAction();
 
     void onFocusChanged(QWidget* old, QWidget* now);
+    void outlineItemActivated(const QModelIndex& index);
     void setItemEditEnabled(bool enabled);
     bool canEditOutline();
     void onOutlineSelectionChanged(const QItemSelection& selected, const QItemSelection& deselected);

@@ -7,6 +7,7 @@
 #include <QSpinBox>
 #include <QComboBox>
 #include <QWheelEvent>
+#include <QItemEditorFactory>
 #include "ProjectModel.hpp"
 
 class EditorWidget : public QWidget
@@ -83,6 +84,47 @@ public:
     explicit FieldProjectNode(ProjectModel::CollectionNode* collection = Q_NULLPTR, QWidget* parent = Q_NULLPTR);
     void setCollection(ProjectModel::CollectionNode* collection);
     ProjectModel::CollectionNode* collection() const { return m_collection; }
+};
+
+class FieldPageObjectNode : public FieldComboBox
+{
+    Q_OBJECT
+    ProjectModel::GroupNode* m_group;
+public:
+    explicit FieldPageObjectNode(ProjectModel::GroupNode* group = Q_NULLPTR, QWidget* parent = Q_NULLPTR);
+    void setGroup(ProjectModel::GroupNode* group);
+    ProjectModel::GroupNode* group() const { return m_group; }
+};
+
+template <class T>
+class EditorFieldNode : public T
+{
+    bool m_deferPopupOpen = true;
+public:
+    using T::T;
+    bool shouldPopupOpen()
+    {
+        bool ret = m_deferPopupOpen;
+        m_deferPopupOpen = false;
+        return ret;
+    }
+};
+
+using EditorFieldProjectNode = EditorFieldNode<FieldProjectNode>;
+using EditorFieldPageObjectNode = EditorFieldNode<FieldPageObjectNode>;
+
+template <int MIN, int MAX>
+class RangedValueFactory : public QItemEditorFactory
+{
+public:
+    QWidget* createEditor(int userType, QWidget *parent) const
+    {
+        QSpinBox* sb = new QSpinBox(parent);
+        sb->setFrame(false);
+        sb->setMinimum(MIN);
+        sb->setMaximum(MAX);
+        return sb;
+    }
 };
 
 #endif //AMUSE_EDITOR_WIDGET_HPP

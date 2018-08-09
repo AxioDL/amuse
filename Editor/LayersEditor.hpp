@@ -7,33 +7,6 @@
 #include <QAction>
 #include <QToolButton>
 #include <QStyledItemDelegate>
-#include <QItemEditorFactory>
-
-class SignedValueFactory : public QItemEditorFactory
-{
-public:
-    QWidget* createEditor(int userType, QWidget *parent) const;
-};
-
-class UnsignedValueFactory : public QItemEditorFactory
-{
-public:
-    QWidget* createEditor(int userType, QWidget *parent) const;
-};
-
-class EditorFieldProjectNode : public FieldProjectNode
-{
-Q_OBJECT
-    bool m_deferPopupOpen = true;
-public:
-    explicit EditorFieldProjectNode(ProjectModel::CollectionNode* collection = Q_NULLPTR, QWidget* parent = Q_NULLPTR);
-    bool shouldPopupOpen()
-    {
-        bool ret = m_deferPopupOpen;
-        m_deferPopupOpen = false;
-        return ret;
-    }
-};
 
 class SoundMacroDelegate : public QStyledItemDelegate
 {
@@ -78,9 +51,13 @@ public:
 class LayersTableView : public QTableView
 {
     Q_OBJECT
+    SoundMacroDelegate m_smDelegate;
+    RangedValueFactory<-128, 127> m_signedFactory;
+    RangedValueFactory<0, 127> m_unsignedFactory;
+    QStyledItemDelegate m_signedDelegate, m_unsignedDelegate;
 public:
     explicit LayersTableView(QWidget* parent = Q_NULLPTR);
-    void doItemsLayout();
+    void setModel(QAbstractItemModel* model);
     void deleteSelection();
 };
 
@@ -88,10 +65,6 @@ class LayersEditor : public EditorWidget
 {
     Q_OBJECT
     LayersModel m_model;
-    SoundMacroDelegate m_smDelegate;
-    SignedValueFactory m_signedFactory;
-    UnsignedValueFactory m_unsignedFactory;
-    QStyledItemDelegate m_signedDelegate, m_unsignedDelegate;
     LayersTableView m_tableView;
     QAction m_addAction;
     QToolButton m_addButton;

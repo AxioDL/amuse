@@ -30,6 +30,8 @@ MainWindow::MainWindow(QWidget* parent)
     m_ui.setupUi(this);
     m_ui.splitter->setCollapsible(1, false);
     m_ui.projectOutline->setItemDelegate(&m_treeDelegate);
+    connect(m_ui.projectOutline, SIGNAL(activated(const QModelIndex&)),
+            this, SLOT(outlineItemActivated(const QModelIndex&)));
     connectMessenger(&m_mainMessenger, Qt::DirectConnection);
 
     m_ui.statusbar->connectKillClicked(this, SLOT(killSounds()));
@@ -232,11 +234,13 @@ bool MainWindow::setProjectPath(const QString& path)
         QMessageBox::critical(this, tr("Directory does not exist"), msg);
         return false;
     }
-    QString testWritePath = dir.filePath(tr("test"));
+    QString testWritePath = dir.filePath(tr("__amuse_test__"));
     QFile testWriteFile(testWritePath);
     if (!testWriteFile.open(QFile::ReadWrite))
     {
-        QString msg = QString(tr("The directory at '%1' must be writable for the Amuse editor.")).arg(path);
+
+        QString msg = QString(tr("The directory at '%1' must be writable for the Amuse editor: %2")).arg(path).
+            arg(testWriteFile.errorString());
         QMessageBox::critical(this, tr("Unable to write to directory"), msg);
         return false;
     }
@@ -617,6 +621,7 @@ bool MainWindow::openProject(const QString& path)
                     return;
             }
         }
+        model->openSongsData();
     });
 
     return true;
@@ -841,12 +846,14 @@ bool TreeDelegate::editorEvent(QEvent* event,
     if (!node)
         return false;
 
+#if 0
     if ((event->type() == QEvent::MouseButtonDblClick &&
          static_cast<QMouseEvent*>(event)->button() == Qt::LeftButton))
     {
         // Open in editor
         return m_window.openEditor(node);
     }
+#endif
 
     return false;
 }
@@ -1030,6 +1037,14 @@ void MainWindow::onFocusChanged(QWidget* old, QWidget* now)
         }
     }
 
+}
+
+void MainWindow::outlineItemActivated(const QModelIndex& index)
+{
+    ProjectModel::INode* node = m_projectModel->node(index);
+    if (!node)
+        return;
+    openEditor(node);
 }
 
 void MainWindow::setItemEditEnabled(bool enabled)

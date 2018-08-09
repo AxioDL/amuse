@@ -38,3 +38,24 @@ void FieldProjectNode::setCollection(ProjectModel::CollectionNode* collection)
     setModel(model->getNullProxy());
     setRootModelIndex(model->getNullProxy()->mapFromSource(model->index(collection)));
 }
+
+FieldPageObjectNode::FieldPageObjectNode(ProjectModel::GroupNode* group, QWidget* parent)
+: FieldComboBox(parent)
+{
+    setGroup(group);
+}
+
+void FieldPageObjectNode::setGroup(ProjectModel::GroupNode* group)
+{
+    m_group = group;
+
+    if (!group)
+    {
+        setModel(new QStandardItemModel(0, 1, this));
+        return;
+    }
+
+    ProjectModel* model = g_MainWindow->projectModel();
+    setModel(model->getPageObjectProxy());
+    setRootModelIndex(model->getPageObjectProxy()->mapFromSource(model->index(group)));
+}

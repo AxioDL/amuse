@@ -166,7 +166,15 @@ void PageObjectIdDNA<DNAE>::_read(athena::io::YAMLDocReader& r)
     {
         search = LayersId::CurNameDB->m_stringToId.find(name);
         if (search == LayersId::CurNameDB->m_stringToId.cend())
-            Log.report(logvisor::Fatal, "Unable to resolve name %s", name.c_str());
+        {
+            search = SoundMacroId::CurNameDB->m_stringToId.find(name);
+            if (search == SoundMacroId::CurNameDB->m_stringToId.cend())
+            {
+                Log.report(logvisor::Error, "Unable to resolve name %s", name.c_str());
+                id.id = 0xffff;
+                return;
+            }
+        }
     }
     id = search->second;
 }
@@ -261,7 +269,11 @@ template struct SoundMacroStepDNA<athena::Little>;
 
 ObjectId NameDB::generateId(Type tp) const
 {
-    uint16_t maxMatch = uint16_t(tp == Type::Layer ? 0x8000 : 0);
+    uint16_t maxMatch = 0;
+    if (tp == Type::Layer)
+        maxMatch = 0x8000;
+    else if (tp == Type::Keymap)
+        maxMatch = 0x4000;
     for (const auto& p : m_idToString)
         if (p.first >= maxMatch)
             maxMatch = p.first + 1;
@@ -330,6 +342,32 @@ ObjectId NameDB::resolveIdFromName(std::string_view str) const
         return {};
     }
     return search->second;
+}
+
+void NameDB::remove(ObjectId id)
+{
+    auto search = m_idToString.find(id);
+    if (search == m_idToString.cend())
+        return;
+    auto search2 = m_stringToId.find(search->second);
+    if (search2 == m_stringToId.cend())
+        return;
+    m_idToString.erase(search);
+    m_stringToId.erase(search2);
+}
+
+void NameDB::rename(ObjectId id, std::string_view str)
+{
+    auto search = m_idToString.find(id);
+    if (search == m_idToString.cend())
+        return;
+    auto search2 = m_stringToId.find(search->second);
+    if (search2 == m_stringToId.cend())
+        return;
+    auto nh = m_stringToId.extract(search2);
+    nh.key() = str;
+    m_stringToId.insert(std::move(nh));
+    m_idToString[id] = str;
 }
 
 template<>

@@ -4,28 +4,6 @@
 #include <QScrollBar>
 #include <QMimeData>
 
-QWidget* SignedValueFactory::createEditor(int userType, QWidget *parent) const
-{
-    QSpinBox* sb = new QSpinBox(parent);
-    sb->setFrame(false);
-    sb->setMinimum(-128);
-    sb->setMaximum(127);
-    return sb;
-}
-
-QWidget* UnsignedValueFactory::createEditor(int userType, QWidget *parent) const
-{
-    QSpinBox* sb = new QSpinBox(parent);
-    sb->setFrame(false);
-    sb->setMinimum(0);
-    sb->setMaximum(127);
-    return sb;
-}
-
-EditorFieldProjectNode::EditorFieldProjectNode(ProjectModel::CollectionNode* collection, QWidget* parent)
-: FieldProjectNode(collection, parent)
-{}
-
 SoundMacroDelegate::SoundMacroDelegate(QObject* parent)
 : QStyledItemDelegate(parent) {}
 
@@ -61,6 +39,7 @@ void SoundMacroDelegate::setModelData(QWidget* editor, QAbstractItemModel* m, co
         layer.macro.id = amuse::SoundMacroId();
     else
         layer.macro.id = smColl->idOfIndex(idx - 1);
+    emit m->dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
 }
 
 void SoundMacroDelegate::smIndexChanged()
@@ -150,24 +129,31 @@ bool LayersModel::setData(const QModelIndex& index, const QVariant& value, int r
     {
     case 1:
         layer.keyLo = value.toInt();
+        emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
         return true;
     case 2:
         layer.keyHi = value.toInt();
+        emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
         return true;
     case 3:
         layer.transpose = value.toInt();
+        emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
         return true;
     case 4:
         layer.volume = value.toInt();
+        emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
         return true;
     case 5:
         layer.prioOffset = value.toInt();
+        emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
         return true;
     case 6:
         layer.span = value.toInt();
+        emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
         return true;
     case 7:
         layer.pan = value.toInt();
+        emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
         return true;
     default:
         break;
@@ -341,8 +327,9 @@ void LayersTableView::deleteSelection()
         model()->removeRow(list.back().row());
 }
 
-void LayersTableView::doItemsLayout()
+void LayersTableView::setModel(QAbstractItemModel* model)
 {
+    QTableView::setModel(model);
     horizontalHeader()->setMinimumSectionSize(75);
     horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
     horizontalHeader()->setSectionResizeMode(1, QHeaderView::Fixed);
@@ -359,7 +346,6 @@ void LayersTableView::doItemsLayout()
     horizontalHeader()->resizeSection(6, 75);
     horizontalHeader()->setSectionResizeMode(7, QHeaderView::Fixed);
     horizontalHeader()->resizeSection(7, 75);
-    QTableView::doItemsLayout();
 }
 
 LayersTableView::LayersTableView(QWidget* parent)
@@ -371,8 +357,19 @@ LayersTableView::LayersTableView(QWidget* parent)
     setDefaultDropAction(Qt::MoveAction);
     setDragEnabled(true);
     setGridStyle(Qt::NoPen);
-}
 
+    m_signedDelegate.setItemEditorFactory(&m_signedFactory);
+    m_unsignedDelegate.setItemEditorFactory(&m_unsignedFactory);
+
+    setItemDelegateForColumn(0, &m_smDelegate);
+    setItemDelegateForColumn(1, &m_unsignedDelegate);
+    setItemDelegateForColumn(2, &m_unsignedDelegate);
+    setItemDelegateForColumn(3, &m_signedDelegate);
+    setItemDelegateForColumn(4, &m_unsignedDelegate);
+    setItemDelegateForColumn(5, &m_signedDelegate);
+    setItemDelegateForColumn(6, &m_unsignedDelegate);
+    setItemDelegateForColumn(7, &m_unsignedDelegate);
+}
 
 bool LayersEditor::loadData(ProjectModel::LayersNode* node)
 {
@@ -438,31 +435,21 @@ void LayersEditor::itemDeleteAction()
 }
 
 LayersEditor::LayersEditor(QWidget* parent)
-: EditorWidget(parent), m_tableView(this),
+: EditorWidget(parent), m_model(this), m_tableView(this),
   m_addAction(tr("Add Row")), m_addButton(this), m_removeAction(tr("Remove Row")), m_removeButton(this)
 {
-    m_signedDelegate.setItemEditorFactory(&m_signedFactory);
-    m_unsignedDelegate.setItemEditorFactory(&m_unsignedFactory);
-
-    m_tableView.setItemDelegateForColumn(1, &m_unsignedDelegate);
-    m_tableView.setItemDelegateForColumn(2, &m_unsignedDelegate);
-    m_tableView.setItemDelegateForColumn(3, &m_signedDelegate);
-    m_tableView.setItemDelegateForColumn(4, &m_unsignedDelegate);
-    m_tableView.setItemDelegateForColumn(5, &m_signedDelegate);
-    m_tableView.setItemDelegateForColumn(6, &m_unsignedDelegate);
-    m_tableView.setItemDelegateForColumn(7, &m_unsignedDelegate);
-
     m_tableView.setModel(&m_model);
-    m_tableView.setItemDelegateForColumn(0, &m_smDelegate);
     connect(m_tableView.selectionModel(), SIGNAL(selectionChanged(const QItemSelection&, const QItemSelection&)),
             this, SLOT(doSelectionChanged(const QItemSelection&)));
 
     m_addAction.setIcon(QIcon(QStringLiteral(":/icons/IconAdd.svg")));
+    m_addAction.setToolTip(tr("Add new layer mapping"));
     m_addButton.setDefaultAction(&m_addAction);
     m_addButton.setFixedSize(32, 32);
     connect(&m_addAction, SIGNAL(triggered(bool)), this, SLOT(doAdd()));
 
     m_removeAction.setIcon(QIcon(QStringLiteral(":/icons/IconRemove.svg")));
+    m_removeAction.setToolTip(tr("Remove selected layer mappings"));
     m_removeButton.setDefaultAction(&m_removeAction);
     m_removeButton.setFixedSize(32, 32);
     connect(&m_removeAction, SIGNAL(triggered(bool)), this, SLOT(itemDeleteAction()));

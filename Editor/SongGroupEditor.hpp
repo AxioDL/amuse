@@ -2,13 +2,250 @@
 #define AMUSE_SONG_GROUP_EDITOR_HPP
 
 #include "EditorWidget.hpp"
+#include <QTabWidget>
+#include <QAbstractTableModel>
+#include <QStyledItemDelegate>
+#include <QTableView>
+#include <QToolButton>
+#include <QAction>
+#include <QSplitter>
+#include <QListView>
+#include <QLineEdit>
+#include <QPushButton>
+#include <QFileDialog>
+#include <QProxyStyle>
+
+class PageObjectDelegate : public QStyledItemDelegate
+{
+    Q_OBJECT
+public:
+    explicit PageObjectDelegate(QObject* parent = Q_NULLPTR);
+    QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const;
+    void setEditorData(QWidget* editor, const QModelIndex& index) const;
+    void setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const;
+private slots:
+    void objIndexChanged();
+};
+
+class MIDIFileFieldWidget : public QWidget
+{
+    Q_OBJECT
+    QLineEdit m_le;
+    QPushButton m_button;
+    QFileDialog m_dialog;
+public:
+    explicit MIDIFileFieldWidget(QWidget* parent = Q_NULLPTR);
+    QString path() const { return m_le.text(); }
+    void setPath(const QString& path) { m_le.setText(path); }
+public slots:
+    void buttonPressed();
+    void fileDialogOpened(const QString& path);
+signals:
+    void pathChanged();
+};
+
+class MIDIFileDelegate : public QStyledItemDelegate
+{
+    Q_OBJECT
+public:
+    explicit MIDIFileDelegate(QObject* parent = Q_NULLPTR);
+    QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const;
+    void setEditorData(QWidget* editor, const QModelIndex& index) const;
+    void setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const;
+public slots:
+    void pathChanged();
+};
+
+class PageModel : public QAbstractTableModel
+{
+    Q_OBJECT
+    friend class SongGroupEditor;
+    friend class PageObjectDelegate;
+    amuse::ObjToken<ProjectModel::SongGroupNode> m_node;
+    struct Iterator
+    {
+        using ItTp = std::unordered_map<uint8_t, amuse::SongGroupIndex::PageEntry>::iterator;
+        ItTp m_it;
+        Iterator(ItTp it) : m_it(it) {}
+        ItTp::pointer operator->() { return m_it.operator->(); }
+        bool operator<(const Iterator& other) const { return m_it->first < other.m_it->first; }
+        bool operator<(uint8_t other) const { return m_it->first < other; }
+    };
+    std::vector<Iterator> m_sorted;
+    bool m_drum;
+    std::unordered_map<uint8_t, amuse::SongGroupIndex::PageEntry>& _getMap() const;
+    void _buildSortedList();
+    QModelIndex _indexOfProgram(uint8_t prog) const;
+    int _hypotheticalIndexOfProgram(uint8_t prog) const;
+public:
+    explicit PageModel(bool drum, QObject* parent = Q_NULLPTR);
+    void loadData(ProjectModel::SongGroupNode* node);
+    void unloadData();
+
+    int rowCount(const QModelIndex& parent = QModelIndex()) const;
+    int columnCount(const QModelIndex& parent = QModelIndex()) const;
+    QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const;
+    bool setData(const QModelIndex& index, const QVariant& value, int role = Qt::EditRole);
+    QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
+    Qt::ItemFlags flags(const QModelIndex& index) const;
+
+    bool insertRows(int row, int count, const QModelIndex& parent = QModelIndex());
+    bool removeRows(int row, int count, const QModelIndex& parent = QModelIndex());
+};
+
+class SetupListModel : public QAbstractTableModel
+{
+    Q_OBJECT
+    friend class SongGroupEditor;
+    friend class MIDIFileDelegate;
+    amuse::ObjToken<ProjectModel::SongGroupNode> m_node;
+    struct Iterator
+    {
+        using ItTp = std::unordered_map<amuse::SongId, std::array<amuse::SongGroupIndex::MIDISetup, 16>>::iterator;
+        ItTp m_it;
+        Iterator(ItTp it) : m_it(it) {}
+        ItTp::pointer operator->() { return m_it.operator->(); }
+        bool operator<(const Iterator& other) const
+        {
+            return amuse::SongId::CurNameDB->resolveNameFromId(m_it->first) <
+                   amuse::SongId::CurNameDB->resolveNameFromId(other.m_it->first);
+        }
+        bool operator<(amuse::SongId other) const
+        {
+            return amuse::SongId::CurNameDB->resolveNameFromId(m_it->first) <
+                   amuse::SongId::CurNameDB->resolveNameFromId(other);
+        }
+        bool operator<(const std::string& name) const
+        {
+            return amuse::SongId::CurNameDB->resolveNameFromId(m_it->first) < name;
+        }
+    };
+    std::vector<Iterator> m_sorted;
+    std::unordered_map<amuse::SongId, std::array<amuse::SongGroupIndex::MIDISetup, 16>>& _getMap() const;
+    void _buildSortedList();
+    QModelIndex _indexOfSong(amuse::SongId id) const;
+    int _hypotheticalIndexOfSong(const std::string& songName) const;
+public:
+    explicit SetupListModel(QObject* parent = Q_NULLPTR);
+    void loadData(ProjectModel::SongGroupNode* node);
+    void unloadData();
+
+    int rowCount(const QModelIndex& parent = QModelIndex()) const;
+    int columnCount(const QModelIndex& parent = QModelIndex()) const;
+    QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const;
+    bool setData(const QModelIndex& index, const QVariant& value, int role = Qt::EditRole);
+    QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
+    Qt::ItemFlags flags(const QModelIndex& index) const;
+
+    bool insertRows(int row, int count, const QModelIndex& parent = QModelIndex());
+    bool removeRows(int row, int count, const QModelIndex& parent = QModelIndex());
+};
+
+class SetupModel : public QAbstractTableModel
+{
+    Q_OBJECT
+    friend class SongGroupEditor;
+    std::pair<const amuse::SongId, std::array<amuse::SongGroupIndex::MIDISetup, 16>>* m_data = nullptr;
+public:
+    explicit SetupModel(QObject* parent = Q_NULLPTR);
+    void loadData(std::pair<const amuse::SongId, std::array<amuse::SongGroupIndex::MIDISetup, 16>>* data);
+    void unloadData();
+
+    int rowCount(const QModelIndex& parent = QModelIndex()) const;
+    int columnCount(const QModelIndex& parent = QModelIndex()) const;
+    QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const;
+    bool setData(const QModelIndex& index, const QVariant& value, int role = Qt::EditRole);
+    QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
+    Qt::ItemFlags flags(const QModelIndex& index) const;
+};
+
+class PageTableView : public QTableView
+{
+    Q_OBJECT
+    PageObjectDelegate m_poDelegate;
+    RangedValueFactory<0, 127> m_127Factory;
+    RangedValueFactory<0, 255> m_255Factory;
+    QStyledItemDelegate m_127Delegate, m_255Delegate;
+public:
+    explicit PageTableView(QWidget* parent = Q_NULLPTR);
+    void setModel(QAbstractItemModel* model);
+    void deleteSelection();
+};
+
+class SetupTableView : public QSplitter
+{
+    Q_OBJECT
+    friend class SongGroupEditor;
+    QTableView m_listView;
+    QTableView m_tableView;
+    MIDIFileDelegate m_midiDelegate;
+    RangedValueFactory<0, 127> m_127Factory;
+    QStyledItemDelegate m_127Delegate;
+public:
+    explicit SetupTableView(QWidget* parent = Q_NULLPTR);
+    void setModel(QAbstractItemModel* list, QAbstractItemModel* table);
+    void deleteSelection();
+    void showEvent(QShowEvent* event);
+};
+
+class ColoredTabBarStyle : public QProxyStyle
+{
+public:
+    using QProxyStyle::QProxyStyle;
+    void drawControl(QStyle::ControlElement element, const QStyleOption *option,
+                     QPainter *painter, const QWidget *widget = nullptr) const;
+};
+
+class ColoredTabBar : public QTabBar
+{
+    Q_OBJECT
+    ColoredTabBarStyle m_style;
+public:
+    explicit ColoredTabBar(QWidget* parent = Q_NULLPTR);
+};
+
+class ColoredTabWidget : public QTabWidget
+{
+    Q_OBJECT
+    ColoredTabBar m_tabBar;
+public:
+    explicit ColoredTabWidget(QWidget* parent = Q_NULLPTR);
+};
 
 class SongGroupEditor : public EditorWidget
 {
     Q_OBJECT
+    PageModel m_normPages;
+    PageModel m_drumPages;
+    SetupListModel m_setupList;
+    SetupModel m_setup;
+    PageTableView m_normTable;
+    PageTableView m_drumTable;
+    SetupTableView m_setupTable;
+    ColoredTabWidget m_tabs;
+    QAction m_addAction;
+    QToolButton m_addButton;
+    QAction m_removeAction;
+    QToolButton m_removeButton;
 public:
     explicit SongGroupEditor(QWidget* parent = Q_NULLPTR);
     bool loadData(ProjectModel::SongGroupNode* node);
+    void unloadData();
+    ProjectModel::INode* currentNode() const;
+    void resizeEvent(QResizeEvent* ev);
+public slots:
+    void doAdd();
+    void doSelectionChanged(const QItemSelection& selected);
+    void doSetupSelectionChanged(const QItemSelection& selected);
+    void currentTabChanged(int idx);
+    void rowsAboutToBeRemoved(const QModelIndex &parent, int first, int last);
+    void modelAboutToBeReset();
+
+    bool isItemEditEnabled() const;
+    void itemCutAction();
+    void itemCopyAction();
+    void itemPasteAction();
+    void itemDeleteAction();
 };
 
 

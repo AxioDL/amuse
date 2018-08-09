@@ -184,56 +184,79 @@
 <context>
     <name>LayersEditor</name>
     <message>
-        <location filename="../LayersEditor.cpp" line="442"/>
+        <location filename="../LayersEditor.cpp" line="439"/>
         <source>Add Row</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../LayersEditor.cpp" line="442"/>
+        <location filename="../LayersEditor.cpp" line="439"/>
         <source>Remove Row</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../LayersEditor.cpp" line="446"/>
+        <source>Add new layer mapping</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../LayersEditor.cpp" line="452"/>
+        <source>Remove selected layer mappings</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
     <name>LayersModel</name>
     <message>
-        <location filename="../LayersEditor.cpp" line="186"/>
+        <location filename="../LayersEditor.cpp" line="172"/>
         <source>SoundMacro</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../LayersEditor.cpp" line="188"/>
+        <location filename="../LayersEditor.cpp" line="174"/>
         <source>Key Lo</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../LayersEditor.cpp" line="190"/>
+        <location filename="../LayersEditor.cpp" line="176"/>
         <source>Key Hi</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../LayersEditor.cpp" line="192"/>
+        <location filename="../LayersEditor.cpp" line="178"/>
         <source>Transpose</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../LayersEditor.cpp" line="194"/>
+        <location filename="../LayersEditor.cpp" line="180"/>
         <source>Volume</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../LayersEditor.cpp" line="196"/>
+        <location filename="../LayersEditor.cpp" line="182"/>
         <source>Prio Off</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../LayersEditor.cpp" line="198"/>
+        <location filename="../LayersEditor.cpp" line="184"/>
         <source>Span</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../LayersEditor.cpp" line="200"/>
+        <location filename="../LayersEditor.cpp" line="186"/>
         <source>Pan</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>MIDIFileFieldWidget</name>
+    <message>
+        <location filename="../SongGroupEditor.cpp" line="69"/>
+        <source>Browse</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../SongGroupEditor.cpp" line="70"/>
+        <source>Open Song File</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -241,157 +264,157 @@
     <name>MainWindow</name>
     <message>
         <location filename="../MainWindow.ui" line="14"/>
-        <location filename="../MainWindow.cpp" line="181"/>
+        <location filename="../MainWindow.cpp" line="183"/>
         <source>Amuse</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="306"/>
+        <location filename="../MainWindow.ui" line="277"/>
         <source>&amp;File</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="313"/>
+        <location filename="../MainWindow.ui" line="284"/>
         <source>Recent &amp;Projects</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="328"/>
+        <location filename="../MainWindow.ui" line="299"/>
         <source>Pro&amp;ject</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="343"/>
+        <location filename="../MainWindow.ui" line="314"/>
         <source>&amp;Audio</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="351"/>
+        <location filename="../MainWindow.ui" line="322"/>
         <source>&amp;MIDI</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="358"/>
+        <location filename="../MainWindow.ui" line="329"/>
         <source>&amp;Edit</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="374"/>
+        <location filename="../MainWindow.ui" line="345"/>
         <source>&amp;New Project</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="379"/>
+        <location filename="../MainWindow.ui" line="350"/>
         <source>&amp;Open Project</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="387"/>
+        <location filename="../MainWindow.ui" line="358"/>
         <source>&amp;Cut</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="395"/>
+        <location filename="../MainWindow.ui" line="366"/>
         <source>C&amp;opy</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="403"/>
+        <location filename="../MainWindow.ui" line="374"/>
         <source>&amp;Paste</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="411"/>
+        <location filename="../MainWindow.ui" line="382"/>
         <source>&amp;Delete</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="416"/>
+        <location filename="../MainWindow.ui" line="387"/>
         <source>&amp;Import Groups</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="419"/>
+        <location filename="../MainWindow.ui" line="390"/>
         <source>Ctrl+I</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="431"/>
+        <location filename="../MainWindow.ui" line="402"/>
         <source>New SF&amp;X Group</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="443"/>
+        <location filename="../MainWindow.ui" line="414"/>
         <source>New Son&amp;g Group</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="455"/>
+        <location filename="../MainWindow.ui" line="426"/>
         <source>New Sound &amp;Macro</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="467"/>
+        <location filename="../MainWindow.ui" line="438"/>
         <source>New &amp;Keymap</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="479"/>
+        <location filename="../MainWindow.ui" line="450"/>
         <source>New &amp;Layers</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="490"/>
+        <location filename="../MainWindow.ui" line="461"/>
         <source>&amp;Auto-Play</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="498"/>
+        <location filename="../MainWindow.ui" line="469"/>
         <source>&amp;Output Device:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="506"/>
+        <location filename="../MainWindow.ui" line="477"/>
         <source>&amp;Input Device:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="514"/>
+        <location filename="../MainWindow.ui" line="485"/>
         <source>&amp;Export GameCube Groups</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="517"/>
+        <location filename="../MainWindow.ui" line="488"/>
         <source>Ctrl+E</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="529"/>
+        <location filename="../MainWindow.ui" line="500"/>
         <source>&amp;New Subproject</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="541"/>
+        <location filename="../MainWindow.ui" line="512"/>
         <source>New &amp;ADSR</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="553"/>
+        <location filename="../MainWindow.ui" line="524"/>
         <source>New &amp;Curve</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="561"/>
+        <location filename="../MainWindow.ui" line="532"/>
         <source>&amp;Save Project</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="569"/>
+        <location filename="../MainWindow.ui" line="540"/>
         <source>&amp;Revert Project</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="577"/>
+        <location filename="../MainWindow.ui" line="548"/>
         <source>Reload Sample &amp;Data</source>
         <translation type="unfinished"></translation>
     </message>
@@ -431,194 +454,194 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="66"/>
+        <location filename="../MainWindow.cpp" line="68"/>
         <source>Clear Recent Projects</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="72"/>
+        <location filename="../MainWindow.cpp" line="74"/>
         <source>Quit</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="189"/>
+        <location filename="../MainWindow.cpp" line="191"/>
         <source>Amuse [%1/%2/%3]</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="194"/>
+        <location filename="../MainWindow.cpp" line="196"/>
         <source>Amuse [%1]</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="225"/>
-        <location filename="../MainWindow.cpp" line="581"/>
+        <location filename="../MainWindow.cpp" line="227"/>
+        <location filename="../MainWindow.cpp" line="585"/>
         <source>The directory at &apos;%1&apos; must not be empty.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="226"/>
-        <location filename="../MainWindow.cpp" line="582"/>
+        <location filename="../MainWindow.cpp" line="228"/>
+        <location filename="../MainWindow.cpp" line="586"/>
         <source>Directory empty</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="231"/>
+        <location filename="../MainWindow.cpp" line="233"/>
         <source>The directory at &apos;%1&apos; must exist for the Amuse editor.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="232"/>
+        <location filename="../MainWindow.cpp" line="234"/>
         <source>Directory does not exist</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="235"/>
-        <source>test</source>
+        <location filename="../MainWindow.cpp" line="237"/>
+        <source>__amuse_test__</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="239"/>
-        <source>The directory at &apos;%1&apos; must be writable for the Amuse editor.</source>
+        <location filename="../MainWindow.cpp" line="242"/>
+        <source>The directory at &apos;%1&apos; must be writable for the Amuse editor: %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="240"/>
+        <location filename="../MainWindow.cpp" line="244"/>
         <source>Unable to write to directory</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="286"/>
+        <location filename="../MainWindow.cpp" line="290"/>
         <source>No Audio Devices Found</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="309"/>
+        <location filename="../MainWindow.cpp" line="313"/>
         <source>No MIDI Devices Found</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="348"/>
+        <location filename="../MainWindow.cpp" line="352"/>
         <source>SUSTAIN</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="564"/>
+        <location filename="../MainWindow.cpp" line="568"/>
         <source>New Project</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="587"/>
+        <location filename="../MainWindow.cpp" line="591"/>
         <source>The directory at &apos;%1&apos; does not exist.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="588"/>
+        <location filename="../MainWindow.cpp" line="592"/>
         <source>Bad Directory</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="603"/>
+        <location filename="../MainWindow.cpp" line="607"/>
         <source>Opening</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="603"/>
-        <location filename="../MainWindow.cpp" line="681"/>
-        <location filename="../MainWindow.cpp" line="764"/>
-        <location filename="../MainWindow.cpp" line="809"/>
+        <location filename="../MainWindow.cpp" line="607"/>
+        <location filename="../MainWindow.cpp" line="686"/>
+        <location filename="../MainWindow.cpp" line="769"/>
+        <location filename="../MainWindow.cpp" line="814"/>
         <source>Scanning Project</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="615"/>
+        <location filename="../MainWindow.cpp" line="619"/>
         <source>Opening %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="627"/>
+        <location filename="../MainWindow.cpp" line="632"/>
         <source>Open Project</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="681"/>
+        <location filename="../MainWindow.cpp" line="686"/>
         <source>Reloading Samples</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="693"/>
+        <location filename="../MainWindow.cpp" line="698"/>
         <source>Scanning %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="703"/>
+        <location filename="../MainWindow.cpp" line="708"/>
         <source>Import Project</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="712"/>
+        <location filename="../MainWindow.cpp" line="717"/>
         <source>The file at &apos;%1&apos; could not be interpreted as a MusyX container.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="713"/>
+        <location filename="../MainWindow.cpp" line="718"/>
         <source>Unsupported MusyX Container</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="718"/>
+        <location filename="../MainWindow.cpp" line="723"/>
         <source>Sample Import Mode</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="719"/>
+        <location filename="../MainWindow.cpp" line="724"/>
         <source>Amuse can import samples as WAV files for ease of editing, import original compressed data for lossless repacking, or both. Exporting the project will prefer whichever version was modified most recently.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="723"/>
+        <location filename="../MainWindow.cpp" line="728"/>
         <source>Import Compressed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="723"/>
+        <location filename="../MainWindow.cpp" line="728"/>
         <source>Import WAVs</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="723"/>
+        <location filename="../MainWindow.cpp" line="728"/>
         <source>Import Both</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="739"/>
+        <location filename="../MainWindow.cpp" line="744"/>
         <source>Raw Import Mode</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="740"/>
+        <location filename="../MainWindow.cpp" line="745"/>
         <source>Would you like to scan for all MusyX group files in this directory?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="750"/>
+        <location filename="../MainWindow.cpp" line="755"/>
         <source>Project Name</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="750"/>
+        <location filename="../MainWindow.cpp" line="755"/>
         <source>What should this project be named?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="764"/>
-        <location filename="../MainWindow.cpp" line="809"/>
+        <location filename="../MainWindow.cpp" line="769"/>
+        <location filename="../MainWindow.cpp" line="814"/>
         <source>Importing</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="776"/>
-        <location filename="../MainWindow.cpp" line="818"/>
+        <location filename="../MainWindow.cpp" line="781"/>
+        <location filename="../MainWindow.cpp" line="823"/>
         <source>Importing %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -628,6 +651,57 @@
     <message>
         <location filename="../KeyboardWidget.cpp" line="255"/>
         <source>Modulation: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>PageModel</name>
+    <message>
+        <location filename="../SongGroupEditor.cpp" line="231"/>
+        <source>Program Conflict</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../SongGroupEditor.cpp" line="232"/>
+        <source>Program %1 is already defined in table</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../SongGroupEditor.cpp" line="268"/>
+        <source>Program</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../SongGroupEditor.cpp" line="270"/>
+        <source>Object</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../SongGroupEditor.cpp" line="272"/>
+        <source>Priority</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../SongGroupEditor.cpp" line="274"/>
+        <source>Max Voices</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>PageObjectProxyModel</name>
+    <message>
+        <location filename="../ProjectModel.cpp" line="235"/>
+        <source>SoundMacros:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../ProjectModel.cpp" line="237"/>
+        <source>Keymaps:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../ProjectModel.cpp" line="239"/>
+        <source>Layers:</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -650,37 +724,37 @@
 <context>
     <name>ProjectModel</name>
     <message>
-        <location filename="../ProjectModel.cpp" line="234"/>
+        <location filename="../ProjectModel.cpp" line="501"/>
         <source>Sound Macros</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="253"/>
+        <location filename="../ProjectModel.cpp" line="520"/>
         <source>ADSRs</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="264"/>
+        <location filename="../ProjectModel.cpp" line="531"/>
         <source>Curves</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="276"/>
+        <location filename="../ProjectModel.cpp" line="543"/>
         <source>Keymaps</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="283"/>
+        <location filename="../ProjectModel.cpp" line="550"/>
         <source>Layers</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="290"/>
+        <location filename="../ProjectModel.cpp" line="557"/>
         <source>Samples</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="442"/>
+        <location filename="../ProjectModel.cpp" line="709"/>
         <source>Delete %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -753,6 +827,95 @@
     <message>
         <location filename="../SampleEditor.cpp" line="802"/>
         <source>Base Pitch</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>SetupListModel</name>
+    <message>
+        <location filename="../SongGroupEditor.cpp" line="460"/>
+        <source>Song Conflict</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../SongGroupEditor.cpp" line="461"/>
+        <source>Song %1 is already defined in project</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../SongGroupEditor.cpp" line="482"/>
+        <source>Song</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../SongGroupEditor.cpp" line="484"/>
+        <source>MIDI File</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>SetupModel</name>
+    <message>
+        <location filename="../SongGroupEditor.cpp" line="649"/>
+        <source>Program</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../SongGroupEditor.cpp" line="651"/>
+        <source>Volume</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../SongGroupEditor.cpp" line="653"/>
+        <source>Panning</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../SongGroupEditor.cpp" line="655"/>
+        <source>Reverb</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../SongGroupEditor.cpp" line="657"/>
+        <source>Chorus</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>SongGroupEditor</name>
+    <message>
+        <location filename="../SongGroupEditor.cpp" line="975"/>
+        <source>Add new page entry</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../SongGroupEditor.cpp" line="981"/>
+        <source>Remove selected page entries</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../SongGroupEditor.cpp" line="950"/>
+        <source>Add Row</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../SongGroupEditor.cpp" line="950"/>
+        <source>Remove Row</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../SongGroupEditor.cpp" line="952"/>
+        <source>Normal Pages</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../SongGroupEditor.cpp" line="953"/>
+        <source>Drum Pages</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../SongGroupEditor.cpp" line="954"/>
+        <source>MIDI Setups</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

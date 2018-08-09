@@ -27,6 +27,20 @@ public:
     QVariant data(const QModelIndex& proxyIndex, int role) const;
 };
 
+class PageObjectProxyModel : public QIdentityProxyModel
+{
+    Q_OBJECT
+public:
+    explicit PageObjectProxyModel(ProjectModel* source);
+    QModelIndex mapFromSource(const QModelIndex& sourceIndex) const;
+    QModelIndex mapToSource(const QModelIndex& proxyIndex) const;
+    QModelIndex parent(const QModelIndex& child) const;
+    int rowCount(const QModelIndex& parent) const;
+    QModelIndex index(int row, int column, const QModelIndex& parent) const;
+    QVariant data(const QModelIndex& proxyIndex, int role) const;
+    Qt::ItemFlags flags(const QModelIndex& proxyIndex) const;
+};
+
 class ProjectModel : public QAbstractItemModel
 {
     Q_OBJECT
@@ -41,9 +55,11 @@ public:
 private:
     QDir m_dir;
     NullItemProxyModel m_nullProxy;
+    PageObjectProxyModel m_pageObjectProxy;
 
     amuse::ProjectDatabase m_projectDatabase;
     std::map<QString, amuse::AudioGroupDatabase> m_groups;
+    std::unordered_map<amuse::SongId, QString> m_midiFiles;
 
 public:
     class INode : public amuse::IObj
@@ -126,6 +142,14 @@ public:
             return func(this);
         }
 
+        bool oneLevelTraverse(const std::function<bool(INode* node)>& func)
+        {
+            for (auto& n : m_children)
+                if (!func(n.get()))
+                    return false;
+            return true;
+        }
+
         virtual Type type() const = 0;
         virtual QString text() const = 0;
         virtual QIcon icon() const = 0;
@@ -149,6 +173,7 @@ public:
         Qt::ItemFlags flags() const { return Qt::ItemIsEnabled; }
     };
     struct CollectionNode;
+    struct BasePoolObjectNode;
     struct GroupNode : INode
     {
         std::map<QString, amuse::AudioGroupDatabase>::iterator m_it;
@@ -162,6 +187,7 @@ public:
 
         CollectionNode* getCollectionOfType(Type tp) const;
         amuse::AudioGroupDatabase* getAudioGroup() const { return &m_it->second; }
+        BasePoolObjectNode* pageObjectNodeOfId(amuse::ObjectId id) const;
     };
     struct SongGroupNode : INode
     {
@@ -189,7 +215,6 @@ public:
         QString text() const { return m_name; }
         QIcon icon() const { return Icon; }
     };
-    struct BasePoolObjectNode;
     struct CollectionNode : INode
     {
         QString m_name;
@@ -245,6 +270,7 @@ public:
 
     bool clearProjectData();
     bool openGroupData(const QString& groupName, UIMessenger& messenger);
+    bool openSongsData();
     bool reloadSampleData(const QString& groupName, UIMessenger& messenger);
     bool importGroupData(const QString& groupName, const amuse::AudioGroupData& data,
                          ImportMode mode, UIMessenger& messenger);
@@ -266,9 +292,17 @@ public:
     void _undoDel(const QModelIndex& index, amuse::ObjToken<ProjectModel::INode> node);
     amuse::ObjToken<ProjectModel::INode> _redoDel(const QModelIndex& index);
     void del(const QModelIndex& index);
+    RootNode* rootNode() const { return m_root.get(); }
 
+    const QDir& dir() const { return m_dir; }
     QString path() const { return m_dir.path(); }
     NullItemProxyModel* getNullProxy() { return &m_nullProxy; }
+    PageObjectProxyModel* getPageObjectProxy() { return &m_pageObjectProxy; }
+
+    GroupNode* getGroupOfSfx(amuse::SFXId id) const;
+    GroupNode* getGroupOfSong(amuse::SongId id) const;
+    QString getMIDIPathOfSong(amuse::SongId id) const;
+    void setMIDIPathOfSong(amuse::SongId id, const QString& path);
 };
 
 

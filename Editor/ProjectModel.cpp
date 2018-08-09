@@ -52,6 +52,219 @@ QVariant NullItemProxyModel::data(const QModelIndex& proxyIndex, int role) const
     return QIdentityProxyModel::data(proxyIndex, role);
 }
 
+PageObjectProxyModel::PageObjectProxyModel(ProjectModel* source)
+: QIdentityProxyModel(source)
+{
+    setSourceModel(source);
+}
+
+QModelIndex PageObjectProxyModel::mapFromSource(const QModelIndex& sourceIndex) const
+{
+    if (!sourceIndex.isValid())
+        return QModelIndex();
+    ProjectModel::INode* node = static_cast<ProjectModel::INode*>(sourceIndex.internalPointer());
+    auto tp = node->type();
+    if ((tp != ProjectModel::INode::Type::SoundMacro &&
+         tp != ProjectModel::INode::Type::Keymap &&
+         tp != ProjectModel::INode::Type::Layer &&
+         tp != ProjectModel::INode::Type::Null) ||
+        (tp == ProjectModel::INode::Type::Null &&
+         node->parent() == static_cast<ProjectModel*>(sourceModel())->rootNode()))
+        return createIndex(sourceIndex.row(), sourceIndex.column(), node);
+    ProjectModel::GroupNode* group = static_cast<ProjectModel*>(sourceModel())->getGroupNode(node);
+    ProjectModel::CollectionNode* smCol = group->getCollectionOfType(ProjectModel::INode::Type::SoundMacro);
+    ProjectModel::CollectionNode* kmCol = group->getCollectionOfType(ProjectModel::INode::Type::Keymap);
+    ProjectModel::CollectionNode* layCol = group->getCollectionOfType(ProjectModel::INode::Type::Layer);
+    switch (tp)
+    {
+    case ProjectModel::INode::Type::Null:
+        if (node->parent() == group)
+            return createIndex(0, sourceIndex.column(), sourceIndex.internalPointer());
+        else if (node->parent() == smCol)
+            return createIndex(1, sourceIndex.column(), sourceIndex.internalPointer());
+        else if (node->parent() == kmCol)
+            return createIndex(2 + smCol->childCount(), sourceIndex.column(), sourceIndex.internalPointer());
+        else if (node->parent() == layCol)
+            return createIndex(3 + smCol->childCount() + kmCol->childCount(), sourceIndex.column(), sourceIndex.internalPointer());
+        break;
+    case ProjectModel::INode::Type::SoundMacro:
+        return createIndex(2 + node->row(), sourceIndex.column(), sourceIndex.internalPointer());
+    case ProjectModel::INode::Type::Keymap:
+        return createIndex(3 + smCol->childCount() + node->row(), sourceIndex.column(), sourceIndex.internalPointer());
+    case ProjectModel::INode::Type::Layer:
+        return createIndex(4 + smCol->childCount() + kmCol->childCount() + node->row(), sourceIndex.column(), sourceIndex.internalPointer());
+    default:
+        break;
+    }
+    return QModelIndex();
+}
+
+QModelIndex PageObjectProxyModel::mapToSource(const QModelIndex& proxyIndex) const
+{
+    if (!proxyIndex.isValid())
+        return QModelIndex();
+    ProjectModel::INode* node = static_cast<ProjectModel::INode*>(proxyIndex.internalPointer());
+    auto tp = node->type();
+    if ((tp != ProjectModel::INode::Type::SoundMacro &&
+         tp != ProjectModel::INode::Type::Keymap &&
+         tp != ProjectModel::INode::Type::Layer &&
+         tp != ProjectModel::INode::Type::Null) ||
+        (tp == ProjectModel::INode::Type::Null &&
+         node->parent() == static_cast<ProjectModel*>(sourceModel())->rootNode()))
+        return static_cast<ProjectModel*>(sourceModel())->
+            proxyCreateIndex(proxyIndex.row(), proxyIndex.column(), proxyIndex.internalPointer());
+    ProjectModel::GroupNode* group = static_cast<ProjectModel*>(sourceModel())->getGroupNode(node);
+    ProjectModel::CollectionNode* smCol = group->getCollectionOfType(ProjectModel::INode::Type::SoundMacro);
+    ProjectModel::CollectionNode* kmCol = group->getCollectionOfType(ProjectModel::INode::Type::Keymap);
+    ProjectModel::CollectionNode* layCol = group->getCollectionOfType(ProjectModel::INode::Type::Layer);
+    switch (tp)
+    {
+    case ProjectModel::INode::Type::Null:
+        if (node->parent() == group)
+            return static_cast<ProjectModel*>(sourceModel())->
+                proxyCreateIndex(group->childCount(), proxyIndex.column(), proxyIndex.internalPointer());
+        else if (node->parent() == smCol)
+            return static_cast<ProjectModel*>(sourceModel())->
+                proxyCreateIndex(smCol->childCount(), proxyIndex.column(), proxyIndex.internalPointer());
+        else if (node->parent() == kmCol)
+            return static_cast<ProjectModel*>(sourceModel())->
+                proxyCreateIndex(kmCol->childCount(), proxyIndex.column(), proxyIndex.internalPointer());
+        else if (node->parent() == layCol)
+            return static_cast<ProjectModel*>(sourceModel())->
+                proxyCreateIndex(layCol->childCount(), proxyIndex.column(), proxyIndex.internalPointer());
+        break;
+    case ProjectModel::INode::Type::SoundMacro:
+        return static_cast<ProjectModel*>(sourceModel())->
+            proxyCreateIndex(node->row() - 2, proxyIndex.column(), proxyIndex.internalPointer());
+    case ProjectModel::INode::Type::Keymap:
+        return static_cast<ProjectModel*>(sourceModel())->
+            proxyCreateIndex(node->row() - smCol->childCount() - 3, proxyIndex.column(), proxyIndex.internalPointer());
+    case ProjectModel::INode::Type::Layer:
+        return static_cast<ProjectModel*>(sourceModel())->
+            proxyCreateIndex(node->row() - kmCol->childCount() - smCol->childCount() - 4, proxyIndex.column(), proxyIndex.internalPointer());
+    default:
+        break;
+    }
+    return QModelIndex();
+}
+
+QModelIndex PageObjectProxyModel::parent(const QModelIndex& child) const
+{
+    if (!child.isValid())
+        return QModelIndex();
+    ProjectModel::INode* node = static_cast<ProjectModel::INode*>(child.internalPointer());
+    auto tp = node->type();
+    if ((tp != ProjectModel::INode::Type::SoundMacro &&
+         tp != ProjectModel::INode::Type::Keymap &&
+         tp != ProjectModel::INode::Type::Layer &&
+         tp != ProjectModel::INode::Type::Null) ||
+        (tp == ProjectModel::INode::Type::Null &&
+         node->parent() == static_cast<ProjectModel*>(sourceModel())->rootNode()))
+        return QIdentityProxyModel::parent(child);
+    ProjectModel::INode* group = node->parent();
+    if (group->type() == ProjectModel::INode::Type::Collection)
+        group = group->parent();
+    return createIndex(group->row(), 0, group);
+}
+
+int PageObjectProxyModel::rowCount(const QModelIndex& parent) const
+{
+    ProjectModel::INode* node = static_cast<ProjectModel*>(sourceModel())->node(parent);
+    auto tp = node->type();
+    if (tp != ProjectModel::INode::Type::Group)
+        return static_cast<ProjectModel*>(sourceModel())->rowCount(parent);
+    ProjectModel::GroupNode* group = static_cast<ProjectModel::GroupNode*>(node);
+    ProjectModel::CollectionNode* smCol = group->getCollectionOfType(ProjectModel::INode::Type::SoundMacro);
+    ProjectModel::CollectionNode* kmCol = group->getCollectionOfType(ProjectModel::INode::Type::Keymap);
+    ProjectModel::CollectionNode* layCol = group->getCollectionOfType(ProjectModel::INode::Type::Layer);
+    return 4 + smCol->childCount() + kmCol->childCount() + layCol->childCount();
+}
+
+QModelIndex PageObjectProxyModel::index(int row, int column, const QModelIndex& parent) const
+{
+    if (!parent.isValid())
+        return QIdentityProxyModel::index(row, column, parent);
+    ProjectModel::INode* parentNode = static_cast<ProjectModel::INode*>(parent.internalPointer());
+    auto ptp = parentNode->type();
+    if (ptp != ProjectModel::INode::Type::Group)
+        return QIdentityProxyModel::index(row, column, parent);
+    ProjectModel::GroupNode* group = static_cast<ProjectModel::GroupNode*>(parentNode);
+    ProjectModel::CollectionNode* smCol = group->getCollectionOfType(ProjectModel::INode::Type::SoundMacro);
+    ProjectModel::CollectionNode* kmCol = group->getCollectionOfType(ProjectModel::INode::Type::Keymap);
+    ProjectModel::CollectionNode* layCol = group->getCollectionOfType(ProjectModel::INode::Type::Layer);
+    if (row == 0)
+        return createIndex(row, column, group->nullChild());
+    else if (row == 1)
+        return createIndex(row, column, smCol->nullChild());
+    else if (row < 2 + smCol->childCount())
+        return createIndex(row, column, smCol->child(row - 2));
+    else if (row == 2 + smCol->childCount())
+        return createIndex(row, column, kmCol->nullChild());
+    else if (row < 3 + smCol->childCount() + kmCol->childCount())
+        return createIndex(row, column, kmCol->child(row - smCol->childCount() - 3));
+    else if (row == 3 + smCol->childCount() + kmCol->childCount())
+        return createIndex(row, column, layCol->nullChild());
+    else if (row < 4 + smCol->childCount() + kmCol->childCount() + layCol->childCount())
+        return createIndex(row, column, layCol->child(row - kmCol->childCount() - smCol->childCount() - 4));
+    return QModelIndex();
+}
+
+QVariant PageObjectProxyModel::data(const QModelIndex& proxyIndex, int role) const
+{
+    if (role != Qt::DisplayRole || !proxyIndex.isValid() || proxyIndex.row() == 0)
+        return QVariant();
+    ProjectModel::INode* node = static_cast<ProjectModel::INode*>(proxyIndex.internalPointer());
+    auto tp = node->type();
+    if ((tp != ProjectModel::INode::Type::SoundMacro &&
+         tp != ProjectModel::INode::Type::Keymap &&
+         tp != ProjectModel::INode::Type::Layer &&
+         tp != ProjectModel::INode::Type::Null) ||
+        (tp == ProjectModel::INode::Type::Null &&
+         node->parent() == static_cast<ProjectModel*>(sourceModel())->rootNode()))
+        return QVariant();
+    ProjectModel::GroupNode* group = static_cast<ProjectModel*>(sourceModel())->getGroupNode(node);
+    ProjectModel::CollectionNode* smCol = group->getCollectionOfType(ProjectModel::INode::Type::SoundMacro);
+    ProjectModel::CollectionNode* kmCol = group->getCollectionOfType(ProjectModel::INode::Type::Keymap);
+    ProjectModel::CollectionNode* layCol = group->getCollectionOfType(ProjectModel::INode::Type::Layer);
+    switch (tp)
+    {
+    case ProjectModel::INode::Type::Null:
+        if (node->parent() == group)
+            return QVariant();
+        else if (node->parent() == smCol)
+            return tr("SoundMacros:");
+        else if (node->parent() == kmCol)
+            return tr("Keymaps:");
+        else if (node->parent() == layCol)
+            return tr("Layers:");
+        break;
+    case ProjectModel::INode::Type::SoundMacro:
+    case ProjectModel::INode::Type::Keymap:
+    case ProjectModel::INode::Type::Layer:
+        return node->text();
+    default:
+        break;
+    }
+    return QVariant();
+}
+
+Qt::ItemFlags PageObjectProxyModel::flags(const QModelIndex& proxyIndex) const
+{
+    if (!proxyIndex.isValid())
+        return Qt::NoItemFlags;
+    if (proxyIndex.row() == 0)
+        return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
+    ProjectModel::INode* node = static_cast<ProjectModel::INode*>(proxyIndex.internalPointer());
+    auto tp = node->type();
+    if (tp == ProjectModel::INode::Type::Null)
+        return Qt::NoItemFlags;
+    if (tp != ProjectModel::INode::Type::SoundMacro &&
+        tp != ProjectModel::INode::Type::Keymap &&
+        tp != ProjectModel::INode::Type::Layer)
+        return Qt::NoItemFlags;
+    return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
+}
+
 ProjectModel::INode::INode(INode* parent, int row) : m_parent(parent), m_row(row)
 {
     auto nullNode = amuse::MakeObj<NullNode>(this);
@@ -69,6 +282,17 @@ ProjectModel::CollectionNode* ProjectModel::GroupNode::getCollectionOfType(Type 
                 return col;
         }
     }
+    return nullptr;
+}
+
+ProjectModel::BasePoolObjectNode* ProjectModel::GroupNode::pageObjectNodeOfId(amuse::ObjectId id) const
+{
+    if (ProjectModel::BasePoolObjectNode* ret = getCollectionOfType(Type::SoundMacro)->nodeOfId(id))
+        return ret;
+    if (ProjectModel::BasePoolObjectNode* ret = getCollectionOfType(Type::Keymap)->nodeOfId(id))
+        return ret;
+    if (ProjectModel::BasePoolObjectNode* ret = getCollectionOfType(Type::Layer)->nodeOfId(id))
+        return ret;
     return nullptr;
 }
 
@@ -103,7 +327,7 @@ ProjectModel::BasePoolObjectNode* ProjectModel::CollectionNode::nodeOfId(amuse::
 }
 
 ProjectModel::ProjectModel(const QString& path, QObject* parent)
-: QAbstractItemModel(parent), m_dir(path), m_nullProxy(this)
+: QAbstractItemModel(parent), m_dir(path), m_nullProxy(this), m_pageObjectProxy(this)
 {
     m_root = amuse::MakeObj<RootNode>();
 
@@ -116,6 +340,7 @@ bool ProjectModel::clearProjectData()
 {
     m_projectDatabase = amuse::ProjectDatabase();
     m_groups.clear();
+    m_midiFiles.clear();
 
     m_needsReset = true;
     return true;
@@ -128,6 +353,33 @@ bool ProjectModel::openGroupData(const QString& groupName, UIMessenger& messenge
     m_groups.insert(std::make_pair(groupName, QStringToSysString(path)));
 
     m_needsReset = true;
+    return true;
+}
+
+bool ProjectModel::openSongsData()
+{
+    m_midiFiles.clear();
+    QFileInfo songsFile(m_dir, QStringLiteral("!songs.yaml"));
+    if (songsFile.exists())
+    {
+        athena::io::FileReader r(QStringToSysString(songsFile.path()));
+        if (!r.hasError())
+        {
+            athena::io::YAMLDocReader dr;
+            if (dr.parse(&r))
+            {
+                m_midiFiles.reserve(dr.getRootNode()->m_mapChildren.size());
+                for (auto& p : dr.getRootNode()->m_mapChildren)
+                {
+                    char* endPtr;
+                    amuse::SongId id = uint16_t(strtoul(p.first.c_str(), &endPtr, 0));
+                    if (endPtr == p.first.c_str() || id.id == 0xffff)
+                        continue;
+                    m_midiFiles[id] = QString::fromStdString(p.second->m_scalarString);
+                }
+            }
+        }
+    }
     return true;
 }
 
@@ -201,6 +453,21 @@ bool ProjectModel::saveToFile(UIMessenger& messenger)
         amuse::SystemString groupPath = QStringToSysString(dir.path());
         g.second.getProj().toYAML(groupPath);
         g.second.getPool().toYAML(groupPath);
+    }
+
+    if (!m_midiFiles.empty())
+    {
+        QFileInfo songsFile(m_dir, QStringLiteral("!songs.yaml"));
+        athena::io::YAMLDocWriter dw("amuse::Songs");
+        for (auto& p : m_midiFiles)
+        {
+            char id[16];
+            snprintf(id, 16, "%04X", p.first.id);
+            dw.writeString(id, p.second.toUtf8().data());
+        }
+        athena::io::FileWriter w(QStringToSysString(songsFile.path()));
+        if (!w.hasError())
+            dw.finish(&w);
     }
 
     return true;
@@ -405,7 +672,7 @@ QVariant ProjectModel::data(const QModelIndex& index, int role) const
 Qt::ItemFlags ProjectModel::flags(const QModelIndex& index) const
 {
     if (!index.isValid())
-        return 0;
+        return Qt::NoItemFlags;
 
     return static_cast<INode*>(index.internalPointer())->flags();
 }
@@ -476,4 +743,57 @@ void ProjectModel::del(const QModelIndex& index)
     if (!index.isValid())
         return;
     g_MainWindow->pushUndoCommand(new DeleteNodeUndoCommand(index));
+}
+
+ProjectModel::GroupNode* ProjectModel::getGroupOfSfx(amuse::SFXId id) const
+{
+    ProjectModel::GroupNode* ret = nullptr;
+    m_root->oneLevelTraverse([id, &ret](INode* n)
+    {
+        GroupNode* gn = static_cast<GroupNode*>(n);
+        amuse::AudioGroupDatabase* db = gn->getAudioGroup();
+        for (const auto& p : db->getProj().sfxGroups())
+        {
+            if (p.second->m_sfxEntries.find(id) != p.second->m_sfxEntries.cend())
+            {
+                ret = gn;
+                return false;
+            }
+        }
+        return true;
+    });
+    return ret;
+}
+
+ProjectModel::GroupNode* ProjectModel::getGroupOfSong(amuse::SongId id) const
+{
+    ProjectModel::GroupNode* ret = nullptr;
+    m_root->oneLevelTraverse([id, &ret](INode* n)
+    {
+        GroupNode* gn = static_cast<GroupNode*>(n);
+        amuse::AudioGroupDatabase* db = gn->getAudioGroup();
+        for (const auto& p : db->getProj().songGroups())
+        {
+            if (p.second->m_midiSetups.find(id) != p.second->m_midiSetups.cend())
+            {
+                ret = gn;
+                return false;
+            }
+        }
+        return true;
+    });
+    return ret;
+}
+
+QString ProjectModel::getMIDIPathOfSong(amuse::SongId id) const
+{
+    auto search = m_midiFiles.find(id);
+    if (search == m_midiFiles.cend())
+        return {};
+    return search->second;
+}
+
+void ProjectModel::setMIDIPathOfSong(amuse::SongId id, const QString& path)
+{
+    m_midiFiles[id] = path;
 }
