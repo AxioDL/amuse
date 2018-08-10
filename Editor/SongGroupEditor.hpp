@@ -14,6 +14,7 @@
 #include <QPushButton>
 #include <QFileDialog>
 #include <QProxyStyle>
+#include "amuse/Sequencer.hpp"
 
 class PageObjectDelegate : public QStyledItemDelegate
 {
@@ -176,8 +177,8 @@ class SetupTableView : public QSplitter
 {
     Q_OBJECT
     friend class SongGroupEditor;
-    QTableView m_listView;
-    QTableView m_tableView;
+    QTableView* m_listView;
+    QTableView* m_tableView;
     MIDIFileDelegate m_midiDelegate;
     RangedValueFactory<0, 127> m_127Factory;
     QStyledItemDelegate m_127Delegate;
@@ -199,7 +200,7 @@ public:
 class ColoredTabBar : public QTabBar
 {
     Q_OBJECT
-    ColoredTabBarStyle m_style;
+    ColoredTabBarStyle* m_style;
 public:
     explicit ColoredTabBar(QWidget* parent = Q_NULLPTR);
 };
@@ -212,6 +213,29 @@ public:
     explicit ColoredTabWidget(QWidget* parent = Q_NULLPTR);
 };
 
+class MIDIPlayerWidget : public QWidget
+{
+    Q_OBJECT
+    QAction m_playAction;
+    QToolButton m_button;
+    QModelIndex m_index;
+    amuse::GroupId m_groupId;
+    amuse::SongId m_songId;
+    std::vector<uint8_t> m_arrData;
+    amuse::ObjToken<amuse::Sequencer> m_seq;
+public:
+    explicit MIDIPlayerWidget(QModelIndex index, amuse::GroupId gid, amuse::SongId id,
+                              std::vector<uint8_t>&& arrData, QWidget* parent = Q_NULLPTR);
+    ~MIDIPlayerWidget();
+    amuse::SongId songId() const { return m_songId; }
+    amuse::Sequencer* sequencer() const { return m_seq.get(); }
+    void stopped();
+    void resizeEvent(QResizeEvent* event);
+    void mouseDoubleClickEvent(QMouseEvent* event);
+public slots:
+    void clicked();
+};
+
 class SongGroupEditor : public EditorWidget
 {
     Q_OBJECT
@@ -219,34 +243,33 @@ class SongGroupEditor : public EditorWidget
     PageModel m_drumPages;
     SetupListModel m_setupList;
     SetupModel m_setup;
-    PageTableView m_normTable;
-    PageTableView m_drumTable;
-    SetupTableView m_setupTable;
+    PageTableView* m_normTable;
+    PageTableView* m_drumTable;
+    SetupTableView* m_setupTable;
     ColoredTabWidget m_tabs;
-    QAction m_addAction;
-    QToolButton m_addButton;
-    QAction m_removeAction;
-    QToolButton m_removeButton;
+    AddRemoveButtons m_addRemoveButtons;
 public:
     explicit SongGroupEditor(QWidget* parent = Q_NULLPTR);
     bool loadData(ProjectModel::SongGroupNode* node);
     void unloadData();
     ProjectModel::INode* currentNode() const;
+    void setEditorEnabled(bool en) {}
     void resizeEvent(QResizeEvent* ev);
+    QTableView* getSetupListView() const { return m_setupTable->m_listView; }
+    bool isItemEditEnabled() const;
 public slots:
     void doAdd();
-    void doSelectionChanged(const QItemSelection& selected);
-    void doSetupSelectionChanged(const QItemSelection& selected);
+    void doSelectionChanged();
+    void doSetupSelectionChanged();
     void currentTabChanged(int idx);
     void rowsAboutToBeRemoved(const QModelIndex &parent, int first, int last);
     void modelAboutToBeReset();
+    void setupDataChanged();
 
-    bool isItemEditEnabled() const;
     void itemCutAction();
     void itemCopyAction();
     void itemPasteAction();
     void itemDeleteAction();
 };
-
 
 #endif //AMUSE_SONG_GROUP_EDITOR_HPP

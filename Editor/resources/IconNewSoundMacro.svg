@@ -14,8 +14,8 @@
    viewBox="0 0 4.2333332 4.2333335"
    id="svg2"
    version="1.1"
-   inkscape:version="0.91+devel+osxmenu r12922"
-   sodipodi:docname="NewSoundMacro.svg">
+   inkscape:version="0.92.2 2405546, 2018-03-11"
+   sodipodi:docname="IconNewSoundMacro.svg">
   <defs
      id="defs4" />
   <sodipodi:namedview
@@ -26,16 +26,16 @@
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
      inkscape:zoom="30.33"
-     inkscape:cx="8.5002398"
-     inkscape:cy="8.6348884"
+     inkscape:cx="2.9941402"
+     inkscape:cy="4.6784097"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="true"
      units="px"
      inkscape:window-width="1260"
      inkscape:window-height="787"
-     inkscape:window-x="0"
-     inkscape:window-y="23"
+     inkscape:window-x="606"
+     inkscape:window-y="435"
      inkscape:window-maximized="0"
      showborder="false"
      objecttolerance="4"
@@ -45,7 +45,7 @@
        type="xygrid"
        id="grid4173"
        empspacing="1"
-       visible="false" />
+       visible="true" />
   </sodipodi:namedview>
   <metadata
      id="metadata7">
@@ -66,14 +66,14 @@
      transform="translate(0,-292.76665)">
     <path
        style="opacity:1;fill:#62ff04;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:0.30031049;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m 0.96793039,292.83382 2.60268711,1.68348 c 0.392506,0.24382 0.3952842,0.49652 0,0.73535 l -2.60268711,1.69163 C 0.68893458,297.12561 0.3672936,296.82502 0.3672936,296.49227 l 0,-3.29415 c 0,-0.33276 0.32123894,-0.54502 0.60063679,-0.3643 z"
-       id="rect5899"
+       d="m 0.96793039,292.83382 2.60268711,1.68348 c 0.392506,0.24382 0.3952841,0.49652 0,0.73535 l -2.60268711,1.69163 c -0.2789936,0.18133 -0.6006367,-0.0548 -0.6006367,-0.39294 v -3.35322 c 0,-0.33276 0.3212394,-0.54502 0.6006367,-0.3643 z"
+       id="rect5899-3"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="sccssss" />
     <path
        id="path5323"
        style="fill:#ff0000;fill-rule:evenodd;stroke:#df0000;stroke-width:0.26458332;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m 2.8386428,295.6133 0.9362114,0.93622 m -0.9362104,-10e-6 0.9362094,-0.9362 m -1.1301062,0.4681 1.324003,0 m -0.6620015,0.662 0,-1.324"
+       d="m 2.8386428,295.6133 0.9362114,0.93622 m -0.9362104,-10e-6 0.9362094,-0.9362 m -1.1301062,0.4681 H 3.96875 m -0.6620015,0.662 v -1.324"
        inkscape:connector-curvature="0" />
   </g>
 </svg>

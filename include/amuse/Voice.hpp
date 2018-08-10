@@ -48,6 +48,7 @@ class Voice : public Entity
     int m_vid;                        /**< VoiceID of this voice instance */
     bool m_emitter;                   /**< Voice is part of an Emitter */
     ObjToken<Studio> m_studio;        /**< Studio this voice outputs to */
+    IObjToken<Sequencer> m_sequencer; /**< Strong reference to parent sequencer to retain ctrl vals */
 
     std::unique_ptr<IBackendVoice> m_backendVoice; /**< Handle to client-implemented backend voice */
     SoundMacroState m_state;                       /**< State container for SoundMacro playback */

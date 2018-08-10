@@ -35,7 +35,7 @@ Engine::Engine(IBackendVoiceAllocator& backend, AmplitudeMode ampMode)
     m_midiReader = backend.allocateMIDIReader(*this);
 }
 
-std::pair<AudioGroup*, const SongGroupIndex*> Engine::_findSongGroup(int groupId) const
+std::pair<AudioGroup*, const SongGroupIndex*> Engine::_findSongGroup(GroupId groupId) const
 {
     for (const auto& pair : m_audioGroups)
     {
@@ -46,7 +46,7 @@ std::pair<AudioGroup*, const SongGroupIndex*> Engine::_findSongGroup(int groupId
     return {};
 }
 
-std::pair<AudioGroup*, const SFXGroupIndex*> Engine::_findSFXGroup(int groupId) const
+std::pair<AudioGroup*, const SFXGroupIndex*> Engine::_findSFXGroup(GroupId groupId) const
 {
     for (const auto& pair : m_audioGroups)
     {
@@ -57,7 +57,7 @@ std::pair<AudioGroup*, const SFXGroupIndex*> Engine::_findSFXGroup(int groupId) 
     return {};
 }
 
-std::list<ObjToken<Voice>>::iterator Engine::_allocateVoice(const AudioGroup& group, int groupId,
+std::list<ObjToken<Voice>>::iterator Engine::_allocateVoice(const AudioGroup& group, GroupId groupId,
                                                             double sampleRate, bool dynamicPitch, bool emitter,
                                                             ObjToken<Studio> studio)
 {
@@ -70,8 +70,8 @@ std::list<ObjToken<Voice>>::iterator Engine::_allocateVoice(const AudioGroup& gr
     return it;
 }
 
-std::list<ObjToken<Sequencer>>::iterator Engine::_allocateSequencer(const AudioGroup& group, int groupId,
-                                                                    int setupId, ObjToken<Studio> studio)
+std::list<ObjToken<Sequencer>>::iterator Engine::_allocateSequencer(const AudioGroup& group, GroupId groupId,
+                                                                    SongId setupId, ObjToken<Studio> studio)
 {
     const SongGroupIndex* songGroup = group.getProj().getSongGroupIndex(groupId);
     if (songGroup)
@@ -265,7 +265,7 @@ void Engine::removeAudioGroup(const AudioGroupData& data)
 ObjToken<Studio> Engine::addStudio(bool mainOut) { return _allocateStudio(mainOut); }
 
 /** Start soundFX playing from loaded audio groups */
-ObjToken<Voice> Engine::fxStart(int sfxId, float vol, float pan, ObjToken<Studio> smx)
+ObjToken<Voice> Engine::fxStart(SFXId sfxId, float vol, float pan, ObjToken<Studio> smx)
 {
     auto search = m_sfxLookup.find(sfxId);
     if (search == m_sfxLookup.end())
@@ -279,15 +279,47 @@ ObjToken<Voice> Engine::fxStart(int sfxId, float vol, float pan, ObjToken<Studio
     std::list<ObjToken<Voice>>::iterator ret =
         _allocateVoice(*grp, std::get<1>(search->second), NativeSampleRate, true, false, smx);
 
-    if (!(*ret)->loadMacroObject(entry->macro.id, 0, 1000.f, entry->defKey, entry->defVel, 0))
+    if (!(*ret)->loadPageObject(entry->objId, 1000.f, entry->defKey, entry->defVel, 0))
     {
         _destroyVoice(ret);
         return {};
     }
 
     (*ret)->setVolume(vol);
-    (*ret)->setPan(pan);
+    float evalPan = pan != 0.f ? pan : ((entry->panning - 64.f) / 63.f);
+    evalPan = clamp(-1.f, evalPan, 1.f);
+    (*ret)->setPan(evalPan);
     return *ret;
+}
+
+/** Start soundFX playing from explicit group data (for editor use) */
+ObjToken<Voice> Engine::fxStart(const AudioGroup* group, GroupId groupId, SFXId sfxId, float vol, float pan, ObjToken<Studio> smx)
+{
+    const SFXGroupIndex* sfxIdx = group->getProj().getSFXGroupIndex(groupId);
+    if (sfxIdx)
+    {
+        auto search = sfxIdx->m_sfxEntries.find(sfxId);
+        if (search != sfxIdx->m_sfxEntries.cend())
+        {
+            std::list<ObjToken<Voice>>::iterator ret =
+                _allocateVoice(*group, groupId, NativeSampleRate, true, false, smx);
+
+            auto& entry = search->second;
+            if (!(*ret)->loadPageObject(entry.objId, 1000.f, entry.defKey, entry.defVel, 0))
+            {
+                _destroyVoice(ret);
+                return {};
+            }
+
+            (*ret)->setVolume(vol);
+            float evalPan = pan != 0.f ? pan : ((entry.panning - 64.f) / 63.f);
+            evalPan = clamp(-1.f, evalPan, 1.f);
+            (*ret)->setPan(evalPan);
+            return *ret;
+        }
+    }
+
+    return {};
 }
 
 /** Start SoundMacro node playing directly (for editor use) */
@@ -353,7 +385,7 @@ ObjToken<Voice> Engine::pageObjectStart(const AudioGroup* group, ObjectId id, ui
 
 /** Start soundFX playing from loaded audio groups, attach to positional emitter */
 ObjToken<Emitter> Engine::addEmitter(const float* pos, const float* dir, float maxDist, float falloff,
-                                     int sfxId, float minVol, float maxVol, bool doppler, ObjToken<Studio> smx)
+                                     SFXId sfxId, float minVol, float maxVol, bool doppler, ObjToken<Studio> smx)
 {
     auto search = m_sfxLookup.find(sfxId);
     if (search == m_sfxLookup.end())
@@ -367,7 +399,7 @@ ObjToken<Emitter> Engine::addEmitter(const float* pos, const float* dir, float m
     std::list<ObjToken<Voice>>::iterator vox =
         _allocateVoice(*grp, std::get<1>(search->second), NativeSampleRate, true, true, smx);
 
-    if (!(*vox)->loadMacroObject(entry->macro, 0, 1000.f, entry->defKey, entry->defVel, 0))
+    if (!(*vox)->loadPageObject(entry->objId, 1000.f, entry->defKey, entry->defVel, 0))
     {
         _destroyVoice(vox);
         return {};
@@ -409,7 +441,7 @@ void Engine::removeListener(Listener* listener)
 }
 
 /** Start song playing from loaded audio groups */
-ObjToken<Sequencer> Engine::seqPlay(int groupId, int songId, const unsigned char* arrData, ObjToken<Studio> smx)
+ObjToken<Sequencer> Engine::seqPlay(GroupId groupId, SongId songId, const unsigned char* arrData, ObjToken<Studio> smx)
 {
     std::pair<AudioGroup*, const SongGroupIndex*> songGrp = _findSongGroup(groupId);
     if (songGrp.second)
@@ -427,6 +459,33 @@ ObjToken<Sequencer> Engine::seqPlay(int groupId, int songId, const unsigned char
     if (sfxGrp.second)
     {
         std::list<ObjToken<Sequencer>>::iterator ret = _allocateSequencer(*sfxGrp.first, groupId, songId, smx);
+        if (!*ret)
+            return {};
+        return *ret;
+    }
+
+    return {};
+}
+
+ObjToken<Sequencer> Engine::seqPlay(const AudioGroup* group, GroupId groupId, SongId songId,
+                                    const unsigned char* arrData, ObjToken<Studio> smx)
+{
+    const SongGroupIndex* sgIdx = group->getProj().getSongGroupIndex(groupId);
+    if (sgIdx)
+    {
+        std::list<ObjToken<Sequencer>>::iterator ret = _allocateSequencer(*group, groupId, songId, smx);
+        if (!*ret)
+            return {};
+
+        if (arrData)
+            (*ret)->playSong(arrData);
+        return *ret;
+    }
+
+    const SFXGroupIndex* sfxIdx = group->getProj().getSFXGroupIndex(groupId);
+    if (sfxIdx)
+    {
+        std::list<ObjToken<Sequencer>>::iterator ret = _allocateSequencer(*group, groupId, songId, smx);
         if (!*ret)
             return {};
         return *ret;

@@ -15,7 +15,7 @@
    id="svg2"
    version="1.1"
    inkscape:version="0.92.2 2405546, 2018-03-11"
-   sodipodi:docname="IconSoundMacro.svg">
+   sodipodi:docname="IconStop.svg">
   <defs
      id="defs4" />
   <sodipodi:namedview
@@ -25,9 +25,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:zoom="49.27"
-     inkscape:cx="6.2572034"
-     inkscape:cy="5.0825963"
+     inkscape:zoom="30.328889"
+     inkscape:cx="6.3383887"
+     inkscape:cy="7.7203454"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="true"
@@ -37,7 +37,7 @@
      inkscape:window-x="0"
      inkscape:window-y="40"
      inkscape:window-maximized="0"
-     showborder="false"
+     showborder="true"
      objecttolerance="4"
      gridtolerance="4"
      guidetolerance="5">
@@ -64,11 +64,12 @@
      inkscape:groupmode="layer"
      id="layer1"
      transform="translate(0,-292.76665)">
-    <path
-       style="opacity:1;fill:#62ff04;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:0.30031049;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m 0.96793039,292.83382 2.60268711,1.68348 c 0.392506,0.24382 0.3952842,0.49652 0,0.73535 l -2.60268711,1.69163 c -0.27899363,0.18133 -0.60063679,-0.0548 -0.60063679,-0.39294 l 0,-3.35322 c 0,-0.33276 0.32123948,-0.54502 0.60063679,-0.3643 z"
-       id="rect5899"
-       inkscape:connector-curvature="0"
-       sodipodi:nodetypes="sccssss" />
+    <rect
+       style="fill:#ff0000;fill-opacity:1;stroke:none;stroke-width:0.26458332;stroke-linecap:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="rect842"
+       width="3.7041667"
+       height="3.7041805"
+       x="0.26458335"
+       y="293.03122" />
   </g>
 </svg>

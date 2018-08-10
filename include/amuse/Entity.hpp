@@ -12,7 +12,7 @@ class Engine;
 class AudioGroup;
 
 /** Common 'engine child' class */
-class Entity
+class Entity : public IObj
 {
     /* Only the Engine will manage Entity lifetimes,
      * but shared_ptrs are issued to the client so it can safely track state */

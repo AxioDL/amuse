@@ -7,6 +7,7 @@
 #include <QIcon>
 #include <map>
 #include "Common.hpp"
+#include "NewSoundMacroDialog.hpp"
 #include "amuse/AudioGroup.hpp"
 #include "amuse/AudioGroupData.hpp"
 #include "amuse/AudioGroupProject.hpp"
@@ -52,13 +53,71 @@ public:
         Both
     };
 
+    struct NameUndoRegistry
+    {
+        std::unordered_map<amuse::SongId, std::string> m_songIDs;
+        std::unordered_map<amuse::SFXId, std::string> m_sfxIDs;
+        void registerSongName(amuse::SongId id) const
+        {
+            auto search = m_songIDs.find(id);
+            if (search != m_songIDs.cend())
+                amuse::SongId::CurNameDB->registerPair(search->second, id);
+        }
+        void unregisterSongName(amuse::SongId id)
+        {
+            auto search = amuse::SongId::CurNameDB->m_idToString.find(id);
+            if (search != amuse::SongId::CurNameDB->m_idToString.cend())
+                m_songIDs[id] = search->second;
+            amuse::SongId::CurNameDB->remove(id);
+        }
+        void registerSFXName(amuse::SongId id) const
+        {
+            auto search = m_sfxIDs.find(id);
+            if (search != m_sfxIDs.cend())
+                amuse::SFXId::CurNameDB->registerPair(search->second, id);
+        }
+        void unregisterSFXName(amuse::SongId id)
+        {
+            auto search = amuse::SFXId::CurNameDB->m_idToString.find(id);
+            if (search != amuse::SFXId::CurNameDB->m_idToString.cend())
+                m_sfxIDs[id] = search->second;
+            amuse::SFXId::CurNameDB->remove(id);
+        }
+        void clear()
+        {
+            m_songIDs.clear();
+            m_sfxIDs.clear();
+        }
+    };
+
 private:
     QDir m_dir;
     NullItemProxyModel m_nullProxy;
     PageObjectProxyModel m_pageObjectProxy;
 
     amuse::ProjectDatabase m_projectDatabase;
-    std::map<QString, amuse::AudioGroupDatabase> m_groups;
+
+    std::unordered_map<QString, amuse::AudioGroupDatabase> m_groups;
+    struct Iterator
+    {
+        using ItTp = std::unordered_map<QString, amuse::AudioGroupDatabase>::iterator;
+        ItTp m_it;
+        Iterator(ItTp it) : m_it(it) {}
+        ItTp::pointer operator->() { return m_it.operator->(); }
+        bool operator<(const Iterator& other) const
+        {
+            return m_it->first < other.m_it->first;
+        }
+        bool operator<(const QString& name) const
+        {
+            return m_it->first < name;
+        }
+    };
+    std::vector<Iterator> m_sorted;
+    void _buildSortedList();
+    QModelIndex _indexOfGroup(const QString& groupName) const;
+    int _hypotheticalIndexOfGroup(const QString& groupName) const;
+
     std::unordered_map<amuse::SongId, QString> m_midiFiles;
 
 public:
@@ -133,6 +192,13 @@ public:
             m_nullChild->m_row = int(m_children.size());
             return static_cast<T&>(*m_children.back());
         }
+        template<class T, class... _Args>
+        T& makeChildAtIdx(int idx, _Args&&... args)
+        {
+            auto tok = amuse::MakeObj<T>(this, idx, std::forward<_Args>(args)...);
+            insertChild(idx, tok.get());
+            return static_cast<T&>(*tok);
+        }
 
         bool depthTraverse(const std::function<bool(INode* node)>& func)
         {
@@ -154,6 +220,9 @@ public:
         virtual QString text() const = 0;
         virtual QIcon icon() const = 0;
         virtual Qt::ItemFlags flags() const { return Qt::ItemIsEnabled | Qt::ItemIsSelectable; }
+
+        virtual void registerNames(const NameUndoRegistry& registry) const {}
+        virtual void unregisterNames(NameUndoRegistry& registry) const {}
     };
     struct NullNode : INode
     {
@@ -176,8 +245,8 @@ public:
     struct BasePoolObjectNode;
     struct GroupNode : INode
     {
-        std::map<QString, amuse::AudioGroupDatabase>::iterator m_it;
-        GroupNode(INode* parent, int row, std::map<QString, amuse::AudioGroupDatabase>::iterator it)
+        std::unordered_map<QString, amuse::AudioGroupDatabase>::iterator m_it;
+        GroupNode(INode* parent, int row, std::unordered_map<QString, amuse::AudioGroupDatabase>::iterator it)
         : INode(parent, row), m_it(it) {}
 
         static QIcon Icon;
@@ -201,6 +270,19 @@ public:
         Type type() const { return Type::SongGroup; }
         QString text() const { return m_name; }
         QIcon icon() const { return Icon; }
+
+        void registerNames(const NameUndoRegistry& registry) const
+        {
+            amuse::GroupId::CurNameDB->registerPair(text().toUtf8().data(), m_id);
+            for (auto& p : m_index->m_midiSetups)
+                registry.registerSongName(p.first);
+        }
+        void unregisterNames(NameUndoRegistry& registry) const
+        {
+            amuse::GroupId::CurNameDB->remove(m_id);
+            for (auto& p : m_index->m_midiSetups)
+                registry.unregisterSongName(p.first);
+        }
     };
     struct SoundGroupNode : INode
     {
@@ -214,6 +296,19 @@ public:
         Type type() const { return Type::SoundGroup; }
         QString text() const { return m_name; }
         QIcon icon() const { return Icon; }
+
+        void registerNames(const NameUndoRegistry& registry) const
+        {
+            amuse::GroupId::CurNameDB->registerPair(text().toUtf8().data(), m_id);
+            for (auto& p : m_index->m_sfxEntries)
+                registry.registerSFXName(p.first);
+        }
+        void unregisterNames(NameUndoRegistry& registry) const
+        {
+            amuse::GroupId::CurNameDB->remove(m_id);
+            for (auto& p : m_index->m_sfxEntries)
+                registry.unregisterSFXName(p.first);
+        }
     };
     struct CollectionNode : INode
     {
@@ -252,6 +347,15 @@ public:
         : BasePoolObjectNode(parent, row, id, ID::CurNameDB->resolveNameFromId(id).data()), m_obj(obj) {}
 
         Type type() const { return TP; }
+
+        void registerNames(const NameUndoRegistry& registry) const
+        {
+            ID::CurNameDB->registerPair(text().toUtf8().data(), m_id);
+        }
+        void unregisterNames(NameUndoRegistry& registry) const
+        {
+            ID::CurNameDB->remove(m_id);
+        }
     };
     using SoundMacroNode = PoolObjectNode<amuse::SoundMacroId, amuse::SoundMacro, INode::Type::SoundMacro>;
     using ADSRNode = PoolObjectNode<amuse::TableId, std::unique_ptr<amuse::ITable>, INode::Type::ADSR>;
@@ -263,6 +367,7 @@ public:
     amuse::ObjToken<RootNode> m_root;
 
     bool m_needsReset = false;
+    void _buildGroupNode(GroupNode& gn);
     void _resetModelData();
 
 public:
@@ -289,10 +394,20 @@ public:
     INode* node(const QModelIndex& index) const;
     GroupNode* getGroupNode(INode* node) const;
     bool canEdit(const QModelIndex& index) const;
-    void _undoDel(const QModelIndex& index, amuse::ObjToken<ProjectModel::INode> node);
-    amuse::ObjToken<ProjectModel::INode> _redoDel(const QModelIndex& index);
+    void _undoDel(const QModelIndex& index, amuse::ObjToken<ProjectModel::INode> node, const NameUndoRegistry& nameReg);
+    amuse::ObjToken<ProjectModel::INode> _redoDel(const QModelIndex& index, NameUndoRegistry& nameReg);
     void del(const QModelIndex& index);
     RootNode* rootNode() const { return m_root.get(); }
+
+    GroupNode* newSubproject(const QString& name, UIMessenger& messenger);
+    SoundGroupNode* newSoundGroup(GroupNode* group, const QString& name, UIMessenger& messenger);
+    SongGroupNode* newSongGroup(GroupNode* group, const QString& name, UIMessenger& messenger);
+    SoundMacroNode* newSoundMacro(GroupNode* group, const QString& name, UIMessenger& messenger,
+                                  const SoundMacroTemplateEntry* templ = nullptr);
+    ADSRNode* newADSR(GroupNode* group, const QString& name, UIMessenger& messenger);
+    CurveNode* newCurve(GroupNode* group, const QString& name, UIMessenger& messenger);
+    KeymapNode* newKeymap(GroupNode* group, const QString& name, UIMessenger& messenger);
+    LayersNode* newLayers(GroupNode* group, const QString& name, UIMessenger& messenger);
 
     const QDir& dir() const { return m_dir; }
     QString path() const { return m_dir.path(); }
@@ -303,6 +418,8 @@ public:
     GroupNode* getGroupOfSong(amuse::SongId id) const;
     QString getMIDIPathOfSong(amuse::SongId id) const;
     void setMIDIPathOfSong(amuse::SongId id, const QString& path);
+
+    void setIdDatabases(INode* context) const;
 };
 
 

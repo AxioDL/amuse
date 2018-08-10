@@ -617,6 +617,7 @@ struct NameDB
 
     ObjectId generateId(Type tp) const;
     static std::string generateName(ObjectId id, Type tp);
+    std::string generateDefaultName(Type tp) const;
     std::string_view registerPair(std::string_view str, ObjectId id);
     std::string_view resolveNameFromId(ObjectId id) const;
     ObjectId resolveIdFromName(std::string_view str) const;

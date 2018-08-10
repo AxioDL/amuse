@@ -17,6 +17,7 @@
 #include "KeymapEditor.hpp"
 #include "LayersEditor.hpp"
 #include "SampleEditor.hpp"
+#include "NewSoundMacroDialog.hpp"
 
 MainWindow::MainWindow(QWidget* parent)
 : QMainWindow(parent),
@@ -258,6 +259,7 @@ bool MainWindow::setProjectPath(const QString& path)
     m_ui.actionRevert_Project->setEnabled(true);
     m_ui.actionReload_Sample_Data->setEnabled(true);
     m_ui.actionExport_GameCube_Groups->setEnabled(true);
+    m_ui.actionNew_Subproject->setEnabled(true);
     setWindowFilePath(path);
     updateWindowTitle();
     updateFocus();
@@ -322,14 +324,16 @@ void MainWindow::timerEvent(QTimerEvent* ev)
         if (m_engine->getActiveVoices().empty() && m_uiDisabled)
         {
             m_ui.projectOutline->setEnabled(true);
-            m_ui.editorContents->setEnabled(true);
+            if (EditorWidget* w = getEditorWidget())
+                w->setEditorEnabled(true);
             m_ui.menubar->setEnabled(true);
             m_uiDisabled = false;
         }
         else if (!m_engine->getActiveVoices().empty() && !m_uiDisabled)
         {
             m_ui.projectOutline->setEnabled(false);
-            m_ui.editorContents->setEnabled(false);
+            if (EditorWidget* w = getEditorWidget())
+                w->setEditorEnabled(false);
             m_ui.menubar->setEnabled(false);
             m_uiDisabled = true;
         }
@@ -342,6 +346,21 @@ void MainWindow::timerEvent(QTimerEvent* ev)
             else
                 sampleEditor->setSamplePos(-1);
         }
+
+        QTableView* songTable = m_songGroupEditor->getSetupListView();
+        for (int i = 0; i < songTable->model()->rowCount(); ++i)
+            if (MIDIPlayerWidget* player = qobject_cast<MIDIPlayerWidget*>(
+                songTable->indexWidget(songTable->model()->index(i, 1))))
+                for (auto& p : m_engine->getActiveSequencers())
+                    if (p.get() == player->sequencer() && p->state() != amuse::SequencerState::Playing)
+                        player->stopped();
+
+        QTableView* sfxTable = m_soundGroupEditor->getSFXListView();
+        for (int i = 0; i < sfxTable->model()->rowCount(); ++i)
+            if (SFXPlayerWidget* player = qobject_cast<SFXPlayerWidget*>(
+                sfxTable->indexWidget(sfxTable->model()->index(i, 1))))
+                if (player->voice() && player->voice()->state() != amuse::VoiceState::Playing)
+                    player->stopped();
     }
 }
 
@@ -545,6 +564,27 @@ amuse::ObjToken<amuse::Voice> MainWindow::startEditorVoice(uint8_t key, uint8_t 
         }
     }
     return vox;
+}
+
+amuse::ObjToken<amuse::Voice> MainWindow::startSFX(amuse::GroupId groupId, amuse::SFXId sfxId)
+{
+    if (ProjectModel::INode* node = getEditorNode())
+    {
+        amuse::AudioGroupDatabase* group = projectModel()->getGroupNode(node)->getAudioGroup();
+        return m_engine->fxStart(group, groupId, sfxId, 1.f, 0.f);
+    }
+    return {};
+}
+
+amuse::ObjToken<amuse::Sequencer> MainWindow::startSong(amuse::GroupId groupId, amuse::SongId songId,
+                                                        const unsigned char* arrData)
+{
+    if (ProjectModel::INode* node = getEditorNode())
+    {
+        amuse::AudioGroupDatabase* group = projectModel()->getGroupNode(node)->getAudioGroup();
+        return m_engine->seqPlay(group, groupId, songId, arrData);
+    }
+    return {};
 }
 
 void MainWindow::pushUndoCommand(QUndoCommand* cmd)
@@ -858,44 +898,217 @@ bool TreeDelegate::editorEvent(QEvent* event,
     return false;
 }
 
+QString MainWindow::getGroupName(ProjectModel::GroupNode* group) const
+{
+    if (group)
+        return group->text();
+    return {};
+}
+
+ProjectModel::GroupNode* MainWindow::getSelectedGroupNode() const
+{
+    if (!m_projectModel)
+        return nullptr;
+    if (!m_ui.projectOutline->selectionModel()->currentIndex().isValid())
+        return nullptr;
+    return m_projectModel->getGroupNode(m_projectModel->node(m_ui.projectOutline->selectionModel()->currentIndex()));
+}
+
+QString MainWindow::getSelectedGroupName() const
+{
+    return getGroupName(getSelectedGroupNode());
+}
+
+void MainWindow::recursiveExpandOutline(const QModelIndex& index) const
+{
+    if (index.isValid())
+    {
+        recursiveExpandAndSelectOutline(index.parent());
+        m_ui.projectOutline->expand(index);
+    }
+}
+
+void MainWindow::recursiveExpandAndSelectOutline(const QModelIndex& index) const
+{
+    recursiveExpandOutline(index);
+    if (index.isValid())
+    {
+        m_ui.projectOutline->selectionModel()->setCurrentIndex(index, QItemSelectionModel::ClearAndSelect);
+        m_ui.projectOutline->selectionModel()->setCurrentIndex(index, QItemSelectionModel::Current);
+    }
+}
+
 void MainWindow::newSubprojectAction()
 {
+    QString newName;
+    bool ok = true;
+    while (ok && newName.isEmpty())
+        newName = QInputDialog::getText(this, tr("New Subproject"),
+            tr("What should this subproject be named?"), QLineEdit::Normal, QString(), &ok);
+    if (!ok)
+        return;
 
+    ProjectModel::GroupNode* node = m_projectModel->newSubproject(newName, m_mainMessenger);
+    if (node)
+        recursiveExpandAndSelectOutline(m_projectModel->index(node));
 }
 
 void MainWindow::newSFXGroupAction()
 {
+    ProjectModel::GroupNode* group = getSelectedGroupNode();
+    m_projectModel->setIdDatabases(group);
+    QString groupName = getGroupName(group);
+    QString newName;
+    bool ok = true;
+    while (ok && newName.isEmpty())
+        newName = QInputDialog::getText(this, tr("New SFX Group"),
+            tr("What should the new SFX group in %1 be named?").arg(groupName), QLineEdit::Normal, QString::fromStdString(
+                amuse::GroupId::CurNameDB->generateDefaultName(amuse::NameDB::Type::Group)), &ok);
+    if (!ok)
+        return;
 
+    ProjectModel::SoundGroupNode* node = m_projectModel->newSoundGroup(group, newName, m_mainMessenger);
+    if (node)
+    {
+        recursiveExpandAndSelectOutline(m_projectModel->index(node));
+        openEditor(node);
+    }
 }
 
 void MainWindow::newSongGroupAction()
 {
+    ProjectModel::GroupNode* group = getSelectedGroupNode();
+    m_projectModel->setIdDatabases(group);
+    QString groupName = getGroupName(group);
+    QString newName;
+    bool ok = true;
+    while (ok && newName.isEmpty())
+        newName = QInputDialog::getText(this, tr("New Song Group"),
+            tr("What should the new Song group in %1 be named?").arg(groupName), QLineEdit::Normal, QString::fromStdString(
+                amuse::GroupId::CurNameDB->generateDefaultName(amuse::NameDB::Type::Group)), &ok);
+    if (!ok)
+        return;
 
+    ProjectModel::SongGroupNode* node = m_projectModel->newSongGroup(group, newName, m_mainMessenger);
+    if (node)
+    {
+        recursiveExpandAndSelectOutline(m_projectModel->index(node));
+        openEditor(node);
+    }
 }
 
 void MainWindow::newSoundMacroAction()
 {
+    ProjectModel::GroupNode* group = getSelectedGroupNode();
+    m_projectModel->setIdDatabases(group);
+    QString groupName = getGroupName(group);
+    QString newName;
+    const SoundMacroTemplateEntry* templ = nullptr;
+    int result = QDialog::Accepted;
+    while (result == QDialog::Accepted && newName.isEmpty())
+    {
+        NewSoundMacroDialog dialog(groupName, this);
+        result = dialog.exec();
+        newName = dialog.getName();
+        templ = dialog.getSelectedTemplate();
+    }
+    if (result == QDialog::Rejected)
+        return;
 
+    ProjectModel::SoundMacroNode* node = m_projectModel->newSoundMacro(group, newName, m_mainMessenger, templ);
+    if (node)
+    {
+        recursiveExpandAndSelectOutline(m_projectModel->index(node));
+        openEditor(node);
+    }
 }
 
 void MainWindow::newADSRAction()
 {
+    ProjectModel::GroupNode* group = getSelectedGroupNode();
+    m_projectModel->setIdDatabases(group);
+    QString groupName = getGroupName(group);
+    QString newName;
+    bool ok = true;
+    while (ok && newName.isEmpty())
+        newName = QInputDialog::getText(this, tr("New ADSR"),
+            tr("What should the new ADSR in %1 be named?").arg(groupName), QLineEdit::Normal, QString::fromStdString(
+                amuse::TableId::CurNameDB->generateDefaultName(amuse::NameDB::Type::Table)), &ok);
+    if (!ok)
+        return;
 
+    ProjectModel::ADSRNode* node = m_projectModel->newADSR(group, newName, m_mainMessenger);
+    if (node)
+    {
+        recursiveExpandAndSelectOutline(m_projectModel->index(node));
+        openEditor(node);
+    }
 }
 
 void MainWindow::newCurveAction()
 {
+    ProjectModel::GroupNode* group = getSelectedGroupNode();
+    m_projectModel->setIdDatabases(group);
+    QString groupName = getGroupName(group);
+    QString newName;
+    bool ok = true;
+    while (ok && newName.isEmpty())
+        newName = QInputDialog::getText(this, tr("New Curve"),
+            tr("What should the new Curve in %1 be named?").arg(groupName), QLineEdit::Normal, QString::fromStdString(
+                amuse::TableId::CurNameDB->generateDefaultName(amuse::NameDB::Type::Table)), &ok);
+    if (!ok)
+        return;
 
+    ProjectModel::CurveNode* node = m_projectModel->newCurve(group, newName, m_mainMessenger);
+    if (node)
+    {
+        recursiveExpandAndSelectOutline(m_projectModel->index(node));
+        openEditor(node);
+    }
 }
 
 void MainWindow::newKeymapAction()
 {
+    ProjectModel::GroupNode* group = getSelectedGroupNode();
+    m_projectModel->setIdDatabases(group);
+    QString groupName = getGroupName(group);
+    QString newName;
+    bool ok = true;
+    while (ok && newName.isEmpty())
+        newName = QInputDialog::getText(this, tr("New Keymap"),
+            tr("What should the new Keymap in %1 be named?").arg(groupName), QLineEdit::Normal, QString::fromStdString(
+                amuse::KeymapId::CurNameDB->generateDefaultName(amuse::NameDB::Type::Keymap)), &ok);
+    if (!ok)
+        return;
 
+    ProjectModel::KeymapNode* node = m_projectModel->newKeymap(group, newName, m_mainMessenger);
+    if (node)
+    {
+        recursiveExpandAndSelectOutline(m_projectModel->index(node));
+        openEditor(node);
+    }
 }
 
 void MainWindow::newLayersAction()
 {
+    ProjectModel::GroupNode* group = getSelectedGroupNode();
+    m_projectModel->setIdDatabases(group);
+    QString groupName = getGroupName(group);
+    QString newName;
+    bool ok = true;
+    while (ok && newName.isEmpty())
+        newName = QInputDialog::getText(this, tr("New Layers"),
+            tr("What should the new Layers in %1 be named?").arg(groupName), QLineEdit::Normal, QString::fromStdString(
+                amuse::LayersId::CurNameDB->generateDefaultName(amuse::NameDB::Type::Layer)), &ok);
+    if (!ok)
+        return;
 
+    ProjectModel::LayersNode* node = m_projectModel->newLayers(group, newName, m_mainMessenger);
+    if (node)
+    {
+        recursiveExpandAndSelectOutline(m_projectModel->index(node));
+        openEditor(node);
+    }
 }
 
 void MainWindow::aboutToShowAudioIOMenu()
@@ -1055,26 +1268,36 @@ void MainWindow::setItemEditEnabled(bool enabled)
     m_ui.actionDelete->setEnabled(enabled);
 }
 
+void MainWindow::setItemNewEnabled(bool enabled)
+{
+    m_ui.actionNew_SFX_Group->setEnabled(enabled);
+    m_ui.actionNew_Song_Group->setEnabled(enabled);
+    m_ui.actionNew_Sound_Macro->setEnabled(enabled);
+    m_ui.actionNew_ADSR->setEnabled(enabled);
+    m_ui.actionNew_Curve->setEnabled(enabled);
+    m_ui.actionNew_Keymap->setEnabled(enabled);
+    m_ui.actionNew_Layers->setEnabled(enabled);
+}
+
 bool MainWindow::canEditOutline()
 {
     if (!m_projectModel)
         return false;
-    QModelIndexList indexes = m_ui.projectOutline->selectionModel()->selectedIndexes();
-    if (indexes.empty())
+    QModelIndex curIndex = m_ui.projectOutline->selectionModel()->currentIndex();
+    if (!curIndex.isValid())
         return false;
-    return m_projectModel->canEdit(indexes.front());
+    return m_projectModel->canEdit(curIndex);
 }
 
 void MainWindow::onOutlineSelectionChanged(const QItemSelection& selected, const QItemSelection& deselected)
 {
     if (!m_projectModel)
         return;
+    setItemNewEnabled(m_ui.projectOutline->selectionModel()->currentIndex().isValid());
     if (selected.indexes().empty())
-    {
         setItemEditEnabled(false);
-        return;
-    }
-    setItemEditEnabled(m_projectModel->canEdit(selected.indexes().front()));
+    else
+        setItemEditEnabled(m_projectModel->canEdit(selected.indexes().front()));
 }
 
 void MainWindow::onTextSelect()

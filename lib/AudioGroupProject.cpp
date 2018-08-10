@@ -318,7 +318,7 @@ AudioGroupProject AudioGroupProject::CreateAudioGroupProject(SystemStringView gr
     AudioGroupProject ret;
     SystemString projPath(groupPath);
     projPath += _S("/!project.yaml");
-    athena::io::FileReader fi(projPath);
+    athena::io::FileReader fi(projPath, 32 * 1024, false);
 
     if (!fi.hasError())
     {

@@ -66,21 +66,18 @@ class LayersEditor : public EditorWidget
     Q_OBJECT
     LayersModel m_model;
     LayersTableView m_tableView;
-    QAction m_addAction;
-    QToolButton m_addButton;
-    QAction m_removeAction;
-    QToolButton m_removeButton;
+    AddRemoveButtons m_addRemoveButtons;
 public:
     explicit LayersEditor(QWidget* parent = Q_NULLPTR);
     bool loadData(ProjectModel::LayersNode* node);
     void unloadData();
     ProjectModel::INode* currentNode() const;
     void resizeEvent(QResizeEvent* ev);
+    bool isItemEditEnabled() const;
 public slots:
     void doAdd();
-    void doSelectionChanged(const QItemSelection& selected);
+    void doSelectionChanged();
 
-    bool isItemEditEnabled() const;
     void itemCutAction();
     void itemCopyAction();
     void itemPasteAction();

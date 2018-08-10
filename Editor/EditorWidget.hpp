@@ -8,6 +8,8 @@
 #include <QComboBox>
 #include <QWheelEvent>
 #include <QItemEditorFactory>
+#include <QToolButton>
+#include <QAction>
 #include "ProjectModel.hpp"
 
 class EditorWidget : public QWidget
@@ -18,8 +20,9 @@ public:
     virtual bool valid() const { return true; }
     virtual void unloadData() {}
     virtual ProjectModel::INode* currentNode() const { return nullptr; }
-public slots:
+    virtual void setEditorEnabled(bool en) { setEnabled(en); }
     virtual bool isItemEditEnabled() const { return false; }
+public slots:
     virtual void itemCutAction() {}
     virtual void itemCopyAction() {}
     virtual void itemPasteAction() {}
@@ -125,6 +128,19 @@ public:
         sb->setMaximum(MAX);
         return sb;
     }
+};
+
+class AddRemoveButtons : public QWidget
+{
+Q_OBJECT
+    QAction m_addAction;
+    QToolButton m_addButton;
+    QAction m_removeAction;
+    QToolButton m_removeButton;
+public:
+    explicit AddRemoveButtons(QWidget* parent = Q_NULLPTR);
+    QAction* addAction() { return &m_addAction; }
+    QAction* removeAction() { return &m_removeAction; }
 };
 
 #endif //AMUSE_EDITOR_WIDGET_HPP

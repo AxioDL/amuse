@@ -390,8 +390,7 @@ ProjectModel::INode* LayersEditor::currentNode() const
 void LayersEditor::resizeEvent(QResizeEvent* ev)
 {
     m_tableView.setGeometry(QRect({}, ev->size()));
-    m_addButton.move(0, ev->size().height() - 32);
-    m_removeButton.move(32, ev->size().height() - 32);
+    m_addRemoveButtons.move(0, ev->size().height() - 32);
 }
 
 void LayersEditor::doAdd()
@@ -403,9 +402,9 @@ void LayersEditor::doAdd()
         m_model.insertRow(idx.row());
 }
 
-void LayersEditor::doSelectionChanged(const QItemSelection& selected)
+void LayersEditor::doSelectionChanged()
 {
-    m_removeAction.setDisabled(selected.isEmpty());
+    m_addRemoveButtons.removeAction()->setDisabled(m_tableView.selectionModel()->selectedRows().isEmpty());
     g_MainWindow->updateFocus();
 }
 
@@ -435,23 +434,14 @@ void LayersEditor::itemDeleteAction()
 }
 
 LayersEditor::LayersEditor(QWidget* parent)
-: EditorWidget(parent), m_model(this), m_tableView(this),
-  m_addAction(tr("Add Row")), m_addButton(this), m_removeAction(tr("Remove Row")), m_removeButton(this)
+: EditorWidget(parent), m_model(this), m_tableView(this), m_addRemoveButtons(this)
 {
     m_tableView.setModel(&m_model);
     connect(m_tableView.selectionModel(), SIGNAL(selectionChanged(const QItemSelection&, const QItemSelection&)),
-            this, SLOT(doSelectionChanged(const QItemSelection&)));
+            this, SLOT(doSelectionChanged()));
 
-    m_addAction.setIcon(QIcon(QStringLiteral(":/icons/IconAdd.svg")));
-    m_addAction.setToolTip(tr("Add new layer mapping"));
-    m_addButton.setDefaultAction(&m_addAction);
-    m_addButton.setFixedSize(32, 32);
-    connect(&m_addAction, SIGNAL(triggered(bool)), this, SLOT(doAdd()));
-
-    m_removeAction.setIcon(QIcon(QStringLiteral(":/icons/IconRemove.svg")));
-    m_removeAction.setToolTip(tr("Remove selected layer mappings"));
-    m_removeButton.setDefaultAction(&m_removeAction);
-    m_removeButton.setFixedSize(32, 32);
-    connect(&m_removeAction, SIGNAL(triggered(bool)), this, SLOT(itemDeleteAction()));
-    m_removeAction.setEnabled(false);
+    m_addRemoveButtons.addAction()->setToolTip(tr("Add new layer mapping"));
+    connect(m_addRemoveButtons.addAction(), SIGNAL(triggered(bool)), this, SLOT(doAdd()));
+    m_addRemoveButtons.removeAction()->setToolTip(tr("Remove selected layer mappings"));
+    connect(m_addRemoveButtons.removeAction(), SIGNAL(triggered(bool)), this, SLOT(itemDeleteAction()));
 }

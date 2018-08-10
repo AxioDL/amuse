@@ -28,6 +28,7 @@
         <file>IconPaintbrush.svg</file>
         <file>IconAdd.svg</file>
         <file>IconRemove.svg</file>
+        <file>IconStop.svg</file>
     </qresource>
     <qresource prefix="/bg">
         <file>FaceGrey.svg</file>

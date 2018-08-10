@@ -23,6 +23,15 @@ struct MakeCmdOp
     }
 };
 
+struct MakeCopyCmdOp
+{
+    template <class Tp, class R>
+    static std::unique_ptr<SoundMacro::ICmd> Do(R& r)
+    {
+        return std::make_unique<Tp>(static_cast<const Tp&>(r));
+    }
+};
+
 struct MakeDefaultCmdOp
 {
     template <class Tp, class R>
@@ -209,7 +218,7 @@ AudioGroupPool AudioGroupPool::CreateAudioGroupPool(SystemStringView groupPath)
     AudioGroupPool ret;
     SystemString poolPath(groupPath);
     poolPath += _S("/!pool.yaml");
-    athena::io::FileReader fi(poolPath);
+    athena::io::FileReader fi(poolPath, 32 * 1024, false);
 
     if (!fi.hasError())
     {
@@ -384,6 +393,13 @@ void SoundMacro::readCmds(athena::io::IStreamReader& r, uint32_t size)
 template void SoundMacro::readCmds<athena::Big>(athena::io::IStreamReader& r, uint32_t size);
 template void SoundMacro::readCmds<athena::Little>(athena::io::IStreamReader& r, uint32_t size);
 
+void SoundMacro::buildFromPrototype(const SoundMacro& other)
+{
+    m_cmds.reserve(other.m_cmds.size());
+    for (auto& cmd : other.m_cmds)
+        m_cmds.push_back(CmdDo<MakeCopyCmdOp, std::unique_ptr<SoundMacro::ICmd>>(*cmd));
+}
+
 const SoundMacro* AudioGroupPool::soundMacro(ObjectId id) const
 {
     auto search = m_soundMacros.find(id);
@@ -445,6 +461,11 @@ static SoundMacro::CmdOp _ReadCmdOp(athena::io::YAMLDocReader& r)
 static SoundMacro::CmdOp _ReadCmdOp(SoundMacro::CmdOp& op)
 {
     return op;
+}
+
+static SoundMacro::CmdOp _ReadCmdOp(const SoundMacro::ICmd& op)
+{
+    return op.Isa();
 }
 
 template <class Op, class O, class... _Args>

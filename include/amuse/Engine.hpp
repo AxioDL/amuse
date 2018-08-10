@@ -48,20 +48,20 @@ class Engine
     std::list<ObjToken<Sequencer>> m_activeSequencers;
     bool m_defaultStudioReady = false;
     ObjToken<Studio> m_defaultStudio;
-    std::unordered_map<SFXId, std::tuple<AudioGroup*, int, const SFXGroupIndex::SFXEntry*>> m_sfxLookup;
+    std::unordered_map<SFXId, std::tuple<AudioGroup*, GroupId, const SFXGroupIndex::SFXEntry*>> m_sfxLookup;
     std::linear_congruential_engine<uint32_t, 0x41c64e6d, 0x3039, UINT32_MAX> m_random;
     int m_nextVid = 0;
     float m_masterVolume = 1.f;
     AudioChannelSet m_channelSet = AudioChannelSet::Unknown;
 
     AudioGroup* _addAudioGroup(const AudioGroupData& data, std::unique_ptr<AudioGroup>&& grp);
-    std::pair<AudioGroup*, const SongGroupIndex*> _findSongGroup(int groupId) const;
-    std::pair<AudioGroup*, const SFXGroupIndex*> _findSFXGroup(int groupId) const;
+    std::pair<AudioGroup*, const SongGroupIndex*> _findSongGroup(GroupId groupId) const;
+    std::pair<AudioGroup*, const SFXGroupIndex*> _findSFXGroup(GroupId groupId) const;
 
-    std::list<ObjToken<Voice>>::iterator _allocateVoice(const AudioGroup& group, int groupId, double sampleRate,
+    std::list<ObjToken<Voice>>::iterator _allocateVoice(const AudioGroup& group, GroupId groupId, double sampleRate,
                                                         bool dynamicPitch, bool emitter, ObjToken<Studio> studio);
-    std::list<ObjToken<Sequencer>>::iterator _allocateSequencer(const AudioGroup& group, int groupId,
-                                                                int setupId, ObjToken<Studio> studio);
+    std::list<ObjToken<Sequencer>>::iterator _allocateSequencer(const AudioGroup& group, GroupId groupId,
+                                                                SongId setupId, ObjToken<Studio> studio);
     ObjToken<Studio> _allocateStudio(bool mainOut);
     std::list<ObjToken<Voice>>::iterator _destroyVoice(std::list<ObjToken<Voice>>::iterator it);
     std::list<ObjToken<Sequencer>>::iterator
@@ -88,10 +88,17 @@ public:
     ObjToken<Studio> addStudio(bool mainOut);
 
     /** Start soundFX playing from loaded audio groups */
-    ObjToken<Voice> fxStart(int sfxId, float vol, float pan, ObjToken<Studio> smx);
-    ObjToken<Voice> fxStart(int sfxId, float vol, float pan)
+    ObjToken<Voice> fxStart(SFXId sfxId, float vol, float pan, ObjToken<Studio> smx);
+    ObjToken<Voice> fxStart(SFXId sfxId, float vol, float pan)
     {
         return fxStart(sfxId, vol, pan, m_defaultStudio);
+    }
+
+    /** Start soundFX playing from explicit group data (for editor use) */
+    ObjToken<Voice> fxStart(const AudioGroup* group, GroupId groupId, SFXId sfxId, float vol, float pan, ObjToken<Studio> smx);
+    ObjToken<Voice> fxStart(const AudioGroup* group, GroupId groupId, SFXId sfxId, float vol, float pan)
+    {
+        return fxStart(group, groupId, sfxId, vol, pan, m_defaultStudio);
     }
 
     /** Start SoundMacro node playing directly (for editor use) */
@@ -123,9 +130,9 @@ public:
 
     /** Start soundFX playing from loaded audio groups, attach to positional emitter */
     ObjToken<Emitter> addEmitter(const float* pos, const float* dir, float maxDist, float falloff,
-                                 int sfxId, float minVol, float maxVol, bool doppler, ObjToken<Studio> smx);
+                                 SFXId sfxId, float minVol, float maxVol, bool doppler, ObjToken<Studio> smx);
     ObjToken<Emitter> addEmitter(const float* pos, const float* dir, float maxDist, float falloff,
-                                 int sfxId, float minVol, float maxVol, bool doppler)
+                                 SFXId sfxId, float minVol, float maxVol, bool doppler)
     {
         return addEmitter(pos, dir, maxDist, falloff, sfxId, minVol, maxVol, doppler, m_defaultStudio);
     }
@@ -138,10 +145,17 @@ public:
     void removeListener(Listener* listener);
 
     /** Start song playing from loaded audio groups */
-    ObjToken<Sequencer> seqPlay(int groupId, int songId, const unsigned char* arrData, ObjToken<Studio> smx);
-    ObjToken<Sequencer> seqPlay(int groupId, int songId, const unsigned char* arrData)
+    ObjToken<Sequencer> seqPlay(GroupId groupId, SongId songId, const unsigned char* arrData, ObjToken<Studio> smx);
+    ObjToken<Sequencer> seqPlay(GroupId groupId, SongId songId, const unsigned char* arrData)
     {
         return seqPlay(groupId, songId, arrData, m_defaultStudio);
+    }
+
+    /** Start song playing from explicit group data (for editor use) */
+    ObjToken<Sequencer> seqPlay(const AudioGroup* group, GroupId groupId, SongId songId, const unsigned char* arrData, ObjToken<Studio> smx);
+    ObjToken<Sequencer> seqPlay(const AudioGroup* group, GroupId groupId, SongId songId, const unsigned char* arrData)
+    {
+        return seqPlay(group, groupId, songId, arrData, m_defaultStudio);
     }
 
     /** Set total volume of engine */

@@ -46,7 +46,8 @@ QT5_WRAP_CPP(AMUSE_MOC
         LayersEditor.hpp
         SampleEditor.hpp
         SoundGroupEditor.hpp
-        SongGroupEditor.hpp)
+        SongGroupEditor.hpp
+        NewSoundMacroDialog.hpp)
 
 add_executable(amuse-gui WIN32 MACOSX_BUNDLE
         Common.hpp Common.cpp
@@ -64,6 +65,7 @@ add_executable(amuse-gui WIN32 MACOSX_BUNDLE
         SampleEditor.hpp SampleEditor.cpp
         SoundGroupEditor.hpp SoundGroupEditor.cpp
         SongGroupEditor.hpp SongGroupEditor.cpp
+        NewSoundMacroDialog.hpp NewSoundMacroDialog.cpp
         MIDIReader.hpp MIDIReader.cpp
         resources/resources.qrc qrc_resources.cpp
         ${QM_FILES} qrc_translation_res.cpp

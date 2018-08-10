@@ -1,5 +1,6 @@
 #include "SongGroupEditor.hpp"
 #include "MainWindow.hpp"
+#include "amuse/SongConverter.hpp"
 
 PageObjectDelegate::PageObjectDelegate(QObject* parent)
 : QStyledItemDelegate(parent) {}
@@ -55,7 +56,10 @@ void PageObjectDelegate::objIndexChanged()
 
 void MIDIFileFieldWidget::buttonPressed()
 {
-    m_dialog.setDirectory(QFileInfo(g_MainWindow->projectModel()->dir().absoluteFilePath(m_le.text())).path());
+    if (m_le.text().isEmpty())
+        m_dialog.setDirectory(g_MainWindow->projectModel()->dir());
+    else
+        m_dialog.setDirectory(QFileInfo(g_MainWindow->projectModel()->dir().absoluteFilePath(m_le.text())).path());
     m_dialog.open(this, SLOT(fileDialogOpened(const QString&)));
 }
 
@@ -721,15 +725,15 @@ PageTableView::PageTableView(QWidget* parent)
 void SetupTableView::setModel(QAbstractItemModel* list, QAbstractItemModel* table)
 {
     {
-        m_listView.setModel(list);
-        auto hheader = m_listView.horizontalHeader();
+        m_listView->setModel(list);
+        auto hheader = m_listView->horizontalHeader();
         hheader->setMinimumSectionSize(200);
         hheader->resizeSection(0, 200);
         hheader->setSectionResizeMode(1, QHeaderView::Stretch);
     }
     {
-        m_tableView.setModel(table);
-        auto hheader = m_tableView.horizontalHeader();
+        m_tableView->setModel(table);
+        auto hheader = m_tableView->horizontalHeader();
         hheader->setSectionResizeMode(QHeaderView::Stretch);
     }
 }
@@ -737,8 +741,8 @@ void SetupTableView::setModel(QAbstractItemModel* list, QAbstractItemModel* tabl
 void SetupTableView::deleteSelection()
 {
     QModelIndexList list;
-    while (!(list = m_listView.selectionModel()->selectedRows()).isEmpty())
-        m_listView.model()->removeRow(list.back().row());
+    while (!(list = m_listView->selectionModel()->selectedRows()).isEmpty())
+        m_listView->model()->removeRow(list.back().row());
 }
 
 void SetupTableView::showEvent(QShowEvent* event)
@@ -747,30 +751,30 @@ void SetupTableView::showEvent(QShowEvent* event)
 }
 
 SetupTableView::SetupTableView(QWidget* parent)
-: QSplitter(parent), m_listView(this), m_tableView(this)
+: QSplitter(parent), m_listView(new QTableView), m_tableView(new QTableView)
 {
     setChildrenCollapsible(false);
     setStretchFactor(0, 1);
     setStretchFactor(1, 0);
 
-    addWidget(&m_listView);
-    addWidget(&m_tableView);
+    addWidget(m_listView);
+    addWidget(m_tableView);
 
-    m_listView.setSelectionBehavior(QAbstractItemView::SelectRows);
-    m_listView.setSelectionMode(QAbstractItemView::ExtendedSelection);
-    m_listView.setGridStyle(Qt::NoPen);
-    m_listView.setItemDelegateForColumn(1, &m_midiDelegate);
+    m_listView->setSelectionBehavior(QAbstractItemView::SelectRows);
+    m_listView->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    m_listView->setGridStyle(Qt::NoPen);
+    m_listView->setItemDelegateForColumn(1, &m_midiDelegate);
 
-    m_tableView.setSelectionMode(QAbstractItemView::NoSelection);
-    m_tableView.setGridStyle(Qt::NoPen);
+    m_tableView->setSelectionMode(QAbstractItemView::NoSelection);
+    m_tableView->setGridStyle(Qt::NoPen);
 
     m_127Delegate.setItemEditorFactory(&m_127Factory);
 
-    m_tableView.setItemDelegateForColumn(0, &m_127Delegate);
-    m_tableView.setItemDelegateForColumn(1, &m_127Delegate);
-    m_tableView.setItemDelegateForColumn(2, &m_127Delegate);
-    m_tableView.setItemDelegateForColumn(3, &m_127Delegate);
-    m_tableView.setItemDelegateForColumn(4, &m_127Delegate);
+    m_tableView->setItemDelegateForColumn(0, &m_127Delegate);
+    m_tableView->setItemDelegateForColumn(1, &m_127Delegate);
+    m_tableView->setItemDelegateForColumn(2, &m_127Delegate);
+    m_tableView->setItemDelegateForColumn(3, &m_127Delegate);
+    m_tableView->setItemDelegateForColumn(4, &m_127Delegate);
 }
 
 void ColoredTabBarStyle::drawControl(QStyle::ControlElement element, const QStyleOption *option,
@@ -797,16 +801,68 @@ void ColoredTabBarStyle::drawControl(QStyle::ControlElement element, const QStyl
 }
 
 ColoredTabBar::ColoredTabBar(QWidget* parent)
-: QTabBar(parent), m_style(style())
+: QTabBar(parent), m_style(new ColoredTabBarStyle(style()))
 {
     setDrawBase(false);
-    setStyle(&m_style);
+    setStyle(m_style);
 }
 
 ColoredTabWidget::ColoredTabWidget(QWidget* parent)
 : QTabWidget(parent)
 {
     setTabBar(&m_tabBar);
+}
+
+void MIDIPlayerWidget::clicked()
+{
+    if (!m_seq)
+    {
+        m_seq = g_MainWindow->startSong(m_groupId, m_songId, m_arrData.data());
+        if (m_seq)
+        {
+            m_playAction.setText(tr("Stop"));
+            m_playAction.setIcon(QIcon(QStringLiteral(":/icons/IconStop.svg")));
+        }
+    }
+    else
+    {
+        stopped();
+    }
+}
+
+void MIDIPlayerWidget::stopped()
+{
+    m_seq->stopSong();
+    m_seq.reset();
+    m_playAction.setText(tr("Play"));
+    m_playAction.setIcon(QIcon(QStringLiteral(":/icons/IconSoundMacro.svg")));
+}
+
+void MIDIPlayerWidget::resizeEvent(QResizeEvent* event)
+{
+    m_button.setGeometry(event->size().width() - event->size().height(), 0, event->size().height(), event->size().height());
+}
+
+void MIDIPlayerWidget::mouseDoubleClickEvent(QMouseEvent* event)
+{
+    qobject_cast<QTableView*>(parentWidget()->parentWidget())->setIndexWidget(m_index, nullptr);
+    event->ignore();
+}
+
+MIDIPlayerWidget::~MIDIPlayerWidget()
+{
+    if (m_seq)
+        m_seq->stopSong();
+}
+
+MIDIPlayerWidget::MIDIPlayerWidget(QModelIndex index, amuse::GroupId gid, amuse::SongId id,
+                                   std::vector<uint8_t>&& arrData, QWidget* parent)
+: QWidget(parent), m_button(this), m_playAction(tr("Play")), m_index(index),
+  m_groupId(gid), m_songId(id), m_arrData(std::move(arrData))
+{
+    m_playAction.setIcon(QIcon(QStringLiteral(":/icons/IconSoundMacro.svg")));
+    m_button.setDefaultAction(&m_playAction);
+    connect(&m_playAction, SIGNAL(triggered()), this, SLOT(clicked()));
 }
 
 bool SongGroupEditor::loadData(ProjectModel::SongGroupNode* node)
@@ -834,8 +890,7 @@ ProjectModel::INode* SongGroupEditor::currentNode() const
 void SongGroupEditor::resizeEvent(QResizeEvent* ev)
 {
     m_tabs.setGeometry(QRect({}, ev->size()));
-    m_addButton.move(0, ev->size().height() - 32);
-    m_removeButton.move(32, ev->size().height() - 32);
+    m_addRemoveButtons.move(0, ev->size().height() - 32);
 }
 
 void SongGroupEditor::doAdd()
@@ -848,34 +903,37 @@ void SongGroupEditor::doAdd()
         else
             table->model()->insertRow(idx.row());
         if (PageTableView* ctable = qobject_cast<PageTableView*>(table))
-            m_addAction.setDisabled(ctable->model()->rowCount() >= 128);
+            m_addRemoveButtons.addAction()->setDisabled(ctable->model()->rowCount() >= 128);
     }
     else if (SetupTableView* table = qobject_cast<SetupTableView*>(m_tabs.currentWidget()))
     {
-        QModelIndex idx = table->m_listView.selectionModel()->currentIndex();
+        QModelIndex idx = table->m_listView->selectionModel()->currentIndex();
         if (!idx.isValid())
-            table->m_listView.model()->insertRow(table->m_listView.model()->rowCount() - 1);
+            table->m_listView->model()->insertRow(table->m_listView->model()->rowCount() - 1);
         else
-            table->m_listView.model()->insertRow(idx.row());
+            table->m_listView->model()->insertRow(idx.row());
     }
 }
 
-void SongGroupEditor::doSelectionChanged(const QItemSelection& selected)
+void SongGroupEditor::doSelectionChanged()
 {
-    m_removeAction.setDisabled(selected.isEmpty());
+    if (PageTableView* table = qobject_cast<PageTableView*>(m_tabs.currentWidget()))
+        m_addRemoveButtons.removeAction()->setDisabled(table->selectionModel()->selectedRows().isEmpty());
+    else if (SetupTableView* table = qobject_cast<SetupTableView*>(m_tabs.currentWidget()))
+        m_addRemoveButtons.removeAction()->setDisabled(table->m_listView->selectionModel()->selectedRows().isEmpty());
     g_MainWindow->updateFocus();
 }
 
-void SongGroupEditor::doSetupSelectionChanged(const QItemSelection& selected)
+void SongGroupEditor::doSetupSelectionChanged()
 {
-    doSelectionChanged(selected);
-    if (selected.indexes().isEmpty() || m_setupList.m_sorted.empty())
+    doSelectionChanged();
+    if (m_setupTable->m_listView->selectionModel()->selectedRows().isEmpty() || m_setupList.m_sorted.empty())
     {
         m_setup.unloadData();
     }
     else
     {
-        auto entry = m_setupList.m_sorted[selected.indexes().last().row()];
+        auto entry = m_setupList.m_sorted[m_setupTable->m_listView->selectionModel()->selectedRows().last().row()];
         m_setup.loadData(&*entry.m_it);
     }
 }
@@ -884,13 +942,13 @@ void SongGroupEditor::currentTabChanged(int idx)
 {
     if (PageTableView* table = qobject_cast<PageTableView*>(m_tabs.currentWidget()))
     {
-        m_addAction.setDisabled(table->model()->rowCount() >= 128);
-        doSelectionChanged(table->selectionModel()->selection());
+        m_addRemoveButtons.addAction()->setDisabled(table->model()->rowCount() >= 128);
+        doSelectionChanged();
     }
     else if (SetupTableView* table = qobject_cast<SetupTableView*>(m_tabs.currentWidget()))
     {
-        m_addAction.setDisabled(false);
-        doSelectionChanged(table->m_listView.selectionModel()->selection());
+        m_addRemoveButtons.addAction()->setDisabled(false);
+        doSelectionChanged();
     }
 }
 
@@ -912,12 +970,74 @@ void SongGroupEditor::modelAboutToBeReset()
     m_setup.unloadData();
 }
 
+static std::vector<uint8_t> LoadSongFile(QString path)
+{
+    QFileInfo fi(path);
+    if (!fi.isFile())
+        return {};
+
+    std::vector<uint8_t> data;
+    {
+        QFile f(path);
+        if (!f.open(QFile::ReadOnly))
+            return {};
+        auto d = f.readAll();
+        data.resize(d.size());
+        memcpy(&data[0], d.data(), d.size());
+    }
+
+    if (!memcmp(data.data(), "MThd", 4))
+    {
+        data = amuse::SongConverter::MIDIToSong(data, 1, true);
+    }
+    else
+    {
+        bool isBig;
+        if (amuse::SongState::DetectVersion(data.data(), isBig) < 0)
+            return {};
+    }
+
+    return data;
+}
+
+void SongGroupEditor::setupDataChanged()
+{
+    int idx = 0;
+    for (const auto& p : m_setupList.m_sorted)
+    {
+        QString path = g_MainWindow->projectModel()->getMIDIPathOfSong(p.m_it->first);
+        QModelIndex index = m_setupList.index(idx, 1);
+        if (path.isEmpty())
+        {
+            m_setupTable->m_listView->setIndexWidget(index, nullptr);
+        }
+        else
+        {
+            MIDIPlayerWidget* w = qobject_cast<MIDIPlayerWidget*>(m_setupTable->m_listView->indexWidget(index));
+            if (!w || w->songId() != p.m_it->first)
+            {
+                std::vector<uint8_t> arrData = LoadSongFile(g_MainWindow->projectModel()->dir().absoluteFilePath(path));
+                if (!arrData.empty())
+                {
+                    MIDIPlayerWidget* newW = new MIDIPlayerWidget(index, m_setupList.m_node->m_id, p.m_it->first, std::move(arrData));
+                    m_setupTable->m_listView->setIndexWidget(index, newW);
+                }
+                else
+                {
+                    m_setupTable->m_listView->setIndexWidget(index, nullptr);
+                }
+            }
+        }
+        ++idx;
+    }
+}
+
 bool SongGroupEditor::isItemEditEnabled() const
 {
     if (PageTableView* table = qobject_cast<PageTableView*>(m_tabs.currentWidget()))
         return table->hasFocus() && !table->selectionModel()->selectedRows().isEmpty();
     else if (SetupTableView* table = qobject_cast<SetupTableView*>(m_tabs.currentWidget()))
-        return table->m_listView.hasFocus() && !table->m_listView.selectionModel()->selectedRows().isEmpty();
+        return table->m_listView->hasFocus() && !table->m_listView->selectionModel()->selectedRows().isEmpty();
     return false;
 }
 
@@ -946,42 +1066,44 @@ void SongGroupEditor::itemDeleteAction()
 
 SongGroupEditor::SongGroupEditor(QWidget* parent)
 : EditorWidget(parent), m_normPages(false, this), m_drumPages(true, this), m_setup(this),
-  m_normTable(this), m_drumTable(this), m_setupTable(this), m_tabs(this),
-  m_addAction(tr("Add Row")), m_addButton(this), m_removeAction(tr("Remove Row")), m_removeButton(this)
+  m_normTable(new PageTableView), m_drumTable(new PageTableView),
+  m_setupTable(new SetupTableView), m_tabs(this), m_addRemoveButtons(this)
 {
-    m_tabs.addTab(&m_normTable, tr("Normal Pages"));
-    m_tabs.addTab(&m_drumTable, tr("Drum Pages"));
-    m_tabs.addTab(&m_setupTable, tr("MIDI Setups"));
+    m_tabs.addTab(m_normTable, tr("Normal Pages"));
+    m_tabs.addTab(m_drumTable, tr("Drum Pages"));
+    m_tabs.addTab(m_setupTable, tr("MIDI Setups"));
 
     connect(&m_tabs, SIGNAL(currentChanged(int)), this, SLOT(currentTabChanged(int)));
+
+    m_normTable->setModel(&m_normPages);
+    m_drumTable->setModel(&m_drumPages);
+    m_setupTable->setModel(&m_setupList, &m_setup);
+    connect(m_normTable->selectionModel(), SIGNAL(selectionChanged(const QItemSelection&, const QItemSelection&)),
+            this, SLOT(doSelectionChanged()));
+    connect(m_drumTable->selectionModel(), SIGNAL(selectionChanged(const QItemSelection&, const QItemSelection&)),
+            this, SLOT(doSelectionChanged()));
+    connect(m_setupTable->m_listView->selectionModel(), SIGNAL(selectionChanged(const QItemSelection&, const QItemSelection&)),
+            this, SLOT(doSetupSelectionChanged()));
 
     connect(&m_setupList, SIGNAL(rowsAboutToBeRemoved(const QModelIndex&, int, int)),
             this, SLOT(rowsAboutToBeRemoved(const QModelIndex&, int, int)));
     connect(&m_setupList, SIGNAL(modelAboutToBeReset()),
             this, SLOT(modelAboutToBeReset()));
+    connect(&m_setupList, SIGNAL(rowsInserted(const QModelIndex&, int, int)),
+            this, SLOT(setupDataChanged()));
+    connect(&m_setupList, SIGNAL(rowsRemoved(const QModelIndex&, int, int)),
+            this, SLOT(setupDataChanged()));
+    connect(&m_setupList, SIGNAL(dataChanged(const QModelIndex&, const QModelIndex&, const QVector<int>&)),
+            this, SLOT(setupDataChanged()));
+    connect(&m_setupList, SIGNAL(layoutChanged(const QList<QPersistentModelIndex>&, QAbstractItemModel::LayoutChangeHint)),
+            this, SLOT(setupDataChanged()));
+    connect(&m_setupList, SIGNAL(modelReset()),
+            this, SLOT(setupDataChanged()));
 
-    m_normTable.setModel(&m_normPages);
-    m_drumTable.setModel(&m_drumPages);
-    m_setupTable.setModel(&m_setupList, &m_setup);
-    connect(m_normTable.selectionModel(), SIGNAL(selectionChanged(const QItemSelection&, const QItemSelection&)),
-            this, SLOT(doSelectionChanged(const QItemSelection&)));
-    connect(m_drumTable.selectionModel(), SIGNAL(selectionChanged(const QItemSelection&, const QItemSelection&)),
-            this, SLOT(doSelectionChanged(const QItemSelection&)));
-    connect(m_setupTable.m_listView.selectionModel(), SIGNAL(selectionChanged(const QItemSelection&, const QItemSelection&)),
-            this, SLOT(doSetupSelectionChanged(const QItemSelection&)));
-
-    m_addAction.setIcon(QIcon(QStringLiteral(":/icons/IconAdd.svg")));
-    m_addButton.setDefaultAction(&m_addAction);
-    m_addAction.setToolTip(tr("Add new page entry"));
-    m_addButton.setFixedSize(32, 32);
-    connect(&m_addAction, SIGNAL(triggered(bool)), this, SLOT(doAdd()));
-
-    m_removeAction.setIcon(QIcon(QStringLiteral(":/icons/IconRemove.svg")));
-    m_removeButton.setDefaultAction(&m_removeAction);
-    m_removeAction.setToolTip(tr("Remove selected page entries"));
-    m_removeButton.setFixedSize(32, 32);
-    connect(&m_removeAction, SIGNAL(triggered(bool)), this, SLOT(itemDeleteAction()));
-    m_removeAction.setEnabled(false);
+    m_addRemoveButtons.addAction()->setToolTip(tr("Add new page entry"));
+    connect(m_addRemoveButtons.addAction(), SIGNAL(triggered(bool)), this, SLOT(doAdd()));
+    m_addRemoveButtons.removeAction()->setToolTip(tr("Remove selected page entries"));
+    connect(m_addRemoveButtons.removeAction(), SIGNAL(triggered(bool)), this, SLOT(itemDeleteAction()));
 
     m_tabs.setCurrentIndex(0);
 }

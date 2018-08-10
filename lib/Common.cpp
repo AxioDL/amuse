@@ -316,6 +316,11 @@ std::string NameDB::generateName(ObjectId id, Type tp)
     return name;
 }
 
+std::string NameDB::generateDefaultName(Type tp) const
+{
+    return generateName(generateId(tp), tp);
+}
+
 std::string_view NameDB::registerPair(std::string_view str, ObjectId id)
 {
     m_stringToId[std::string(str)] = id;

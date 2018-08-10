@@ -1153,6 +1153,7 @@ struct SoundMacro
             return;
         std::swap(m_cmds[a], m_cmds[b]);
     }
+    void buildFromPrototype(const SoundMacro& other);
 };
 
 template <typename T>

@@ -246,6 +246,7 @@ ObjToken<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velocity)
         m_parent->m_audioGroup, m_parent->m_groupId, NativeSampleRate, true, false, m_parent->m_studio);
     if (*ret)
     {
+        (*ret)->m_sequencer = m_parent;
         m_chanVoxs[note] = *ret;
         (*ret)->installCtrlValues(m_ctrlVals);
 
@@ -260,9 +261,9 @@ ObjToken<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velocity)
         {
             size_t lookupIdx = note % m_parent->m_sfxMappings.size();
             const SFXGroupIndex::SFXEntry* sfxEntry = m_parent->m_sfxMappings[lookupIdx];
-            oid = sfxEntry->macro;
+            oid = sfxEntry->objId;
             note = sfxEntry->defKey;
-            res = (*ret)->loadMacroObject(oid, 0, m_parent->m_ticksPerSec, note, velocity, m_ctrlVals[1]);
+            res = (*ret)->loadPageObject(oid, m_parent->m_ticksPerSec, note, velocity, m_ctrlVals[1]);
         }
         else
             return {};

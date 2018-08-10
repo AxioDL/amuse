@@ -146,9 +146,18 @@ public:
     ProjectModel::INode* getEditorNode() const;
     EditorWidget* getEditorWidget() const;
     amuse::ObjToken<amuse::Voice> startEditorVoice(uint8_t key, uint8_t vel);
+    amuse::ObjToken<amuse::Voice> startSFX(amuse::GroupId groupId, amuse::SFXId sfxId);
+    amuse::ObjToken<amuse::Sequencer> startSong(amuse::GroupId groupId, amuse::SongId songId,
+                                                const unsigned char* arrData);
     void pushUndoCommand(QUndoCommand* cmd);
     void updateFocus();
     void aboutToDeleteNode(ProjectModel::INode* node);
+
+    QString getGroupName(ProjectModel::GroupNode* group) const;
+    ProjectModel::GroupNode* getSelectedGroupNode() const;
+    QString getSelectedGroupName() const;
+    void recursiveExpandOutline(const QModelIndex& index) const;
+    void recursiveExpandAndSelectOutline(const QModelIndex& index) const;
 
     ProjectModel* projectModel() const { return m_projectModel; }
 
@@ -193,6 +202,7 @@ public slots:
     void onFocusChanged(QWidget* old, QWidget* now);
     void outlineItemActivated(const QModelIndex& index);
     void setItemEditEnabled(bool enabled);
+    void setItemNewEnabled(bool enabled);
     bool canEditOutline();
     void onOutlineSelectionChanged(const QItemSelection& selected, const QItemSelection& deselected);
     void onTextSelect();

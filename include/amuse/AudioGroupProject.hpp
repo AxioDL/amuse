@@ -135,7 +135,7 @@ struct SFXGroupIndex : AudioGroupIndex
     {
         AT_DECL_DNA
         SFXIdDNA<DNAEn> sfxId;
-        SoundMacroIdDNA<DNAEn> macro;
+        PageObjectIdDNA<DNAEn> objId;
         Value<atUint8> priority;
         Value<atUint8> maxVoices;
         Value<atUint8> defVel;
@@ -146,18 +146,18 @@ struct SFXGroupIndex : AudioGroupIndex
     struct SFXEntry : BigDNA
     {
         AT_DECL_DNA_YAML
-        SoundMacroIdDNA<athena::Big> macro;
-        Value<atUint8> priority;
-        Value<atUint8> maxVoices;
-        Value<atUint8> defVel;
-        Value<atUint8> panning;
-        Value<atUint8> defKey;
+        PageObjectIdDNA<athena::Big> objId;
+        Value<atUint8> priority = 0;
+        Value<atUint8> maxVoices = 255;
+        Value<atUint8> defVel = 127;
+        Value<atUint8> panning = 64;
+        Value<atUint8> defKey = 60;
 
         SFXEntry() = default;
 
         template <athena::Endian DNAE>
         SFXEntry(const SFXEntryDNA<DNAE>& in)
-        : macro(in.macro.id), priority(in.priority), maxVoices(in.maxVoices),
+        : objId(in.objId.id), priority(in.priority), maxVoices(in.maxVoices),
           defVel(in.defVel), panning(in.panning), defKey(in.defKey) {}
 
         template <athena::Endian DNAEn>
@@ -165,7 +165,7 @@ struct SFXGroupIndex : AudioGroupIndex
         {
             SFXEntryDNA<DNAEn> ret;
             ret.sfxId.id = id;
-            ret.macro = macro;
+            ret.objId = objId;
             ret.priority = priority;
             ret.maxVoices = maxVoices;
             ret.defVel = defVel;
