@@ -283,6 +283,7 @@
     <addaction name="actionReload_Sample_Data"/>
     <addaction name="separator"/>
     <addaction name="actionImport_Groups"/>
+    <addaction name="actionImport_Songs"/>
     <addaction name="actionExport_GameCube_Groups"/>
    </widget>
    <widget class="QMenu" name="menuProject">
@@ -525,6 +526,14 @@
    </property>
    <property name="text">
     <string>Reload Sample &amp;Data</string>
+   </property>
+  </action>
+  <action name="actionImport_Songs">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>I&amp;mport Songs</string>
    </property>
   </action>
  </widget>

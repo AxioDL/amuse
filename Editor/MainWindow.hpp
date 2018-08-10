@@ -170,6 +170,7 @@ public slots:
     void revertAction();
     void reloadSampleDataAction();
     void importAction();
+    void importSongsAction();
     void exportAction();
 
     void newSubprojectAction();

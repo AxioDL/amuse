@@ -939,7 +939,7 @@ void Voice::keyOff()
             loadMacroObject(m_keyoffTrap.macroId, m_keyoffTrap.macroStep, m_state.m_ticksPerSec, m_state.m_initKey,
                             m_state.m_initVel, m_state.m_initMod);
     }
-    else if (!m_curSample || m_curSample->m_loopLengthSamples)
+    else
         _macroKeyOff();
 
     for (const ObjToken<Voice>& vox : m_childVoices)

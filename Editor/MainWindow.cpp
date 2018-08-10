@@ -7,6 +7,7 @@
 #include <QMouseEvent>
 #include <QtSvg/QtSvg>
 #include "amuse/ContainerRegistry.hpp"
+#include "amuse/SongConverter.hpp"
 #include "Common.hpp"
 #include "SongGroupEditor.hpp"
 #include "SoundGroupEditor.hpp"
@@ -56,6 +57,7 @@ MainWindow::MainWindow(QWidget* parent)
     connect(m_ui.actionRevert_Project, SIGNAL(triggered()), this, SLOT(revertAction()));
     connect(m_ui.actionReload_Sample_Data, SIGNAL(triggered()), this, SLOT(reloadSampleDataAction()));
     connect(m_ui.actionImport_Groups, SIGNAL(triggered()), this, SLOT(importAction()));
+    connect(m_ui.actionImport_Songs, SIGNAL(triggered()), this, SLOT(importSongsAction()));
     connect(m_ui.actionExport_GameCube_Groups, SIGNAL(triggered()), this, SLOT(exportAction()));
 
     for (int i = 0; i < MaxRecentFiles; ++i)
@@ -258,6 +260,7 @@ bool MainWindow::setProjectPath(const QString& path)
     m_ui.actionSave_Project->setEnabled(true);
     m_ui.actionRevert_Project->setEnabled(true);
     m_ui.actionReload_Sample_Data->setEnabled(true);
+    m_ui.actionImport_Songs->setEnabled(true);
     m_ui.actionExport_GameCube_Groups->setEnabled(true);
     m_ui.actionNew_Subproject->setEnabled(true);
     setWindowFilePath(path);
@@ -745,7 +748,8 @@ void MainWindow::reloadSampleDataAction()
 
 void MainWindow::importAction()
 {
-    QString path = QFileDialog::getOpenFileName(this, tr("Import Project"));
+    QString path = QFileDialog::getOpenFileName(this, tr("Import Project"),
+        m_projectModel ? m_projectModel->dir().path() : QString());
     if (path.isEmpty())
         return;
 
@@ -869,6 +873,40 @@ void MainWindow::importAction()
             task.setValue(++curVal);
         }
     });
+}
+
+void MainWindow::importSongsAction()
+{
+    if (!m_projectModel)
+        return;
+
+    QString path = QFileDialog::getOpenFileName(this, tr("Import Songs"), m_projectModel->dir().path());
+    if (path.isEmpty())
+        return;
+
+    closeEditor();
+
+    std::vector<std::pair<amuse::SystemString, amuse::ContainerRegistry::SongData>> songs =
+        amuse::ContainerRegistry::LoadSongs(QStringToSysString(path).c_str());
+
+    for (const auto& song : songs)
+    {
+        int version;
+        bool isBig;
+        auto midiData =
+            amuse::SongConverter::SongToMIDI(song.second.m_data.get(), version, isBig);
+        if (!midiData.empty())
+        {
+            QFileInfo fi(m_projectModel->dir(), SysStringToQString(song.first + ".mid"));
+            QFile f(fi.filePath());
+            if (f.open(QFile::WriteOnly))
+            {
+                f.write((const char*)midiData.data(), midiData.size());
+                m_projectModel->setMIDIPathOfSong(
+                    song.second.m_setupId, m_projectModel->dir().relativeFilePath(fi.filePath()));
+            }
+        }
+    }
 }
 
 void MainWindow::exportAction()
