@@ -96,27 +96,7 @@ private:
     PageObjectProxyModel m_pageObjectProxy;
 
     amuse::ProjectDatabase m_projectDatabase;
-
     std::unordered_map<QString, amuse::AudioGroupDatabase> m_groups;
-    struct Iterator
-    {
-        using ItTp = std::unordered_map<QString, amuse::AudioGroupDatabase>::iterator;
-        ItTp m_it;
-        Iterator(ItTp it) : m_it(it) {}
-        ItTp::pointer operator->() { return m_it.operator->(); }
-        bool operator<(const Iterator& other) const
-        {
-            return m_it->first < other.m_it->first;
-        }
-        bool operator<(const QString& name) const
-        {
-            return m_it->first < name;
-        }
-    };
-    std::vector<Iterator> m_sorted;
-    void _buildSortedList();
-    QModelIndex _indexOfGroup(const QString& groupName) const;
-    int _hypotheticalIndexOfGroup(const QString& groupName) const;
 
     std::unordered_map<amuse::SongId, QString> m_midiFiles;
 
@@ -140,17 +120,18 @@ public:
             Sample
         };
     protected:
-        INode* m_parent;
+        QString m_name;
+        INode* m_parent = nullptr;
+        int m_row = -1;
         std::vector<amuse::IObjToken<INode>> m_children;
         amuse::IObjToken<INode> m_nullChild;
-        int m_row;
     public:
         virtual ~INode() = default;
+        INode(const QString& name);
         INode(INode* parent) : m_parent(parent), m_row(0)
         {
             /* ONLY USED BY NULL NODE! */
         }
-        INode(INode* parent, int row);
 
         int childCount() const { return int(m_children.size()); }
         INode* child(int row) const
@@ -170,33 +151,41 @@ public:
             m_nullChild->m_row = row;
         }
 
-        void insertChild(int row, amuse::ObjToken<INode> n)
+        void insertChild(amuse::ObjToken<INode> n)
         {
+            assert(n->m_parent == nullptr && "Inserting already-parented node");
+            n->m_parent = this;
+            int row = hypotheticalIndex(n->name());
             m_children.insert(m_children.begin() + row, n.get());
             reindexRows(row);
         }
-        amuse::ObjToken<INode> removeChild(int row)
+        amuse::ObjToken<INode> removeChild(INode* n)
         {
-            amuse::ObjToken<INode> ret = m_children[row].get();
+            int row = n->row();
+            assert(n == m_children.at(row).get() && "Removing non-child from node");
             m_children.erase(m_children.begin() + row);
             reindexRows(row);
-            return ret;
+            n->m_parent = nullptr;
+            n->m_row = -1;
+            return n;
         }
 
         void reserve(size_t sz) { m_children.reserve(sz); }
         template<class T, class... _Args>
         T& makeChild(_Args&&... args)
         {
-            auto tok = amuse::MakeObj<T>(this, m_children.size(), std::forward<_Args>(args)...);
-            m_children.push_back(tok.get());
-            m_nullChild->m_row = int(m_children.size());
-            return static_cast<T&>(*m_children.back());
+            auto tok = amuse::MakeObj<T>(std::forward<_Args>(args)...);
+            insertChild(tok.get());
+            return static_cast<T&>(*tok);
         }
         template<class T, class... _Args>
-        T& makeChildAtIdx(int idx, _Args&&... args)
+        T& _appendChild(_Args&&... args)
         {
-            auto tok = amuse::MakeObj<T>(this, idx, std::forward<_Args>(args)...);
-            insertChild(idx, tok.get());
+            auto tok = amuse::MakeObj<T>(std::forward<_Args>(args)...);
+            tok->m_parent = this;
+            tok->m_row = m_children.size();
+            m_children.push_back(tok.get());
+            m_nullChild->m_row = m_children.size();
             return static_cast<T&>(*tok);
         }
 
@@ -216,6 +205,9 @@ public:
             return true;
         }
 
+        const QString& name() const { return m_name; }
+        virtual int hypotheticalIndex(const QString& name) const;
+
         virtual Type type() const = 0;
         virtual QString text() const = 0;
         virtual QIcon icon() const = 0;
@@ -234,7 +226,7 @@ public:
     };
     struct RootNode : INode
     {
-        RootNode() : INode(nullptr, 0) {}
+        RootNode() : INode(QStringLiteral("<root>")) {}
 
         Type type() const { return Type::Root; }
         QString text() const { return {}; }
@@ -246,12 +238,15 @@ public:
     struct GroupNode : INode
     {
         std::unordered_map<QString, amuse::AudioGroupDatabase>::iterator m_it;
-        GroupNode(INode* parent, int row, std::unordered_map<QString, amuse::AudioGroupDatabase>::iterator it)
-        : INode(parent, row), m_it(it) {}
+        GroupNode(const QString& name) : INode(name) {}
+        GroupNode(std::unordered_map<QString, amuse::AudioGroupDatabase>::iterator it)
+        : INode(it->first), m_it(it) {}
+
+        int hypotheticalIndex(const QString& name) const;
 
         static QIcon Icon;
         Type type() const { return Type::Group; }
-        QString text() const { return m_it->first; }
+        QString text() const { return m_name; }
         QIcon icon() const { return Icon; }
 
         CollectionNode* getCollectionOfType(Type tp) const;
@@ -261,10 +256,11 @@ public:
     struct SongGroupNode : INode
     {
         amuse::GroupId m_id;
-        QString m_name;
         amuse::ObjToken<amuse::SongGroupIndex> m_index;
-        SongGroupNode(INode* parent, int row, amuse::GroupId id, amuse::ObjToken<amuse::SongGroupIndex> index)
-        : INode(parent, row), m_id(id), m_name(amuse::GroupId::CurNameDB->resolveNameFromId(id).data()), m_index(index) {}
+        SongGroupNode(const QString& name, amuse::ObjToken<amuse::SongGroupIndex> index)
+        : INode(name), m_index(index) {}
+        SongGroupNode(amuse::GroupId id, amuse::ObjToken<amuse::SongGroupIndex> index)
+        : INode(amuse::GroupId::CurNameDB->resolveNameFromId(id).data()), m_id(id), m_index(index) {}
 
         static QIcon Icon;
         Type type() const { return Type::SongGroup; }
@@ -287,10 +283,11 @@ public:
     struct SoundGroupNode : INode
     {
         amuse::GroupId m_id;
-        QString m_name;
         amuse::ObjToken<amuse::SFXGroupIndex> m_index;
-        SoundGroupNode(INode* parent, int row, amuse::GroupId id, amuse::ObjToken<amuse::SFXGroupIndex> index)
-        : INode(parent, row), m_id(id), m_name(amuse::GroupId::CurNameDB->resolveNameFromId(id).data()), m_index(index) {}
+        SoundGroupNode(const QString& name, amuse::ObjToken<amuse::SFXGroupIndex> index)
+        : INode(name), m_index(index) {}
+        SoundGroupNode(amuse::GroupId id, amuse::ObjToken<amuse::SFXGroupIndex> index)
+        : INode(amuse::GroupId::CurNameDB->resolveNameFromId(id).data()), m_id(id), m_index(index) {}
 
         static QIcon Icon;
         Type type() const { return Type::SoundGroup; }
@@ -312,11 +309,10 @@ public:
     };
     struct CollectionNode : INode
     {
-        QString m_name;
         QIcon m_icon;
         Type m_collectionType;
-        CollectionNode(INode* parent, int row, const QString& name, const QIcon& icon, Type collectionType)
-        : INode(parent, row), m_name(name), m_icon(icon), m_collectionType(collectionType) {}
+        CollectionNode(const QString& name, const QIcon& icon, Type collectionType)
+        : INode(name), m_icon(icon), m_collectionType(collectionType) {}
 
         Type type() const { return Type::Collection; }
         QString text() const { return m_name; }
@@ -332,9 +328,9 @@ public:
     struct BasePoolObjectNode : INode
     {
         amuse::ObjectId m_id;
-        QString m_name;
-        BasePoolObjectNode(INode* parent, int row, amuse::ObjectId id, const QString& name)
-        : INode(parent, row), m_id(id), m_name(name) {}
+        BasePoolObjectNode(const QString& name) : INode(name) {}
+        BasePoolObjectNode(amuse::ObjectId id, const QString& name)
+        : INode(name), m_id(id) {}
         amuse::ObjectId id() const { return m_id; }
         QString text() const { return m_name; }
         QIcon icon() const { return {}; }
@@ -343,8 +339,9 @@ public:
     struct PoolObjectNode : BasePoolObjectNode
     {
         amuse::ObjToken<T> m_obj;
-        PoolObjectNode(INode* parent, int row, ID id, amuse::ObjToken<T> obj)
-        : BasePoolObjectNode(parent, row, id, ID::CurNameDB->resolveNameFromId(id).data()), m_obj(obj) {}
+        PoolObjectNode(const QString& name, amuse::ObjToken<T> obj) : BasePoolObjectNode(name), m_obj(obj) {}
+        PoolObjectNode(ID id, amuse::ObjToken<T> obj)
+        : BasePoolObjectNode(id, ID::CurNameDB->resolveNameFromId(id).data()), m_obj(obj) {}
 
         Type type() const { return TP; }
 
@@ -394,20 +391,44 @@ public:
     INode* node(const QModelIndex& index) const;
     GroupNode* getGroupNode(INode* node) const;
     bool canEdit(const QModelIndex& index) const;
-    void _undoDel(const QModelIndex& index, amuse::ObjToken<ProjectModel::INode> node, const NameUndoRegistry& nameReg);
-    amuse::ObjToken<ProjectModel::INode> _redoDel(const QModelIndex& index, NameUndoRegistry& nameReg);
-    void del(const QModelIndex& index);
     RootNode* rootNode() const { return m_root.get(); }
 
-    GroupNode* newSubproject(const QString& name, UIMessenger& messenger);
-    SoundGroupNode* newSoundGroup(GroupNode* group, const QString& name, UIMessenger& messenger);
-    SongGroupNode* newSongGroup(GroupNode* group, const QString& name, UIMessenger& messenger);
-    SoundMacroNode* newSoundMacro(GroupNode* group, const QString& name, UIMessenger& messenger,
+    void _postAddNode(INode* n, const NameUndoRegistry& registry);
+    void _preDelNode(INode* n, NameUndoRegistry& registry);
+    void _addNode(GroupNode* node, GroupNode* parent, const NameUndoRegistry& registry);
+    void _delNode(GroupNode* node, GroupNode* parent, NameUndoRegistry& registry);
+    GroupNode* newSubproject(const QString& name);
+    template <class NT, class T>
+    void _addGroupNode(NT* node, GroupNode* parent, const NameUndoRegistry& registry, T& container);
+    template <class NT, class T>
+    void _delGroupNode(NT* node, GroupNode* parent, NameUndoRegistry& registry, T& container);
+    void _addNode(SoundGroupNode* node, GroupNode* parent, const NameUndoRegistry& registry);
+    void _delNode(SoundGroupNode* node, GroupNode* parent, NameUndoRegistry& registry);
+    SoundGroupNode* newSoundGroup(GroupNode* group, const QString& name);
+    void _addNode(SongGroupNode* node, GroupNode* parent, const NameUndoRegistry& registry);
+    void _delNode(SongGroupNode* node, GroupNode* parent, NameUndoRegistry& registry);
+    SongGroupNode* newSongGroup(GroupNode* group, const QString& name);
+    template <class NT, class T>
+    void _addPoolNode(NT* node, GroupNode* parent, const NameUndoRegistry& registry, T& container);
+    template <class NT, class T>
+    void _delPoolNode(NT* node, GroupNode* parent, NameUndoRegistry& registry, T& container);
+    void _addNode(SoundMacroNode* node, GroupNode* parent, const NameUndoRegistry& registry);
+    void _delNode(SoundMacroNode* node, GroupNode* parent, NameUndoRegistry& registry);
+    SoundMacroNode* newSoundMacro(GroupNode* group, const QString& name,
                                   const SoundMacroTemplateEntry* templ = nullptr);
-    ADSRNode* newADSR(GroupNode* group, const QString& name, UIMessenger& messenger);
-    CurveNode* newCurve(GroupNode* group, const QString& name, UIMessenger& messenger);
-    KeymapNode* newKeymap(GroupNode* group, const QString& name, UIMessenger& messenger);
-    LayersNode* newLayers(GroupNode* group, const QString& name, UIMessenger& messenger);
+    void _addNode(ADSRNode* node, GroupNode* parent, const NameUndoRegistry& registry);
+    void _delNode(ADSRNode* node, GroupNode* parent, NameUndoRegistry& registry);
+    ADSRNode* newADSR(GroupNode* group, const QString& name);
+    void _addNode(CurveNode* node, GroupNode* parent, const NameUndoRegistry& registry);
+    void _delNode(CurveNode* node, GroupNode* parent, NameUndoRegistry& registry);
+    CurveNode* newCurve(GroupNode* group, const QString& name);
+    void _addNode(KeymapNode* node, GroupNode* parent, const NameUndoRegistry& registry);
+    void _delNode(KeymapNode* node, GroupNode* parent, NameUndoRegistry& registry);
+    KeymapNode* newKeymap(GroupNode* group, const QString& name);
+    void _addNode(LayersNode* node, GroupNode* parent, const NameUndoRegistry& registry);
+    void _delNode(LayersNode* node, GroupNode* parent, NameUndoRegistry& registry);
+    LayersNode* newLayers(GroupNode* group, const QString& name);
+    void del(const QModelIndex& index);
 
     const QDir& dir() const { return m_dir; }
     QString path() const { return m_dir.path(); }

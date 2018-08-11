@@ -6,6 +6,7 @@
 #include <QProgressDialog>
 #include <QThread>
 #include <QStyledItemDelegate>
+#include <QSortFilterProxyModel>
 #include "ui_MainWindow.h"
 #include "amuse/Engine.hpp"
 #include "amuse/BooBackend.hpp"
@@ -78,6 +79,7 @@ class MainWindow : public QMainWindow
     TreeDelegate m_treeDelegate;
     UIMessenger m_mainMessenger;
     ProjectModel* m_projectModel = nullptr;
+    QSortFilterProxyModel m_filterProjectModel;
     QWidget* m_faceSvg;
     SongGroupEditor* m_songGroupEditor = nullptr;
     SoundGroupEditor* m_soundGroupEditor = nullptr;
@@ -156,10 +158,11 @@ public:
     QString getGroupName(ProjectModel::GroupNode* group) const;
     ProjectModel::GroupNode* getSelectedGroupNode() const;
     QString getSelectedGroupName() const;
-    void recursiveExpandOutline(const QModelIndex& index) const;
+    void _recursiveExpandOutline(const QModelIndex& filterIndex) const;
     void recursiveExpandAndSelectOutline(const QModelIndex& index) const;
 
     ProjectModel* projectModel() const { return m_projectModel; }
+    UIMessenger& uiMessenger() { return m_mainMessenger; }
 
 public slots:
     void newAction();

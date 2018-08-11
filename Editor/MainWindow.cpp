@@ -24,6 +24,7 @@ MainWindow::MainWindow(QWidget* parent)
 : QMainWindow(parent),
   m_treeDelegate(*this, this),
   m_mainMessenger(this),
+  m_filterProjectModel(this),
   m_undoStack(new QUndoStack(this)),
   m_backgroundThread(this)
 {
@@ -31,6 +32,13 @@ MainWindow::MainWindow(QWidget* parent)
 
     m_ui.setupUi(this);
     m_ui.splitter->setCollapsible(1, false);
+    QPalette palette = m_ui.projectOutlineFilter->palette();
+    palette.setColor(QPalette::Base, palette.color(QPalette::Background));
+    m_ui.projectOutlineFilter->setPalette(palette);
+    connect(m_ui.projectOutlineFilter, SIGNAL(textChanged(const QString&)),
+            &m_filterProjectModel, SLOT(setFilterRegExp(const QString&)));
+    m_filterProjectModel.setRecursiveFilteringEnabled(true);
+    m_filterProjectModel.setFilterCaseSensitivity(Qt::CaseInsensitive);
     m_ui.projectOutline->setItemDelegate(&m_treeDelegate);
     connect(m_ui.projectOutline, SIGNAL(activated(const QModelIndex&)),
             this, SLOT(outlineItemActivated(const QModelIndex&)));
@@ -253,7 +261,8 @@ bool MainWindow::setProjectPath(const QString& path)
     if (m_projectModel)
         m_projectModel->deleteLater();
     m_projectModel = new ProjectModel(path, this);
-    m_ui.projectOutline->setModel(m_projectModel);
+    m_filterProjectModel.setSourceModel(m_projectModel);
+    m_ui.projectOutline->setModel(&m_filterProjectModel);
     connect(m_ui.projectOutline->selectionModel(),
             SIGNAL(selectionChanged(const QItemSelection&, const QItemSelection&)),
             this, SLOT(onOutlineSelectionChanged(const QItemSelection&, const QItemSelection&)));
@@ -957,22 +966,23 @@ QString MainWindow::getSelectedGroupName() const
     return getGroupName(getSelectedGroupNode());
 }
 
-void MainWindow::recursiveExpandOutline(const QModelIndex& index) const
+void MainWindow::_recursiveExpandOutline(const QModelIndex& filterIndex) const
 {
-    if (index.isValid())
+    if (filterIndex.isValid())
     {
-        recursiveExpandAndSelectOutline(index.parent());
-        m_ui.projectOutline->expand(index);
+        _recursiveExpandOutline(filterIndex.parent());
+        m_ui.projectOutline->expand(filterIndex);
     }
 }
 
 void MainWindow::recursiveExpandAndSelectOutline(const QModelIndex& index) const
 {
-    recursiveExpandOutline(index);
-    if (index.isValid())
+    QModelIndex filterIndex = m_filterProjectModel.mapFromSource(index);
+    _recursiveExpandOutline(filterIndex);
+    if (filterIndex.isValid())
     {
-        m_ui.projectOutline->selectionModel()->setCurrentIndex(index, QItemSelectionModel::ClearAndSelect);
-        m_ui.projectOutline->selectionModel()->setCurrentIndex(index, QItemSelectionModel::Current);
+        m_ui.projectOutline->selectionModel()->setCurrentIndex(filterIndex, QItemSelectionModel::ClearAndSelect);
+        m_ui.projectOutline->selectionModel()->setCurrentIndex(filterIndex, QItemSelectionModel::Current);
     }
 }
 
@@ -986,9 +996,7 @@ void MainWindow::newSubprojectAction()
     if (!ok)
         return;
 
-    ProjectModel::GroupNode* node = m_projectModel->newSubproject(newName, m_mainMessenger);
-    if (node)
-        recursiveExpandAndSelectOutline(m_projectModel->index(node));
+    ProjectModel::GroupNode* node = m_projectModel->newSubproject(newName);
 }
 
 void MainWindow::newSFXGroupAction()
@@ -1005,12 +1013,9 @@ void MainWindow::newSFXGroupAction()
     if (!ok)
         return;
 
-    ProjectModel::SoundGroupNode* node = m_projectModel->newSoundGroup(group, newName, m_mainMessenger);
+    ProjectModel::SoundGroupNode* node = m_projectModel->newSoundGroup(group, newName);
     if (node)
-    {
-        recursiveExpandAndSelectOutline(m_projectModel->index(node));
         openEditor(node);
-    }
 }
 
 void MainWindow::newSongGroupAction()
@@ -1027,12 +1032,9 @@ void MainWindow::newSongGroupAction()
     if (!ok)
         return;
 
-    ProjectModel::SongGroupNode* node = m_projectModel->newSongGroup(group, newName, m_mainMessenger);
+    ProjectModel::SongGroupNode* node = m_projectModel->newSongGroup(group, newName);
     if (node)
-    {
-        recursiveExpandAndSelectOutline(m_projectModel->index(node));
         openEditor(node);
-    }
 }
 
 void MainWindow::newSoundMacroAction()
@@ -1053,12 +1055,9 @@ void MainWindow::newSoundMacroAction()
     if (result == QDialog::Rejected)
         return;
 
-    ProjectModel::SoundMacroNode* node = m_projectModel->newSoundMacro(group, newName, m_mainMessenger, templ);
+    ProjectModel::SoundMacroNode* node = m_projectModel->newSoundMacro(group, newName, templ);
     if (node)
-    {
-        recursiveExpandAndSelectOutline(m_projectModel->index(node));
         openEditor(node);
-    }
 }
 
 void MainWindow::newADSRAction()
@@ -1075,12 +1074,9 @@ void MainWindow::newADSRAction()
     if (!ok)
         return;
 
-    ProjectModel::ADSRNode* node = m_projectModel->newADSR(group, newName, m_mainMessenger);
+    ProjectModel::ADSRNode* node = m_projectModel->newADSR(group, newName);
     if (node)
-    {
-        recursiveExpandAndSelectOutline(m_projectModel->index(node));
         openEditor(node);
-    }
 }
 
 void MainWindow::newCurveAction()
@@ -1097,12 +1093,9 @@ void MainWindow::newCurveAction()
     if (!ok)
         return;
 
-    ProjectModel::CurveNode* node = m_projectModel->newCurve(group, newName, m_mainMessenger);
+    ProjectModel::CurveNode* node = m_projectModel->newCurve(group, newName);
     if (node)
-    {
-        recursiveExpandAndSelectOutline(m_projectModel->index(node));
         openEditor(node);
-    }
 }
 
 void MainWindow::newKeymapAction()
@@ -1119,12 +1112,9 @@ void MainWindow::newKeymapAction()
     if (!ok)
         return;
 
-    ProjectModel::KeymapNode* node = m_projectModel->newKeymap(group, newName, m_mainMessenger);
+    ProjectModel::KeymapNode* node = m_projectModel->newKeymap(group, newName);
     if (node)
-    {
-        recursiveExpandAndSelectOutline(m_projectModel->index(node));
         openEditor(node);
-    }
 }
 
 void MainWindow::newLayersAction()
@@ -1141,12 +1131,9 @@ void MainWindow::newLayersAction()
     if (!ok)
         return;
 
-    ProjectModel::LayersNode* node = m_projectModel->newLayers(group, newName, m_mainMessenger);
+    ProjectModel::LayersNode* node = m_projectModel->newLayers(group, newName);
     if (node)
-    {
-        recursiveExpandAndSelectOutline(m_projectModel->index(node));
         openEditor(node);
-    }
 }
 
 void MainWindow::aboutToShowAudioIOMenu()
@@ -1236,7 +1223,7 @@ void MainWindow::outlineDeleteAction()
     QModelIndexList indexes = m_ui.projectOutline->selectionModel()->selectedIndexes();
     if (indexes.empty())
         return;
-    m_projectModel->del(indexes.front());
+    m_projectModel->del(m_filterProjectModel.mapToSource(indexes.front()));
 }
 
 void MainWindow::onFocusChanged(QWidget* old, QWidget* now)
@@ -1292,7 +1279,7 @@ void MainWindow::onFocusChanged(QWidget* old, QWidget* now)
 
 void MainWindow::outlineItemActivated(const QModelIndex& index)
 {
-    ProjectModel::INode* node = m_projectModel->node(index);
+    ProjectModel::INode* node = m_projectModel->node(m_filterProjectModel.mapToSource(index));
     if (!node)
         return;
     openEditor(node);
@@ -1324,7 +1311,7 @@ bool MainWindow::canEditOutline()
     QModelIndex curIndex = m_ui.projectOutline->selectionModel()->currentIndex();
     if (!curIndex.isValid())
         return false;
-    return m_projectModel->canEdit(curIndex);
+    return m_projectModel->canEdit(m_filterProjectModel.mapToSource(curIndex));
 }
 
 void MainWindow::onOutlineSelectionChanged(const QItemSelection& selected, const QItemSelection& deselected)
@@ -1335,7 +1322,7 @@ void MainWindow::onOutlineSelectionChanged(const QItemSelection& selected, const
     if (selected.indexes().empty())
         setItemEditEnabled(false);
     else
-        setItemEditEnabled(m_projectModel->canEdit(selected.indexes().front()));
+        setItemEditEnabled(m_projectModel->canEdit(m_filterProjectModel.mapToSource(selected.indexes().front())));
 }
 
 void MainWindow::onTextSelect()
