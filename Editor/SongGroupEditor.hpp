@@ -62,6 +62,7 @@ class PageModel : public QAbstractTableModel
     Q_OBJECT
     friend class SongGroupEditor;
     friend class PageObjectDelegate;
+    friend class PageTableView;
     amuse::ObjToken<ProjectModel::SongGroupNode> m_node;
     struct Iterator
     {
@@ -90,8 +91,8 @@ public:
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
     Qt::ItemFlags flags(const QModelIndex& index) const;
 
-    bool insertRows(int row, int count, const QModelIndex& parent = QModelIndex());
-    bool removeRows(int row, int count, const QModelIndex& parent = QModelIndex());
+    int _insertRow(const std::pair<uint8_t, amuse::SongGroupIndex::PageEntry>& data);
+    std::pair<uint8_t, amuse::SongGroupIndex::PageEntry> _removeRow(uint8_t prog);
 };
 
 class SetupListModel : public QAbstractTableModel
@@ -99,6 +100,8 @@ class SetupListModel : public QAbstractTableModel
     Q_OBJECT
     friend class SongGroupEditor;
     friend class MIDIFileDelegate;
+    friend class SetupTableView;
+    friend class SetupModel;
     amuse::ObjToken<ProjectModel::SongGroupNode> m_node;
     struct Iterator
     {
@@ -138,8 +141,10 @@ public:
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
     Qt::ItemFlags flags(const QModelIndex& index) const;
 
-    bool insertRows(int row, int count, const QModelIndex& parent = QModelIndex());
-    bool removeRows(int row, int count, const QModelIndex& parent = QModelIndex());
+    int _insertRow(
+        std::tuple<amuse::SongId, std::string, std::array<amuse::SongGroupIndex::MIDISetup, 16>>& data);
+    std::tuple<amuse::SongId, std::string, std::array<amuse::SongGroupIndex::MIDISetup, 16>>
+    _removeRow(amuse::SongId id);
 };
 
 class SetupModel : public QAbstractTableModel
@@ -177,6 +182,7 @@ class SetupTableView : public QSplitter
 {
     Q_OBJECT
     friend class SongGroupEditor;
+    friend class SetupRowUndoCommand;
     QTableView* m_listView;
     QTableView* m_tableView;
     MIDIFileDelegate m_midiDelegate;
@@ -239,6 +245,7 @@ public slots:
 class SongGroupEditor : public EditorWidget
 {
     Q_OBJECT
+    friend class SetupModel;
     PageModel m_normPages;
     PageModel m_drumPages;
     SetupListModel m_setupList;

@@ -172,7 +172,17 @@ void SampleView::paintEvent(QPaintEvent* ev)
         qreal scale = -sampleHeight / 2.0;
         qreal trans = sampleHeight / 2.0;
 
-        seekToSample(startSample);
+        std::pair<std::pair<qreal, qreal>, std::pair<qreal, qreal>> lastAvgPeak;
+        if (startSample >= deviceSamplesPerPx)
+        {
+            seekToSample(startSample - deviceSamplesPerPx);
+            lastAvgPeak = iterateSampleInterval(deviceSamplesPerPx);
+        }
+        else
+        {
+            seekToSample(startSample);
+            lastAvgPeak = std::pair<std::pair<qreal, qreal>, std::pair<qreal, qreal>>{};
+        }
 
         std::pair<std::pair<qreal, qreal>, std::pair<qreal, qreal>> avgPeak;
         for (qreal i = 0.0; i < deviceWidth; i += increment)
@@ -183,12 +193,18 @@ void SampleView::paintEvent(QPaintEvent* ev)
                 avgPeak = iterateSampleInterval(deviceSamplesPerPx);
             else
                 m_curSamplePos += deviceSamplesPerPx;
+            std::pair<std::pair<qreal, qreal>, std::pair<qreal, qreal>> drawAvgPeak = avgPeak;
+            if (lastAvgPeak.first.first > avgPeak.second.first)
+                drawAvgPeak.second.first = lastAvgPeak.first.first;
+            else if (lastAvgPeak.second.first < avgPeak.first.first)
+                drawAvgPeak.first.first = lastAvgPeak.second.first;
             painter.setPen(peakPen);
-            painter.drawLine(QPointF(rectStart + i, avgPeak.first.second * scale + trans),
-                             QPointF(rectStart + i, avgPeak.second.second * scale + trans));
+            painter.drawLine(QPointF(rectStart + i, drawAvgPeak.first.second * scale + trans),
+                             QPointF(rectStart + i, drawAvgPeak.second.second * scale + trans));
             painter.setPen(avgPen);
-            painter.drawLine(QPointF(rectStart + i, avgPeak.first.first * scale + trans),
-                             QPointF(rectStart + i, avgPeak.second.first * scale + trans));
+            painter.drawLine(QPointF(rectStart + i, drawAvgPeak.first.first * scale + trans),
+                             QPointF(rectStart + i, drawAvgPeak.second.first * scale + trans));
+            lastAvgPeak = avgPeak;
         }
     }
 

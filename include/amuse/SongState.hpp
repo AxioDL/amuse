@@ -78,10 +78,12 @@ class SongState
         const unsigned char* m_data = nullptr;           /**< Pointer to upcoming command data */
         const unsigned char* m_pitchWheelData = nullptr; /**< Pointer to upcoming pitch data */
         const unsigned char* m_modWheelData = nullptr;   /**< Pointer to upcoming modulation data */
-        uint32_t m_lastPitchTick = 0;                    /**< Last position of pitch wheel change */
-        int32_t m_lastPitchVal = 0;                      /**< Last value of pitch */
-        uint32_t m_lastModTick = 0;                      /**< Last position of mod wheel change */
-        int32_t m_lastModVal = 0;                        /**< Last value of mod */
+        int32_t m_pitchVal = 0;                          /**< Accumulated value of pitch */
+        uint32_t m_nextPitchTick = 0;                    /**< Upcoming position of pitch wheel change */
+        int32_t m_nextPitchDelta = 0;                    /**< Upcoming delta value of pitch */
+        int32_t m_modVal = 0;                            /**< Accumulated value of mod */
+        uint32_t m_nextModTick = 0;                      /**< Upcoming position of mod wheel change */
+        int32_t m_nextModDelta = 0;                      /**< Upcoming delta value of mod */
         std::array<int, 128> m_remNoteLengths;           /**< Remaining ticks per note */
 
         int32_t m_eventWaitCountdown = 0; /**< Current wait in ticks */

@@ -25,6 +25,7 @@ class LayersModel : public QAbstractTableModel
     Q_OBJECT
     friend class LayersEditor;
     friend class SoundMacroDelegate;
+    friend class LayersTableView;
     amuse::ObjToken<ProjectModel::LayersNode> m_node;
 public:
     explicit LayersModel(QObject* parent = Q_NULLPTR);
@@ -46,6 +47,9 @@ public:
     bool moveRows(const QModelIndex& sourceParent, int sourceRow, int count,
                   const QModelIndex& destinationParent, int destinationChild);
     bool removeRows(int row, int count, const QModelIndex& parent = QModelIndex());
+
+    void _insertRow(int row, const amuse::LayerMapping& data);
+    amuse::LayerMapping _removeRow(int row);
 };
 
 class LayersTableView : public QTableView
@@ -64,6 +68,7 @@ public:
 class LayersEditor : public EditorWidget
 {
     Q_OBJECT
+    friend class LayersModel;
     LayersModel m_model;
     LayersTableView m_tableView;
     AddRemoveButtons m_addRemoveButtons;

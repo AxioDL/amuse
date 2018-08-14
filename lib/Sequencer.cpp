@@ -278,6 +278,8 @@ ObjToken<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velocity)
         (*ret)->setAuxBVol(m_ctrlVals[0x5d] / 127.f);
         (*ret)->setPan(m_curPan);
         (*ret)->setPitchWheel(m_curPitchWheel);
+        if (m_pitchWheelRange != -1)
+            (*ret)->setPitchWheelRange(m_pitchWheelRange, m_pitchWheelRange);
 
         if (m_ctrlVals[64] > 64)
             (*ret)->setPedal(true);
@@ -336,6 +338,23 @@ void Sequencer::ChannelState::setCtrlValue(uint8_t ctrl, int8_t val)
     case 10:
         setPan(val / 64.f - 1.f);
         break;
+    case 98:
+        // RPN LSB
+        m_rpn &= ~0x7f;
+        m_rpn |= val;
+    case 99:
+        // RPN MSB
+        m_rpn &= ~0x3f80;
+        m_rpn |= val << 7;
+    case 6:
+        if (m_rpn == 0)
+            m_pitchWheelRange = val;
+    case 96:
+        if (m_rpn == 0)
+            m_pitchWheelRange += 1;
+    case 97:
+        if (m_rpn == 0)
+            m_pitchWheelRange -= 1;
     default:
         break;
     }

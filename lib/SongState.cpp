@@ -6,44 +6,36 @@
 namespace amuse
 {
 
-static uint32_t DecodeRLE(const unsigned char*& data)
+static uint16_t DecodeUnsignedValue(const unsigned char*& data)
 {
-    uint32_t ret = 0;
-
-    while (true)
+    uint16_t ret;
+    if (data[0] & 0x80)
     {
-        uint32_t thisPart = *data & 0x7f;
-        if (*data & 0x80)
-        {
-            ++data;
-            thisPart = thisPart * 256 + *data;
-            if (thisPart == 0)
-            {
-                ++data;
-                return -1;
-            }
-        }
-
-        if (thisPart == 32767)
-        {
-            ret += 32767;
-            data += 2;
-            continue;
-        }
-
-        ret += thisPart;
-        data += 1;
-        break;
+        ret = data[1] | ((data[0] & 0x7f) << 8);
+        data += 2;
     }
-
+    else
+    {
+        ret = data[0];
+        data += 1;
+    }
     return ret;
 }
 
-static int32_t DecodeContinuousRLE(const unsigned char*& data)
+static int16_t DecodeSignedValue(const unsigned char*& data)
 {
-    int32_t ret = int32_t(DecodeRLE(data));
-    if (ret >= 16384)
-        return ret - 32767;
+    int16_t ret;
+    if (data[0] & 0x80)
+    {
+        ret = data[1] | ((data[0] & 0x7f) << 8);
+        ret |= ((ret << 1) & 0x8000);
+        data += 2;
+    }
+    else
+    {
+        ret = int8_t(data[0] | ((data[0] << 1) & 0x80));
+        data += 1;
+    }
     return ret;
 }
 
@@ -118,20 +110,39 @@ void SongState::Track::setRegion(Sequencer* seq, const TrackRegion* region)
         header.swapBig();
     m_data += 12;
 
+    m_pitchWheelData = nullptr;
+    m_nextPitchTick = 0x7fffffff;
+    m_nextPitchDelta = 0;
     if (header.m_pitchOff)
+    {
         m_pitchWheelData = m_parent->m_songData + header.m_pitchOff;
+        if (m_pitchWheelData[0] != 0x80 || m_pitchWheelData[1] != 0x00)
+        {
+            m_nextPitchTick = m_parent->m_curTick + DecodeUnsignedValue(m_pitchWheelData);
+            m_nextPitchDelta = DecodeSignedValue(m_pitchWheelData);
+        }
+    }
+
+    m_modWheelData = nullptr;
+    m_nextModTick = 0x7fffffff;
+    m_nextModDelta = 0;
     if (header.m_modOff)
+    {
         m_modWheelData = m_parent->m_songData + header.m_modOff;
+        if (m_modWheelData[0] != 0x80 || m_modWheelData[1] != 0x00)
+        {
+            m_nextModTick = m_parent->m_curTick + DecodeUnsignedValue(m_modWheelData);
+            m_nextModDelta = DecodeSignedValue(m_modWheelData);
+        }
+    }
 
     m_eventWaitCountdown = 0;
-    m_lastPitchTick = m_parent->m_curTick;
-    m_lastPitchVal = 0;
-    m_lastModTick = m_parent->m_curTick;
-    m_lastModVal = 0;
+    m_pitchVal = 0;
+    m_modVal = 0;
     if (seq)
     {
-        seq->setPitchWheel(m_midiChan, clamp(-1.f, m_lastPitchVal / 32768.f, 1.f));
-        seq->setCtrlValue(m_midiChan, 1, clamp(0, m_lastModVal * 128 / 16384, 127));
+        seq->setPitchWheel(m_midiChan, clamp(-1.f, m_pitchVal / 32768.f, 1.f));
+        seq->setCtrlValue(m_midiChan, 1, clamp(0, m_modVal * 128 / 16384, 127));
     }
     if (m_parent->m_sngVersion == 1)
         m_eventWaitCountdown = int32_t(DecodeTimeRLE(m_data));
@@ -219,10 +230,12 @@ int SongState::DetectVersion(const unsigned char* ptr, bool& isBig)
                     if (header.m_pitchOff)
                     {
                         const unsigned char* dptr = ptr + header.m_pitchOff;
-                        while (DecodeRLE(dptr) != 0xffffffff)
+                        while (dptr[0] != 0x80 || dptr[1] != 0x00)
                         {
-                            DecodeContinuousRLE(dptr);
+                            DecodeUnsignedValue(dptr);
+                            DecodeSignedValue(dptr);
                         }
+                        dptr += 2;
                         if (dptr >= (expectedEnd - 4) && (dptr <= expectedEnd))
                             continue;
                     }
@@ -231,10 +244,12 @@ int SongState::DetectVersion(const unsigned char* ptr, bool& isBig)
                     if (header.m_modOff)
                     {
                         const unsigned char* dptr = ptr + header.m_modOff;
-                        while (DecodeRLE(dptr) != 0xffffffff)
+                        while (dptr[0] != 0x80 || dptr[1] != 0x00)
                         {
-                            DecodeContinuousRLE(dptr);
+                            DecodeUnsignedValue(dptr);
+                            DecodeSignedValue(dptr);
                         }
+                        dptr += 2;
                         if (dptr >= (expectedEnd - 4) && (dptr <= expectedEnd))
                             continue;
                     }
@@ -404,28 +419,24 @@ bool SongState::Track::advance(Sequencer& seq, int32_t ticks)
         while (pitchTick < endTick)
         {
             /* See if there's an upcoming pitch change in this interval */
-            const unsigned char* ptr = m_pitchWheelData;
-            uint32_t deltaTicks = DecodeRLE(ptr);
-            if (deltaTicks != 0xffffffff)
+            int32_t nextTick = m_nextPitchTick;
+            if (pitchTick + remPitchTicks > nextTick)
             {
-                int32_t nextTick = m_lastPitchTick + deltaTicks;
-                if (pitchTick + remPitchTicks > nextTick)
+                /* Update pitch */
+                m_pitchVal += m_nextPitchDelta;
+                seq.setPitchWheel(m_midiChan, clamp(-1.f, m_pitchVal / 8191.f, 1.f));
+                if (m_pitchWheelData[0] != 0x80 || m_pitchWheelData[1] != 0x00)
                 {
-                    /* Update pitch */
-                    int32_t pitchDelta = DecodeContinuousRLE(ptr);
-                    m_lastPitchVal += pitchDelta;
-                    m_pitchWheelData = ptr;
-                    m_lastPitchTick = nextTick;
-                    remPitchTicks -= (nextTick - pitchTick);
-                    pitchTick = nextTick;
-                    seq.setPitchWheel(m_midiChan, clamp(-1.f, m_lastPitchVal / 32768.f, 1.f));
-                    continue;
+                    m_nextPitchTick += DecodeUnsignedValue(m_pitchWheelData);
+                    m_nextPitchDelta = DecodeSignedValue(m_pitchWheelData);
                 }
-                remPitchTicks -= (nextTick - pitchTick);
-                pitchTick = nextTick;
+                else
+                {
+                    m_nextPitchTick = 0x7fffffff;
+                }
             }
-            else
-                break;
+            remPitchTicks -= (nextTick - pitchTick);
+            pitchTick = nextTick;
         }
     }
 
@@ -437,28 +448,24 @@ bool SongState::Track::advance(Sequencer& seq, int32_t ticks)
         while (modTick < endTick)
         {
             /* See if there's an upcoming modulation change in this interval */
-            const unsigned char* ptr = m_modWheelData;
-            uint32_t deltaTicks = DecodeRLE(ptr);
-            if (deltaTicks != 0xffffffff)
+            int32_t nextTick = m_nextModTick;
+            if (modTick + remModTicks > nextTick)
             {
-                int32_t nextTick = m_lastModTick + deltaTicks;
-                if (modTick + remModTicks > nextTick)
+                /* Update modulation */
+                m_modVal += m_nextModDelta;
+                seq.setCtrlValue(m_midiChan, 1, clamp(0, m_modVal / 128, 127));
+                if (m_modWheelData[0] != 0x80 || m_modWheelData[1] != 0x00)
                 {
-                    /* Update modulation */
-                    int32_t modDelta = DecodeContinuousRLE(ptr);
-                    m_lastModVal += modDelta;
-                    m_modWheelData = ptr;
-                    m_lastModTick = nextTick;
-                    remModTicks -= (nextTick - modTick);
-                    modTick = nextTick;
-                    seq.setCtrlValue(m_midiChan, 1, clamp(0, m_lastModVal * 128 / 16384, 127));
-                    continue;
+                    m_nextModTick += DecodeUnsignedValue(m_modWheelData);
+                    m_nextModDelta = DecodeSignedValue(m_modWheelData);
                 }
-                remModTicks -= (nextTick - modTick);
-                modTick = nextTick;
+                else
+                {
+                    m_nextModTick = 0x7fffffff;
+                }
             }
-            else
-                break;
+            remModTicks -= (nextTick - modTick);
+            modTick = nextTick;
         }
     }
 

@@ -1,6 +1,124 @@
 #include "SoundGroupEditor.hpp"
 #include "MainWindow.hpp"
 
+class SFXDataChangeUndoCommand : public EditorUndoCommand
+{
+    amuse::SFXId m_sfx;
+    int m_column;
+    int m_undoVal, m_redoVal;
+    bool m_undid = false;
+public:
+    explicit SFXDataChangeUndoCommand(ProjectModel::SoundGroupNode* node, const QString& text,
+                                      amuse::SFXId sfx, int column, int redoVal)
+    : EditorUndoCommand(node, text), m_sfx(sfx), m_column(column), m_redoVal(redoVal) {}
+    void undo()
+    {
+        m_undid = true;
+        amuse::SFXGroupIndex& index = *static_cast<ProjectModel::SoundGroupNode*>(m_node.get())->m_index;
+        auto& map = index.m_sfxEntries;
+        amuse::SFXGroupIndex::SFXEntry& entry = map[m_sfx];
+
+        switch (m_column)
+        {
+        case 1:
+            entry.objId.id = m_undoVal;
+            break;
+        case 2:
+            entry.priority = m_undoVal;
+            break;
+        case 3:
+            entry.maxVoices = m_undoVal;
+            break;
+        case 4:
+            entry.defVel = m_undoVal;
+            break;
+        case 5:
+            entry.panning = m_undoVal;
+            break;
+        case 6:
+            entry.defKey = m_undoVal;
+            break;
+        default:
+            break;
+        }
+
+        EditorUndoCommand::undo();
+    }
+    void redo()
+    {
+        amuse::SFXGroupIndex& index = *static_cast<ProjectModel::SoundGroupNode*>(m_node.get())->m_index;
+        auto& map = index.m_sfxEntries;
+        amuse::SFXGroupIndex::SFXEntry& entry = map[m_sfx];
+
+        switch (m_column)
+        {
+        case 1:
+            m_undoVal = entry.objId.id;
+            entry.objId.id = m_redoVal;
+            break;
+        case 2:
+            m_undoVal = entry.priority;
+            entry.priority = m_redoVal;
+            break;
+        case 3:
+            m_undoVal = entry.maxVoices;
+            entry.maxVoices = m_redoVal;
+            break;
+        case 4:
+            m_undoVal = entry.defVel;
+            entry.defVel = m_redoVal;
+            break;
+        case 5:
+            m_undoVal = entry.panning;
+            entry.panning = m_redoVal;
+            break;
+        case 6:
+            m_undoVal = entry.defKey;
+            entry.defKey = m_redoVal;
+            break;
+        default:
+            break;
+        }
+
+        if (m_undid)
+            EditorUndoCommand::redo();
+    }
+};
+
+class SFXNameChangeUndoCommand : public EditorUndoCommand
+{
+    amuse::SFXId m_sfx;
+    std::string m_undoVal, m_redoVal;
+    bool m_undid = false;
+public:
+    explicit SFXNameChangeUndoCommand(ProjectModel::SoundGroupNode* node, const QString& text,
+                                      amuse::SFXId sfx, std::string_view redoVal)
+    : EditorUndoCommand(node, text), m_sfx(sfx), m_redoVal(redoVal) {}
+    void undo()
+    {
+        m_undid = true;
+        g_MainWindow->projectModel()->setIdDatabases(m_node.get());
+        amuse::SFXGroupIndex& index = *static_cast<ProjectModel::SoundGroupNode*>(m_node.get())->m_index;
+        auto& map = index.m_sfxEntries;
+
+        amuse::SFXId::CurNameDB->rename(m_sfx, m_undoVal);
+
+        EditorUndoCommand::undo();
+    }
+    void redo()
+    {
+        g_MainWindow->projectModel()->setIdDatabases(m_node.get());
+        amuse::SFXGroupIndex& index = *static_cast<ProjectModel::SoundGroupNode*>(m_node.get())->m_index;
+        auto& map = index.m_sfxEntries;
+
+        m_undoVal = amuse::SFXId::CurNameDB->resolveNameFromId(m_sfx);
+        amuse::SFXId::CurNameDB->rename(m_sfx, m_redoVal);
+
+        if (m_undid)
+            EditorUndoCommand::redo();
+    }
+};
+
 SFXObjectDelegate::SFXObjectDelegate(QObject* parent)
 : QStyledItemDelegate(parent) {}
 
@@ -32,19 +150,23 @@ void SFXObjectDelegate::setModelData(QWidget* editor, QAbstractItemModel* m, con
     const SFXModel* model = static_cast<const SFXModel*>(m);
     auto entry = model->m_sorted[index.row()];
     int idx = static_cast<EditorFieldPageObjectNode*>(editor)->currentIndex();
-    if (idx == 0)
-    {
-        entry->second.objId.id = amuse::ObjectId();
-    }
-    else
+    amuse::ObjectId id;
+    if (idx != 0)
     {
         ProjectModel::BasePoolObjectNode* node = static_cast<ProjectModel::BasePoolObjectNode*>(
             g_MainWindow->projectModel()->node(
                 g_MainWindow->projectModel()->getPageObjectProxy()->mapToSource(
                     g_MainWindow->projectModel()->getPageObjectProxy()->index(idx, 0,
                         static_cast<EditorFieldPageObjectNode*>(editor)->rootModelIndex()))));
-        entry->second.objId.id = node->id();
+        id = node->id();
     }
+    if (id == entry->second.objId.id)
+    {
+        emit m->dataChanged(index, index);
+        return;
+    }
+    g_MainWindow->pushUndoCommand(new SFXDataChangeUndoCommand(model->m_node.get(),
+        tr("Change %1").arg(m->headerData(1, Qt::Horizontal).toString()), entry->first, 1, id.id));
     emit m->dataChanged(index, index);
 }
 
@@ -132,7 +254,7 @@ QVariant SFXModel::data(const QModelIndex& index, int role) const
         {
         case 0:
         {
-            g_MainWindow->projectModel()->getGroupNode(m_node.get())->getAudioGroup()->setIdDatabases();
+            g_MainWindow->projectModel()->setIdDatabases(m_node.get());
             return amuse::SFXId::CurNameDB->resolveNameFromId(entry->first.id).data();
         }
         case 1:
@@ -172,7 +294,7 @@ bool SFXModel::setData(const QModelIndex& index, const QVariant& value, int role
     {
     case 0:
     {
-        g_MainWindow->projectModel()->getGroupNode(m_node.get())->getAudioGroup()->setIdDatabases();
+        g_MainWindow->projectModel()->setIdDatabases(m_node.get());
         auto utf8key = value.toString().toUtf8();
         std::unordered_map<std::string, amuse::ObjectId>::iterator idIt;
         if ((idIt = amuse::SFXId::CurNameDB->m_stringToId.find(utf8key.data())) != amuse::SFXId::CurNameDB->m_stringToId.cend())
@@ -184,39 +306,45 @@ bool SFXModel::setData(const QModelIndex& index, const QVariant& value, int role
             return false;
         }
         emit layoutAboutToBeChanged();
-        amuse::SFXId::CurNameDB->rename(entry.m_it->first, utf8key.data());
+        g_MainWindow->pushUndoCommand(new SFXNameChangeUndoCommand(m_node.get(),
+            tr("Change SFX Name"), entry->first, utf8key.data()));
         _buildSortedList();
-        QModelIndex newIndex = _indexOfSFX(entry.m_it->first);
+        QModelIndex newIndex = _indexOfSFX(entry->first);
         changePersistentIndex(index, newIndex);
         emit layoutChanged();
         emit dataChanged(newIndex, newIndex, {Qt::DisplayRole, Qt::EditRole});
         return true;
     }
     case 2:
-        entry->second.priority = value.toInt();
-        emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
-        return true;
-    case 3:
-        entry->second.maxVoices = value.toInt();
-        emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
-        return true;
-    case 4:
-        entry->second.defVel = value.toInt();
-        emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
-        return true;
-    case 5:
-        entry->second.panning = value.toInt();
-        emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
-        return true;
-    case 6:
-        entry->second.defKey = value.toInt();
-        emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
-        return true;
-    default:
+        if (entry->second.priority == value.toInt())
+            return false;
         break;
+    case 3:
+        if (entry->second.maxVoices == value.toInt())
+            return false;
+        break;
+    case 4:
+        if (entry->second.defVel == value.toInt())
+            return false;
+        break;
+    case 5:
+        if (entry->second.panning == value.toInt())
+            return false;
+        break;
+    case 6:
+        if (entry->second.defKey == value.toInt())
+            return false;
+        break;
+    default:
+        return false;
     }
 
-    return false;
+    g_MainWindow->pushUndoCommand(new SFXDataChangeUndoCommand(m_node.get(),
+        tr("Change %1").arg(headerData(index.column(), Qt::Horizontal).toString()),
+        entry->first, index.column(), value.toInt()));
+    emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
+
+    return true;
 }
 
 QVariant SFXModel::headerData(int section, Qt::Orientation orientation, int role) const
@@ -255,42 +383,104 @@ Qt::ItemFlags SFXModel::flags(const QModelIndex& index) const
     return Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsEditable;
 }
 
-bool SFXModel::insertRows(int row, int count, const QModelIndex& parent)
+class SFXRowUndoCommand : public EditorUndoCommand
+{
+protected:
+    SFXTableView* m_view;
+    std::vector<std::tuple<amuse::SFXId, std::string, amuse::SFXGroupIndex::SFXEntry>> m_data;
+    bool m_undid = false;
+    void add()
+    {
+        m_view->selectionModel()->clearSelection();
+        for (auto& p : m_data)
+        {
+            int row = static_cast<SFXModel*>(m_view->model())->_insertRow(p);
+            m_view->selectionModel()->select(QItemSelection(
+                m_view->model()->index(row, 0), m_view->model()->index(row, 6)),
+                                               QItemSelectionModel::SelectCurrent);
+        }
+    }
+    void del()
+    {
+        for (auto it = m_data.rbegin(); it != m_data.rend(); ++it)
+        {
+            *it = static_cast<SFXModel*>(m_view->model())->_removeRow(std::get<0>(*it));
+        }
+    }
+    void undo()
+    {
+        m_undid = true;
+        EditorUndoCommand::undo();
+    }
+    void redo()
+    {
+        if (m_undid)
+            EditorUndoCommand::redo();
+    }
+public:
+    explicit SFXRowUndoCommand(ProjectModel::SoundGroupNode* node, const QString& text, SFXTableView* view,
+                               std::vector<std::tuple<amuse::SFXId, std::string, amuse::SFXGroupIndex::SFXEntry>>&& data)
+        : EditorUndoCommand(node, text), m_view(view), m_data(std::move(data)) {}
+};
+
+class SFXRowAddUndoCommand : public SFXRowUndoCommand
+{
+    using base = SFXRowUndoCommand;
+public:
+    explicit SFXRowAddUndoCommand(ProjectModel::SoundGroupNode* node, const QString& text, SFXTableView* view,
+                                  std::vector<std::tuple<amuse::SFXId, std::string, amuse::SFXGroupIndex::SFXEntry>>&& data)
+    : SFXRowUndoCommand(node, text, view, std::move(data)) {}
+    void undo() { base::undo(); base::del(); }
+    void redo() { base::redo(); base::add(); }
+};
+
+class SFXRowDelUndoCommand : public SFXRowUndoCommand
+{
+    using base = SFXRowUndoCommand;
+public:
+    explicit SFXRowDelUndoCommand(ProjectModel::SoundGroupNode* node, const QString& text, SFXTableView* view,
+                                  std::vector<std::tuple<amuse::SFXId, std::string, amuse::SFXGroupIndex::SFXEntry>>&& data)
+    : SFXRowUndoCommand(node, text, view, std::move(data)) {}
+    void undo() { base::undo(); base::add(); }
+    void redo() { base::redo(); base::del(); }
+};
+
+int SFXModel::_insertRow(const std::tuple<amuse::SFXId, std::string, amuse::SFXGroupIndex::SFXEntry>& data)
 {
     if (!m_node)
-        return false;
+        return 0;
     auto& map = _getMap();
-    g_MainWindow->projectModel()->getGroupNode(m_node.get())->getAudioGroup()->setIdDatabases();
-    for (int i = 0; i < count; ++i)
-    {
-        amuse::ObjectId sfxId = amuse::SFXId::CurNameDB->generateId(amuse::NameDB::Type::SFX);
-        std::string sfxName = amuse::SFXId::CurNameDB->generateName(sfxId, amuse::NameDB::Type::SFX);
-        int insertIdx = _hypotheticalIndexOfSFX(sfxName);
-        beginInsertRows(parent, insertIdx, insertIdx);
-        amuse::SFXId::CurNameDB->registerPair(sfxName, sfxId);
-        map.emplace(std::make_pair(sfxId, amuse::SFXGroupIndex::SFXEntry{}));
-        _buildSortedList();
-        endInsertRows();
-        ++row;
-    }
-    return true;
+    g_MainWindow->projectModel()->setIdDatabases(m_node.get());
+    amuse::SFXId::CurNameDB->registerPair(std::get<1>(data), std::get<0>(data));
+    int idx = _hypotheticalIndexOfSFX(std::get<1>(data));
+    beginInsertRows(QModelIndex(), idx, idx);
+    map.emplace(std::make_pair(std::get<0>(data), std::get<2>(data)));
+    _buildSortedList();
+    endInsertRows();
+    return idx;
 }
 
-bool SFXModel::removeRows(int row, int count, const QModelIndex& parent)
+std::tuple<amuse::SFXId, std::string, amuse::SFXGroupIndex::SFXEntry> SFXModel::_removeRow(amuse::SFXId sfx)
 {
+    std::tuple<amuse::SFXId, std::string, amuse::SFXGroupIndex::SFXEntry> ret;
     if (!m_node)
-        return false;
+        return ret;
     auto& map = _getMap();
-    beginRemoveRows(parent, row, row + count - 1);
-    std::vector<amuse::SFXId> removeSFXs;
-    removeSFXs.reserve(count);
-    for (int i = 0; i < count; ++i)
-        removeSFXs.push_back(m_sorted[row+i].m_it->first);
-    for (amuse::SFXId sfx : removeSFXs)
-        map.erase(sfx);
+    g_MainWindow->projectModel()->setIdDatabases(m_node.get());
+    int idx = _indexOfSFX(sfx).row();
+    beginRemoveRows(QModelIndex(), idx, idx);
+    std::get<0>(ret) = sfx;
+    std::get<1>(ret) = amuse::SFXId::CurNameDB->resolveNameFromId(sfx);
+    auto search = map.find(sfx);
+    if (search != map.cend())
+    {
+        std::get<2>(ret) = search->second;
+        amuse::SFXId::CurNameDB->remove(sfx);
+        map.erase(search);
+    }
     _buildSortedList();
     endRemoveRows();
-    return true;
+    return ret;
 }
 
 SFXModel::SFXModel(QObject* parent)
@@ -299,9 +489,20 @@ SFXModel::SFXModel(QObject* parent)
 
 void SFXTableView::deleteSelection()
 {
-    QModelIndexList list;
-    while (!(list = selectionModel()->selectedRows()).isEmpty())
-        model()->removeRow(list.back().row());
+    QModelIndexList list = selectionModel()->selectedRows();
+    if (list.isEmpty())
+        return;
+    std::sort(list.begin(), list.end(), [](const auto& a, const auto& b) { return a.row() < b.row(); });
+    std::vector<std::tuple<amuse::SFXId, std::string, amuse::SFXGroupIndex::SFXEntry>> data;
+    data.reserve(list.size());
+    for (QModelIndex idx : list)
+    {
+        auto& entry = *static_cast<SFXModel*>(model())->m_sorted[idx.row()].m_it;
+        data.push_back({entry.first, {}, {}});
+    }
+    g_MainWindow->pushUndoCommand(
+        new SFXRowDelUndoCommand(static_cast<SFXModel*>(model())->m_node.get(),
+        data.size() > 1 ? tr("Delete SFX Entries") : tr("Delete SFX Entry"), this, std::move(data)));
 }
 
 void SFXTableView::setModel(QAbstractItemModel* model)
@@ -420,11 +621,13 @@ bool SoundGroupEditor::isItemEditEnabled() const
 
 void SoundGroupEditor::doAdd()
 {
-    QModelIndex idx = m_sfxTable->selectionModel()->currentIndex();
-    if (!idx.isValid())
-        m_sfxTable->model()->insertRow(m_sfxTable->model()->rowCount() - 1);
-    else
-        m_sfxTable->model()->insertRow(idx.row());
+    g_MainWindow->projectModel()->setIdDatabases(m_sfxs.m_node.get());
+    std::vector<std::tuple<amuse::SFXId, std::string, amuse::SFXGroupIndex::SFXEntry>> data;
+    amuse::SFXId sfxId = amuse::SFXId::CurNameDB->generateId(amuse::NameDB::Type::SFX);
+    std::string sfxName = amuse::SFXId::CurNameDB->generateName(sfxId, amuse::NameDB::Type::SFX);
+    data.push_back(std::make_tuple(sfxId, sfxName, amuse::SFXGroupIndex::SFXEntry{}));
+    g_MainWindow->pushUndoCommand(
+        new SFXRowAddUndoCommand(m_sfxs.m_node.get(), tr("Add SFX Entry"), m_sfxTable, std::move(data)));
 }
 
 void SoundGroupEditor::doSelectionChanged()
@@ -440,9 +643,9 @@ void SoundGroupEditor::sfxDataChanged()
     {
         QModelIndex index = m_sfxs.index(idx, 1);
         SFXPlayerWidget* w = qobject_cast<SFXPlayerWidget*>(m_sfxTable->indexWidget(index));
-        if (!w || w->sfxId() != p.m_it->first)
+        if (!w || w->sfxId() != p->first)
         {
-            SFXPlayerWidget* newW = new SFXPlayerWidget(index, m_sfxs.m_node->m_id, p.m_it->first);
+            SFXPlayerWidget* newW = new SFXPlayerWidget(index, m_sfxs.m_node->m_id, p->first);
             m_sfxTable->setIndexWidget(index, newW);
         }
         ++idx;

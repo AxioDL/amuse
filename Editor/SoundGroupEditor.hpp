@@ -23,13 +23,14 @@ class SFXModel : public QAbstractTableModel
 Q_OBJECT
     friend class SoundGroupEditor;
     friend class SFXObjectDelegate;
+    friend class SFXTableView;
     amuse::ObjToken<ProjectModel::SoundGroupNode> m_node;
     struct Iterator
     {
         using ItTp = std::unordered_map<amuse::SFXId, amuse::SFXGroupIndex::SFXEntry>::iterator;
         ItTp m_it;
         Iterator(ItTp it) : m_it(it) {}
-        ItTp::pointer operator->() { return m_it.operator->(); }
+        ItTp::pointer operator->() const { return m_it.operator->(); }
         bool operator<(const Iterator& other) const
         {
             return amuse::SFXId::CurNameDB->resolveNameFromId(m_it->first) <
@@ -62,8 +63,8 @@ public:
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
     Qt::ItemFlags flags(const QModelIndex& index) const;
 
-    bool insertRows(int row, int count, const QModelIndex& parent = QModelIndex());
-    bool removeRows(int row, int count, const QModelIndex& parent = QModelIndex());
+    int _insertRow(const std::tuple<amuse::SFXId, std::string, amuse::SFXGroupIndex::SFXEntry>& data);
+    std::tuple<amuse::SFXId, std::string, amuse::SFXGroupIndex::SFXEntry> _removeRow(amuse::SFXId sfx);
 };
 
 class SFXTableView : public QTableView

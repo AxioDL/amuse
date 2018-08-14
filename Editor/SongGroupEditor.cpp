@@ -2,6 +2,232 @@
 #include "MainWindow.hpp"
 #include "amuse/SongConverter.hpp"
 
+class PageDataChangeUndoCommand : public EditorUndoCommand
+{
+    bool m_drum;
+    uint8_t m_prog;
+    int m_column;
+    int m_undoVal, m_redoVal;
+    bool m_undid = false;
+public:
+    explicit PageDataChangeUndoCommand(ProjectModel::SongGroupNode* node, const QString& text,
+                                       bool drum, uint8_t prog, int column, int redoVal)
+    : EditorUndoCommand(node, text), m_drum(drum), m_prog(prog), m_column(column), m_redoVal(redoVal) {}
+    void undo()
+    {
+        m_undid = true;
+        amuse::SongGroupIndex& index = *static_cast<ProjectModel::SongGroupNode*>(m_node.get())->m_index;
+        auto& map = m_drum ? index.m_drumPages : index.m_normPages;
+        amuse::SongGroupIndex::PageEntry& entry = map[m_prog];
+
+        switch (m_column)
+        {
+        case 0:
+        {
+            auto nh = map.extract(m_prog);
+            nh.key() = m_undoVal;
+            m_prog = m_undoVal;
+            map.insert(std::move(nh));
+            break;
+        }
+        case 1:
+            entry.objId.id = m_undoVal;
+            break;
+        case 2:
+            entry.priority = m_undoVal;
+            break;
+        case 3:
+            entry.maxVoices = m_undoVal;
+            break;
+        default:
+            break;
+        }
+
+        EditorUndoCommand::undo();
+    }
+    void redo()
+    {
+        amuse::SongGroupIndex& index = *static_cast<ProjectModel::SongGroupNode*>(m_node.get())->m_index;
+        auto& map = m_drum ? index.m_drumPages : index.m_normPages;
+        amuse::SongGroupIndex::PageEntry& entry = map[m_prog];
+
+        switch (m_column)
+        {
+        case 0:
+        {
+            auto nh = map.extract(m_prog);
+            m_undoVal = m_prog;
+            nh.key() = m_redoVal;
+            m_prog = m_redoVal;
+            map.insert(std::move(nh));
+            break;
+        }
+        case 1:
+            m_undoVal = entry.objId.id;
+            entry.objId.id = m_redoVal;
+            break;
+        case 2:
+            m_undoVal = entry.priority;
+            entry.priority = m_redoVal;
+            break;
+        case 3:
+            m_undoVal = entry.maxVoices;
+            entry.maxVoices = m_redoVal;
+            break;
+        default:
+            break;
+        }
+
+        if (m_undid)
+            EditorUndoCommand::redo();
+    }
+};
+
+class SetupDataChangeUndoCommand : public EditorUndoCommand
+{
+    amuse::SongId m_song;
+    int m_row, m_column;
+    int m_undoVal, m_redoVal;
+    bool m_undid = false;
+public:
+    explicit SetupDataChangeUndoCommand(ProjectModel::SongGroupNode* node, const QString& text,
+                                        amuse::SongId song, int row, int column, int redoVal)
+    : EditorUndoCommand(node, text), m_song(song), m_row(row), m_column(column), m_redoVal(redoVal) {}
+    void undo()
+    {
+        m_undid = true;
+        amuse::SongGroupIndex& index = *static_cast<ProjectModel::SongGroupNode*>(m_node.get())->m_index;
+        auto& map = index.m_midiSetups;
+        std::array<amuse::SongGroupIndex::MIDISetup, 16>& entry = map[m_song];
+
+        switch (m_column)
+        {
+        case 0:
+            entry[m_row].programNo = m_undoVal;
+            break;
+        case 2:
+            entry[m_row].volume = m_undoVal;
+            break;
+        case 3:
+            entry[m_row].panning = m_undoVal;
+            break;
+        case 4:
+            entry[m_row].reverb = m_undoVal;
+            break;
+        case 5:
+            entry[m_row].chorus = m_undoVal;
+            break;
+        default:
+            break;
+        }
+
+        EditorUndoCommand::undo();
+    }
+    void redo()
+    {
+        amuse::SongGroupIndex& index = *static_cast<ProjectModel::SongGroupNode*>(m_node.get())->m_index;
+        auto& map = index.m_midiSetups;
+        std::array<amuse::SongGroupIndex::MIDISetup, 16>& entry = map[m_song];
+
+        switch (m_column)
+        {
+        case 0:
+            m_undoVal = entry[m_row].programNo;
+            entry[m_row].programNo = m_redoVal;
+            break;
+        case 2:
+            m_undoVal = entry[m_row].volume;
+            entry[m_row].volume = m_redoVal;
+            break;
+        case 3:
+            m_undoVal = entry[m_row].panning;
+            entry[m_row].panning = m_redoVal;
+            break;
+        case 4:
+            m_undoVal = entry[m_row].reverb;
+            entry[m_row].reverb = m_redoVal;
+            break;
+        case 5:
+            m_undoVal = entry[m_row].chorus;
+            entry[m_row].chorus = m_redoVal;
+            break;
+        default:
+            break;
+        }
+
+        if (m_undid)
+            EditorUndoCommand::redo();
+    }
+};
+
+class SongNameChangeUndoCommand : public EditorUndoCommand
+{
+    amuse::SongId m_song;
+    std::string m_undoVal, m_redoVal;
+    bool m_undid = false;
+public:
+    explicit SongNameChangeUndoCommand(ProjectModel::SongGroupNode* node, const QString& text,
+                                        amuse::SongId song, std::string_view redoVal)
+    : EditorUndoCommand(node, text), m_song(song), m_redoVal(redoVal) {}
+    void undo()
+    {
+        m_undid = true;
+        g_MainWindow->projectModel()->setIdDatabases(m_node.get());
+        amuse::SongGroupIndex& index = *static_cast<ProjectModel::SongGroupNode*>(m_node.get())->m_index;
+        auto& map = index.m_midiSetups;
+
+        amuse::SongId newId = g_MainWindow->projectModel()->exchangeSongId(m_song, m_undoVal);
+
+        auto nh = map.extract(m_song);
+        nh.key() = newId;
+        m_song = newId;
+        map.insert(std::move(nh));
+
+        EditorUndoCommand::undo();
+    }
+    void redo()
+    {
+        g_MainWindow->projectModel()->setIdDatabases(m_node.get());
+        amuse::SongGroupIndex& index = *static_cast<ProjectModel::SongGroupNode*>(m_node.get())->m_index;
+        auto& map = index.m_midiSetups;
+
+        m_undoVal = amuse::SongId::CurNameDB->resolveNameFromId(m_song);
+        amuse::SongId newId = g_MainWindow->projectModel()->exchangeSongId(m_song, m_redoVal);
+
+        auto nh = map.extract(m_song);
+        nh.key() = newId;
+        m_song = newId;
+        map.insert(std::move(nh));
+
+        if (m_undid)
+            EditorUndoCommand::redo();
+    }
+};
+
+class SongMIDIPathChangeUndoCommand : public EditorUndoCommand
+{
+    amuse::SongId m_song;
+    QString m_undoVal, m_redoVal;
+    bool m_undid = false;
+public:
+    explicit SongMIDIPathChangeUndoCommand(ProjectModel::SongGroupNode* node, const QString& text,
+                                           amuse::SongId song, QString redoVal)
+    : EditorUndoCommand(node, text), m_song(song), m_redoVal(redoVal) {}
+    void undo()
+    {
+        m_undid = true;
+        g_MainWindow->projectModel()->setMIDIPathOfSong(m_song, m_undoVal);
+        EditorUndoCommand::undo();
+    }
+    void redo()
+    {
+        m_undoVal = g_MainWindow->projectModel()->getMIDIPathOfSong(m_song);
+        g_MainWindow->projectModel()->setMIDIPathOfSong(m_song, m_redoVal);
+        if (m_undid)
+            EditorUndoCommand::redo();
+    }
+};
+
 PageObjectDelegate::PageObjectDelegate(QObject* parent)
 : QStyledItemDelegate(parent) {}
 
@@ -33,19 +259,23 @@ void PageObjectDelegate::setModelData(QWidget* editor, QAbstractItemModel* m, co
     const PageModel* model = static_cast<const PageModel*>(m);
     auto entry = model->m_sorted[index.row()];
     int idx = static_cast<EditorFieldPageObjectNode*>(editor)->currentIndex();
-    if (idx == 0)
-    {
-        entry->second.objId.id = amuse::ObjectId();
-    }
-    else
+    amuse::ObjectId id;
+    if (idx != 0)
     {
         ProjectModel::BasePoolObjectNode* node = static_cast<ProjectModel::BasePoolObjectNode*>(
             g_MainWindow->projectModel()->node(
                 g_MainWindow->projectModel()->getPageObjectProxy()->mapToSource(
                     g_MainWindow->projectModel()->getPageObjectProxy()->index(idx, 0,
                         static_cast<EditorFieldPageObjectNode*>(editor)->rootModelIndex()))));
-        entry->second.objId.id = node->id();
+        id = node->id();
     }
+    if (id == entry->second.objId.id)
+    {
+        emit m->dataChanged(index, index);
+        return;
+    }
+    g_MainWindow->pushUndoCommand(new PageDataChangeUndoCommand(model->m_node.get(),
+        tr("Change %1").arg(m->headerData(1, Qt::Horizontal).toString()), model->m_drum, entry->first, 1, id.id));
     emit m->dataChanged(index, index);
 }
 
@@ -106,7 +336,10 @@ void MIDIFileDelegate::setModelData(QWidget* editor, QAbstractItemModel* m, cons
     MIDIFileFieldWidget* widget = static_cast<MIDIFileFieldWidget*>(editor);
     const SetupListModel* model = static_cast<const SetupListModel*>(index.model());
     auto entry = model->m_sorted[index.row()];
-    g_MainWindow->projectModel()->setMIDIPathOfSong(entry->first, widget->path());
+    if (g_MainWindow->projectModel()->getMIDIPathOfSong(entry->first) == widget->path())
+        return;
+    g_MainWindow->pushUndoCommand(new SongMIDIPathChangeUndoCommand(model->m_node.get(),
+        tr("Change MIDI Path"), entry->first, widget->path()));
     emit m->dataChanged(index, index);
 }
 
@@ -237,9 +470,10 @@ bool PageModel::setData(const QModelIndex& index, const QVariant& value, int rol
             return false;
         }
         emit layoutAboutToBeChanged();
-        auto nh = map.extract(entry->first);
-        nh.key() = value.toInt();
-        map.insert(std::move(nh));
+
+        g_MainWindow->pushUndoCommand(new PageDataChangeUndoCommand(m_node.get(),
+            tr("Change %1").arg(headerData(0, Qt::Horizontal).toString()), m_drum, entry->first, 0, value.toInt()));
+
         _buildSortedList();
         QModelIndex newIndex = _indexOfProgram(value.toInt());
         changePersistentIndex(index, newIndex);
@@ -247,19 +481,28 @@ bool PageModel::setData(const QModelIndex& index, const QVariant& value, int rol
         emit dataChanged(newIndex, newIndex);
         return true;
     }
-    case 2:
-        entry->second.priority = value.toInt();
-        emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
-        return true;
-    case 3:
-        entry->second.maxVoices = value.toInt();
-        emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
-        return true;
-    default:
+    case 1:
+        if (entry->second.objId.id == value.toInt())
+            return false;
         break;
+    case 2:
+        if (entry->second.priority == value.toInt())
+            return false;
+        break;
+    case 3:
+        if (entry->second.maxVoices == value.toInt())
+            return false;
+        break;
+    default:
+        return false;
     }
 
-    return false;
+    g_MainWindow->pushUndoCommand(new PageDataChangeUndoCommand(m_node.get(),
+        tr("Change %1").arg(headerData(index.column(), Qt::Horizontal).toString()), m_drum,
+        entry->first, index.column(), value.toInt()));
+
+    emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
+    return true;
 }
 
 QVariant PageModel::headerData(int section, Qt::Orientation orientation, int role) const
@@ -292,64 +535,99 @@ Qt::ItemFlags PageModel::flags(const QModelIndex& index) const
     return Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsEditable;
 }
 
-bool PageModel::insertRows(int row, int count, const QModelIndex& parent)
+class PageRowUndoCommand : public EditorUndoCommand
+{
+protected:
+    PageTableView* m_view;
+    std::vector<std::pair<uint8_t, amuse::SongGroupIndex::PageEntry>> m_data;
+    bool m_undid = false;
+    void add()
+    {
+        m_view->selectionModel()->clearSelection();
+        for (const auto& p : m_data)
+        {
+            int row = static_cast<PageModel*>(m_view->model())->_insertRow(p);
+            m_view->selectionModel()->select(QItemSelection(
+                m_view->model()->index(row, 0), m_view->model()->index(row, 3)),
+                                       QItemSelectionModel::SelectCurrent);
+        }
+    }
+    void del()
+    {
+        for (auto it = m_data.rbegin(); it != m_data.rend(); ++it)
+        {
+            *it = static_cast<PageModel*>(m_view->model())->_removeRow(it->first);
+        }
+    }
+    void undo()
+    {
+        m_undid = true;
+        EditorUndoCommand::undo();
+    }
+    void redo()
+    {
+        if (m_undid)
+            EditorUndoCommand::redo();
+    }
+public:
+    explicit PageRowUndoCommand(ProjectModel::SongGroupNode* node, const QString& text, PageTableView* view,
+                                std::vector<std::pair<uint8_t, amuse::SongGroupIndex::PageEntry>>&& data)
+    : EditorUndoCommand(node, text), m_view(view), m_data(std::move(data)) {}
+};
+
+class PageRowAddUndoCommand : public PageRowUndoCommand
+{
+    using base = PageRowUndoCommand;
+public:
+    explicit PageRowAddUndoCommand(ProjectModel::SongGroupNode* node, const QString& text, PageTableView* view,
+                                   std::vector<std::pair<uint8_t, amuse::SongGroupIndex::PageEntry>>&& data)
+    : PageRowUndoCommand(node, text, view, std::move(data)) {}
+    void undo() { base::undo(); base::del(); }
+    void redo() { base::redo(); base::add(); }
+};
+
+class PageRowDelUndoCommand : public PageRowUndoCommand
+{
+    using base = PageRowUndoCommand;
+public:
+    explicit PageRowDelUndoCommand(ProjectModel::SongGroupNode* node, const QString& text, PageTableView* view,
+                                   std::vector<std::pair<uint8_t, amuse::SongGroupIndex::PageEntry>>&& data)
+    : PageRowUndoCommand(node, text, view, std::move(data)) {}
+    void undo() { base::undo(); base::add(); }
+    void redo() { base::redo(); base::del(); }
+};
+
+int PageModel::_insertRow(const std::pair<uint8_t, amuse::SongGroupIndex::PageEntry>& data)
 {
     if (!m_node)
-        return false;
-    if (m_sorted.size() >= 128)
-        return false;
+        return 0;
     auto& map = _getMap();
-    if (m_sorted.empty())
-    {
-        beginInsertRows(parent, 0, count - 1);
-        for (int i = 0; i < count; ++i)
-            map.emplace(std::make_pair(i, amuse::SongGroupIndex::PageEntry{}));
-        _buildSortedList();
-        endInsertRows();
-        return true;
-    }
-    for (int i = 0; i < count; ++i)
-    {
-        int prog = -1;
-        if (row < m_sorted.size())
-        {
-            prog = m_sorted[row].m_it->first;
-            while (prog >= 0 && _indexOfProgram(prog).isValid())
-                --prog;
-        }
-        if (prog == -1)
-        {
-            prog = 0;
-            while (prog < 128 && _indexOfProgram(prog).isValid())
-                ++prog;
-        }
-        if (prog == 128)
-            return true;
-        int insertIdx = _hypotheticalIndexOfProgram(prog);
-        beginInsertRows(parent, insertIdx, insertIdx);
-        map.emplace(std::make_pair(prog, amuse::SongGroupIndex::PageEntry{}));
-        _buildSortedList();
-        endInsertRows();
-        ++row;
-    }
-    return true;
+    int idx = _hypotheticalIndexOfProgram(data.first);
+    beginInsertRows(QModelIndex(), idx, idx);
+    map.emplace(data);
+    _buildSortedList();
+    endInsertRows();
+    return idx;
 }
 
-bool PageModel::removeRows(int row, int count, const QModelIndex& parent)
+std::pair<uint8_t, amuse::SongGroupIndex::PageEntry> PageModel::_removeRow(uint8_t prog)
 {
+    std::pair<uint8_t, amuse::SongGroupIndex::PageEntry> ret;
     if (!m_node)
-        return false;
+        return ret;
     auto& map = _getMap();
-    beginRemoveRows(parent, row, row + count - 1);
-    std::vector<uint8_t> removeProgs;
-    removeProgs.reserve(count);
-    for (int i = 0; i < count; ++i)
-        removeProgs.push_back(m_sorted[row+i].m_it->first);
-    for (uint8_t prog : removeProgs)
-        map.erase(prog);
+    int idx = _hypotheticalIndexOfProgram(prog);
+    beginRemoveRows(QModelIndex(), idx, idx);
+    ret.first = prog;
+    auto search = map.find(prog);
+    if (search != map.cend())
+    {
+        ret.second = search->second;
+        map.erase(search);
+    }
     _buildSortedList();
     endRemoveRows();
-    return true;
+    return ret;
 }
 
 PageModel::PageModel(bool drum, QObject* parent)
@@ -392,7 +670,7 @@ void SetupListModel::loadData(ProjectModel::SongGroupNode* node)
 {
     beginResetModel();
     m_node = node;
-    g_MainWindow->projectModel()->getGroupNode(m_node.get())->getAudioGroup()->setIdDatabases();
+    g_MainWindow->projectModel()->setIdDatabases(m_node.get());
     _buildSortedList();
     endResetModel();
 }
@@ -434,7 +712,7 @@ QVariant SetupListModel::data(const QModelIndex& index, int role) const
     {
         if (index.column() == 0)
         {
-            g_MainWindow->projectModel()->getGroupNode(m_node.get())->getAudioGroup()->setIdDatabases();
+            g_MainWindow->projectModel()->setIdDatabases(m_node.get());
             return amuse::SongId::CurNameDB->resolveNameFromId(entry->first.id).data();
         }
         else if (index.column() == 1)
@@ -451,10 +729,9 @@ bool SetupListModel::setData(const QModelIndex& index, const QVariant& value, in
     if (!m_node || role != Qt::EditRole || index.column() != 0)
         return false;
 
-    auto& map = _getMap();
     auto entry = m_sorted[index.row()];
 
-    g_MainWindow->projectModel()->getGroupNode(m_node.get())->getAudioGroup()->setIdDatabases();
+    g_MainWindow->projectModel()->setIdDatabases(m_node.get());
     auto utf8key = value.toString().toUtf8();
     std::unordered_map<std::string, amuse::ObjectId>::iterator idIt;
     if ((idIt = amuse::SongId::CurNameDB->m_stringToId.find(utf8key.data())) != amuse::SongId::CurNameDB->m_stringToId.cend())
@@ -466,7 +743,8 @@ bool SetupListModel::setData(const QModelIndex& index, const QVariant& value, in
         return false;
     }
     emit layoutAboutToBeChanged();
-    amuse::SongId::CurNameDB->rename(entry.m_it->first, utf8key.data());
+    g_MainWindow->pushUndoCommand(new SongNameChangeUndoCommand(m_node.get(),
+        tr("Change Song Name"), entry.m_it->first, utf8key.data()));
     _buildSortedList();
     QModelIndex newIndex = _indexOfSong(entry.m_it->first);
     changePersistentIndex(index, newIndex);
@@ -500,46 +778,112 @@ Qt::ItemFlags SetupListModel::flags(const QModelIndex& index) const
     return Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsEditable;
 }
 
-bool SetupListModel::insertRows(int row, int count, const QModelIndex& parent)
+class SetupRowUndoCommand : public EditorUndoCommand
+{
+protected:
+    SetupTableView* m_view;
+    std::vector<std::tuple<amuse::SongId, std::string, std::array<amuse::SongGroupIndex::MIDISetup, 16>>> m_data;
+    bool m_undid = false;
+    void add()
+    {
+        QTableView* listView = m_view->m_listView;
+        listView->selectionModel()->clearSelection();
+        for (auto& p : m_data)
+        {
+            int row = static_cast<SetupListModel*>(m_view->m_listView->model())->_insertRow(p);
+            listView->selectionModel()->select(QItemSelection(
+                listView->model()->index(row, 0), listView->model()->index(row, 1)),
+                                             QItemSelectionModel::SelectCurrent);
+        }
+    }
+    void del()
+    {
+        QTableView* listView = m_view->m_listView;
+        for (auto it = m_data.rbegin(); it != m_data.rend(); ++it)
+        {
+            *it = static_cast<SetupListModel*>(listView->model())->_removeRow(std::get<0>(*it));
+        }
+    }
+    void undo()
+    {
+        m_undid = true;
+        EditorUndoCommand::undo();
+    }
+    void redo()
+    {
+        if (m_undid)
+            EditorUndoCommand::redo();
+    }
+public:
+    explicit SetupRowUndoCommand(ProjectModel::SongGroupNode* node, const QString& text, SetupTableView* view,
+                                 std::vector<std::tuple<amuse::SongId, std::string, std::array<amuse::SongGroupIndex::MIDISetup, 16>>>&& data)
+    : EditorUndoCommand(node, text), m_view(view), m_data(std::move(data)) {}
+};
+
+class SetupRowAddUndoCommand : public SetupRowUndoCommand
+{
+    using base = SetupRowUndoCommand;
+public:
+    explicit SetupRowAddUndoCommand(ProjectModel::SongGroupNode* node, const QString& text, SetupTableView* view,
+                                    std::vector<std::tuple<amuse::SongId, std::string, std::array<amuse::SongGroupIndex::MIDISetup, 16>>>&& data)
+    : SetupRowUndoCommand(node, text, view, std::move(data)) {}
+    void undo() { base::undo(); base::del(); }
+    void redo() { base::redo(); base::add(); }
+};
+
+class SetupRowDelUndoCommand : public SetupRowUndoCommand
+{
+    using base = SetupRowUndoCommand;
+public:
+    explicit SetupRowDelUndoCommand(ProjectModel::SongGroupNode* node, const QString& text, SetupTableView* view,
+                                    std::vector<std::tuple<amuse::SongId, std::string, std::array<amuse::SongGroupIndex::MIDISetup, 16>>>&& data)
+    : SetupRowUndoCommand(node, text, view, std::move(data)) {}
+    void undo() { base::undo(); base::add(); }
+    void redo() { base::redo(); base::del(); }
+};
+
+int SetupListModel::_insertRow(
+    std::tuple<amuse::SongId, std::string, std::array<amuse::SongGroupIndex::MIDISetup, 16>>& data)
 {
     if (!m_node)
-        return false;
+        return 0;
     auto& map = _getMap();
-    g_MainWindow->projectModel()->getGroupNode(m_node.get())->getAudioGroup()->setIdDatabases();
-    for (int i = 0; i < count; ++i)
-    {
-        amuse::ObjectId songId = amuse::SongId::CurNameDB->generateId(amuse::NameDB::Type::Song);
-        std::string songName = amuse::SongId::CurNameDB->generateName(songId, amuse::NameDB::Type::Song);
-        int insertIdx = _hypotheticalIndexOfSong(songName);
-        beginInsertRows(parent, insertIdx, insertIdx);
-        amuse::SongId::CurNameDB->registerPair(songName, songId);
-        map.emplace(std::make_pair(songId, std::array<amuse::SongGroupIndex::MIDISetup, 16>{}));
-        _buildSortedList();
-        endInsertRows();
-        ++row;
-    }
-    return true;
+    g_MainWindow->projectModel()->setIdDatabases(m_node.get());
+    if (std::get<0>(data).id == 0xffff)
+        std::get<0>(data) = amuse::SongId::CurNameDB->generateId(amuse::NameDB::Type::Song);
+
+    g_MainWindow->projectModel()->_allocateSongId(std::get<0>(data), std::get<1>(data));
+    int idx = _hypotheticalIndexOfSong(std::get<1>(data));
+    beginInsertRows(QModelIndex(), idx, idx);
+    map[std::get<0>(data)] = std::get<2>(data);
+    _buildSortedList();
+    endInsertRows();
+    return idx;
 }
 
-bool SetupListModel::removeRows(int row, int count, const QModelIndex& parent)
+std::tuple<amuse::SongId, std::string, std::array<amuse::SongGroupIndex::MIDISetup, 16>>
+    SetupListModel::_removeRow(amuse::SongId id)
 {
+    std::tuple<amuse::SongId, std::string, std::array<amuse::SongGroupIndex::MIDISetup, 16>> ret = {};
     if (!m_node)
-        return false;
+        return ret;
+
     auto& map = _getMap();
-    g_MainWindow->projectModel()->getGroupNode(m_node.get())->getAudioGroup()->setIdDatabases();
-    beginRemoveRows(parent, row, row + count - 1);
-    std::vector<amuse::SongId> removeSongs;
-    removeSongs.reserve(count);
-    for (int i = 0; i < count; ++i)
-        removeSongs.push_back(m_sorted[row+i].m_it->first);
-    for (amuse::SongId song : removeSongs)
+    g_MainWindow->projectModel()->setIdDatabases(m_node.get());
+    std::get<0>(ret) = id;
+    std::get<1>(ret) = amuse::SongId::CurNameDB->resolveNameFromId(id);
+    int idx = _indexOfSong(id).row();
+    beginRemoveRows(QModelIndex(), idx, idx);
+    auto search = map.find(id);
+    if (search != map.end())
     {
-        amuse::SongId::CurNameDB->remove(song);
-        map.erase(song);
+        std::get<2>(ret) = search->second;
+        g_MainWindow->projectModel()->deallocateSongId(id);
+        map.erase(search);
     }
     _buildSortedList();
     endRemoveRows();
-    return true;
+    return ret;
 }
 
 SetupListModel::SetupListModel(QObject* parent)
@@ -615,30 +959,37 @@ bool SetupModel::setData(const QModelIndex& index, const QVariant& value, int ro
     switch (index.column())
     {
     case 0:
-        entry.programNo = value.toInt();
-        emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
-        return true;
-    case 1:
-        entry.volume = value.toInt();
-        emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
-        return true;
-    case 2:
-        entry.panning = value.toInt();
-        emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
-        return true;
-    case 3:
-        entry.reverb = value.toInt();
-        emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
-        return true;
-    case 4:
-        entry.chorus = value.toInt();
-        emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
-        return true;
-    default:
+        if (entry.programNo == value.toInt())
+            return false;
         break;
+    case 1:
+        if (entry.volume == value.toInt())
+            return false;
+        break;
+    case 2:
+        if (entry.panning == value.toInt())
+            return false;
+        break;
+    case 3:
+        if (entry.reverb == value.toInt())
+            return false;
+        break;
+    case 4:
+        if (entry.chorus == value.toInt())
+            return false;
+        break;
+    default:
+        return false;
     }
 
-    return false;
+    g_MainWindow->pushUndoCommand(new SetupDataChangeUndoCommand(
+        static_cast<SongGroupEditor*>(parent())->m_setupList.m_node.get(),
+        tr("Change %1").arg(headerData(index.column(), Qt::Horizontal).toString()), m_data->first,
+        index.row(), index.column(), value.toInt()));
+
+    emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
+
+    return true;
 }
 
 QVariant SetupModel::headerData(int section, Qt::Orientation orientation, int role) const
@@ -688,9 +1039,17 @@ SetupModel::SetupModel(QObject* parent)
 
 void PageTableView::deleteSelection()
 {
-    QModelIndexList list;
-    while (!(list = selectionModel()->selectedRows()).isEmpty())
-        model()->removeRow(list.back().row());
+    QModelIndexList list = selectionModel()->selectedRows();
+    if (list.isEmpty())
+        return;
+    std::vector<std::pair<uint8_t, amuse::SongGroupIndex::PageEntry>> data;
+    data.reserve(list.size());
+    for (QModelIndex idx : list)
+        data.push_back(std::make_pair(model()->data(idx).toInt(), amuse::SongGroupIndex::PageEntry{}));
+    std::sort(data.begin(), data.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+    g_MainWindow->pushUndoCommand(
+        new PageRowDelUndoCommand(static_cast<PageModel*>(model())->m_node.get(),
+            data.size() > 1 ? tr("Delete Page Entries") : tr("Delete Page Entry"), this, std::move(data)));
 }
 
 void PageTableView::setModel(QAbstractItemModel* model)
@@ -740,9 +1099,20 @@ void SetupTableView::setModel(QAbstractItemModel* list, QAbstractItemModel* tabl
 
 void SetupTableView::deleteSelection()
 {
-    QModelIndexList list;
-    while (!(list = m_listView->selectionModel()->selectedRows()).isEmpty())
-        m_listView->model()->removeRow(list.back().row());
+    QModelIndexList list = m_listView->selectionModel()->selectedRows();
+    if (list.isEmpty())
+        return;
+    std::sort(list.begin(), list.end(), [](const auto& a, const auto& b) { return a.row() < b.row(); });
+    std::vector<std::tuple<amuse::SongId, std::string, std::array<amuse::SongGroupIndex::MIDISetup, 16>>> data;
+    data.reserve(list.size());
+    for (QModelIndex idx : list)
+    {
+        auto& entry = *static_cast<SetupListModel*>(m_listView->model())->m_sorted[idx.row()].m_it;
+        data.push_back({entry.first, {}, {}});
+    }
+    g_MainWindow->pushUndoCommand(
+        new SetupRowDelUndoCommand(static_cast<SetupListModel*>(m_listView->model())->m_node.get(),
+        data.size() > 1 ? tr("Delete Setup Entries") : tr("Delete Setup Entry"), this, std::move(data)));
 }
 
 void SetupTableView::showEvent(QShowEvent* event)
@@ -898,20 +1268,49 @@ void SongGroupEditor::doAdd()
     if (PageTableView* table = qobject_cast<PageTableView*>(m_tabs.currentWidget()))
     {
         QModelIndex idx = table->selectionModel()->currentIndex();
+        int row;
         if (!idx.isValid())
-            table->model()->insertRow(table->model()->rowCount() - 1);
+            row = table->model()->rowCount() - 1;
         else
-            table->model()->insertRow(idx.row());
-        if (PageTableView* ctable = qobject_cast<PageTableView*>(table))
-            m_addRemoveButtons.addAction()->setDisabled(ctable->model()->rowCount() >= 128);
+            row = idx.row();
+
+        PageModel* model = static_cast<PageModel*>(table->model());
+        int prog = 0;
+        if (!model->m_sorted.empty())
+        {
+            prog = -1;
+            if (row < model->m_sorted.size())
+            {
+                prog = model->m_sorted[row].m_it->first;
+                while (prog >= 0 && model->_indexOfProgram(prog).isValid())
+                    --prog;
+            }
+            if (prog == -1)
+            {
+                prog = 0;
+                while (prog < 128 && model->_indexOfProgram(prog).isValid())
+                    ++prog;
+            }
+            if (prog == 128)
+                return;
+        }
+
+        std::vector<std::pair<uint8_t, amuse::SongGroupIndex::PageEntry>> data;
+        data.push_back(std::make_pair(prog, amuse::SongGroupIndex::PageEntry{}));
+        g_MainWindow->pushUndoCommand(
+            new PageRowAddUndoCommand(model->m_node.get(), tr("Add Page Entry"), table, std::move(data)));
+
+        m_addRemoveButtons.addAction()->setDisabled(table->model()->rowCount() >= 128);
     }
     else if (SetupTableView* table = qobject_cast<SetupTableView*>(m_tabs.currentWidget()))
     {
-        QModelIndex idx = table->m_listView->selectionModel()->currentIndex();
-        if (!idx.isValid())
-            table->m_listView->model()->insertRow(table->m_listView->model()->rowCount() - 1);
-        else
-            table->m_listView->model()->insertRow(idx.row());
+        SetupListModel* model = static_cast<SetupListModel*>(table->m_listView->model());
+        g_MainWindow->projectModel()->setIdDatabases(model->m_node.get());
+        std::vector<std::tuple<amuse::SongId, std::string, std::array<amuse::SongGroupIndex::MIDISetup, 16>>> data;
+        auto songId = g_MainWindow->projectModel()->allocateSongId();
+        data.push_back(std::make_tuple(songId.first, songId.second, std::array<amuse::SongGroupIndex::MIDISetup, 16>{}));
+        g_MainWindow->pushUndoCommand(
+            new SetupRowAddUndoCommand(model->m_node.get(), tr("Add Setup Entry"), table, std::move(data)));
     }
 }
 

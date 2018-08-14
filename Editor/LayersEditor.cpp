@@ -4,6 +4,99 @@
 #include <QScrollBar>
 #include <QMimeData>
 
+class LayerDataChangeUndoCommand : public EditorUndoCommand
+{
+    QModelIndex m_index;
+    int m_undoVal, m_redoVal;
+    bool m_undid = false;
+public:
+    explicit LayerDataChangeUndoCommand(ProjectModel::LayersNode* node, const QString& text,
+                                        QModelIndex index, int redoVal)
+    : EditorUndoCommand(node, text), m_index(index), m_redoVal(redoVal) {}
+    void undo()
+    {
+        m_undid = true;
+        amuse::LayerMapping& layer = (*static_cast<ProjectModel::LayersNode*>(m_node.get())->m_obj)[m_index.row()];
+
+        switch (m_index.column())
+        {
+        case 0:
+            layer.macro.id = m_undoVal;
+            break;
+        case 1:
+            layer.keyLo = m_undoVal;
+            break;
+        case 2:
+            layer.keyHi = m_undoVal;
+            break;
+        case 3:
+            layer.transpose = m_undoVal;
+            break;
+        case 4:
+            layer.volume = m_undoVal;
+            break;
+        case 5:
+            layer.prioOffset = m_undoVal;
+            break;
+        case 6:
+            layer.span = m_undoVal;
+            break;
+        case 7:
+            layer.pan = m_undoVal;
+            break;
+        default:
+            break;
+        }
+
+        EditorUndoCommand::undo();
+    }
+    void redo()
+    {
+        amuse::LayerMapping& layer = (*static_cast<ProjectModel::LayersNode*>(m_node.get())->m_obj)[m_index.row()];
+
+        switch (m_index.column())
+        {
+        case 0:
+            m_undoVal = layer.macro.id;
+            layer.macro.id = m_redoVal;
+            break;
+        case 1:
+            m_undoVal = layer.keyLo;
+            layer.keyLo = m_redoVal;
+            break;
+        case 2:
+            m_undoVal = layer.keyHi;
+            layer.keyHi = m_redoVal;
+            break;
+        case 3:
+            m_undoVal = layer.transpose;
+            layer.transpose = m_redoVal;
+            break;
+        case 4:
+            m_undoVal = layer.volume;
+            layer.volume = m_redoVal;
+            break;
+        case 5:
+            m_undoVal = layer.prioOffset;
+            layer.prioOffset = m_redoVal;
+            break;
+        case 6:
+            m_undoVal = layer.span;
+            layer.span = m_redoVal;
+            break;
+        case 7:
+            m_undoVal = layer.pan;
+            layer.pan = m_redoVal;
+            break;
+        default:
+            break;
+        }
+
+        if (m_undid)
+            EditorUndoCommand::redo();
+    }
+};
+
 SoundMacroDelegate::SoundMacroDelegate(QObject* parent)
 : QStyledItemDelegate(parent) {}
 
@@ -35,10 +128,13 @@ void SoundMacroDelegate::setModelData(QWidget* editor, QAbstractItemModel* m, co
     ProjectModel::GroupNode* group = g_MainWindow->projectModel()->getGroupNode(model->m_node.get());
     ProjectModel::CollectionNode* smColl = group->getCollectionOfType(ProjectModel::INode::Type::SoundMacro);
     int idx = static_cast<EditorFieldProjectNode*>(editor)->currentIndex();
-    if (idx == 0)
-        layer.macro.id = amuse::SoundMacroId();
-    else
-        layer.macro.id = smColl->idOfIndex(idx - 1);
+    amuse::SoundMacroId id;
+    if (idx != 0)
+        id = smColl->idOfIndex(idx - 1);
+    if (layer.macro.id == id)
+        return;
+    g_MainWindow->pushUndoCommand(new LayerDataChangeUndoCommand(model->m_node.get(),
+        tr("Change %1").arg(m->headerData(0, Qt::Horizontal).toString()), index, id.id));
     emit m->dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
 }
 
@@ -123,41 +219,49 @@ bool LayersModel::setData(const QModelIndex& index, const QVariant& value, int r
 {
     if (!m_node || role != Qt::EditRole)
         return false;
-    amuse::LayerMapping& layer = (*m_node->m_obj)[index.row()];
+    const amuse::LayerMapping& layer = (*m_node->m_obj)[index.row()];
 
     switch (index.column())
     {
-    case 1:
-        layer.keyLo = value.toInt();
-        emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
-        return true;
-    case 2:
-        layer.keyHi = value.toInt();
-        emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
-        return true;
-    case 3:
-        layer.transpose = value.toInt();
-        emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
-        return true;
-    case 4:
-        layer.volume = value.toInt();
-        emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
-        return true;
-    case 5:
-        layer.prioOffset = value.toInt();
-        emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
-        return true;
-    case 6:
-        layer.span = value.toInt();
-        emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
-        return true;
-    case 7:
-        layer.pan = value.toInt();
-        emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
-        return true;
-    default:
+    case 0:
+        if (layer.macro.id == value.toInt())
+            return false;
         break;
+    case 1:
+        if (layer.keyLo == value.toInt())
+            return false;
+        break;
+    case 2:
+        if (layer.keyHi == value.toInt())
+            return false;
+        break;
+    case 3:
+        if (layer.transpose == value.toInt())
+            return false;
+        break;
+    case 4:
+        if (layer.volume == value.toInt())
+            return false;
+        break;
+    case 5:
+        if (layer.prioOffset == value.toInt())
+            return false;
+        break;
+    case 6:
+        if (layer.span == value.toInt())
+            return false;
+        break;
+    case 7:
+        if (layer.pan == value.toInt())
+            return false;
+        break;
+    default:
+        return false;
     }
+
+    g_MainWindow->pushUndoCommand(new LayerDataChangeUndoCommand(m_node.get(),
+        tr("Change %1").arg(headerData(index.column(), Qt::Horizontal).toString()), index, value.toInt()));
+    emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
 
     return false;
 }
@@ -210,6 +314,32 @@ Qt::DropActions LayersModel::supportedDragActions() const
     return Qt::MoveAction;
 }
 
+class LayerRowMoveCommand : public EditorUndoCommand
+{
+    LayersTableView* m_view;
+    int m_undoPos, m_redoPos, m_count;
+    bool m_undid = false;
+public:
+    explicit LayerRowMoveCommand(ProjectModel::LayersNode* node, const QString& text, LayersTableView* view,
+                                 int undoPos, int redoPos, int count)
+    : EditorUndoCommand(node, text), m_view(view), m_undoPos(undoPos), m_redoPos(redoPos), m_count(count) {}
+    void undo()
+    {
+        m_undid = true;
+        EditorUndoCommand::undo();
+        if (m_redoPos > m_undoPos)
+            m_view->model()->moveRows(QModelIndex(), m_redoPos - 1, m_count, QModelIndex(), m_undoPos);
+        else
+            m_view->model()->moveRows(QModelIndex(), m_redoPos, m_count, QModelIndex(), m_undoPos + 1);
+    }
+    void redo()
+    {
+        if (m_undid)
+            EditorUndoCommand::redo();
+        m_view->model()->moveRows(QModelIndex(), m_undoPos, m_count, QModelIndex(), m_redoPos);
+    }
+};
+
 bool LayersModel::dropMimeData(const QMimeData* data, Qt::DropAction action,
                                int row, int column, const QModelIndex& parent)
 {
@@ -257,9 +387,74 @@ bool LayersModel::dropMimeData(const QMimeData* data, Qt::DropAction action,
         dest += 1;
     }
 
-    moveRows(QModelIndex(), start, count, QModelIndex(), dest);
+    g_MainWindow->pushUndoCommand(new LayerRowMoveCommand(m_node.get(),
+        count > 1 ? tr("Move Layers") : tr("Move Layer"),
+        &static_cast<LayersEditor*>(QObject::parent())->m_tableView, start, dest, count));
+
     return true;
 }
+
+class LayerRowUndoCommand : public EditorUndoCommand
+{
+protected:
+    LayersTableView* m_view;
+    std::vector<std::pair<amuse::LayerMapping, int>> m_data;
+    bool m_undid = false;
+    void add()
+    {
+        m_view->selectionModel()->clearSelection();
+        for (const auto& p : m_data)
+        {
+            static_cast<LayersModel*>(m_view->model())->_insertRow(p.second, p.first);
+            m_view->selectionModel()->select(QItemSelection(
+                m_view->model()->index(p.second, 0), m_view->model()->index(p.second, 7)),
+                    QItemSelectionModel::SelectCurrent);
+        }
+    }
+    void del()
+    {
+        for (auto it = m_data.rbegin(); it != m_data.rend(); ++it)
+        {
+            it->first = static_cast<LayersModel*>(m_view->model())->_removeRow(it->second);
+        }
+    }
+    void undo()
+    {
+        m_undid = true;
+        EditorUndoCommand::undo();
+    }
+    void redo()
+    {
+        if (m_undid)
+            EditorUndoCommand::redo();
+    }
+public:
+    explicit LayerRowUndoCommand(ProjectModel::LayersNode* node, const QString& text, LayersTableView* view,
+                                 std::vector<std::pair<amuse::LayerMapping, int>>&& data)
+    : EditorUndoCommand(node, text), m_view(view), m_data(std::move(data)) {}
+};
+
+class LayerRowAddUndoCommand : public LayerRowUndoCommand
+{
+    using base = LayerRowUndoCommand;
+public:
+    explicit LayerRowAddUndoCommand(ProjectModel::LayersNode* node, const QString& text, LayersTableView* view,
+                                    std::vector<std::pair<amuse::LayerMapping, int>>&& data)
+    : LayerRowUndoCommand(node, text, view, std::move(data)) {}
+    void undo() { base::undo(); base::del(); }
+    void redo() { base::redo(); base::add(); }
+};
+
+class LayerRowDelUndoCommand : public LayerRowUndoCommand
+{
+    using base = LayerRowUndoCommand;
+public:
+    explicit LayerRowDelUndoCommand(ProjectModel::LayersNode* node, const QString& text, LayersTableView* view,
+                                    std::vector<std::pair<amuse::LayerMapping, int>>&& data)
+    : LayerRowUndoCommand(node, text, view, std::move(data)) {}
+    void undo() { base::undo(); base::add(); }
+    void redo() { base::redo(); base::del(); }
+};
 
 bool LayersModel::insertRows(int row, int count, const QModelIndex& parent)
 {
@@ -316,15 +511,45 @@ bool LayersModel::removeRows(int row, int count, const QModelIndex& parent)
     return true;
 }
 
+void LayersModel::_insertRow(int row, const amuse::LayerMapping& data)
+{
+    if (!m_node)
+        return;
+    beginInsertRows(QModelIndex(), row, row);
+    std::vector<amuse::LayerMapping>& layers = *m_node->m_obj;
+    layers.insert(layers.begin() + row, data);
+    endInsertRows();
+}
+
+amuse::LayerMapping LayersModel::_removeRow(int row)
+{
+    if (!m_node)
+        return {};
+    beginRemoveRows(QModelIndex(), row, row);
+    std::vector<amuse::LayerMapping>& layers = *m_node->m_obj;
+    amuse::LayerMapping ret = layers[row];
+    layers.erase(layers.begin() + row);
+    endRemoveRows();
+    return ret;
+}
+
 LayersModel::LayersModel(QObject* parent)
 : QAbstractTableModel(parent)
 {}
 
 void LayersTableView::deleteSelection()
 {
-    QModelIndexList list;
-    while (!(list = selectionModel()->selectedRows()).isEmpty())
-        model()->removeRow(list.back().row());
+    QModelIndexList list = selectionModel()->selectedRows();
+    if (list.isEmpty())
+        return;
+    std::vector<std::pair<amuse::LayerMapping, int>> data;
+    data.reserve(list.size());
+    for (QModelIndex idx : list)
+        data.push_back(std::make_pair(amuse::LayerMapping{}, idx.row()));
+    std::sort(data.begin(), data.end(), [](const auto& a, const auto& b) { return a.second < b.second; });
+    g_MainWindow->pushUndoCommand(
+        new LayerRowDelUndoCommand(static_cast<LayersModel*>(model())->m_node.get(),
+            data.size() > 1 ? tr("Delete Layers") : tr("Delete Layer"), this, std::move(data)));
 }
 
 void LayersTableView::setModel(QAbstractItemModel* model)
@@ -396,10 +621,13 @@ void LayersEditor::resizeEvent(QResizeEvent* ev)
 void LayersEditor::doAdd()
 {
     QModelIndex idx = m_tableView.selectionModel()->currentIndex();
+    std::vector<std::pair<amuse::LayerMapping, int>> data;
     if (!idx.isValid())
-        m_model.insertRow(m_model.rowCount() - 1);
+        data.push_back(std::make_pair(amuse::LayerMapping{}, m_model.rowCount() - 1));
     else
-        m_model.insertRow(idx.row());
+        data.push_back(std::make_pair(amuse::LayerMapping{}, idx.row()));
+    g_MainWindow->pushUndoCommand(new LayerRowAddUndoCommand(m_model.m_node.get(),
+        tr("Add Layer"), &m_tableView, std::move(data)));
 }
 
 void LayersEditor::doSelectionChanged()

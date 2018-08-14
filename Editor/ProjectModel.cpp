@@ -269,6 +269,33 @@ Qt::ItemFlags PageObjectProxyModel::flags(const QModelIndex& proxyIndex) const
     return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
 }
 
+void ProjectModel::NameUndoRegistry::registerSongName(amuse::SongId id) const
+{
+    auto search = m_songIDs.find(id);
+    if (search != m_songIDs.cend())
+        g_MainWindow->projectModel()->_allocateSongId(id, search->second);
+}
+void ProjectModel::NameUndoRegistry::unregisterSongName(amuse::SongId id)
+{
+    auto search = amuse::SongId::CurNameDB->m_idToString.find(id);
+    if (search != amuse::SongId::CurNameDB->m_idToString.cend())
+        m_songIDs[id] = search->second;
+    g_MainWindow->projectModel()->deallocateSongId(id);
+}
+void ProjectModel::NameUndoRegistry::registerSFXName(amuse::SongId id) const
+{
+    auto search = m_sfxIDs.find(id);
+    if (search != m_sfxIDs.cend())
+        amuse::SFXId::CurNameDB->registerPair(search->second, id);
+}
+void ProjectModel::NameUndoRegistry::unregisterSFXName(amuse::SongId id)
+{
+    auto search = amuse::SFXId::CurNameDB->m_idToString.find(id);
+    if (search != amuse::SFXId::CurNameDB->m_idToString.cend())
+        m_sfxIDs[id] = search->second;
+    amuse::SFXId::CurNameDB->remove(id);
+}
+
 ProjectModel::INode::INode(const QString& name)
 : m_name(name)
 {
@@ -401,7 +428,27 @@ bool ProjectModel::openSongsData()
                     amuse::SongId id = uint16_t(strtoul(p.first.c_str(), &endPtr, 0));
                     if (endPtr == p.first.c_str() || id.id == 0xffff)
                         continue;
-                    m_midiFiles[id] = QString::fromStdString(p.second->m_scalarString);
+
+                    m_midiFiles.clear();
+                    QString path = QString::fromStdString(p.second->m_scalarString);
+                    m_root->oneLevelTraverse([this, id, path](INode* n)
+                    {
+                        GroupNode* gn = static_cast<GroupNode*>(n);
+                        amuse::AudioGroupDatabase* db = gn->getAudioGroup();
+                        for (const auto& p : db->getProj().songGroups())
+                        {
+                            for (const auto& m : p.second->m_midiSetups)
+                            {
+                                if (id == m.first)
+                                {
+                                    Song& song = m_midiFiles[id];
+                                    song.m_path = path;
+                                    ++song.m_refCount;
+                                }
+                            }
+                        }
+                        return true;
+                    });
                 }
             }
         }
@@ -489,7 +536,7 @@ bool ProjectModel::saveToFile(UIMessenger& messenger)
         {
             char id[16];
             snprintf(id, 16, "%04X", p.first.id);
-            dw.writeString(id, p.second.toUtf8().data());
+            dw.writeString(id, p.second.m_path.toUtf8().data());
         }
         athena::io::FileWriter w(QStringToSysString(songsFile.path()));
         if (!w.hasError())
@@ -1182,37 +1229,77 @@ ProjectModel::GroupNode* ProjectModel::getGroupOfSfx(amuse::SFXId id) const
     return ret;
 }
 
-ProjectModel::GroupNode* ProjectModel::getGroupOfSong(amuse::SongId id) const
-{
-    ProjectModel::GroupNode* ret = nullptr;
-    m_root->oneLevelTraverse([id, &ret](INode* n)
-    {
-        GroupNode* gn = static_cast<GroupNode*>(n);
-        amuse::AudioGroupDatabase* db = gn->getAudioGroup();
-        for (const auto& p : db->getProj().songGroups())
-        {
-            if (p.second->m_midiSetups.find(id) != p.second->m_midiSetups.cend())
-            {
-                ret = gn;
-                return false;
-            }
-        }
-        return true;
-    });
-    return ret;
-}
-
 QString ProjectModel::getMIDIPathOfSong(amuse::SongId id) const
 {
     auto search = m_midiFiles.find(id);
     if (search == m_midiFiles.cend())
         return {};
-    return search->second;
+    return search->second.m_path;
 }
 
 void ProjectModel::setMIDIPathOfSong(amuse::SongId id, const QString& path)
 {
-    m_midiFiles[id] = path;
+    m_midiFiles[id].m_path = path;
+}
+
+void ProjectModel::_allocateSongId(amuse::SongId id, std::string_view name)
+{
+    m_projectDatabase.setIdDatabases();
+    amuse::SongId::CurNameDB->registerPair(name, id);
+    Song& song = m_midiFiles[id];
+    ++song.m_refCount;
+}
+
+std::pair<amuse::SongId, std::string> ProjectModel::allocateSongId()
+{
+    m_projectDatabase.setIdDatabases();
+    std::pair<amuse::SongId, std::string> ret;
+    ret.first = amuse::SongId::CurNameDB->generateId(amuse::NameDB::Type::Song);
+    ret.second = amuse::SongId::CurNameDB->generateName(ret.first, amuse::NameDB::Type::Song);
+    amuse::SongId::CurNameDB->registerPair(ret.second, ret.first);
+    m_midiFiles[ret.first] = {{}, 1};
+    return ret;
+}
+
+void ProjectModel::deallocateSongId(amuse::SongId oldId)
+{
+    Song& oldSong = m_midiFiles[oldId];
+    --oldSong.m_refCount;
+    if (oldSong.m_refCount <= 0)
+    {
+        oldSong.m_refCount = 0;
+        amuse::SongId::CurNameDB->remove(oldId);
+        m_midiFiles.erase(oldId);
+    }
+}
+
+amuse::SongId ProjectModel::exchangeSongId(amuse::SongId oldId, std::string_view newName)
+{
+    m_projectDatabase.setIdDatabases();
+    amuse::SongId newId;
+    auto search = amuse::SongId::CurNameDB->m_stringToId.find(newName.data());
+    if (search == amuse::SongId::CurNameDB->m_stringToId.cend())
+    {
+        newId = amuse::SongId::CurNameDB->generateId(amuse::NameDB::Type::Song);
+        amuse::SongId::CurNameDB->registerPair(newName, newId);
+    }
+    else
+        newId = search->second;
+    if (oldId == newId)
+        return newId;
+    Song& oldSong = m_midiFiles[oldId];
+    Song& newSong = m_midiFiles[newId];
+    ++newSong.m_refCount;
+    if (newSong.m_path.isEmpty())
+        newSong.m_path = oldSong.m_path;
+    --oldSong.m_refCount;
+    if (oldSong.m_refCount <= 0)
+    {
+        oldSong.m_refCount = 0;
+        amuse::SongId::CurNameDB->remove(oldId);
+        m_midiFiles.erase(oldId);
+    }
+    return newId;
 }
 
 void ProjectModel::setIdDatabases(INode* context) const

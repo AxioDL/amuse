@@ -513,68 +513,63 @@ public:
     std::vector<uint8_t>& getResult() { return m_result; }
 };
 
-static uint32_t DecodeRLE(const unsigned char*& data)
+static uint16_t DecodeUnsignedValue(const unsigned char*& data)
 {
-    uint32_t ret = 0;
-
-    while (true)
+    uint16_t ret;
+    if (data[0] & 0x80)
     {
-        uint32_t thisPart = *data & 0x7f;
-        if (*data & 0x80)
-        {
-            ++data;
-            thisPart = thisPart * 256 + *data;
-            if (thisPart == 0)
-                return -1;
-        }
-
-        if (thisPart == 32767)
-        {
-            ret += 32767;
-            data += 2;
-            continue;
-        }
-
-        ret += thisPart;
-        data += 1;
-        break;
-    }
-
-    return ret;
-}
-
-static void EncodeRLE(std::vector<uint8_t>& vecOut, uint32_t val)
-{
-    while (val >= 32767)
-    {
-        vecOut.push_back(0xff);
-        vecOut.push_back(0xff);
-        vecOut.push_back(0);
-        val -= 32767;
-    }
-
-    if (val >= 128)
-    {
-        vecOut.push_back(uint8_t(val / 256) | 0x80);
-        vecOut.push_back(uint8_t(val % 256));
+        ret = data[1] | ((data[0] & 0x7f) << 8);
+        data += 2;
     }
     else
-        vecOut.push_back(uint8_t(val));
-}
-
-static int32_t DecodeContinuousRLE(const unsigned char*& data)
-{
-    int32_t ret = int32_t(DecodeRLE(data));
-    if (ret >= 16384)
-        return ret - 32767;
+    {
+        ret = data[0];
+        data += 1;
+    }
     return ret;
 }
 
-static void EncodeContinuousRLE(std::vector<uint8_t>& vecOut, int32_t val)
+static void EncodeUnsignedValue(std::vector<uint8_t>& vecOut, uint16_t val)
 {
-    if (val < 0)
-        val += 32767;
-    EncodeRLE(vecOut, uint32_t(val));
+    if (val >= 128)
+    {
+        vecOut.push_back(0x80 | ((val >> 8) & 0x7f));
+        vecOut.push_back(val & 0xff);
+    }
+    else
+    {
+        vecOut.push_back(val & 0x7f);
+    }
+}
+
+static int16_t DecodeSignedValue(const unsigned char*& data)
+{
+    int16_t ret;
+    if (data[0] & 0x80)
+    {
+        ret = data[1] | ((data[0] & 0x7f) << 8);
+        ret |= ((ret << 1) & 0x8000);
+        data += 2;
+    }
+    else
+    {
+        ret = int8_t(data[0] | ((data[0] << 1) & 0x80));
+        data += 1;
+    }
+    return ret;
+}
+
+static void EncodeSignedValue(std::vector<uint8_t>& vecOut, int16_t val)
+{
+    if (val >= 64 || val < -64)
+    {
+        vecOut.push_back(0x80 | ((val >> 8) & 0x7f));
+        vecOut.push_back(val & 0xff);
+    }
+    else
+    {
+        vecOut.push_back(val & 0x7f);
+    }
 }
 
 static uint32_t DecodeTimeRLE(const unsigned char*& data)
@@ -719,22 +714,20 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
                 {
                     while (true)
                     {
-                        /* See if there's an upcoming pitch change in this interval */
-                        const unsigned char* ptr = trk.m_pitchWheelData;
-                        uint32_t deltaTicks = DecodeRLE(ptr);
-                        if (deltaTicks != 0xffffffff)
+                        /* Update pitch */
+                        trk.m_pitchVal += trk.m_nextPitchDelta;
+                        events.emplace(regStart + trk.m_nextPitchTick,
+                                       Event{PitchEvent{}, trk.m_midiChan,
+                                             clamp(0, trk.m_pitchVal + 0x2000, 0x4000)});
+                        if (trk.m_pitchWheelData[0] != 0x80 || trk.m_pitchWheelData[1] != 0x00)
                         {
-                            int32_t nextTick = trk.m_lastPitchTick + deltaTicks;
-                            int32_t pitchDelta = DecodeContinuousRLE(ptr);
-                            trk.m_lastPitchVal += pitchDelta;
-                            trk.m_pitchWheelData = ptr;
-                            trk.m_lastPitchTick = nextTick;
-                            events.emplace(regStart + nextTick,
-                                           Event{PitchEvent{}, trk.m_midiChan,
-                                                 clamp(0, trk.m_lastPitchVal / 2 + 0x2000, 0x4000)});
+                            trk.m_nextPitchTick += DecodeUnsignedValue(trk.m_pitchWheelData);
+                            trk.m_nextPitchDelta = DecodeSignedValue(trk.m_pitchWheelData);
                         }
                         else
+                        {
                             break;
+                        }
                     }
                 }
 
@@ -743,22 +736,20 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
                 {
                     while (true)
                     {
-                        /* See if there's an upcoming modulation change in this interval */
-                        const unsigned char* ptr = trk.m_modWheelData;
-                        uint32_t deltaTicks = DecodeRLE(ptr);
-                        if (deltaTicks != 0xffffffff)
+                        /* Update modulation */
+                        trk.m_modVal += trk.m_nextModDelta;
+                        events.emplace(regStart + trk.m_nextModTick,
+                                       Event{CtrlEvent{}, trk.m_midiChan, 1,
+                                             uint8_t(clamp(0, trk.m_modVal / 128, 127)), 0});
+                        if (trk.m_modWheelData[0] != 0x80 || trk.m_modWheelData[1] != 0x00)
                         {
-                            int32_t nextTick = trk.m_lastModTick + deltaTicks;
-                            int32_t modDelta = DecodeContinuousRLE(ptr);
-                            trk.m_lastModVal += modDelta;
-                            trk.m_modWheelData = ptr;
-                            trk.m_lastModTick = nextTick;
-                            events.emplace(regStart + nextTick,
-                                           Event{CtrlEvent{}, trk.m_midiChan, 1,
-                                                 uint8_t(clamp(0, trk.m_lastModVal * 128 / 16384, 127)), 0});
+                            trk.m_nextModTick += DecodeUnsignedValue(trk.m_modWheelData);
+                            trk.m_nextModDelta = DecodeSignedValue(trk.m_modWheelData);
                         }
                         else
+                        {
                             break;
+                        }
                     }
                 }
 
@@ -1088,10 +1079,10 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
                         {
                             if (event.second.noteOrCtrl == 1)
                             {
-                                EncodeRLE(region.modBuf, uint32_t(eventTick - lastModTick));
+                                EncodeUnsignedValue(region.modBuf, uint32_t(eventTick - lastModTick));
                                 lastModTick = eventTick;
-                                int newMod = event.second.velOrVal * 16384 / 128;
-                                EncodeContinuousRLE(region.modBuf, newMod - lastModVal);
+                                int newMod = event.second.velOrVal * 128;
+                                EncodeSignedValue(region.modBuf, newMod - lastModVal);
                                 lastModVal = newMod;
                             }
                             else
@@ -1157,10 +1148,10 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
                         }
                         case Event::Type::Pitch:
                         {
-                            EncodeRLE(region.pitchBuf, uint32_t(eventTick - lastPitchTick));
+                            EncodeUnsignedValue(region.pitchBuf, uint32_t(eventTick - lastPitchTick));
                             lastPitchTick = eventTick;
-                            int newPitch = (event.second.pitchBend - 0x2000) * 2;
-                            EncodeContinuousRLE(region.pitchBuf, newPitch - lastPitchVal);
+                            int newPitch = event.second.pitchBend - 0x2000;
+                            EncodeSignedValue(region.pitchBuf, newPitch - lastPitchVal);
                             lastPitchVal = newPitch;
                             break;
                         }

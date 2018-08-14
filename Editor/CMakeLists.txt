@@ -37,7 +37,6 @@ QT5_WRAP_CPP(AMUSE_MOC
         KeyboardWidget.hpp
         StatusBarWidget.hpp
         ProjectModel.hpp
-        ProjectStatistics.hpp
         EditorWidget.hpp
         SoundMacroEditor.hpp
         ADSREditor.hpp
@@ -55,7 +54,6 @@ add_executable(amuse-gui WIN32 MACOSX_BUNDLE
         KeyboardWidget.hpp KeyboardWidget.cpp
         StatusBarWidget.hpp
         ProjectModel.hpp ProjectModel.cpp
-        ProjectStatistics.hpp ProjectStatistics.cpp
         EditorWidget.hpp EditorWidget.cpp
         SoundMacroEditor.hpp SoundMacroEditor.cpp
         ADSREditor.hpp ADSREditor.cpp

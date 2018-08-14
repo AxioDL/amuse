@@ -86,8 +86,8 @@ class Voice : public Entity
     float m_curPan = 0.f;           /**< Current pan of voice */
     float m_curSpan = -1.f;         /**< Current surround pan of voice */
     float m_curPitchWheel = 0.f;    /**< Current normalized wheel value for control */
-    int32_t m_pitchWheelUp = 600;   /**< Up range for pitchwheel control in cents */
-    int32_t m_pitchWheelDown = 600; /**< Down range for pitchwheel control in cents */
+    int32_t m_pitchWheelUp = 200;   /**< Up range for pitchwheel control in cents */
+    int32_t m_pitchWheelDown = 200; /**< Down range for pitchwheel control in cents */
     int32_t m_pitchWheelVal = 0;    /**< Current resolved pitchwheel delta for control */
     int32_t m_curPitch;             /**< Current base pitch in cents */
     bool m_pitchDirty = true;       /**< m_curPitch has been updated and needs sending to voice */
@@ -138,6 +138,8 @@ class Voice : public Entity
     float m_lfoPeriods[2] = {};               /**< time-periods for LFO1 and LFO2 */
     std::unique_ptr<int8_t[]> m_ctrlValsSelf; /**< Self-owned MIDI Controller values */
     int8_t* m_extCtrlVals = nullptr;          /**< MIDI Controller values (external storage) */
+
+    uint16_t m_rpn = 0; /**< Current RPN (only pitch-range 0x0000 supported) */
 
     void _destroy();
     bool _checkSamplePos(bool& looped);

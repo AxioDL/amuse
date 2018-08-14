@@ -1458,6 +1458,39 @@ void Voice::_notifyCtrlChange(uint8_t ctrl, int8_t val)
     {
         m_state.m_curMod = uint8_t(val);
     }
+    else if (ctrl == 0x64)
+    {
+        // RPN LSB
+        m_rpn &= ~0x7f;
+        m_rpn |= val;
+    }
+    else if (ctrl == 0x65)
+    {
+        // RPN MSB
+        m_rpn &= ~0x3f80;
+        m_rpn |= val << 7;
+    }
+    else if (ctrl == 0x6)
+    {
+        if (m_rpn == 0)
+            m_pitchWheelUp = m_pitchWheelDown = val * 100;
+    }
+    else if (ctrl == 0x60)
+    {
+        if (m_rpn == 0)
+        {
+            m_pitchWheelUp += 100;
+            m_pitchWheelDown += 100;
+        }
+    }
+    else if (ctrl == 0x61)
+    {
+        if (m_rpn == 0)
+        {
+            m_pitchWheelUp -= 100;
+            m_pitchWheelDown -= 100;
+        }
+    }
 
     for (ObjToken<Voice>& vox : m_childVoices)
         vox->_notifyCtrlChange(ctrl, val);

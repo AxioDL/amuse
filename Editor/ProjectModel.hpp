@@ -57,32 +57,10 @@ public:
     {
         std::unordered_map<amuse::SongId, std::string> m_songIDs;
         std::unordered_map<amuse::SFXId, std::string> m_sfxIDs;
-        void registerSongName(amuse::SongId id) const
-        {
-            auto search = m_songIDs.find(id);
-            if (search != m_songIDs.cend())
-                amuse::SongId::CurNameDB->registerPair(search->second, id);
-        }
-        void unregisterSongName(amuse::SongId id)
-        {
-            auto search = amuse::SongId::CurNameDB->m_idToString.find(id);
-            if (search != amuse::SongId::CurNameDB->m_idToString.cend())
-                m_songIDs[id] = search->second;
-            amuse::SongId::CurNameDB->remove(id);
-        }
-        void registerSFXName(amuse::SongId id) const
-        {
-            auto search = m_sfxIDs.find(id);
-            if (search != m_sfxIDs.cend())
-                amuse::SFXId::CurNameDB->registerPair(search->second, id);
-        }
-        void unregisterSFXName(amuse::SongId id)
-        {
-            auto search = amuse::SFXId::CurNameDB->m_idToString.find(id);
-            if (search != amuse::SFXId::CurNameDB->m_idToString.cend())
-                m_sfxIDs[id] = search->second;
-            amuse::SFXId::CurNameDB->remove(id);
-        }
+        void registerSongName(amuse::SongId id) const;
+        void unregisterSongName(amuse::SongId id);
+        void registerSFXName(amuse::SongId id) const;
+        void unregisterSFXName(amuse::SongId id);
         void clear()
         {
             m_songIDs.clear();
@@ -98,7 +76,12 @@ private:
     amuse::ProjectDatabase m_projectDatabase;
     std::unordered_map<QString, amuse::AudioGroupDatabase> m_groups;
 
-    std::unordered_map<amuse::SongId, QString> m_midiFiles;
+    struct Song
+    {
+        QString m_path;
+        int m_refCount = 0;
+    };
+    std::unordered_map<amuse::SongId, Song> m_midiFiles;
 
 public:
     class INode : public amuse::IObj
@@ -436,9 +419,12 @@ public:
     PageObjectProxyModel* getPageObjectProxy() { return &m_pageObjectProxy; }
 
     GroupNode* getGroupOfSfx(amuse::SFXId id) const;
-    GroupNode* getGroupOfSong(amuse::SongId id) const;
     QString getMIDIPathOfSong(amuse::SongId id) const;
     void setMIDIPathOfSong(amuse::SongId id, const QString& path);
+    void _allocateSongId(amuse::SongId id, std::string_view name);
+    std::pair<amuse::SongId, std::string> allocateSongId();
+    void deallocateSongId(amuse::SongId oldId);
+    amuse::SongId exchangeSongId(amuse::SongId oldId, std::string_view newName);
 
     void setIdDatabases(INode* context) const;
 };
