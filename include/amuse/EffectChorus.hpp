@@ -46,6 +46,7 @@ public:
         x90_baseDelay = baseDelay;
         m_dirty = true;
     }
+    uint32_t getBaseDelay() const { return x90_baseDelay; }
 
     void setVariation(uint32_t variation)
     {
@@ -53,6 +54,7 @@ public:
         x94_variation = variation;
         m_dirty = true;
     }
+    uint32_t getVariation() const { return x94_variation; }
 
     void setPeriod(uint32_t period)
     {
@@ -60,6 +62,7 @@ public:
         x98_period = period;
         m_dirty = true;
     }
+    uint32_t getPeriod() const { return x98_period; }
 
     void updateParams(const EffectChorusInfo& info)
     {
@@ -115,6 +118,8 @@ public:
 
     void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap);
     void resetOutputSampleRate(double sampleRate) { _setup(sampleRate); }
+
+    EffectType Isa() const { return EffectType::Chorus; }
 };
 }
 

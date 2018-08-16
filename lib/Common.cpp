@@ -80,7 +80,8 @@ void type##DNA<DNAE>::_write(athena::io::YAMLDocWriter& w) \
     if (id.id == 0xffff) \
         return; \
     std::string_view name = type::CurNameDB->resolveNameFromId(id); \
-    w.writeString(nullptr, name); \
+    if (!name.empty()) \
+        w.writeString(nullptr, name); \
 } \
 template <athena::Endian DNAE> \
 const char* type##DNA<DNAE>::DNAType() \
@@ -188,17 +189,20 @@ void PageObjectIdDNA<DNAE>::_write(athena::io::YAMLDocWriter& w)
     if (id.id & 0x8000)
     {
         std::string_view name = LayersId::CurNameDB->resolveNameFromId(id);
-        w.writeString(nullptr, name);
+        if (!name.empty())
+            w.writeString(nullptr, name);
     }
     else if (id.id & 0x4000)
     {
         std::string_view name = KeymapId::CurNameDB->resolveNameFromId(id);
-        w.writeString(nullptr, name);
+        if (!name.empty())
+            w.writeString(nullptr, name);
     }
     else
     {
         std::string_view name = SoundMacroId::CurNameDB->resolveNameFromId(id);
-        w.writeString(nullptr, name);
+        if (!name.empty())
+            w.writeString(nullptr, name);
     }
 }
 template <athena::Endian DNAE>

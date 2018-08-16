@@ -7,11 +7,26 @@
 #include "amuse/Engine.hpp"
 #include "amuse/DSPCodec.hpp"
 #include "amuse/N64MusyXCodec.hpp"
+#include "amuse/VolumeTable.hpp"
 #include <cmath>
 #include <cstring>
 
 namespace amuse
 {
+
+float Voice::VolumeCache::getVolume(float vol, bool dls)
+{
+    if (vol != m_curVolLUTKey || dls != m_curDLS)
+    {
+        m_curVolLUTKey = vol;
+        m_curDLS = dls;
+        if (dls)
+            m_curVolLUTVal = LookupDLSVolume(vol);
+        else
+            m_curVolLUTVal = LookupVolume(vol);
+    }
+    return m_curVolLUTVal;
+}
 
 void Voice::_destroy()
 {
@@ -224,7 +239,7 @@ void Voice::_procSamplePre(int16_t& samp)
             float l = clamp(0.f, m_lastLevel * (1.f - t) + m_nextLevel * t, 1.f);
 
             /* Apply total volume to sample using decibel scale */
-            samp = ApplyVolume(l * m_engine.m_masterVolume, samp);
+            samp = ApplyVolume(m_lerpedCache.getVolume(l * m_engine.m_masterVolume, m_dlsVol), samp);
             return;
         }
 
@@ -318,14 +333,14 @@ void Voice::_procSamplePre(int16_t& samp)
     m_nextLevel = clamp(0.f, m_nextLevel, 1.f);
 
     /* Apply total volume to sample using decibel scale */
-    samp = ApplyVolume(m_nextLevel * m_engine.m_masterVolume, samp);
+    samp = ApplyVolume(m_nextLevelCache.getVolume(m_nextLevel * m_engine.m_masterVolume, m_dlsVol), samp);
 }
 
 template <typename T>
 T Voice::_procSampleMaster(double time, T samp)
 {
     float evalVol = m_state.m_volumeSel ? (m_state.m_volumeSel.evaluate(time, *this, m_state) / 127.f) : 1.f;
-    return ApplyVolume(clamp(0.f, evalVol, 1.f), samp);
+    return ApplyVolume(m_masterCache.getVolume(clamp(0.f, evalVol, 1.f), m_dlsVol), samp);
 }
 
 template <typename T>
@@ -334,7 +349,7 @@ T Voice::_procSampleAuxA(double time, T samp)
     float evalVol = m_state.m_volumeSel ? (m_state.m_volumeSel.evaluate(time, *this, m_state) / 127.f) : 1.f;
     evalVol *= m_state.m_reverbSel ? (m_state.m_reverbSel.evaluate(time, *this, m_state) / 127.f) : m_curReverbVol;
     evalVol += m_state.m_preAuxASel ? (m_state.m_preAuxASel.evaluate(time, *this, m_state) / 127.f) : 0.f;
-    return ApplyVolume(clamp(0.f, evalVol, 1.f), samp);
+    return ApplyVolume(m_auxACache.getVolume(clamp(0.f, evalVol, 1.f), m_dlsVol), samp);
 }
 
 template <typename T>
@@ -343,7 +358,7 @@ T Voice::_procSampleAuxB(double time, T samp)
     float evalVol = m_state.m_volumeSel ? (m_state.m_volumeSel.evaluate(time, *this, m_state) / 127.f) : 1.f;
     evalVol *= m_state.m_postAuxB ? (m_state.m_postAuxB.evaluate(time, *this, m_state) / 127.f) : m_curAuxBVol;
     evalVol += m_state.m_preAuxBSel ? (m_state.m_preAuxBSel.evaluate(time, *this, m_state) / 127.f) : 0.f;
-    return ApplyVolume(clamp(0.f, evalVol, 1.f), samp);
+    return ApplyVolume(m_auxBCache.getVolume(clamp(0.f, evalVol, 1.f), m_dlsVol), samp);
 }
 
 uint32_t Voice::_GetBlockSampleCount(SampleFormat fmt)

@@ -24,6 +24,8 @@ public:
     explicit TargetButton(QWidget* parent = Q_NULLPTR);
     void mouseReleaseEvent(QMouseEvent* event) { event->ignore(); }
     void mouseMoveEvent(QMouseEvent* event) { event->ignore(); }
+    void focusOutEvent(QFocusEvent* event) { event->ignore(); }
+    void keyPressEvent(QKeyEvent* event) { event->ignore(); }
 };
 
 class FieldSoundMacroStep : public QWidget
@@ -47,22 +49,13 @@ public:
     void cancel();
 };
 
-class SoundMacroDeleteButton : public QPushButton
-{
-    Q_OBJECT
-public:
-    explicit SoundMacroDeleteButton(QWidget* parent = Q_NULLPTR);
-    void enterEvent(QEvent* event);
-    void leaveEvent(QEvent* event);
-};
-
 class CommandWidget : public QWidget
 {
     Q_OBJECT
     friend class SoundMacroListing;
     QFont m_numberFont;
     QLabel m_titleLabel;
-    SoundMacroDeleteButton m_deleteButton;
+    ListingDeleteButton m_deleteButton;
     QStaticText m_numberText;
     int m_index = -1;
     amuse::SoundMacro::ICmd* m_cmd;

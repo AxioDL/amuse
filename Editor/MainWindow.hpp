@@ -14,6 +14,7 @@
 #include "ProjectModel.hpp"
 #include "EditorWidget.hpp"
 #include "MIDIReader.hpp"
+#include "StudioSetupWidget.hpp"
 
 #define MaxRecentFiles 4
 
@@ -89,6 +90,7 @@ class MainWindow : public QMainWindow
     KeymapEditor* m_keymapEditor = nullptr;
     LayersEditor* m_layersEditor = nullptr;
     SampleEditor* m_sampleEditor = nullptr;
+    StudioSetupWidget* m_studioSetup = nullptr;
 
     std::unique_ptr<boo::IAudioVoiceEngine> m_voxEngine;
     std::unique_ptr<VoiceAllocator> m_voxAllocator;
@@ -154,6 +156,8 @@ public:
     void pushUndoCommand(QUndoCommand* cmd);
     void updateFocus();
     void aboutToDeleteNode(ProjectModel::INode* node);
+    void closeEvent(QCloseEvent* ev);
+    void showEvent(QShowEvent* ev);
 
     QString getGroupName(ProjectModel::GroupNode* group) const;
     ProjectModel::GroupNode* getSelectedGroupNode() const;
@@ -197,6 +201,8 @@ public slots:
     void modulationChanged(int mod);
     void pitchChanged(int pitch);
     void killSounds();
+    void fxPressed();
+    void volumeChanged(int vol);
 
     void outlineCutAction();
     void outlineCopyAction();
@@ -211,6 +217,10 @@ public slots:
     void onOutlineSelectionChanged(const QItemSelection& selected, const QItemSelection& deselected);
     void onTextSelect();
     void onTextDelete();
+    void cleanChanged(bool clean);
+
+    void studioSetupHidden();
+    void studioSetupShown();
 
     void onBackgroundTaskFinished();
 

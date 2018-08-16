@@ -69,6 +69,7 @@ public:
         x3c_delay[chanIdx] = delay;
         m_dirty = true;
     }
+    uint32_t getChanDelay(int chanIdx) const { return x3c_delay[chanIdx]; }
 
     void setFeedback(uint32_t feedback)
     {
@@ -84,6 +85,7 @@ public:
         x48_feedback[chanIdx] = feedback;
         m_dirty = true;
     }
+    uint32_t getChanFeedback(int chanIdx) const { return x48_feedback[chanIdx]; }
 
     void setOutput(uint32_t output)
     {
@@ -99,6 +101,7 @@ public:
         x54_output[chanIdx] = output;
         m_dirty = true;
     }
+    uint32_t getChanOutput(int chanIdx) const { return x54_output[chanIdx]; }
 
     void setParams(const EffectDelayInfo& info)
     {
@@ -134,6 +137,8 @@ public:
 
     void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap);
     void resetOutputSampleRate(double sampleRate) { _setup(sampleRate); }
+
+    EffectType Isa() const { return EffectType::Delay; }
 };
 }
 

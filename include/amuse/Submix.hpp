@@ -29,32 +29,37 @@ class Submix
 public:
     Submix(Engine& engine);
 
-    /** Add new effect to effect stack and assume ownership */
+    /** Construct new effect */
     template <class T, class... Args>
-    T& makeEffect(Args... args)
+    std::unique_ptr<EffectBaseTypeless> _makeEffect(Args... args)
     {
         switch (m_backendSubmix->getSampleFormat())
         {
         case SubmixFormat::Int16:
         {
             using ImpType = typename T::template ImpType<int16_t>;
-            m_effectStack.emplace_back(new ImpType(args..., m_backendSubmix->getSampleRate()));
-            return static_cast<ImpType&>(*m_effectStack.back());
+            return std::make_unique<ImpType>(args..., m_backendSubmix->getSampleRate());
         }
         case SubmixFormat::Int32:
         default:
         {
             using ImpType = typename T::template ImpType<int32_t>;
-            m_effectStack.emplace_back(new ImpType(args..., m_backendSubmix->getSampleRate()));
-            return static_cast<ImpType&>(*m_effectStack.back());
+            return std::make_unique<ImpType>(args..., m_backendSubmix->getSampleRate());
         }
         case SubmixFormat::Float:
         {
             using ImpType = typename T::template ImpType<float>;
-            m_effectStack.emplace_back(new ImpType(args..., m_backendSubmix->getSampleRate()));
-            return static_cast<ImpType&>(*m_effectStack.back());
+            return std::make_unique<ImpType>(args..., m_backendSubmix->getSampleRate());
         }
         }
+    }
+
+    /** Add new effect to effect stack and assume ownership */
+    template <class T, class... Args>
+    T& makeEffect(Args... args)
+    {
+        m_effectStack.push_back(_makeEffect<T>(args...));
+        return static_cast<typename T::template ImpType<float>&>(*m_effectStack.back());
     }
 
     /** Add new chorus effect to effect stack and assume ownership */
@@ -101,6 +106,8 @@ public:
     void resetOutputSampleRate(double sampleRate);
 
     Engine& getEngine() { return m_root; }
+
+    std::vector<std::unique_ptr<EffectBaseTypeless>>& getEffectStack() { return m_effectStack; }
 };
 }
 

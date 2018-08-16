@@ -29,6 +29,11 @@
         <file>IconAdd.svg</file>
         <file>IconRemove.svg</file>
         <file>IconStop.svg</file>
+        <file>IconVolume0.svg</file>
+        <file>IconVolume1.svg</file>
+        <file>IconVolume2.svg</file>
+        <file>IconVolume3.svg</file>
+        <file>IconFX.svg</file>
     </qresource>
     <qresource prefix="/bg">
         <file>FaceGrey.svg</file>

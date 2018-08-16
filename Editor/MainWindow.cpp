@@ -7,7 +7,6 @@
 #include <QMouseEvent>
 #include <QtSvg/QtSvg>
 #include "amuse/ContainerRegistry.hpp"
-#include "amuse/SongConverter.hpp"
 #include "Common.hpp"
 #include "SongGroupEditor.hpp"
 #include "SoundGroupEditor.hpp"
@@ -45,6 +44,9 @@ MainWindow::MainWindow(QWidget* parent)
     connectMessenger(&m_mainMessenger, Qt::DirectConnection);
 
     m_ui.statusbar->connectKillClicked(this, SLOT(killSounds()));
+    m_ui.statusbar->connectFXPressed(this, SLOT(fxPressed()));
+    m_ui.statusbar->setVolumeValue(70);
+    m_ui.statusbar->connectVolumeSlider(this, SLOT(volumeChanged(int)));
 
     m_ui.keyboardContents->setStatusFocus(new StatusBarFocus(m_ui.statusbar));
     m_ui.velocitySlider->setStatusFocus(new StatusBarFocus(m_ui.statusbar));
@@ -89,6 +91,7 @@ MainWindow::MainWindow(QWidget* parent)
 
     updateRecentFileActions();
 
+    connect(m_undoStack, SIGNAL(cleanChanged(bool)), this, SLOT(cleanChanged(bool)));
     QAction* undoAction = m_undoStack->createUndoAction(this);
     undoAction->setShortcut(QKeySequence::Undo);
     m_ui.menuEdit->insertAction(m_ui.actionCut, undoAction);
@@ -128,6 +131,10 @@ MainWindow::MainWindow(QWidget* parent)
     m_ui.editorContents->addWidget(m_sampleEditor);
     m_ui.editorContents->setCurrentWidget(m_faceSvg);
 
+    m_studioSetup = new StudioSetupWidget(this);
+    connect(m_studioSetup, SIGNAL(hidden()), this, SLOT(studioSetupHidden()));
+    connect(m_studioSetup, SIGNAL(shown()), this, SLOT(studioSetupShown()));
+
     connect(m_ui.actionNew_Subproject, SIGNAL(triggered()), this, SLOT(newSubprojectAction()));
     connect(m_ui.actionNew_SFX_Group, SIGNAL(triggered()), this, SLOT(newSFXGroupAction()));
     connect(m_ui.actionNew_Song_Group, SIGNAL(triggered()), this, SLOT(newSongGroupAction()));
@@ -145,6 +152,8 @@ MainWindow::MainWindow(QWidget* parent)
     m_voxEngine = boo::NewAudioVoiceEngine();
     m_voxAllocator = std::make_unique<VoiceAllocator>(*m_voxEngine);
     m_engine = std::make_unique<amuse::Engine>(*m_voxAllocator);
+    m_voxEngine->setVolume(0.7f);
+    m_studioSetup->loadData(m_engine->getDefaultStudio().get());
 
     m_ctrlVals[7] = 127;
     m_ctrlVals[10] = 64;
@@ -191,7 +200,7 @@ void MainWindow::updateWindowTitle()
 {
     if (!m_projectModel)
     {
-        setWindowTitle(tr("Amuse"));
+        setWindowTitle(tr("Amuse[*]"));
         return;
     }
 
@@ -199,12 +208,12 @@ void MainWindow::updateWindowTitle()
     if (EditorWidget* w = getEditorWidget())
     {
         ProjectModel::BasePoolObjectNode* objNode = static_cast<ProjectModel::BasePoolObjectNode*>(w->currentNode());
-        setWindowTitle(tr("Amuse [%1/%2/%3]").arg(dir.dirName()).arg(
+        setWindowTitle(tr("%1/%2/%3[*] - Amuse").arg(dir.dirName()).arg(
             m_projectModel->getGroupNode(objNode)->text()).arg(objNode->text()));
         return;
     }
 
-    setWindowTitle(tr("Amuse [%1]").arg(dir.dirName()));
+    setWindowTitle(tr("%1[*] - Amuse").arg(dir.dirName()));
 }
 
 void MainWindow::updateRecentFileActions()
@@ -229,9 +238,6 @@ void MainWindow::updateRecentFileActions()
 
 bool MainWindow::setProjectPath(const QString& path)
 {
-    if (m_projectModel && m_projectModel->path() == path)
-        return true;
-
     QDir dir(path);
     if (dir.path().isEmpty() || dir.path() == QStringLiteral(".") || dir.path() == QStringLiteral(".."))
     {
@@ -615,6 +621,44 @@ void MainWindow::aboutToDeleteNode(ProjectModel::INode* node)
         closeEditor();
 }
 
+void MainWindow::closeEvent(QCloseEvent* ev)
+{
+    if (!m_projectModel)
+    {
+        ev->accept();
+        return;
+    }
+
+    if (!m_undoStack->isClean())
+    {
+        QDir dir(m_projectModel->path());
+        int result = QMessageBox::question(this, tr("Unsaved Changes"), tr("Save Changes in %1?").arg(dir.dirName()),
+                     QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Save);
+        if (result == QMessageBox::Save)
+        {
+            saveAction();
+            ev->accept();
+        }
+        else if (result == QMessageBox::Discard)
+        {
+            ev->accept();
+        }
+        else
+        {
+            ev->ignore();
+        }
+    }
+    else
+    {
+        ev->accept();
+    }
+}
+
+void MainWindow::showEvent(QShowEvent* ev)
+{
+    m_studioSetup->updateWindowPosition();
+}
+
 void MainWindow::newAction()
 {
     QString path = QFileDialog::getSaveFileName(this, tr("New Project"));
@@ -626,7 +670,9 @@ void MainWindow::newAction()
         return;
 
     m_projectModel->clearProjectData();
-    m_ui.actionImport_Groups->setDisabled(m_projectModel->ensureModelData());
+    bool hasGroups = m_projectModel->ensureModelData();
+    m_ui.actionImport_Groups->setDisabled(hasGroups);
+    m_ui.actionImport_Songs->setEnabled(hasGroups);
 }
 
 bool MainWindow::openProject(const QString& path)
@@ -710,7 +756,11 @@ void MainWindow::clearRecentFilesAction()
 
 void MainWindow::saveAction()
 {
-
+    if (m_projectModel)
+    {
+        m_projectModel->saveToFile(m_mainMessenger);
+        m_undoStack->setClean();
+    }
 }
 
 void MainWindow::revertAction()
@@ -894,28 +944,7 @@ void MainWindow::importSongsAction()
         return;
 
     closeEditor();
-
-    std::vector<std::pair<amuse::SystemString, amuse::ContainerRegistry::SongData>> songs =
-        amuse::ContainerRegistry::LoadSongs(QStringToSysString(path).c_str());
-
-    for (const auto& song : songs)
-    {
-        int version;
-        bool isBig;
-        auto midiData =
-            amuse::SongConverter::SongToMIDI(song.second.m_data.get(), version, isBig);
-        if (!midiData.empty())
-        {
-            QFileInfo fi(m_projectModel->dir(), SysStringToQString(song.first + ".mid"));
-            QFile f(fi.filePath());
-            if (f.open(QFile::WriteOnly))
-            {
-                f.write((const char*)midiData.data(), midiData.size());
-                m_projectModel->setMIDIPathOfSong(
-                    song.second.m_setupId, m_projectModel->dir().relativeFilePath(fi.filePath()));
-            }
-        }
-    }
+    m_projectModel->importSongsData(path);
 }
 
 void MainWindow::exportAction()
@@ -1201,6 +1230,19 @@ void MainWindow::killSounds()
         v->kill();
 }
 
+void MainWindow::fxPressed()
+{
+    if (m_studioSetup->isVisible())
+        m_studioSetup->hide();
+    else
+        m_studioSetup->show();
+}
+
+void MainWindow::volumeChanged(int vol)
+{
+    m_engine->setVolume(vol / 100.f);
+}
+
 void MainWindow::outlineCutAction()
 {
 
@@ -1342,6 +1384,21 @@ void MainWindow::onTextDelete()
     }
 }
 
+void MainWindow::cleanChanged(bool clean)
+{
+    setWindowModified(!clean);
+}
+
+void MainWindow::studioSetupHidden()
+{
+    m_ui.statusbar->setFXDown(false);
+}
+
+void MainWindow::studioSetupShown()
+{
+    m_ui.statusbar->setFXDown(true);
+}
+
 void MainWindow::onBackgroundTaskFinished()
 {
     m_backgroundDialog->reset();
@@ -1349,7 +1406,9 @@ void MainWindow::onBackgroundTaskFinished()
     m_backgroundDialog = nullptr;
     m_backgroundTask->deleteLater();
     m_backgroundTask = nullptr;
-    m_ui.actionImport_Groups->setDisabled(m_projectModel->ensureModelData());
+    bool hasGroups = m_projectModel->ensureModelData();
+    m_ui.actionImport_Groups->setDisabled(hasGroups);
+    m_ui.actionImport_Songs->setEnabled(hasGroups);
     setEnabled(true);
 }
 

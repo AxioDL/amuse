@@ -10,6 +10,8 @@
 #include <QItemEditorFactory>
 #include <QToolButton>
 #include <QAction>
+#include <QPushButton>
+#include <QLabel>
 #include "ProjectModel.hpp"
 
 class EditorWidget : public QWidget
@@ -66,6 +68,50 @@ public:
 
     /* Don't scroll */
     void wheelEvent(QWheelEvent* event) { event->ignore(); }
+};
+
+class FieldSlider : public QWidget
+{
+Q_OBJECT
+    QSlider m_slider;
+    QLabel m_value;
+public:
+    explicit FieldSlider(QWidget* parent = Q_NULLPTR);
+
+    /* Don't scroll */
+    void wheelEvent(QWheelEvent* event) { event->ignore(); }
+
+    int value() const { return m_slider.value(); }
+    void setValue(int value) { m_slider.setValue(value); doValueChanged(value); }
+    void setRange(int min, int max) { m_slider.setRange(min, max); }
+
+private slots:
+    void doValueChanged(int value);
+signals:
+    void valueChanged(int value);
+};
+
+class FieldDoubleSlider : public QWidget
+{
+    Q_OBJECT
+    QSlider m_slider;
+    QLabel m_value;
+    double m_min = 0.0;
+    double m_max = 1.0;
+public:
+    explicit FieldDoubleSlider(QWidget* parent = Q_NULLPTR);
+
+    /* Don't scroll */
+    void wheelEvent(QWheelEvent* event) { event->ignore(); }
+
+    double value() const;
+    void setValue(double value);
+    void setRange(double min, double max);
+
+private slots:
+    void doValueChanged(int value);
+signals:
+    void valueChanged(double value);
 };
 
 class FieldComboBox : public QComboBox
@@ -141,6 +187,15 @@ public:
     explicit AddRemoveButtons(QWidget* parent = Q_NULLPTR);
     QAction* addAction() { return &m_addAction; }
     QAction* removeAction() { return &m_removeAction; }
+};
+
+class ListingDeleteButton : public QPushButton
+{
+Q_OBJECT
+public:
+    explicit ListingDeleteButton(QWidget* parent = Q_NULLPTR);
+    void enterEvent(QEvent* event);
+    void leaveEvent(QEvent* event);
 };
 
 #endif //AMUSE_EDITOR_WIDGET_HPP

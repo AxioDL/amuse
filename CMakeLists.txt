@@ -45,6 +45,7 @@ set(SOURCES
     lib/Common.cpp
     lib/DSPCodec.cpp
     lib/N64MusyXCodec.cpp
+    lib/VolumeTable.cpp
     atdna_AudioGroupPool.cpp
     atdna_AudioGroupProject.cpp
     atdna_AudioGroupSampleDirectory.cpp)
@@ -79,7 +80,8 @@ set(HEADERS
     include/amuse/Common.hpp
     include/amuse/amuse.hpp
     include/amuse/DSPCodec.hpp
-    include/amuse/N64MusyXCodec.hpp)
+    include/amuse/N64MusyXCodec.hpp
+    include/amuse/VolumeTable.hpp)
 
 unset(EXTRAS)
 if(TARGET boo)

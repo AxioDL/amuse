@@ -118,34 +118,6 @@ FieldSoundMacroStep::FieldSoundMacroStep(FieldProjectNode* macroField, QWidget* 
     setLayout(layout);
 }
 
-static QIcon SoundMacroDeleteIcon;
-static QIcon SoundMacroDeleteHoveredIcon;
-
-void SoundMacroDeleteButton::enterEvent(QEvent* event)
-{
-    setIcon(SoundMacroDeleteHoveredIcon);
-}
-
-void SoundMacroDeleteButton::leaveEvent(QEvent* event)
-{
-    setIcon(SoundMacroDeleteIcon);
-}
-
-SoundMacroDeleteButton::SoundMacroDeleteButton(QWidget* parent)
-: QPushButton(parent)
-{
-    if (SoundMacroDeleteIcon.isNull())
-        SoundMacroDeleteIcon = QIcon(QStringLiteral(":/icons/IconSoundMacroDelete.svg"));
-    if (SoundMacroDeleteHoveredIcon.isNull())
-        SoundMacroDeleteHoveredIcon = QIcon(QStringLiteral(":/icons/IconSoundMacroDeleteHovered.svg"));
-
-    setVisible(false);
-    setFixedSize(21, 21);
-    setFlat(true);
-    setToolTip(tr("Delete this SoundMacro"));
-    setIcon(SoundMacroDeleteIcon);
-}
-
 CommandWidget::CommandWidget(amuse::SoundMacro::ICmd* cmd, amuse::SoundMacro::CmdOp op, SoundMacroListing* listing)
 : QWidget(nullptr), m_cmd(cmd), m_introspection(amuse::SoundMacro::GetCmdIntrospection(op))
 {

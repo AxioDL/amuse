@@ -8,11 +8,22 @@ namespace amuse
 {
 struct ChannelMap;
 
+enum class EffectType
+{
+    Invalid,
+    ReverbStd,
+    ReverbHi,
+    Delay,
+    Chorus,
+    EffectTypeMAX
+};
+
 class EffectBaseTypeless
 {
 public:
     virtual ~EffectBaseTypeless() = default;
     virtual void resetOutputSampleRate(double sampleRate) = 0;
+    virtual EffectType Isa() const = 0;
 };
 
 template <typename T>

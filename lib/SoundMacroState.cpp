@@ -2707,6 +2707,7 @@ const SoundMacro::CmdIntrospection SoundMacro::CmdModeSelect::Introspective =
 };
 bool SoundMacro::CmdModeSelect::Do(SoundMacroState& st, Voice& vox) const
 {
+    vox.m_dlsVol = dlsVol;
     return false;
 }
 

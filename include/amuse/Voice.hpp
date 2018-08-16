@@ -42,6 +42,16 @@ class Voice : public Entity
     friend class SoundMacro::CmdTrapEvent;
     friend class SoundMacro::CmdUntrapEvent;
     friend class SoundMacro::CmdGetMessage;
+    friend class SoundMacro::CmdModeSelect;
+
+    struct VolumeCache
+    {
+        bool m_curDLS = false;       /**< Current DLS status of cached lookup */
+        float m_curVolLUTKey = -1.f; /**< Current input level cached out of LUT */
+        float m_curVolLUTVal = 0.f;  /**< Current output level cached out of LUT */
+        float getVolume(float vol, bool dls);
+        float getCachedVolume() const { return m_curVolLUTVal; }
+    };
 
     void _setObjectId(ObjectId id) { m_objectId = id; }
 
@@ -72,6 +82,8 @@ class Voice : public Entity
     uint64_t m_voiceSamples = 0;   /**< Count of samples processed over voice's lifetime */
     float m_lastLevel = 0.f;       /**< Last computed level ([0,1] mapped to [-10,0] clamped decibels) */
     float m_nextLevel = 0.f;       /**< Next computed level used for lerp-mode amplitude */
+    VolumeCache m_nextLevelCache;
+    VolumeCache m_lerpedCache;
 
     VoiceState m_voxState = VoiceState::Dead; /**< Current high-level state of voice */
     bool m_sustained = false;                 /**< Sustain pedal pressed for this voice */
@@ -92,6 +104,7 @@ class Voice : public Entity
     int32_t m_curPitch;             /**< Current base pitch in cents */
     bool m_pitchDirty = true;       /**< m_curPitch has been updated and needs sending to voice */
     bool m_needsSlew = false;       /**< next _setTotalPitch will be slewed */
+    bool m_dlsVol = false;          /**< Use DLS LUT for resolving voice volume */
 
     Envelope m_volAdsr;           /**< Volume envelope */
     double m_envelopeTime = -1.f; /**< time since last ENVELOPE command, -1 for no active volume-sweep */
@@ -147,10 +160,13 @@ class Voice : public Entity
     void _macroKeyOff();
     void _macroSampleEnd();
     void _procSamplePre(int16_t& samp);
+    VolumeCache m_masterCache;
     template <typename T>
     T _procSampleMaster(double time, T samp);
+    VolumeCache m_auxACache;
     template <typename T>
     T _procSampleAuxA(double time, T samp);
+    VolumeCache m_auxBCache;
     template <typename T>
     T _procSampleAuxB(double time, T samp);
     void _setTotalPitch(int32_t cents, bool slew);

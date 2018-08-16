@@ -349,16 +349,19 @@ public:
     bool m_needsReset = false;
     void _buildGroupNode(GroupNode& gn);
     void _resetModelData();
+    void _resetSongRefCount();
 
 public:
     explicit ProjectModel(const QString& path, QObject* parent = Q_NULLPTR);
 
     bool clearProjectData();
     bool openGroupData(const QString& groupName, UIMessenger& messenger);
-    bool openSongsData();
+    void openSongsData();
+    void importSongsData(const QString& path);
     bool reloadSampleData(const QString& groupName, UIMessenger& messenger);
     bool importGroupData(const QString& groupName, const amuse::AudioGroupData& data,
                          ImportMode mode, UIMessenger& messenger);
+    void saveSongsIndex();
     bool saveToFile(UIMessenger& messenger);
 
     bool ensureModelData();

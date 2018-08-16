@@ -4,8 +4,22 @@
 #include <QStatusBar>
 #include <QLabel>
 #include <QPushButton>
+#include <QSlider>
+#include <QMouseEvent>
+#include <cmath>
 
 class StatusBarFocus;
+
+class FXButton : public QPushButton
+{
+    Q_OBJECT
+public:
+    explicit FXButton(QWidget* parent = Q_NULLPTR);
+    void mouseReleaseEvent(QMouseEvent* event) { event->ignore(); }
+    void mouseMoveEvent(QMouseEvent* event) { event->ignore(); }
+    void focusOutEvent(QFocusEvent* event) { event->ignore(); }
+    void keyPressEvent(QKeyEvent* event) { event->ignore(); }
+};
 
 class StatusBarWidget : public QStatusBar
 {
@@ -13,33 +27,30 @@ class StatusBarWidget : public QStatusBar
     Q_OBJECT
     QLabel m_normalMessage;
     QPushButton m_killButton;
+    FXButton m_fxButton;
+    QIcon m_volumeIcons[4];
+    QLabel m_volumeIcon;
+    QSlider m_volumeSlider;
+    int m_lastVolIdx = 0;
     QLabel m_voiceCount;
     int m_cachedVoiceCount = -1;
     StatusBarFocus* m_curFocus = nullptr;
     void setKillVisible(bool vis) { m_killButton.setVisible(vis); m_voiceCount.setVisible(vis); }
 public:
-    explicit StatusBarWidget(QWidget* parent = Q_NULLPTR) : QStatusBar(parent)
-    {
-        addWidget(&m_normalMessage);
-        m_killButton.setIcon(QIcon(QStringLiteral(":/icons/IconKill.svg")));
-        m_killButton.setVisible(false);
-        m_killButton.setToolTip(tr("Immediately kill active voices"));
-        m_voiceCount.setVisible(false);
-        addPermanentWidget(&m_voiceCount);
-        addPermanentWidget(&m_killButton);
-    }
+    explicit StatusBarWidget(QWidget* parent = Q_NULLPTR);
     void setNormalMessage(const QString& message) { m_normalMessage.setText(message); }
-    void setVoiceCount(int voices)
-    {
-        if (voices != m_cachedVoiceCount)
-        {
-            m_voiceCount.setText(QString::number(voices));
-            m_cachedVoiceCount = voices;
-            setKillVisible(voices != 0);
-        }
-    }
+    void setVoiceCount(int voices);
     void connectKillClicked(const QObject* receiver, const char* method)
     { connect(&m_killButton, SIGNAL(clicked(bool)), receiver, method); }
+    void connectFXPressed(const QObject* receiver, const char* method)
+    { connect(&m_fxButton, SIGNAL(pressed()), receiver, method); }
+    void setFXDown(bool down) { m_fxButton.setDown(down); }
+    void connectVolumeSlider(const QObject* receiver, const char* method)
+    { connect(&m_volumeSlider, SIGNAL(valueChanged(int)), receiver, method); }
+    void setVolumeValue(int vol) { m_volumeSlider.setValue(vol); }
+
+private slots:
+    void volumeChanged(int vol);
 };
 
 class StatusBarFocus : public QObject
@@ -50,42 +61,9 @@ public:
     explicit StatusBarFocus(StatusBarWidget* statusWidget)
     : QObject(statusWidget) {}
     ~StatusBarFocus() { exit(); }
-    void setMessage(const QString& message)
-    {
-        m_message = message;
-        if (StatusBarWidget* widget = qobject_cast<StatusBarWidget*>(parent()))
-        {
-            if (widget->m_curFocus == this)
-            {
-                if (m_message.isEmpty())
-                    widget->clearMessage();
-                else
-                    widget->showMessage(m_message);
-            }
-        }
-    }
-    void enter()
-    {
-        if (StatusBarWidget* widget = qobject_cast<StatusBarWidget*>(parent()))
-        {
-            widget->m_curFocus = this;
-            if (m_message.isEmpty())
-                widget->clearMessage();
-            else
-                widget->showMessage(m_message);
-        }
-    }
-    void exit()
-    {
-        if (StatusBarWidget* widget = qobject_cast<StatusBarWidget*>(parent()))
-        {
-            if (widget->m_curFocus == this)
-            {
-                widget->clearMessage();
-                widget->m_curFocus = nullptr;
-            }
-        }
-    }
+    void setMessage(const QString& message);
+    void enter();
+    void exit();
 };
 
 #endif //AMUSE_STATUSBAR_WIDGET_HPP

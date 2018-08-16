@@ -4,6 +4,8 @@
 #include "Common.hpp"
 #include "athena/YAMLDocWriter.hpp"
 #include "MainWindow.hpp"
+#include "amuse/SongConverter.hpp"
+#include "amuse/ContainerRegistry.hpp"
 #include <QUndoCommand>
 
 QIcon ProjectModel::GroupNode::Icon;
@@ -409,13 +411,32 @@ bool ProjectModel::openGroupData(const QString& groupName, UIMessenger& messenge
     return true;
 }
 
-bool ProjectModel::openSongsData()
+void ProjectModel::_resetSongRefCount()
+{
+    for (auto& song : m_midiFiles)
+        song.second.m_refCount = 0;
+    for (const auto& g : m_groups)
+        for (const auto& g2 : g.second.getProj().songGroups())
+            for (const auto& m : g2.second->m_midiSetups)
+                ++m_midiFiles[m.first].m_refCount;
+    for (auto it = m_midiFiles.begin(); it != m_midiFiles.end();)
+    {
+        if (it->second.m_refCount == 0)
+        {
+            it = m_midiFiles.erase(it);
+            continue;
+        }
+        ++it;
+    }
+}
+
+void ProjectModel::openSongsData()
 {
     m_midiFiles.clear();
     QFileInfo songsFile(m_dir, QStringLiteral("!songs.yaml"));
     if (songsFile.exists())
     {
-        athena::io::FileReader r(QStringToSysString(songsFile.path()));
+        athena::io::FileReader r(QStringToSysString(songsFile.filePath()));
         if (!r.hasError())
         {
             athena::io::YAMLDocReader dr;
@@ -425,35 +446,44 @@ bool ProjectModel::openSongsData()
                 for (auto& p : dr.getRootNode()->m_mapChildren)
                 {
                     char* endPtr;
-                    amuse::SongId id = uint16_t(strtoul(p.first.c_str(), &endPtr, 0));
+                    amuse::SongId id = uint16_t(strtoul(p.first.c_str(), &endPtr, 16));
                     if (endPtr == p.first.c_str() || id.id == 0xffff)
                         continue;
-
-                    m_midiFiles.clear();
                     QString path = QString::fromStdString(p.second->m_scalarString);
-                    m_root->oneLevelTraverse([this, id, path](INode* n)
-                    {
-                        GroupNode* gn = static_cast<GroupNode*>(n);
-                        amuse::AudioGroupDatabase* db = gn->getAudioGroup();
-                        for (const auto& p : db->getProj().songGroups())
-                        {
-                            for (const auto& m : p.second->m_midiSetups)
-                            {
-                                if (id == m.first)
-                                {
-                                    Song& song = m_midiFiles[id];
-                                    song.m_path = path;
-                                    ++song.m_refCount;
-                                }
-                            }
-                        }
-                        return true;
-                    });
+                    setMIDIPathOfSong(id, path);
                 }
+                _resetSongRefCount();
             }
         }
     }
-    return true;
+}
+
+void ProjectModel::importSongsData(const QString& path)
+{
+    std::vector<std::pair<amuse::SystemString, amuse::ContainerRegistry::SongData>> songs =
+        amuse::ContainerRegistry::LoadSongs(QStringToSysString(path).c_str());
+
+    for (const auto& song : songs)
+    {
+        int version;
+        bool isBig;
+        auto midiData =
+            amuse::SongConverter::SongToMIDI(song.second.m_data.get(), version, isBig);
+        if (!midiData.empty())
+        {
+            QFileInfo fi(m_dir, SysStringToQString(song.first + ".mid"));
+            QFile f(fi.filePath());
+            if (f.open(QFile::WriteOnly))
+            {
+                f.write((const char*)midiData.data(), midiData.size());
+                setMIDIPathOfSong(
+                    song.second.m_setupId, m_dir.relativeFilePath(fi.filePath()));
+            }
+        }
+    }
+
+    saveSongsIndex();
+    _resetSongRefCount();
 }
 
 bool ProjectModel::reloadSampleData(const QString& groupName, UIMessenger& messenger)
@@ -509,6 +539,24 @@ bool ProjectModel::importGroupData(const QString& groupName, const amuse::AudioG
     return true;
 }
 
+void ProjectModel::saveSongsIndex()
+{
+    if (!m_midiFiles.empty())
+    {
+        QFileInfo songsFile(m_dir, QStringLiteral("!songs.yaml"));
+        athena::io::YAMLDocWriter dw("amuse::Songs");
+        for (auto& p : amuse::SortUnorderedMap(m_midiFiles))
+        {
+            char id[16];
+            snprintf(id, 16, "%04X", p.first.id);
+            dw.writeString(id, p.second.get().m_path.toUtf8().data());
+        }
+        athena::io::FileWriter w(QStringToSysString(songsFile.filePath()));
+        if (!w.hasError())
+            dw.finish(&w);
+    }
+}
+
 bool ProjectModel::saveToFile(UIMessenger& messenger)
 {
     m_projectDatabase.setIdDatabases();
@@ -528,20 +576,7 @@ bool ProjectModel::saveToFile(UIMessenger& messenger)
         g.second.getPool().toYAML(groupPath);
     }
 
-    if (!m_midiFiles.empty())
-    {
-        QFileInfo songsFile(m_dir, QStringLiteral("!songs.yaml"));
-        athena::io::YAMLDocWriter dw("amuse::Songs");
-        for (auto& p : m_midiFiles)
-        {
-            char id[16];
-            snprintf(id, 16, "%04X", p.first.id);
-            dw.writeString(id, p.second.m_path.toUtf8().data());
-        }
-        athena::io::FileWriter w(QStringToSysString(songsFile.path()));
-        if (!w.hasError())
-            dw.finish(&w);
-    }
+    saveSongsIndex();
 
     return true;
 }
