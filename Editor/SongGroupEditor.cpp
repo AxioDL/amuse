@@ -337,7 +337,10 @@ void MIDIFileDelegate::setModelData(QWidget* editor, QAbstractItemModel* m, cons
     const SetupListModel* model = static_cast<const SetupListModel*>(index.model());
     auto entry = model->m_sorted[index.row()];
     if (g_MainWindow->projectModel()->getMIDIPathOfSong(entry->first) == widget->path())
+    {
+        emit m->dataChanged(index, index);
         return;
+    }
     g_MainWindow->pushUndoCommand(new SongMIDIPathChangeUndoCommand(model->m_node.get(),
         tr("Change MIDI Path"), entry->first, widget->path()));
     emit m->dataChanged(index, index);
@@ -1417,7 +1420,8 @@ void SongGroupEditor::setupDataChanged()
                 std::vector<uint8_t> arrData = LoadSongFile(g_MainWindow->projectModel()->dir().absoluteFilePath(path));
                 if (!arrData.empty())
                 {
-                    MIDIPlayerWidget* newW = new MIDIPlayerWidget(index, m_setupList.m_node->m_id, p.m_it->first, std::move(arrData));
+                    MIDIPlayerWidget* newW = new MIDIPlayerWidget(index, m_setupList.m_node->m_id, p.m_it->first,
+                        std::move(arrData), m_setupTable->m_listView->viewport());
                     m_setupTable->m_listView->setIndexWidget(index, newW);
                 }
                 else

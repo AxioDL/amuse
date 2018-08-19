@@ -645,7 +645,7 @@ void SoundGroupEditor::sfxDataChanged()
         SFXPlayerWidget* w = qobject_cast<SFXPlayerWidget*>(m_sfxTable->indexWidget(index));
         if (!w || w->sfxId() != p->first)
         {
-            SFXPlayerWidget* newW = new SFXPlayerWidget(index, m_sfxs.m_node->m_id, p->first);
+            SFXPlayerWidget* newW = new SFXPlayerWidget(index, m_sfxs.m_node->m_id, p->first, m_sfxTable->viewport());
             m_sfxTable->setIndexWidget(index, newW);
         }
         ++idx;
