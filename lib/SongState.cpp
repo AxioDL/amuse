@@ -39,16 +39,30 @@ static int16_t DecodeSignedValue(const unsigned char*& data)
     return ret;
 }
 
-static uint32_t DecodeTimeRLE(const unsigned char*& data)
+static std::pair<uint32_t, int32_t> DecodeDelta(const unsigned char*& data)
+{
+    std::pair<uint32_t, int32_t> ret = {};
+    do {
+        if (data[0] == 0x80 && data[1] == 0x00)
+            break;
+        ret.first += DecodeUnsignedValue(data);
+        ret.second = DecodeSignedValue(data);
+    } while (ret.second == 0);
+    return ret;
+}
+
+static uint32_t DecodeTime(const unsigned char*& data)
 {
     uint32_t ret = 0;
 
     while (true)
     {
         uint16_t thisPart = SBig(*reinterpret_cast<const uint16_t*>(data));
-        if (thisPart == 0xffff)
+        uint16_t nextPart = *reinterpret_cast<const uint16_t*>(data + 2);
+        if (nextPart == 0)
         {
-            ret += 65535;
+            // Automatically consume no-op command as continued time
+            ret += thisPart;
             data += 4;
             continue;
         }
@@ -118,8 +132,9 @@ void SongState::Track::setRegion(Sequencer* seq, const TrackRegion* region)
         m_pitchWheelData = m_parent->m_songData + header.m_pitchOff;
         if (m_pitchWheelData[0] != 0x80 || m_pitchWheelData[1] != 0x00)
         {
-            m_nextPitchTick = m_parent->m_curTick + DecodeUnsignedValue(m_pitchWheelData);
-            m_nextPitchDelta = DecodeSignedValue(m_pitchWheelData);
+            auto delta = DecodeDelta(m_pitchWheelData);
+            m_nextPitchTick = m_parent->m_curTick + delta.first;
+            m_nextPitchDelta = delta.second;
         }
     }
 
@@ -131,8 +146,9 @@ void SongState::Track::setRegion(Sequencer* seq, const TrackRegion* region)
         m_modWheelData = m_parent->m_songData + header.m_modOff;
         if (m_modWheelData[0] != 0x80 || m_modWheelData[1] != 0x00)
         {
-            m_nextModTick = m_parent->m_curTick + DecodeUnsignedValue(m_modWheelData);
-            m_nextModDelta = DecodeSignedValue(m_modWheelData);
+            auto delta = DecodeDelta(m_modWheelData);
+            m_nextModTick = m_parent->m_curTick + delta.first;
+            m_nextModDelta = delta.second;
         }
     }
 
@@ -145,7 +161,7 @@ void SongState::Track::setRegion(Sequencer* seq, const TrackRegion* region)
         seq->setCtrlValue(m_midiChan, 1, clamp(0, m_modVal * 128 / 16384, 127));
     }
     if (m_parent->m_sngVersion == 1)
-        m_eventWaitCountdown = int32_t(DecodeTimeRLE(m_data));
+        m_eventWaitCountdown = int32_t(DecodeTime(m_data));
     else
     {
         int32_t absTick = (m_parent->m_bigEndian ? SBig(*reinterpret_cast<const int32_t*>(m_data))
@@ -231,10 +247,7 @@ int SongState::DetectVersion(const unsigned char* ptr, bool& isBig)
                     {
                         const unsigned char* dptr = ptr + header.m_pitchOff;
                         while (dptr[0] != 0x80 || dptr[1] != 0x00)
-                        {
-                            DecodeUnsignedValue(dptr);
-                            DecodeSignedValue(dptr);
-                        }
+                            DecodeDelta(dptr);
                         dptr += 2;
                         if (dptr >= (expectedEnd - 4) && (dptr <= expectedEnd))
                             continue;
@@ -245,10 +258,7 @@ int SongState::DetectVersion(const unsigned char* ptr, bool& isBig)
                     {
                         const unsigned char* dptr = ptr + header.m_modOff;
                         while (dptr[0] != 0x80 || dptr[1] != 0x00)
-                        {
-                            DecodeUnsignedValue(dptr);
-                            DecodeSignedValue(dptr);
-                        }
+                            DecodeDelta(dptr);
                         dptr += 2;
                         if (dptr >= (expectedEnd - 4) && (dptr <= expectedEnd))
                             continue;
@@ -261,7 +271,7 @@ int SongState::DetectVersion(const unsigned char* ptr, bool& isBig)
                         while (true)
                         {
                             /* Delta time */
-                            DecodeTimeRLE(data);
+                            DecodeTime(data);
 
                             /* Load next command */
                             if (*reinterpret_cast<const uint16_t*>(data) == 0xffff)
@@ -427,8 +437,9 @@ bool SongState::Track::advance(Sequencer& seq, int32_t ticks)
                 seq.setPitchWheel(m_midiChan, clamp(-1.f, m_pitchVal / 8191.f, 1.f));
                 if (m_pitchWheelData[0] != 0x80 || m_pitchWheelData[1] != 0x00)
                 {
-                    m_nextPitchTick += DecodeUnsignedValue(m_pitchWheelData);
-                    m_nextPitchDelta = DecodeSignedValue(m_pitchWheelData);
+                    auto delta = DecodeDelta(m_pitchWheelData);
+                    m_nextPitchTick += delta.first;
+                    m_nextPitchDelta = delta.second;
                 }
                 else
                 {
@@ -456,8 +467,9 @@ bool SongState::Track::advance(Sequencer& seq, int32_t ticks)
                 seq.setCtrlValue(m_midiChan, 1, clamp(0, m_modVal / 128, 127));
                 if (m_modWheelData[0] != 0x80 || m_modWheelData[1] != 0x00)
                 {
-                    m_nextModTick += DecodeUnsignedValue(m_modWheelData);
-                    m_nextModDelta = DecodeSignedValue(m_modWheelData);
+                    auto delta = DecodeDelta(m_modWheelData);
+                    m_nextModTick += delta.first;
+                    m_nextModDelta = delta.second;
                 }
                 else
                 {
@@ -519,7 +531,7 @@ bool SongState::Track::advance(Sequencer& seq, int32_t ticks)
             }
 
             /* Set next delta-time */
-            m_eventWaitCountdown += int32_t(DecodeTimeRLE(m_data));
+            m_eventWaitCountdown += int32_t(DecodeTime(m_data));
         }
     }
     else

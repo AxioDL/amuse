@@ -47,6 +47,8 @@ MainWindow::MainWindow(QWidget* parent)
     m_ui.statusbar->connectFXPressed(this, SLOT(fxPressed()));
     m_ui.statusbar->setVolumeValue(70);
     m_ui.statusbar->connectVolumeSlider(this, SLOT(volumeChanged(int)));
+    m_ui.statusbar->connectASlider(this, SLOT(auxAChanged(int)));
+    m_ui.statusbar->connectBSlider(this, SLOT(auxBChanged(int)));
 
     m_ui.keyboardContents->setStatusFocus(new StatusBarFocus(m_ui.statusbar));
     m_ui.velocitySlider->setStatusFocus(new StatusBarFocus(m_ui.statusbar));
@@ -299,12 +301,25 @@ bool MainWindow::setProjectPath(const QString& path)
 void MainWindow::refreshAudioIO()
 {
     QList<QAction*> audioActions = m_ui.menuAudio->actions();
-    if (audioActions.size() > 3)
-        for (auto it = audioActions.begin() + 3 ; it != audioActions.end() ; ++it)
+    if (audioActions.size() > 2)
+        for (auto it = audioActions.begin() + 2 ; it != audioActions.end() ; ++it)
             m_ui.menuAudio->removeAction(*it);
 
     bool addedDev = false;
-    // TODO: Do
+    if (m_voxEngine)
+    {
+        std::string curOut = m_voxEngine->getCurrentAudioOutput();
+        for (const auto& dev : m_voxEngine->enumerateAudioOutputs())
+        {
+            QAction* act = m_ui.menuAudio->addAction(QString::fromStdString(dev.second));
+            act->setCheckable(true);
+            act->setData(QString::fromStdString(dev.first));
+            if (curOut == dev.first)
+                act->setChecked(true);
+            connect(act, SIGNAL(triggered()), this, SLOT(setAudioIO()));
+            addedDev = true;
+        }
+    }
 
     if (!addedDev)
         m_ui.menuAudio->addAction(tr("No Audio Devices Found"))->setEnabled(false);
@@ -320,11 +335,22 @@ void MainWindow::refreshMIDIIO()
     bool addedDev = false;
     if (m_voxEngine)
     {
-        for (const auto& dev : m_voxEngine->enumerateMIDIDevices())
+        if (m_voxEngine->supportsVirtualMIDIIn())
+        {
+            QAction* act = m_ui.menuMIDI->addAction(tr("Virtual MIDI-In"));
+            act->setCheckable(true);
+            act->setData(QStringLiteral("<amuse-virtual-in>"));
+            act->setChecked(static_cast<MIDIReader*>(m_engine->getMIDIReader())->hasVirtualIn());
+            connect(act, SIGNAL(triggered(bool)), this, SLOT(setMIDIIO(bool)));
+            addedDev = true;
+        }
+        for (const auto& dev : m_voxEngine->enumerateMIDIInputs())
         {
             QAction* act = m_ui.menuMIDI->addAction(QString::fromStdString(dev.second));
+            act->setCheckable(true);
             act->setData(QString::fromStdString(dev.first));
-            connect(act, SIGNAL(triggered()), this, SLOT(setMIDIIO()));
+            act->setChecked(static_cast<MIDIReader*>(m_engine->getMIDIReader())->hasMIDIIn(dev.first.c_str()));
+            connect(act, SIGNAL(triggered(bool)), this, SLOT(setMIDIIO(bool)));
             addedDev = true;
         }
     }
@@ -414,13 +440,13 @@ void MainWindow::keyReleaseEvent(QKeyEvent* ev)
         setSustain(false);
 }
 
-void MainWindow::startBackgroundTask(const QString& windowTitle, const QString& label,
+void MainWindow::startBackgroundTask(int id, const QString& windowTitle, const QString& label,
                                      std::function<void(BackgroundTask&)>&& task)
 {
     assert(m_backgroundTask == nullptr && "existing background process");
     setEnabled(false);
 
-    m_backgroundTask = new BackgroundTask(std::move(task));
+    m_backgroundTask = new BackgroundTask(id, std::move(task));
     m_backgroundTask->moveToThread(&m_backgroundThread);
 
     m_backgroundDialog = new QProgressDialog(this);
@@ -442,8 +468,8 @@ void MainWindow::startBackgroundTask(const QString& windowTitle, const QString& 
             m_backgroundDialog, SLOT(setValue(int)), Qt::QueuedConnection);
     connect(m_backgroundTask, SIGNAL(setLabelText(const QString&)),
             m_backgroundDialog, SLOT(setLabelText(const QString&)), Qt::QueuedConnection);
-    connect(m_backgroundTask, SIGNAL(finished()),
-            this, SLOT(onBackgroundTaskFinished()), Qt::QueuedConnection);
+    connect(m_backgroundTask, SIGNAL(finished(int)),
+            this, SLOT(onBackgroundTaskFinished(int)), Qt::QueuedConnection);
     m_backgroundDialog->open(m_backgroundTask, SLOT(cancel()));
 
     connectMessenger(&m_backgroundTask->uiMessenger(), Qt::BlockingQueuedConnection);
@@ -579,6 +605,8 @@ amuse::ObjToken<amuse::Voice> MainWindow::startEditorVoice(uint8_t key, uint8_t 
             vox->setPedal(m_ctrlVals[64] >= 0x40);
             vox->setPitchWheel(m_pitch);
             vox->installCtrlValues(m_ctrlVals);
+            vox->setReverbVol(m_auxAVol);
+            vox->setAuxBVol(m_auxBVol);
         }
     }
     return vox;
@@ -589,7 +617,10 @@ amuse::ObjToken<amuse::Voice> MainWindow::startSFX(amuse::GroupId groupId, amuse
     if (ProjectModel::INode* node = getEditorNode())
     {
         amuse::AudioGroupDatabase* group = projectModel()->getGroupNode(node)->getAudioGroup();
-        return m_engine->fxStart(group, groupId, sfxId, 1.f, 0.f);
+        auto ret = m_engine->fxStart(group, groupId, sfxId, 1.f, 0.f);
+        ret->setReverbVol(m_auxAVol);
+        ret->setAuxBVol(m_auxBVol);
+        return ret;
     }
     return {};
 }
@@ -600,7 +631,13 @@ amuse::ObjToken<amuse::Sequencer> MainWindow::startSong(amuse::GroupId groupId, 
     if (ProjectModel::INode* node = getEditorNode())
     {
         amuse::AudioGroupDatabase* group = projectModel()->getGroupNode(node)->getAudioGroup();
-        return m_engine->seqPlay(group, groupId, songId, arrData);
+        auto ret = m_engine->seqPlay(group, groupId, songId, arrData);
+        for (uint8_t i = 0; i < 16; ++i)
+        {
+            ret->setCtrlValue(i, 0x5b, int8_t(m_auxAVol * 127.f));
+            ret->setCtrlValue(i, 0x5d, int8_t(m_auxBVol * 127.f));
+        }
+        return ret;
     }
     return {};
 }
@@ -702,7 +739,7 @@ bool MainWindow::openProject(const QString& path)
         return false;
 
     ProjectModel* model = m_projectModel;
-    startBackgroundTask(tr("Opening"), tr("Scanning Project"),
+    startBackgroundTask(TaskOpen, tr("Opening"), tr("Scanning Project"),
     [dir, model](BackgroundTask& task)
     {
         QStringList childDirs = dir.entryList(QDir::Dirs);
@@ -710,6 +747,8 @@ bool MainWindow::openProject(const QString& path)
         {
             if (task.isCanceled())
                 return;
+            if (chDir == QStringLiteral("out"))
+                continue;
             QString chPath = dir.filePath(chDir);
             if (QFileInfo(chPath, QStringLiteral("!project.yaml")).exists() &&
                 QFileInfo(chPath, QStringLiteral("!pool.yaml")).exists())
@@ -785,7 +824,7 @@ void MainWindow::reloadSampleDataAction()
     if (!dir.exists())
         return;
 
-    startBackgroundTask(tr("Reloading Samples"), tr("Scanning Project"),
+    startBackgroundTask(TaskReloadSamples, tr("Reloading Samples"), tr("Scanning Project"),
     [dir, model](BackgroundTask& task)
     {
         QStringList childDirs = dir.entryList(QDir::Dirs);
@@ -793,6 +832,8 @@ void MainWindow::reloadSampleDataAction()
         {
             if (task.isCanceled())
                 return;
+            if (chDir == QStringLiteral("out"))
+                continue;
             QString chPath = dir.filePath(chDir);
             if (QFileInfo(chPath, QStringLiteral("!project.yaml")).exists() &&
                 QFileInfo(chPath, QStringLiteral("!pool.yaml")).exists())
@@ -869,7 +910,7 @@ void MainWindow::importAction()
             }
 
             ProjectModel* model = m_projectModel;
-            startBackgroundTask(tr("Importing"), tr("Scanning Project"),
+            startBackgroundTask(TaskImport, tr("Importing"), tr("Scanning Project"),
             [model, path, importMode](BackgroundTask& task)
             {
                 QDir dir = QFileInfo(path).dir();
@@ -914,7 +955,7 @@ void MainWindow::importAction()
     }
 
     ProjectModel* model = m_projectModel;
-    startBackgroundTask(tr("Importing"), tr("Scanning Project"),
+    startBackgroundTask(TaskImport, tr("Importing"), tr("Scanning Project"),
     [model, path, importMode](BackgroundTask& task)
     {
         /* Handle single container */
@@ -949,7 +990,32 @@ void MainWindow::importSongsAction()
 
 void MainWindow::exportAction()
 {
+    if (!m_projectModel)
+        return;
 
+    QFileInfo dirInfo(m_projectModel->dir(), QStringLiteral("out"));
+    if (!MkPath(dirInfo.filePath(), m_mainMessenger))
+        return;
+
+    QDir dir(dirInfo.filePath());
+
+    ProjectModel* model = m_projectModel;
+    startBackgroundTask(BackgroundTaskId::TaskExport, tr("Exporting"), tr("Scanning Project"),
+    [model, dir](BackgroundTask& task)
+    {
+        QStringList groupList = model->getGroupList();
+        task.setMaximum(groupList.size());
+        int curVal = 0;
+        for (QString group : groupList)
+        {
+            task.setLabelText(tr("Exporting %1").arg(group));
+            if (task.isCanceled())
+                return;
+            if (!model->exportGroup(dir.path(), group, task.uiMessenger()))
+                return;
+            task.setValue(++curVal);
+        }
+    });
 }
 
 bool TreeDelegate::editorEvent(QEvent* event,
@@ -1177,13 +1243,32 @@ void MainWindow::aboutToShowMIDIIOMenu()
 
 void MainWindow::setAudioIO()
 {
-    // TODO: Do
+    QByteArray devName = qobject_cast<QAction*>(sender())->data().toString().toUtf8();
+    if (m_voxEngine)
+        m_voxEngine->setCurrentAudioOutput(devName.data());
 }
 
-void MainWindow::setMIDIIO()
+void MainWindow::setMIDIIO(bool checked)
 {
-    // TODO: Do
-    //qobject_cast<QAction*>(sender())->data().toString().toUtf8().constData();
+    QAction* action = qobject_cast<QAction*>(sender());
+    QByteArray devName = action->data().toString().toUtf8();
+    if (m_voxEngine)
+    {
+        MIDIReader* mr = static_cast<MIDIReader*>(m_engine->getMIDIReader());
+        if (devName == "<amuse-virtual-in>")
+        {
+            mr->setVirtualIn(checked);
+            action->setChecked(mr->hasVirtualIn());
+        }
+        else
+        {
+            if (checked)
+                mr->addMIDIIn(devName.data());
+            else
+                mr->removeMIDIIn(devName.data());
+            action->setChecked(mr->hasMIDIIn(devName.data()));
+        }
+    }
 }
 
 void MainWindow::notePressed(int key)
@@ -1241,6 +1326,26 @@ void MainWindow::fxPressed()
 void MainWindow::volumeChanged(int vol)
 {
     m_engine->setVolume(vol / 100.f);
+}
+
+void MainWindow::auxAChanged(int vol)
+{
+    m_auxAVol = vol / 100.f;
+    for (auto& vox : m_engine->getActiveVoices())
+        vox->setReverbVol(m_auxAVol);
+    for (auto& seq : m_engine->getActiveSequencers())
+        for (uint8_t i = 0; i < 16; ++i)
+            seq->setCtrlValue(i, 0x5b, int8_t(m_auxAVol * 127.f));
+}
+
+void MainWindow::auxBChanged(int vol)
+{
+    m_auxBVol = vol / 100.f;
+    for (auto& vox : m_engine->getActiveVoices())
+        vox->setAuxBVol(m_auxBVol);
+    for (auto& seq : m_engine->getActiveSequencers())
+        for (uint8_t i = 0; i < 16; ++i)
+            seq->setCtrlValue(i, 0x5d, int8_t(m_auxBVol * 127.f));
 }
 
 void MainWindow::outlineCutAction()
@@ -1399,16 +1504,32 @@ void MainWindow::studioSetupShown()
     m_ui.statusbar->setFXDown(true);
 }
 
-void MainWindow::onBackgroundTaskFinished()
+void MainWindow::onBackgroundTaskFinished(int id)
 {
     m_backgroundDialog->reset();
     m_backgroundDialog->deleteLater();
     m_backgroundDialog = nullptr;
     m_backgroundTask->deleteLater();
     m_backgroundTask = nullptr;
-    bool hasGroups = m_projectModel->ensureModelData();
-    m_ui.actionImport_Groups->setDisabled(hasGroups);
-    m_ui.actionImport_Songs->setEnabled(hasGroups);
+
+    if (id == TaskExport)
+    {
+        if (m_mainMessenger.question(tr("Export Complete"), tr("%1?").
+            arg(ShowInGraphicalShellString())) == QMessageBox::Yes)
+        {
+            QFileInfo dirInfo(m_projectModel->dir(), QStringLiteral("out"));
+            QDir dir(dirInfo.filePath());
+            QStringList entryList = dir.entryList(QDir::Files);
+            ShowInGraphicalShell(this, entryList.empty() ? dirInfo.filePath() : QFileInfo(dir, entryList.first()).filePath());
+        }
+    }
+    else
+    {
+        bool hasGroups = m_projectModel->ensureModelData();
+        m_ui.actionImport_Groups->setDisabled(hasGroups);
+        m_ui.actionImport_Songs->setEnabled(hasGroups);
+    }
+
     setEnabled(true);
 }
 

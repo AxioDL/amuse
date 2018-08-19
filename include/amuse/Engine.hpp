@@ -75,6 +75,9 @@ public:
     /** Access voice backend of engine */
     IBackendVoiceAllocator& getBackend() { return m_backend; }
 
+    /** Access MIDI reader */
+    IMIDIReader* getMIDIReader() const { return m_midiReader.get(); }
+
     /** Add audio group data pointers to engine; must remain resident! */
     const AudioGroup* addAudioGroup(const AudioGroupData& data);
 

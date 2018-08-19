@@ -31,6 +31,10 @@ class StatusBarWidget : public QStatusBar
     QIcon m_volumeIcons[4];
     QLabel m_volumeIcon;
     QSlider m_volumeSlider;
+    QLabel m_aIcon;
+    QSlider m_aSlider;
+    QLabel m_bIcon;
+    QSlider m_bSlider;
     int m_lastVolIdx = 0;
     QLabel m_voiceCount;
     int m_cachedVoiceCount = -1;
@@ -47,6 +51,10 @@ public:
     void setFXDown(bool down) { m_fxButton.setDown(down); }
     void connectVolumeSlider(const QObject* receiver, const char* method)
     { connect(&m_volumeSlider, SIGNAL(valueChanged(int)), receiver, method); }
+    void connectASlider(const QObject* receiver, const char* method)
+    { connect(&m_aSlider, SIGNAL(valueChanged(int)), receiver, method); }
+    void connectBSlider(const QObject* receiver, const char* method)
+    { connect(&m_bSlider, SIGNAL(valueChanged(int)), receiver, method); }
     void setVolumeValue(int vol) { m_volumeSlider.setValue(vol); }
 
 private slots:

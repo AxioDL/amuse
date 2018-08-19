@@ -581,6 +581,48 @@ bool ProjectModel::saveToFile(UIMessenger& messenger)
     return true;
 }
 
+QStringList ProjectModel::getGroupList() const
+{
+    QStringList list;
+    list.reserve(m_root->childCount());
+    m_root->oneLevelTraverse([&list](INode* node)
+    {
+        list.push_back(node->name());
+        return true;
+    });
+    return list;
+}
+
+bool ProjectModel::exportGroup(const QString& path, const QString& groupName, UIMessenger& messenger) const
+{
+    auto search = m_groups.find(groupName);
+    if (search == m_groups.cend())
+    {
+        messenger.critical(tr("Export Error"), tr("Unable to find group %1").arg(groupName));
+        return false;
+    }
+    const amuse::AudioGroupDatabase& group = search->second;
+    m_projectDatabase.setIdDatabases();
+    auto basePath = QStringToSysString(QFileInfo(QDir(path), groupName).filePath());
+    group.setIdDatabases();
+    if (!group.getProj().toGCNData(basePath, group.getPool(), group.getSdir()))
+    {
+        messenger.critical(tr("Export Error"), tr("Unable to export %1.proj").arg(groupName));
+        return false;
+    }
+    if (!group.getPool().toData<athena::Big>(basePath))
+    {
+        messenger.critical(tr("Export Error"), tr("Unable to export %1.pool").arg(groupName));
+        return false;
+    }
+    if (!group.getSdir().toGCNData(basePath, group))
+    {
+        messenger.critical(tr("Export Error"), tr("Unable to export %1.sdir").arg(groupName));
+        return false;
+    }
+    return true;
+}
+
 void ProjectModel::_buildGroupNode(GroupNode& gn)
 {
     amuse::AudioGroup& group = gn.m_it->second;

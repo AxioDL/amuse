@@ -13,6 +13,8 @@
 #include <QSplitter>
 #include "amuse/Studio.hpp"
 
+class EffectListing;
+
 struct EffectIntrospection
 {
     struct Field
@@ -34,7 +36,31 @@ struct EffectIntrospection
     Field m_fields[7];
 };
 
-class EffectListing;
+class Uint32X8Popup : public QFrame
+{
+    Q_OBJECT
+    FieldSlider* m_sliders[8];
+public:
+    explicit Uint32X8Popup(int min, int max, QWidget* parent = Q_NULLPTR);
+    void setValue(int chanIdx, int val);
+private slots:
+    void doValueChanged(int val);
+signals:
+    void valueChanged(int chanIdx, int val);
+};
+
+class Uint32X8Button : public QPushButton
+{
+    Q_OBJECT
+    Uint32X8Popup* m_popup;
+public:
+    explicit Uint32X8Button(int min, int max, QWidget* parent = Q_NULLPTR);
+    void paintEvent(QPaintEvent* event);
+    Uint32X8Popup* popup() const { return m_popup; }
+    QStyleOptionComboBox comboStyleOption() const;
+private slots:
+    void onPressed();
+};
 
 class EffectWidget : public QWidget
 {
@@ -51,13 +77,14 @@ class EffectWidget : public QWidget
 private slots:
     void numChanged(int);
     void numChanged(double);
+    void chanNumChanged(int, int);
     void deleteClicked();
 private:
-    EffectWidget(amuse::EffectBaseTypeless* effect, amuse::EffectType type);
+    explicit EffectWidget(amuse::EffectBaseTypeless* effect, amuse::EffectType type);
 public:
     EffectListing* getParent() const;
-    EffectWidget(amuse::EffectBaseTypeless* effect);
-    EffectWidget(amuse::EffectType op);
+    explicit EffectWidget(amuse::EffectBaseTypeless* effect);
+    explicit EffectWidget(amuse::EffectType op);
     void paintEvent(QPaintEvent* event);
     QString getText() const { return m_titleLabel.text(); }
 };

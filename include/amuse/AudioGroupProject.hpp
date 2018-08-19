@@ -11,6 +11,8 @@
 namespace amuse
 {
 class AudioGroupData;
+class AudioGroupPool;
+class AudioGroupSampleDirectory;
 
 enum class GroupType : atUint16
 {
@@ -205,6 +207,7 @@ public:
     std::unordered_map<GroupId, ObjToken<SFXGroupIndex>>& sfxGroups() { return m_sfxGroups; }
 
     bool toYAML(SystemStringView groupPath) const;
+    bool toGCNData(SystemStringView groupPath, const AudioGroupPool& pool, const AudioGroupSampleDirectory& sdir) const;
 
     AudioGroupProject(const AudioGroupProject&) = delete;
     AudioGroupProject& operator=(const AudioGroupProject&) = delete;

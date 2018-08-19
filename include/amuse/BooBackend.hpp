@@ -73,7 +73,8 @@ class BooBackendMIDIReader : public IMIDIReader, public boo::IMIDIReader
     friend class BooBackendVoiceAllocator;
 protected:
     Engine& m_engine;
-    std::unique_ptr<boo::IMIDIIn> m_midiIn;
+    std::unordered_map<std::string, std::unique_ptr<boo::IMIDIIn>> m_midiIns;
+    std::unique_ptr<boo::IMIDIIn> m_virtualIn;
     boo::MIDIDecoder m_decoder;
 
     bool m_useLock;
@@ -83,9 +84,14 @@ protected:
 
 public:
     ~BooBackendMIDIReader();
-    BooBackendMIDIReader(Engine& engine, const char* name, bool useLock);
+    BooBackendMIDIReader(Engine& engine, bool useLock);
 
-    std::string description();
+    void addMIDIIn(const char* name);
+    void removeMIDIIn(const char* name);
+    bool hasMIDIIn(const char* name) const;
+    void setVirtualIn(bool v);
+    bool hasVirtualIn() const;
+
     void pumpReader(double dt);
 
     void noteOff(uint8_t chan, uint8_t key, uint8_t velocity);
@@ -129,7 +135,7 @@ public:
     std::unique_ptr<IBackendVoice> allocateVoice(Voice& clientVox, double sampleRate, bool dynamicPitch);
     std::unique_ptr<IBackendSubmix> allocateSubmix(Submix& clientSmx, bool mainOut, int busId);
     std::vector<std::pair<std::string, std::string>> enumerateMIDIDevices();
-    std::unique_ptr<IMIDIReader> allocateMIDIReader(Engine& engine, const char* name = nullptr);
+    std::unique_ptr<IMIDIReader> allocateMIDIReader(Engine& engine);
     void setCallbackInterface(Engine* engine);
     AudioChannelSet getAvailableSet();
     void setVolume(float vol);

@@ -1,4 +1,6 @@
 #include "amuse/AudioGroupProject.hpp"
+#include "amuse/AudioGroupPool.hpp"
+#include "amuse/AudioGroupSampleDirectory.hpp"
 #include "amuse/AudioGroupData.hpp"
 #include "athena/MemoryReader.hpp"
 #include "athena/FileWriter.hpp"
@@ -6,6 +8,13 @@
 
 namespace amuse
 {
+
+static bool AtEnd64(athena::io::IStreamReader& r)
+{
+    uint64_t v = r.readUint64Big();
+    r.seek(-8, athena::Current);
+    return v == 0xffffffffffffffff;
+}
 
 static bool AtEnd32(athena::io::IStreamReader& r)
 {
@@ -50,6 +59,37 @@ static void ReadRangedObjectIds(NameDB* db, athena::io::IStreamReader& r, NameDB
     }
 }
 
+template <athena::Endian DNAE, class T>
+static void WriteRangedObjectIds(athena::io::IStreamWriter& w, const T& list)
+{
+    if (list.cbegin() == list.cend())
+        return;
+    bool inRange = false;
+    uint16_t lastId = list.cbegin()->first & 0x3fff;
+    for (auto it = list.cbegin() + 1; it != list.cend(); ++it)
+    {
+        uint16_t thisId = it->first & 0x3fff;
+        if (thisId == lastId + 1)
+        {
+            if (!inRange)
+            {
+                inRange = true;
+                lastId |= 0x8000;
+                athena::io::Write<athena::io::PropType::None>::Do<decltype(lastId), DNAE>({}, lastId, w);
+            }
+        }
+        else
+        {
+            inRange = false;
+            athena::io::Write<athena::io::PropType::None>::Do<decltype(lastId), DNAE>({}, lastId, w);
+        }
+        lastId = thisId;
+    }
+    athena::io::Write<athena::io::PropType::None>::Do<decltype(lastId), DNAE>({}, lastId, w);
+    uint16_t term = 0xffff;
+    athena::io::Write<athena::io::PropType::None>::Do<decltype(term), DNAE>({}, term, w);
+}
+
 AudioGroupProject::AudioGroupProject(athena::io::IStreamReader& r, GCNDataTag)
 {
     while (!AtEnd32(r))
@@ -91,7 +131,7 @@ AudioGroupProject::AudioGroupProject(athena::io::IStreamReader& r, GCNDataTag)
 
             /* Normal pages */
             r.seek(header.pageTableOff, athena::Begin);
-            while (!AtEnd16(r))
+            while (!AtEnd64(r))
             {
                 SongGroupIndex::PageEntryDNA<athena::Big> entry;
                 entry.read(r);
@@ -100,7 +140,7 @@ AudioGroupProject::AudioGroupProject(athena::io::IStreamReader& r, GCNDataTag)
 
             /* Drum pages */
             r.seek(header.drumTableOff, athena::Begin);
-            while (!AtEnd16(r))
+            while (!AtEnd64(r))
             {
                 SongGroupIndex::PageEntryDNA<athena::Big> entry;
                 entry.read(r);
@@ -696,6 +736,245 @@ bool AudioGroupProject::toYAML(SystemStringView groupPath) const
     projPath += _S("/!project.yaml");
     athena::io::FileWriter fo(projPath);
     return w.finish(&fo);
+}
+
+#if 0
+struct ObjectIdPool
+{
+    std::unordered_set<SoundMacroId> soundMacros;
+    std::unordered_set<SampleId> samples;
+    std::unordered_set<TableId> tables;
+    std::unordered_set<KeymapId> keymaps;
+    std::unordered_set<LayersId> layers;
+
+    void _recursiveAddSoundMacro(SoundMacroId id, const AudioGroupPool& pool)
+    {
+        if (soundMacros.find(id) != soundMacros.cend())
+            return;
+        const SoundMacro* macro = pool.soundMacro(id);
+        if (!macro)
+            return;
+        soundMacros.insert(id);
+        for (const auto& cmd : macro->m_cmds)
+        {
+            switch (cmd->Isa())
+            {
+            case SoundMacro::CmdOp::StartSample:
+                samples.insert(static_cast<SoundMacro::CmdStartSample*>(cmd.get())->sample);
+                break;
+            case SoundMacro::CmdOp::SetAdsr:
+                tables.insert(static_cast<SoundMacro::CmdSetAdsr*>(cmd.get())->table);
+                break;
+            case SoundMacro::CmdOp::ScaleVolume:
+                tables.insert(static_cast<SoundMacro::CmdScaleVolume*>(cmd.get())->table);
+                break;
+            case SoundMacro::CmdOp::Envelope:
+                tables.insert(static_cast<SoundMacro::CmdEnvelope*>(cmd.get())->table);
+                break;
+            case SoundMacro::CmdOp::FadeIn:
+                tables.insert(static_cast<SoundMacro::CmdFadeIn*>(cmd.get())->table);
+                break;
+            case SoundMacro::CmdOp::SetPitchAdsr:
+                tables.insert(static_cast<SoundMacro::CmdSetPitchAdsr*>(cmd.get())->table);
+                break;
+            case SoundMacro::CmdOp::SplitKey:
+                _recursiveAddSoundMacro(static_cast<SoundMacro::CmdSplitKey*>(cmd.get())->macro, pool);
+                break;
+            case SoundMacro::CmdOp::SplitVel:
+                _recursiveAddSoundMacro(static_cast<SoundMacro::CmdSplitVel*>(cmd.get())->macro, pool);
+                break;
+            case SoundMacro::CmdOp::Goto:
+                _recursiveAddSoundMacro(static_cast<SoundMacro::CmdGoto*>(cmd.get())->macro, pool);
+                break;
+            case SoundMacro::CmdOp::PlayMacro:
+                _recursiveAddSoundMacro(static_cast<SoundMacro::CmdPlayMacro*>(cmd.get())->macro, pool);
+                break;
+            case SoundMacro::CmdOp::SplitMod:
+                _recursiveAddSoundMacro(static_cast<SoundMacro::CmdSplitMod*>(cmd.get())->macro, pool);
+                break;
+            case SoundMacro::CmdOp::SplitRnd:
+                _recursiveAddSoundMacro(static_cast<SoundMacro::CmdSplitRnd*>(cmd.get())->macro, pool);
+                break;
+            case SoundMacro::CmdOp::GoSub:
+                _recursiveAddSoundMacro(static_cast<SoundMacro::CmdGoSub*>(cmd.get())->macro, pool);
+                break;
+            case SoundMacro::CmdOp::TrapEvent:
+                _recursiveAddSoundMacro(static_cast<SoundMacro::CmdTrapEvent*>(cmd.get())->macro, pool);
+                break;
+            case SoundMacro::CmdOp::SendMessage:
+                _recursiveAddSoundMacro(static_cast<SoundMacro::CmdSendMessage*>(cmd.get())->macro, pool);
+                break;
+            default:
+                break;
+            }
+
+        }
+    }
+
+    void addRootId(ObjectId id, const AudioGroupPool& pool)
+    {
+        if (id & 0x8000)
+        {
+            if (const std::vector<LayerMapping>* lms = pool.layer(id))
+            {
+                layers.insert(id);
+                for (const auto& lm : *lms)
+                    _recursiveAddSoundMacro(lm.macro, pool);
+            }
+        }
+        else if (id & 0x4000)
+        {
+            if (const auto* kms = pool.keymap(id))
+            {
+                keymaps.insert(id);
+                for (int i = 0; i < 128; ++i)
+                    _recursiveAddSoundMacro(kms[i].macro, pool);
+            }
+        }
+        else
+        {
+            _recursiveAddSoundMacro(id, pool);
+        }
+    }
+
+    void cleanup()
+    {
+        soundMacros.erase(SoundMacroId{});
+        samples.erase(SampleId{});
+        tables.erase(TableId{});
+        keymaps.erase(KeymapId{});
+        layers.erase(LayersId{});
+    }
+};
+#endif
+
+bool AudioGroupProject::toGCNData(SystemStringView groupPath, const AudioGroupPool& pool,
+                                  const AudioGroupSampleDirectory& sdir) const
+{
+    constexpr athena::Endian DNAE = athena::Big;
+
+    SystemString projPath(groupPath);
+    projPath += _S(".proj");
+    athena::io::FileWriter fo(projPath);
+    if (fo.hasError())
+        return false;
+
+    std::vector<GroupId> groupIds;
+    groupIds.reserve(m_songGroups.size() + m_sfxGroups.size());
+    for (auto& p : m_songGroups)
+        groupIds.push_back(p.first);
+    for (auto& p : m_sfxGroups)
+        groupIds.push_back(p.first);
+    std::sort(groupIds.begin(), groupIds.end());
+
+    const uint64_t term64 = 0xffffffffffffffff;
+    const uint16_t padding = 0;
+
+    for (GroupId id : groupIds)
+    {
+        auto search = m_songGroups.find(id);
+        if (search != m_songGroups.end())
+        {
+            const SongGroupIndex& index = *search->second;
+
+            auto groupStart = fo.position();
+            GroupHeader<DNAE> header = {};
+            header.write(fo);
+
+            header.groupId = id;
+            header.type = GroupType::Song;
+
+            header.soundMacroIdsOff = fo.position();
+            WriteRangedObjectIds<DNAE>(fo, SortUnorderedMap(pool.soundMacros()));
+            header.samplIdsOff = fo.position();
+            WriteRangedObjectIds<DNAE>(fo, SortUnorderedMap(sdir.sampleEntries()));
+            header.tableIdsOff = fo.position();
+            WriteRangedObjectIds<DNAE>(fo, SortUnorderedMap(pool.tables()));
+            header.keymapIdsOff = fo.position();
+            WriteRangedObjectIds<DNAE>(fo, SortUnorderedMap(pool.keymaps()));
+            header.layerIdsOff = fo.position();
+            WriteRangedObjectIds<DNAE>(fo, SortUnorderedMap(pool.layers()));
+
+            header.pageTableOff = fo.position();
+            for (auto& p : SortUnorderedMap(index.m_normPages))
+            {
+                SongGroupIndex::PageEntryDNA<DNAE> entry = p.second.get().toDNA<DNAE>(p.first);
+                entry.write(fo);
+            }
+            athena::io::Write<athena::io::PropType::None>::Do<decltype(term64), DNAE>({}, term64, fo);
+
+            header.drumTableOff = fo.position();
+            for (auto& p : SortUnorderedMap(index.m_drumPages))
+            {
+                SongGroupIndex::PageEntryDNA<DNAE> entry = p.second.get().toDNA<DNAE>(p.first);
+                entry.write(fo);
+            }
+            athena::io::Write<athena::io::PropType::None>::Do<decltype(term64), DNAE>({}, term64, fo);
+
+            header.midiSetupsOff = fo.position();
+            for (auto& p : SortUnorderedMap(index.m_midiSetups))
+            {
+                uint16_t songId = p.first.id;
+                athena::io::Write<athena::io::PropType::None>::Do<decltype(songId), DNAE>({}, songId, fo);
+                athena::io::Write<athena::io::PropType::None>::Do<decltype(padding), DNAE>({}, padding, fo);
+
+                const std::array<SongGroupIndex::MIDISetup, 16>& setup = p.second.get();
+                for (int i = 0; i < 16 ; ++i)
+                    setup[i].write(fo);
+            }
+
+            header.groupEndOff = fo.position();
+            fo.seek(groupStart, athena::Begin);
+            header.write(fo);
+            fo.seek(header.groupEndOff, athena::Begin);
+        }
+        else
+        {
+            auto search2 = m_sfxGroups.find(id);
+            if (search2 != m_sfxGroups.end())
+            {
+                const SFXGroupIndex& index = *search2->second;
+
+                auto groupStart = fo.position();
+                GroupHeader<DNAE> header = {};
+                header.write(fo);
+
+                header.groupId = id;
+                header.type = GroupType::SFX;
+
+                header.soundMacroIdsOff = fo.position();
+                WriteRangedObjectIds<DNAE>(fo, SortUnorderedMap(pool.soundMacros()));
+                header.samplIdsOff = fo.position();
+                WriteRangedObjectIds<DNAE>(fo, SortUnorderedMap(sdir.sampleEntries()));
+                header.tableIdsOff = fo.position();
+                WriteRangedObjectIds<DNAE>(fo, SortUnorderedMap(pool.tables()));
+                header.keymapIdsOff = fo.position();
+                WriteRangedObjectIds<DNAE>(fo, SortUnorderedMap(pool.keymaps()));
+                header.layerIdsOff = fo.position();
+                WriteRangedObjectIds<DNAE>(fo, SortUnorderedMap(pool.layers()));
+
+                header.pageTableOff = fo.position();
+                uint16_t count = index.m_sfxEntries.size();
+                athena::io::Write<athena::io::PropType::None>::Do<decltype(count), DNAE>({}, count, fo);
+                athena::io::Write<athena::io::PropType::None>::Do<decltype(padding), DNAE>({}, padding, fo);
+                for (auto& p : SortUnorderedMap(index.m_sfxEntries))
+                {
+                    SFXGroupIndex::SFXEntryDNA<DNAE> entry = p.second.get().toDNA<DNAE>(p.first);
+                    entry.write(fo);
+                }
+
+                header.groupEndOff = fo.position();
+                fo.seek(groupStart, athena::Begin);
+                header.write(fo);
+                fo.seek(header.groupEndOff, athena::Begin);
+            }
+        }
+    }
+
+    const uint32_t finalTerm = 0xffffffff;
+    athena::io::Write<athena::io::PropType::None>::Do<decltype(finalTerm), DNAE>({}, finalTerm, fo);
+
+    return true;
 }
 
 }

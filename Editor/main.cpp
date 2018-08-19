@@ -3,6 +3,7 @@
 #include <QStyleFactory>
 #include <QTranslator>
 #include "MainWindow.hpp"
+#include "SongGroupEditor.hpp"
 #include "boo/IApplication.hpp"
 #include <QResource>
 #include <QCommandLineParser>
@@ -61,7 +62,7 @@ int main(int argc, char* argv[])
     QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
 #endif
-    QApplication::setStyle(QStyleFactory::create("Fusion"));
+    QApplication::setStyle(new ColoredTabBarStyle(QStyleFactory::create("Fusion")));
     QApplication a(argc, argv);
     QApplication::setWindowIcon(MakeAppIcon());
 

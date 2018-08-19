@@ -206,7 +206,6 @@ public:
 class ColoredTabBar : public QTabBar
 {
     Q_OBJECT
-    ColoredTabBarStyle* m_style;
 public:
     explicit ColoredTabBar(QWidget* parent = Q_NULLPTR);
 };

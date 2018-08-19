@@ -1,3 +1,4 @@
+#include <athena/MemoryWriter.hpp>
 #include "amuse/AudioGroupPool.hpp"
 #include "amuse/Common.hpp"
 #include "amuse/Entity.hpp"
@@ -392,6 +393,21 @@ void SoundMacro::readCmds(athena::io::IStreamReader& r, uint32_t size)
 }
 template void SoundMacro::readCmds<athena::Big>(athena::io::IStreamReader& r, uint32_t size);
 template void SoundMacro::readCmds<athena::Little>(athena::io::IStreamReader& r, uint32_t size);
+
+template <athena::Endian DNAE>
+void SoundMacro::writeCmds(athena::io::IStreamWriter& w) const
+{
+    for (const auto& cmd : m_cmds)
+    {
+        uint32_t data[2];
+        athena::io::MemoryWriter mw((uint8_t*)data, 8);
+        mw.writeUByte(uint8_t(cmd->Isa()));
+        cmd->write(mw);
+        athena::io::Write<athena::io::PropType::None>::Do<decltype(data), DNAE>({}, data, w);
+    }
+}
+template void SoundMacro::writeCmds<athena::Big>(athena::io::IStreamWriter& w) const;
+template void SoundMacro::writeCmds<athena::Little>(athena::io::IStreamWriter& w) const;
 
 void SoundMacro::buildFromPrototype(const SoundMacro& other)
 {
@@ -1062,6 +1078,126 @@ bool AudioGroupPool::toYAML(SystemStringView groupPath) const
     athena::io::FileWriter fo(poolPath);
     return w.finish(&fo);
 }
+
+template <athena::Endian DNAE>
+bool AudioGroupPool::toData(SystemStringView groupPath) const
+{
+    SystemString poolPath(groupPath);
+    poolPath += _S(".pool");
+    athena::io::FileWriter fo(poolPath);
+    if (fo.hasError())
+        return false;
+
+    PoolHeader<DNAE> head = {};
+    head.write(fo);
+
+    const uint32_t term = 0xffffffff;
+
+    if (!m_soundMacros.empty())
+    {
+        head.soundMacrosOffset = fo.position();
+        for (const auto& p : m_soundMacros)
+        {
+            auto startPos = fo.position();
+            ObjectHeader<DNAE> objHead = {};
+            objHead.write(fo);
+            p.second->template writeCmds<DNAE>(fo);
+            objHead.size = fo.position() - startPos;
+            objHead.objectId = p.first;
+            fo.seek(startPos, athena::Begin);
+            objHead.write(fo);
+            fo.seek(startPos + objHead.size, athena::Begin);
+        }
+        athena::io::Write<athena::io::PropType::None>::Do<decltype(term), DNAE>({}, term, fo);
+    }
+
+    if (!m_tables.empty())
+    {
+        head.tablesOffset = fo.position();
+        for (const auto& p : m_tables)
+        {
+            auto startPos = fo.position();
+            ObjectHeader<DNAE> objHead = {};
+            objHead.write(fo);
+            switch ((*p.second)->Isa())
+            {
+            case ITable::Type::ADSR:
+                static_cast<ADSR*>(p.second->get())->write(fo);
+                break;
+            case ITable::Type::ADSRDLS:
+                static_cast<ADSRDLS*>(p.second->get())->write(fo);
+                break;
+            case ITable::Type::Curve:
+            {
+                const auto& data = static_cast<Curve*>(p.second->get())->data;
+                fo.writeUBytes(data.data(), data.size());
+                break;
+            }
+            default:
+                break;
+            }
+            objHead.size = fo.position() - startPos;
+            objHead.objectId = p.first;
+            fo.seek(startPos, athena::Begin);
+            objHead.write(fo);
+            fo.seek(startPos + objHead.size, athena::Begin);
+        }
+        athena::io::Write<athena::io::PropType::None>::Do<decltype(term), DNAE>({}, term, fo);
+    }
+
+    if (!m_keymaps.empty())
+    {
+        head.keymapsOffset = fo.position();
+        for (const auto& p : m_keymaps)
+        {
+            auto startPos = fo.position();
+            ObjectHeader<DNAE> objHead = {};
+            objHead.write(fo);
+            for (const auto& km : *p.second)
+            {
+                KeymapDNA<DNAE> kmData = km.toDNA<DNAE>();
+                kmData.write(fo);
+            }
+            objHead.size = fo.position() - startPos;
+            objHead.objectId = p.first;
+            fo.seek(startPos, athena::Begin);
+            objHead.write(fo);
+            fo.seek(startPos + objHead.size, athena::Begin);
+        }
+        athena::io::Write<athena::io::PropType::None>::Do<decltype(term), DNAE>({}, term, fo);
+    }
+
+    if (!m_layers.empty())
+    {
+        head.layersOffset = fo.position();
+        for (const auto& p : m_layers)
+        {
+            auto startPos = fo.position();
+            ObjectHeader<DNAE> objHead = {};
+            objHead.write(fo);
+            uint32_t count = p.second->size();
+            athena::io::Write<athena::io::PropType::None>::Do<decltype(count), DNAE>({}, count, fo);
+            for (const auto& lm : *p.second)
+            {
+                LayerMappingDNA<DNAE> lmData = lm.toDNA<DNAE>();
+                lmData.write(fo);
+            }
+            objHead.size = fo.position() - startPos;
+            objHead.objectId = p.first;
+            fo.seek(startPos, athena::Begin);
+            objHead.write(fo);
+            fo.seek(startPos + objHead.size, athena::Begin);
+        }
+        athena::io::Write<athena::io::PropType::None>::Do<decltype(term), DNAE>({}, term, fo);
+    }
+
+    fo.seek(0, athena::Begin);
+    head.write(fo);
+
+    return true;
+}
+template bool AudioGroupPool::toData<athena::Big>(SystemStringView groupPath) const;
+template bool AudioGroupPool::toData<athena::Little>(SystemStringView groupPath) const;
 
 template <>
 void amuse::Curve::Enumerate<LittleDNA::Read>(athena::io::IStreamReader& r)

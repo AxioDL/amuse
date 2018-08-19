@@ -1,8 +1,8 @@
 #include "MIDIReader.hpp"
 #include "MainWindow.hpp"
 
-MIDIReader::MIDIReader(amuse::Engine& engine, const char* name, bool useLock)
-: amuse::BooBackendMIDIReader(engine, name, useLock) {}
+MIDIReader::MIDIReader(amuse::Engine& engine, bool useLock)
+: amuse::BooBackendMIDIReader(engine, useLock) {}
 
 void MIDIReader::noteOff(uint8_t chan, uint8_t key, uint8_t velocity)
 {
@@ -46,7 +46,9 @@ void MIDIReader::noteOn(uint8_t chan, uint8_t key, uint8_t velocity)
         m_chanVoxs.erase(keySearch);
     }
 
-    m_chanVoxs[key] = g_MainWindow->startEditorVoice(key, velocity);
+    amuse::ObjToken<amuse::Voice> newVox = g_MainWindow->startEditorVoice(key, velocity);
+    if (newVox)
+        m_chanVoxs[key] = newVox;
 }
 
 void MIDIReader::notePressure(uint8_t /*chan*/, uint8_t /*key*/, uint8_t /*pressure*/) {}
@@ -120,10 +122,7 @@ VoiceAllocator::VoiceAllocator(boo::IAudioVoiceEngine& booEngine)
 : amuse::BooBackendVoiceAllocator(booEngine) {}
 
 std::unique_ptr<amuse::IMIDIReader>
-VoiceAllocator::allocateMIDIReader(amuse::Engine& engine, const char* name)
+VoiceAllocator::allocateMIDIReader(amuse::Engine& engine)
 {
-    std::unique_ptr<amuse::IMIDIReader> ret = std::make_unique<MIDIReader>(engine, name, m_booEngine.useMIDILock());
-    if (!static_cast<MIDIReader&>(*ret).getMidiIn())
-        return {};
-    return ret;
+    return std::make_unique<MIDIReader>(engine, m_booEngine.useMIDILock());
 }

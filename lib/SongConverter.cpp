@@ -572,16 +572,42 @@ static void EncodeSignedValue(std::vector<uint8_t>& vecOut, int16_t val)
     }
 }
 
-static uint32_t DecodeTimeRLE(const unsigned char*& data)
+static std::pair<uint32_t, int32_t> DecodeDelta(const unsigned char*& data)
+{
+    std::pair<uint32_t, int32_t> ret = {};
+    do {
+        if (data[0] == 0x80 && data[1] == 0x00)
+            break;
+        ret.first += DecodeUnsignedValue(data);
+        ret.second = DecodeSignedValue(data);
+    } while (ret.second == 0);
+    return ret;
+}
+
+static void EncodeDelta(std::vector<uint8_t>& vecOut, uint32_t deltaTime, int32_t val)
+{
+    while (deltaTime > 32767)
+    {
+        EncodeUnsignedValue(vecOut, 32767);
+        EncodeSignedValue(vecOut, 0);
+        deltaTime -= 32767;
+    }
+    EncodeUnsignedValue(vecOut, deltaTime);
+    EncodeSignedValue(vecOut, val);
+}
+
+static uint32_t DecodeTime(const unsigned char*& data)
 {
     uint32_t ret = 0;
 
     while (true)
     {
         uint16_t thisPart = SBig(*reinterpret_cast<const uint16_t*>(data));
-        if (thisPart == 0xffff)
+        uint16_t nextPart = *reinterpret_cast<const uint16_t*>(data + 2);
+        if (nextPart == 0)
         {
-            ret += 65535;
+            // Automatically consume no-op command as continued time
+            ret += thisPart;
             data += 4;
             continue;
         }
@@ -594,10 +620,11 @@ static uint32_t DecodeTimeRLE(const unsigned char*& data)
     return ret;
 }
 
-static void EncodeTimeRLE(std::vector<uint8_t>& vecOut, uint32_t val)
+static void EncodeTime(std::vector<uint8_t>& vecOut, uint32_t val)
 {
     while (val >= 65535)
     {
+        // Automatically emit no-op command as continued time
         vecOut.push_back(0xff);
         vecOut.push_back(0xff);
         vecOut.push_back(0);
@@ -721,8 +748,9 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
                                              clamp(0, trk.m_pitchVal + 0x2000, 0x4000)});
                         if (trk.m_pitchWheelData[0] != 0x80 || trk.m_pitchWheelData[1] != 0x00)
                         {
-                            trk.m_nextPitchTick += DecodeUnsignedValue(trk.m_pitchWheelData);
-                            trk.m_nextPitchDelta = DecodeSignedValue(trk.m_pitchWheelData);
+                            auto delta = DecodeDelta(trk.m_pitchWheelData);
+                            trk.m_nextPitchTick += delta.first;
+                            trk.m_nextPitchDelta = delta.second;
                         }
                         else
                         {
@@ -743,8 +771,9 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
                                              uint8_t(clamp(0, trk.m_modVal / 128, 127)), 0});
                         if (trk.m_modWheelData[0] != 0x80 || trk.m_modWheelData[1] != 0x00)
                         {
-                            trk.m_nextModTick += DecodeUnsignedValue(trk.m_modWheelData);
-                            trk.m_nextModDelta = DecodeSignedValue(trk.m_modWheelData);
+                            auto delta = DecodeDelta(trk.m_modWheelData);
+                            trk.m_nextModTick += delta.first;
+                            trk.m_nextModDelta = delta.second;
                         }
                         else
                         {
@@ -797,7 +826,7 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
                         }
 
                         /* Set next delta-time */
-                        trk.m_eventWaitCountdown += int32_t(DecodeTimeRLE(trk.m_data));
+                        trk.m_eventWaitCountdown += int32_t(DecodeTime(trk.m_data));
                     }
                 }
                 else
@@ -1047,12 +1076,12 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
             for (auto& prog : results)
             {
                 bool didInit = false;
-                int startTick;
-                int lastEventTick;
-                int lastPitchTick;
-                int lastPitchVal;
-                int lastModTick;
-                int lastModVal;
+                int startTick = 0;
+                int lastEventTick = 0;
+                int lastPitchTick = 0;
+                int lastPitchVal = 0;
+                int lastModTick = 0;
+                int lastModVal = 0;
                 Region region;
 
                 for (auto& event : prog.second)
@@ -1079,17 +1108,16 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
                         {
                             if (event.second.noteOrCtrl == 1)
                             {
-                                EncodeUnsignedValue(region.modBuf, uint32_t(eventTick - lastModTick));
-                                lastModTick = eventTick;
                                 int newMod = event.second.velOrVal * 128;
-                                EncodeSignedValue(region.modBuf, newMod - lastModVal);
+                                EncodeDelta(region.modBuf, eventTick - lastModTick, newMod - lastModVal);
+                                lastModTick = eventTick;
                                 lastModVal = newMod;
                             }
                             else
                             {
                                 if (version == 1)
                                 {
-                                    EncodeTimeRLE(region.eventBuf, uint32_t(eventTick - lastEventTick));
+                                    EncodeTime(region.eventBuf, uint32_t(eventTick - lastEventTick));
                                     lastEventTick = eventTick;
                                     region.eventBuf.push_back(0x80 | event.second.velOrVal);
                                     region.eventBuf.push_back(0x80 | event.second.noteOrCtrl);
@@ -1120,7 +1148,7 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
                         {
                             if (version == 1)
                             {
-                                EncodeTimeRLE(region.eventBuf, uint32_t(eventTick - lastEventTick));
+                                EncodeTime(region.eventBuf, uint32_t(eventTick - lastEventTick));
                                 lastEventTick = eventTick;
                                 region.eventBuf.push_back(0x80 | event.second.program);
                                 region.eventBuf.push_back(0);
@@ -1148,10 +1176,9 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
                         }
                         case Event::Type::Pitch:
                         {
-                            EncodeUnsignedValue(region.pitchBuf, uint32_t(eventTick - lastPitchTick));
-                            lastPitchTick = eventTick;
                             int newPitch = event.second.pitchBend - 0x2000;
-                            EncodeSignedValue(region.pitchBuf, newPitch - lastPitchVal);
+                            EncodeDelta(region.modBuf, eventTick - lastPitchTick, newPitch - lastPitchVal);
+                            lastPitchTick = eventTick;
                             lastPitchVal = newPitch;
                             break;
                         }
@@ -1159,7 +1186,7 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
                         {
                             if (version == 1)
                             {
-                                EncodeTimeRLE(region.eventBuf, uint32_t(eventTick - lastEventTick));
+                                EncodeTime(region.eventBuf, uint32_t(eventTick - lastEventTick));
                                 lastEventTick = eventTick;
                                 region.eventBuf.push_back(event.second.noteOrCtrl);
                                 region.eventBuf.push_back(event.second.velOrVal);
@@ -1219,7 +1246,7 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
                         if (lastModTick > lastEventTick)
                             modDelta = lastModTick - lastEventTick;
 
-                        EncodeTimeRLE(region.eventBuf, std::max(pitchDelta, modDelta));
+                        EncodeTime(region.eventBuf, std::max(pitchDelta, modDelta));
                         region.eventBuf.push_back(0xff);
                         region.eventBuf.push_back(0xff);
                     }

@@ -1150,7 +1150,7 @@ SetupTableView::SetupTableView(QWidget* parent)
 void ColoredTabBarStyle::drawControl(QStyle::ControlElement element, const QStyleOption *option,
                                      QPainter *painter, const QWidget *widget) const
 {
-    if (element == QStyle::CE_TabBarTab)
+    if (qobject_cast<const ColoredTabBar*>(widget) && element == QStyle::CE_TabBarTab)
     {
         QStyleOptionTab optionTab = *static_cast<const QStyleOptionTab*>(option);
         switch (optionTab.position)
@@ -1171,10 +1171,9 @@ void ColoredTabBarStyle::drawControl(QStyle::ControlElement element, const QStyl
 }
 
 ColoredTabBar::ColoredTabBar(QWidget* parent)
-: QTabBar(parent), m_style(new ColoredTabBarStyle(style()))
+: QTabBar(parent)
 {
     setDrawBase(false);
-    setStyle(m_style);
 }
 
 ColoredTabWidget::ColoredTabWidget(QWidget* parent)

@@ -1132,6 +1132,8 @@ struct SoundMacro
 
     template <athena::Endian DNAE>
     void readCmds(athena::io::IStreamReader& r, uint32_t size);
+    template <athena::Endian DNAE>
+    void writeCmds(athena::io::IStreamWriter& w) const;
 
     ICmd* insertNewCmd(int idx, CmdOp op)
     {
@@ -1423,6 +1425,8 @@ public:
     const Curve* tableAsCurves(ObjectId id) const;
 
     bool toYAML(SystemStringView groupPath) const;
+    template <athena::Endian DNAE>
+    bool toData(SystemStringView groupPath) const;
 
     AudioGroupPool(const AudioGroupPool&) = delete;
     AudioGroupPool& operator=(const AudioGroupPool&) = delete;

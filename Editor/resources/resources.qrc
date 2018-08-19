@@ -34,6 +34,8 @@
         <file>IconVolume2.svg</file>
         <file>IconVolume3.svg</file>
         <file>IconFX.svg</file>
+        <file>IconB.svg</file>
+        <file>IconA.svg</file>
     </qresource>
     <qresource prefix="/bg">
         <file>FaceGrey.svg</file>

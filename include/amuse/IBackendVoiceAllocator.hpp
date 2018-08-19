@@ -28,7 +28,6 @@ class IMIDIReader
 {
 public:
     virtual ~IMIDIReader() = default;
-    virtual std::string description() = 0;
     virtual void pumpReader(double dt) = 0;
 };
 
@@ -48,7 +47,7 @@ public:
     virtual std::vector<std::pair<std::string, std::string>> enumerateMIDIDevices() = 0;
 
     /** Amuse obtains an interactive MIDI-in connection from the OS this way */
-    virtual std::unique_ptr<IMIDIReader> allocateMIDIReader(Engine& engine, const char* name = nullptr) = 0;
+    virtual std::unique_ptr<IMIDIReader> allocateMIDIReader(Engine& engine) = 0;
 
     /** Amuse obtains speaker-configuration from the platform this way */
     virtual AudioChannelSet getAvailableSet() = 0;

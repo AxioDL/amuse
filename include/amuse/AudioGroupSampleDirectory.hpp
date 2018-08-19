@@ -8,6 +8,7 @@
 namespace amuse
 {
 class AudioGroupData;
+class AudioGroupDatabase;
 
 struct DSPADPCMHeader : BigDNA
 {
@@ -167,6 +168,16 @@ public:
         Value<atUint32, DNAEn> m_loopStartSample;
         Value<atUint32, DNAEn> m_loopLengthSamples;
         Value<atUint32, DNAEn> m_adpcmParmOffset;
+
+        void _setLoopStartSample(atUint32 sample)
+        {
+            m_loopLengthSamples += m_loopStartSample - sample;
+            m_loopStartSample = sample;
+        }
+        void setLoopEndSample(atUint32 sample)
+        {
+            m_loopLengthSamples = sample + 1 - m_loopStartSample;
+        }
     };
     template <athena::Endian DNAEn>
     struct AT_SPECIALIZE_PARMS(athena::Endian::Big, athena::Endian::Little)
@@ -345,6 +356,8 @@ public:
     void extractAllCompressed(amuse::SystemStringView destDir, const unsigned char* samp) const;
 
     void reloadSampleData(SystemStringView groupPath);
+
+    bool toGCNData(SystemStringView groupPath, const AudioGroupDatabase& group) const;
 
     AudioGroupSampleDirectory(const AudioGroupSampleDirectory&) = delete;
     AudioGroupSampleDirectory& operator=(const AudioGroupSampleDirectory&) = delete;

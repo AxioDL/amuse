@@ -12,8 +12,7 @@ class MIDIReader : public amuse::BooBackendMIDIReader
     std::unordered_set<amuse::ObjToken<amuse::Voice>> m_keyoffVoxs;
     amuse::ObjToken<amuse::Voice> m_lastVoice;
 public:
-    MIDIReader(amuse::Engine& engine, const char* name, bool useLock);
-    boo::IMIDIIn* getMidiIn() const { return m_midiIn.get(); }
+    MIDIReader(amuse::Engine& engine, bool useLock);
 
     void noteOff(uint8_t chan, uint8_t key, uint8_t velocity);
     void noteOn(uint8_t chan, uint8_t key, uint8_t velocity);
@@ -47,7 +46,7 @@ class VoiceAllocator : public amuse::BooBackendVoiceAllocator
 {
 public:
     VoiceAllocator(boo::IAudioVoiceEngine& booEngine);
-    std::unique_ptr<amuse::IMIDIReader> allocateMIDIReader(amuse::Engine& engine, const char* name = nullptr);
+    std::unique_ptr<amuse::IMIDIReader> allocateMIDIReader(amuse::Engine& engine);
 };
 
 #endif // AMUSE_MIDI_READER_HPP

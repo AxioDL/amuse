@@ -12,6 +12,7 @@ class AudioGroupData;
 /** Runtime audio group index container */
 class AudioGroup
 {
+    friend class AudioGroupSampleDirectory;
     AudioGroupProject m_proj;
     AudioGroupPool m_pool;
     AudioGroupSampleDirectory m_sdir;

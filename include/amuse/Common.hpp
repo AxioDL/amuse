@@ -569,6 +569,28 @@ static std::vector<std::pair<typename T::key_type,
     std::sort(ret.begin(), ret.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
     return ret;
 }
+
+template <class T>
+static std::vector<typename T::key_type> SortUnorderedSet(T& us)
+{
+    std::vector<typename T::key_type> ret;
+    ret.reserve(us.size());
+    for (auto& p : us)
+        ret.emplace_back(p);
+    std::sort(ret.begin(), ret.end());
+    return ret;
+}
+
+template <class T>
+static std::vector<typename T::key_type> SortUnorderedSet(const T& us)
+{
+    std::vector<typename T::key_type> ret;
+    ret.reserve(us.size());
+    for (const auto& p : us)
+        ret.emplace_back(p);
+    std::sort(ret.begin(), ret.end());
+    return ret;
+}
 }
 
 namespace std

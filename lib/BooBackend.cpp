@@ -92,31 +92,62 @@ double BooBackendSubmix::getSampleRate() const { return m_booSubmix->getSampleRa
 
 SubmixFormat BooBackendSubmix::getSampleFormat() const { return SubmixFormat(m_booSubmix->getSampleFormat()); }
 
-std::string BooBackendMIDIReader::description() { return m_midiIn->description(); }
-
 BooBackendMIDIReader::~BooBackendMIDIReader() {}
 
-BooBackendMIDIReader::BooBackendMIDIReader(Engine& engine, const char* name, bool useLock)
+BooBackendMIDIReader::BooBackendMIDIReader(Engine& engine, bool useLock)
 : m_engine(engine), m_decoder(*this), m_useLock(useLock)
 {
     BooBackendVoiceAllocator& voxAlloc = static_cast<BooBackendVoiceAllocator&>(engine.getBackend());
-    if (!name)
+    auto devices = voxAlloc.m_booEngine.enumerateMIDIInputs();
+    for (const auto& dev : devices)
     {
-        auto devices = voxAlloc.m_booEngine.enumerateMIDIDevices();
-        for (const auto& dev : devices)
-        {
-            m_midiIn = voxAlloc.m_booEngine.newRealMIDIIn(
-                dev.first.c_str(),
-                std::bind(&BooBackendMIDIReader::_MIDIReceive, this, std::placeholders::_1, std::placeholders::_2));
-            if (m_midiIn)
-                return;
-        }
-        m_midiIn = voxAlloc.m_booEngine.newVirtualMIDIIn(
+        auto midiIn = voxAlloc.m_booEngine.newRealMIDIIn(dev.first.c_str(),
             std::bind(&BooBackendMIDIReader::_MIDIReceive, this, std::placeholders::_1, std::placeholders::_2));
+        if (midiIn)
+            m_midiIns[dev.first] = std::move(midiIn);
+    }
+    if (voxAlloc.m_booEngine.supportsVirtualMIDIIn())
+        m_virtualIn = voxAlloc.m_booEngine.newVirtualMIDIIn(
+            std::bind(&BooBackendMIDIReader::_MIDIReceive, this, std::placeholders::_1, std::placeholders::_2));
+}
+
+void BooBackendMIDIReader::addMIDIIn(const char* name)
+{
+    BooBackendVoiceAllocator& voxAlloc = static_cast<BooBackendVoiceAllocator&>(m_engine.getBackend());
+    auto midiIn = voxAlloc.m_booEngine.newRealMIDIIn(name,
+        std::bind(&BooBackendMIDIReader::_MIDIReceive, this, std::placeholders::_1, std::placeholders::_2));
+    if (midiIn)
+        m_midiIns[name] = std::move(midiIn);
+}
+
+void BooBackendMIDIReader::removeMIDIIn(const char* name)
+{
+    m_midiIns.erase(name);
+}
+
+bool BooBackendMIDIReader::hasMIDIIn(const char* name) const
+{
+    return m_midiIns.find(name) != m_midiIns.cend();
+}
+
+void BooBackendMIDIReader::setVirtualIn(bool v)
+{
+    if (v)
+    {
+        BooBackendVoiceAllocator& voxAlloc = static_cast<BooBackendVoiceAllocator&>(m_engine.getBackend());
+        if (voxAlloc.m_booEngine.supportsVirtualMIDIIn())
+            m_virtualIn = voxAlloc.m_booEngine.newVirtualMIDIIn(
+                std::bind(&BooBackendMIDIReader::_MIDIReceive, this, std::placeholders::_1, std::placeholders::_2));
     }
     else
-        m_midiIn = voxAlloc.m_booEngine.newRealMIDIIn(
-            name, std::bind(&BooBackendMIDIReader::_MIDIReceive, this, std::placeholders::_1, std::placeholders::_2));
+    {
+        m_virtualIn.reset();
+    }
+}
+
+bool BooBackendMIDIReader::hasVirtualIn() const
+{
+    return m_virtualIn.operator bool();
 }
 
 void BooBackendMIDIReader::_MIDIReceive(std::vector<uint8_t>&& bytes, double time)
@@ -273,15 +304,12 @@ std::unique_ptr<IBackendSubmix> BooBackendVoiceAllocator::allocateSubmix(Submix&
 
 std::vector<std::pair<std::string, std::string>> BooBackendVoiceAllocator::enumerateMIDIDevices()
 {
-    return m_booEngine.enumerateMIDIDevices();
+    return m_booEngine.enumerateMIDIInputs();
 }
 
-std::unique_ptr<IMIDIReader> BooBackendVoiceAllocator::allocateMIDIReader(Engine& engine, const char* name)
+std::unique_ptr<IMIDIReader> BooBackendVoiceAllocator::allocateMIDIReader(Engine& engine)
 {
-    std::unique_ptr<IMIDIReader> ret = std::make_unique<BooBackendMIDIReader>(engine, name, m_booEngine.useMIDILock());
-    if (!static_cast<BooBackendMIDIReader&>(*ret).m_midiIn)
-        return {};
-    return ret;
+    return std::make_unique<BooBackendMIDIReader>(engine, m_booEngine.useMIDILock());
 }
 
 void BooBackendVoiceAllocator::setCallbackInterface(Engine* engine)

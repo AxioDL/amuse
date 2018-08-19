@@ -4,6 +4,7 @@
 #include "amuse/EffectReverb.hpp"
 #include <QPainter>
 #include <QScrollBar>
+#include <QStylePainter>
 
 using namespace std::literals;
 
@@ -251,6 +252,90 @@ static void SetEffectParm(amuse::EffectBaseTypeless* effect, int idx, int chanId
     }
 }
 
+static const char* ChanNames[] =
+{
+    QT_TRANSLATE_NOOP("Uint32X8Popup", "Front Left"),
+    QT_TRANSLATE_NOOP("Uint32X8Popup", "Front Right"),
+    QT_TRANSLATE_NOOP("Uint32X8Popup", "Rear Left"),
+    QT_TRANSLATE_NOOP("Uint32X8Popup", "Rear Right"),
+    QT_TRANSLATE_NOOP("Uint32X8Popup", "Front Center"),
+    QT_TRANSLATE_NOOP("Uint32X8Popup", "LFE"),
+    QT_TRANSLATE_NOOP("Uint32X8Popup", "Side Left"),
+    QT_TRANSLATE_NOOP("Uint32X8Popup", "Side Right")
+};
+
+Uint32X8Popup::Uint32X8Popup(int min, int max, QWidget* parent)
+: QFrame(parent, Qt::Popup)
+{
+    setAttribute(Qt::WA_WindowPropagation);
+    setAttribute(Qt::WA_X11NetWmWindowTypeCombo);
+    Uint32X8Button* combo = static_cast<Uint32X8Button*>(parent);
+    QStyleOptionComboBox opt = combo->comboStyleOption();
+    setFrameStyle(combo->style()->styleHint(QStyle::SH_ComboBox_PopupFrameStyle, &opt, combo));
+
+    QGridLayout* layout = new QGridLayout;
+    for (int i = 0; i < 8; ++i)
+    {
+        layout->addWidget(new QLabel(tr(ChanNames[i])), i, 0);
+        FieldSlider* slider = new FieldSlider;
+        m_sliders[i] = slider;
+        slider->setToolTip(QStringLiteral("[%1,%2]").arg(min).arg(max));
+        slider->setProperty("chanIdx", i);
+        slider->setRange(min, max);
+        connect(slider, SIGNAL(valueChanged(int)), this, SLOT(doValueChanged(int)));
+        layout->addWidget(slider, i, 1);
+    }
+    setLayout(layout);
+}
+
+void Uint32X8Popup::setValue(int chanIdx, int val)
+{
+    m_sliders[chanIdx]->setValue(val);
+}
+
+void Uint32X8Popup::doValueChanged(int val)
+{
+    FieldSlider* slider = static_cast<FieldSlider*>(sender());
+    int chanIdx = slider->property("chanIdx").toInt();
+    emit valueChanged(chanIdx, val);
+}
+
+Uint32X8Button::Uint32X8Button(int min, int max, QWidget* parent)
+: QPushButton(parent), m_popup(new Uint32X8Popup(min, max, this))
+{
+    connect(this, SIGNAL(pressed()), this, SLOT(onPressed()));
+}
+
+void Uint32X8Button::paintEvent(QPaintEvent*)
+{
+    QStylePainter painter(this);
+    painter.setPen(palette().color(QPalette::Text));
+
+    // draw the combobox frame, focusrect and selected etc.
+    QStyleOptionComboBox opt = comboStyleOption();
+    painter.drawComplexControl(QStyle::CC_ComboBox, opt);
+
+    // draw the icon and text
+    painter.drawControl(QStyle::CE_ComboBoxLabel, opt);
+}
+
+QStyleOptionComboBox Uint32X8Button::comboStyleOption() const
+{
+    QStyleOptionComboBox opt;
+    opt.initFrom(this);
+    opt.editable = false;
+    opt.frame = true;
+    opt.currentText = tr("Channels");
+    return opt;
+}
+
+void Uint32X8Button::onPressed()
+{
+    QPoint pt = parentWidget()->mapToGlobal(pos());
+    m_popup->move(pt.x(), pt.y());
+    m_popup->show();
+}
+
 EffectWidget::EffectWidget(amuse::EffectBaseTypeless* effect, amuse::EffectType type)
 : QWidget(nullptr), m_effect(effect), m_introspection(GetEffectIntrospection(type))
 {
@@ -258,8 +343,6 @@ EffectWidget::EffectWidget(amuse::EffectBaseTypeless* effect, amuse::EffectType 
     titleFont.setWeight(QFont::Bold);
     m_titleLabel.setFont(titleFont);
     m_titleLabel.setForegroundRole(QPalette::Background);
-    //m_titleLabel.setAutoFillBackground(true);
-    //m_titleLabel.setBackgroundRole(QPalette::Text);
     m_titleLabel.setContentsMargins(46, 0, 0, 0);
     m_titleLabel.setFixedHeight(20);
     m_numberText.setTextOption(QTextOption(Qt::AlignRight));
@@ -312,6 +395,16 @@ EffectWidget::EffectWidget(amuse::EffectBaseTypeless* effect, amuse::EffectType 
                     sb->setToolTip(QStringLiteral("[%1,%2]").arg(int(field.m_min)).arg(int(field.m_max)));
                     sb->setValue(GetEffectParm<uint32_t>(m_effect, f, 0));
                     connect(sb, SIGNAL(valueChanged(int)), this, SLOT(numChanged(int)));
+                    layout->addWidget(sb, 1, f);
+                    break;
+                }
+                case EffectIntrospection::Field::Type::UInt32x8:
+                {
+                    Uint32X8Button* sb = new Uint32X8Button(int(field.m_min), int(field.m_max));
+                    sb->popup()->setProperty("fieldIndex", f);
+                    for (int i = 0; i < 8; ++i)
+                        sb->popup()->setValue(i, GetEffectParm<uint32_t>(m_effect, f, i));
+                    connect(sb->popup(), SIGNAL(valueChanged(int, int)), this, SLOT(chanNumChanged(int, int)));
                     layout->addWidget(sb, 1, f);
                     break;
                 }
@@ -395,6 +488,11 @@ void EffectWidget::numChanged(int value)
 void EffectWidget::numChanged(double value)
 {
     SetEffectParm<float>(m_effect, sender()->property("fieldIndex").toInt(), 0, value);
+}
+
+void EffectWidget::chanNumChanged(int chanIdx, int value)
+{
+    SetEffectParm<uint32_t>(m_effect, sender()->property("fieldIndex").toInt(), chanIdx, value);
 }
 
 void EffectWidget::deleteClicked()

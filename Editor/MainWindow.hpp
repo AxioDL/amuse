@@ -32,15 +32,24 @@ class KeymapEditor;
 class LayersEditor;
 class SampleEditor;
 
+enum BackgroundTaskId
+{
+    TaskOpen,
+    TaskImport,
+    TaskExport,
+    TaskReloadSamples
+};
+
 class BackgroundTask : public QObject
 {
     Q_OBJECT
+    int m_id;
     std::function<void(BackgroundTask&)> m_task;
     UIMessenger m_threadMessenger;
     bool m_cancelled = false;
 public:
-    explicit BackgroundTask(std::function<void(BackgroundTask&)>&& task)
-    : m_task(std::move(task)), m_threadMessenger(this) {}
+    explicit BackgroundTask(int id, std::function<void(BackgroundTask&)>&& task)
+    : m_id(id), m_task(std::move(task)), m_threadMessenger(this) {}
     bool isCanceled() const { QCoreApplication::processEvents(); return m_cancelled; }
     UIMessenger& uiMessenger() { return m_threadMessenger; }
 
@@ -49,10 +58,10 @@ signals:
     void setMaximum(int maximum);
     void setValue(int value);
     void setLabelText(const QString& text);
-    void finished();
+    void finished(int id);
 
 public slots:
-    void run() { m_task(*this); emit finished(); }
+    void run() { m_task(*this); emit finished(m_id); }
     void cancel() { m_cancelled = true; }
 };
 
@@ -99,6 +108,8 @@ class MainWindow : public QMainWindow
     int m_velocity = 90;
     float m_pitch = 0.f;
     int8_t m_ctrlVals[128] = {};
+    float m_auxAVol = 0.f;
+    float m_auxBVol = 0.f;
     bool m_uiDisabled = false;
 
     QUndoStack* m_undoStack;
@@ -125,7 +136,7 @@ class MainWindow : public QMainWindow
     void keyPressEvent(QKeyEvent* ev);
     void keyReleaseEvent(QKeyEvent* ev);
 
-    void startBackgroundTask(const QString& windowTitle, const QString& label,
+    void startBackgroundTask(int id, const QString& windowTitle, const QString& label,
                              std::function<void(BackgroundTask&)>&& task);
 
     bool _setEditor(EditorWidget* widget);
@@ -193,7 +204,7 @@ public slots:
     void aboutToShowMIDIIOMenu();
 
     void setAudioIO();
-    void setMIDIIO();
+    void setMIDIIO(bool checked);
 
     void notePressed(int key);
     void noteReleased();
@@ -203,6 +214,8 @@ public slots:
     void killSounds();
     void fxPressed();
     void volumeChanged(int vol);
+    void auxAChanged(int vol);
+    void auxBChanged(int vol);
 
     void outlineCutAction();
     void outlineCopyAction();
@@ -222,7 +235,7 @@ public slots:
     void studioSetupHidden();
     void studioSetupShown();
 
-    void onBackgroundTaskFinished();
+    void onBackgroundTaskFinished(int id);
 
     QMessageBox::StandardButton msgInformation(const QString &title,
         const QString &text, QMessageBox::StandardButtons buttons = QMessageBox::Ok,

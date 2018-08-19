@@ -363,6 +363,8 @@ public:
                          ImportMode mode, UIMessenger& messenger);
     void saveSongsIndex();
     bool saveToFile(UIMessenger& messenger);
+    QStringList getGroupList() const;
+    bool exportGroup(const QString& path, const QString& groupName, UIMessenger& messenger) const;
 
     bool ensureModelData();
 

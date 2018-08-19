@@ -4,6 +4,7 @@
 #include "amuse/DSPCodec.hpp"
 #include "amuse/N64MusyXCodec.hpp"
 #include "amuse/DirectoryEnumerator.hpp"
+#include "amuse/AudioGroup.hpp"
 #include "athena/MemoryReader.hpp"
 #include "athena/FileWriter.hpp"
 #include "athena/FileReader.hpp"
@@ -871,5 +872,98 @@ void AudioGroupSampleDirectory::reloadSampleData(SystemStringView groupPath)
             entry->loadLooseData(basePath);
         }
     }
+}
+
+bool AudioGroupSampleDirectory::toGCNData(SystemStringView groupPath, const AudioGroupDatabase& group) const
+{
+    constexpr athena::Endian DNAE = athena::Big;
+    group.setIdDatabases();
+
+    SystemString sdirPath(groupPath);
+    SystemString sampPath(groupPath);
+    sdirPath += _S(".sdir");
+    sampPath += _S(".samp");
+    athena::io::FileWriter fo(sdirPath);
+    if (fo.hasError())
+        return false;
+    athena::io::FileWriter sfo(sampPath);
+    if (sfo.hasError())
+        return false;
+
+    std::vector<std::pair<EntryDNA<DNAE>, ADPCMParms>> entries;
+    entries.reserve(m_entries.size());
+    size_t sampleOffset = 0;
+    size_t adpcmOffset = 0;
+    for (const auto& ent : SortUnorderedMap(m_entries))
+    {
+        amuse::SystemString path = group.getSampleBasePath(ent.first);
+        path += _S(".dsp");
+        SampleFileState state = group.getSampleFileState(ent.first, ent.second.get().get(), &path);
+        switch (state)
+        {
+        case SampleFileState::MemoryOnlyWAV:
+        case SampleFileState::MemoryOnlyCompressed:
+        case SampleFileState::WAVRecent:
+        case SampleFileState::WAVNoCompressed:
+            group.makeCompressedVersion(ent.first, ent.second.get().get());
+        default:
+            break;
+        }
+
+        athena::io::FileReader r(path);
+        if (!r.hasError())
+        {
+            EntryDNA<DNAE> entryDNA = ent.second.get()->toDNA<DNAE>(ent.first);
+
+            DSPADPCMHeader header;
+            header.read(r);
+            entryDNA.m_pitch = header.m_pitch;
+            entryDNA.m_sampleRate = atUint16(header.x8_sample_rate);
+            entryDNA.m_numSamples = header.x0_num_samples;
+            if (header.xc_loop_flag)
+            {
+                entryDNA._setLoopStartSample(DSPNibbleToSample(header.x10_loop_start_nibble));
+                entryDNA.setLoopEndSample(DSPNibbleToSample(header.x14_loop_end_nibble));
+            }
+
+            ADPCMParms adpcmParms;
+            adpcmParms.dsp.m_bytesPerFrame = 8;
+            adpcmParms.dsp.m_ps = uint8_t(header.x3e_ps);
+            adpcmParms.dsp.m_lps = uint8_t(header.x44_loop_ps);
+            adpcmParms.dsp.m_hist1 = header.x40_hist1;
+            adpcmParms.dsp.m_hist2 = header.x42_hist2;
+            for (int i = 0; i < 8; ++i)
+                for (int j = 0; j < 2; ++j)
+                    adpcmParms.dsp.m_coefs[i][j] = header.x1c_coef[i][j];
+
+            uint32_t dataLen = (header.x4_num_nibbles + 1) / 2;
+            auto dspData = r.readUBytes(dataLen);
+            sfo.writeUBytes(dspData.get(), dataLen);
+            sfo.seekAlign32();
+
+            entryDNA.m_sampleOff = sampleOffset;
+            sampleOffset += ROUND_UP_32(dataLen);
+            entryDNA.binarySize(adpcmOffset);
+            entries.push_back(std::make_pair(entryDNA, adpcmParms));
+        }
+    }
+    adpcmOffset += 4;
+
+    for (auto& p : entries)
+    {
+        p.first.m_adpcmParmOffset = adpcmOffset;
+        p.first.write(fo);
+        adpcmOffset += sizeof(ADPCMParms::DSPParms);
+    }
+    const uint32_t term = 0xffffffff;
+    athena::io::Write<athena::io::PropType::None>::Do<decltype(term), DNAE>({}, term, fo);
+
+    for (auto& p : entries)
+    {
+        p.second.swapBigDSP();
+        fo.writeUBytes((uint8_t*)&p.second, sizeof(ADPCMParms::DSPParms));
+    }
+
+    return true;
 }
 }
