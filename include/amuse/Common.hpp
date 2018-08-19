@@ -65,6 +65,7 @@ ObjectIdDNA : BigDNA
 struct type : ObjectId \
 { \
     using ObjectId::ObjectId; \
+    type() = default; \
     type(const ObjectId& id) : ObjectId(id) {} \
     static thread_local NameDB* CurNameDB; \
 }; \
@@ -186,6 +187,7 @@ class ObjToken : public ObjTokenBase<SubCls>
     IObj*const& _obj() const { return ObjTokenBase<SubCls>::m_obj; }
 public:
     using ObjTokenBase<SubCls>::ObjTokenBase;
+    ObjToken() = default;
     ObjToken(ObjWrapper<SubCls>* obj) : ObjTokenBase<SubCls>(obj) {}
     ObjToken& operator=(ObjWrapper<SubCls>* obj)
     { if (_obj()) _obj()->decrement(); _obj() = obj; if (_obj()) _obj()->increment(); return *this; }
@@ -201,6 +203,7 @@ class ObjToken<SubCls, typename std::enable_if_t<std::is_base_of_v<IObj, SubCls>
     IObj*const& _obj() const { return ObjTokenBase<SubCls>::m_obj; }
 public:
     using ObjTokenBase<SubCls>::ObjTokenBase;
+    ObjToken() = default;
     ObjToken(IObj* obj) : ObjTokenBase<SubCls>(obj) {}
     ObjToken& operator=(IObj* obj)
     { if (_obj()) _obj()->decrement(); _obj() = obj; if (_obj()) _obj()->increment(); return *this; }
@@ -220,6 +223,7 @@ class IObjToken : public ObjTokenBase<SubCls>
     IObj*const& _obj() const { return ObjTokenBase<SubCls>::m_obj; }
 public:
     using ObjTokenBase<SubCls>::ObjTokenBase;
+    IObjToken() = default;
     IObjToken(IObj* obj) : ObjTokenBase<SubCls>(obj) {}
     IObjToken& operator=(IObj* obj)
     { if (_obj()) _obj()->decrement(); _obj() = obj; if (_obj()) _obj()->increment(); return *this; }

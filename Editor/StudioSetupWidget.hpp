@@ -80,11 +80,11 @@ private slots:
     void chanNumChanged(int, int);
     void deleteClicked();
 private:
-    explicit EffectWidget(amuse::EffectBaseTypeless* effect, amuse::EffectType type);
+    explicit EffectWidget(QWidget* parent, amuse::EffectBaseTypeless* effect, amuse::EffectType type);
 public:
     EffectListing* getParent() const;
-    explicit EffectWidget(amuse::EffectBaseTypeless* effect);
-    explicit EffectWidget(amuse::EffectType op);
+    explicit EffectWidget(QWidget* parent, amuse::EffectBaseTypeless* effect);
+    explicit EffectWidget(QWidget* parent, amuse::EffectType op);
     void paintEvent(QPaintEvent* event);
     QString getText() const { return m_titleLabel.text(); }
 };
@@ -102,7 +102,8 @@ class EffectWidgetContainer : public QWidget
 private slots:
     void animationDestroyed();
 public:
-    EffectWidgetContainer(EffectWidget* child, QWidget* parent = Q_NULLPTR);
+    template <class..._Args>
+    EffectWidgetContainer(QWidget* parent, _Args&&... args);
 };
 
 class EffectListing : public QWidget

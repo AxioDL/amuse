@@ -34,15 +34,15 @@ class Voice : public Entity
     friend struct SoundMacroState;
     friend class Envelope;
     friend class Emitter;
-    friend class SoundMacro::CmdScaleVolume;
-    friend class SoundMacro::CmdKeyOff;
-    friend class SoundMacro::CmdScaleVolumeDLS;
-    friend class SoundMacro::CmdReturn;
-    friend class SoundMacro::CmdGoSub;
-    friend class SoundMacro::CmdTrapEvent;
-    friend class SoundMacro::CmdUntrapEvent;
-    friend class SoundMacro::CmdGetMessage;
-    friend class SoundMacro::CmdModeSelect;
+    friend struct SoundMacro::CmdScaleVolume;
+    friend struct SoundMacro::CmdKeyOff;
+    friend struct SoundMacro::CmdScaleVolumeDLS;
+    friend struct SoundMacro::CmdReturn;
+    friend struct SoundMacro::CmdGoSub;
+    friend struct SoundMacro::CmdTrapEvent;
+    friend struct SoundMacro::CmdUntrapEvent;
+    friend struct SoundMacro::CmdGetMessage;
+    friend struct SoundMacro::CmdModeSelect;
 
     struct VolumeCache
     {

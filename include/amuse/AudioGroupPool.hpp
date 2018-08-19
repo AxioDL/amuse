@@ -5,6 +5,7 @@
 #include <vector>
 #include <cmath>
 #include <unordered_map>
+#include <array>
 #include "Entity.hpp"
 #include "Common.hpp"
 #include "athena/MemoryReader.hpp"

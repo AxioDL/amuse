@@ -11,6 +11,8 @@
 #include <cstring>
 #ifndef _WIN32
 #include <fcntl.h>
+#else
+#include <sys/utime.h>
 #endif
 
 namespace amuse
@@ -507,8 +509,13 @@ void AudioGroupSampleDirectory::EntryData::patchMetadataWAV(SystemStringView wav
 /* File timestamps reflect actual audio content, not loop/pitch data */
 static void SetAudioFileTime(const SystemString& path, const Sstat& stat)
 {
+#if _WIN32
+    __utimbuf64 times = { stat.st_atime, stat.st_mtime };
+    _wutime64(path.c_str(), &times);
+#else
     struct timespec times[] = { stat.st_atim, stat.st_mtim };
     utimensat(AT_FDCWD, path.c_str(), times, 0);
+#endif
 }
 
 void AudioGroupSampleDirectory::Entry::patchSampleMetadata(SystemStringView basePath) const

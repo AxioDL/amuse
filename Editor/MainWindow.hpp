@@ -206,6 +206,9 @@ public slots:
     void setAudioIO();
     void setMIDIIO(bool checked);
 
+    void aboutAmuseAction();
+    void aboutQtAction();
+
     void notePressed(int key);
     void noteReleased();
     void velocityChanged(int vel);

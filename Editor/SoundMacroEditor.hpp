@@ -69,10 +69,10 @@ private slots:
     void nodeChanged(int);
     void deleteClicked();
 private:
-    CommandWidget(amuse::SoundMacro::ICmd* cmd, amuse::SoundMacro::CmdOp op, SoundMacroListing* listing);
+    CommandWidget(QWidget* parent, amuse::SoundMacro::ICmd* cmd, amuse::SoundMacro::CmdOp op, SoundMacroListing* listing);
 public:
-    CommandWidget(amuse::SoundMacro::ICmd* cmd, SoundMacroListing* listing);
-    CommandWidget(amuse::SoundMacro::CmdOp op, SoundMacroListing* listing);
+    CommandWidget(QWidget* parent, amuse::SoundMacro::ICmd* cmd, SoundMacroListing* listing);
+    CommandWidget(QWidget* parent, amuse::SoundMacro::CmdOp op, SoundMacroListing* listing);
     void paintEvent(QPaintEvent* event);
     QString getText() const { return m_titleLabel.text(); }
 };
@@ -90,7 +90,8 @@ class CommandWidgetContainer : public QWidget
 private slots:
     void animationDestroyed();
 public:
-    CommandWidgetContainer(CommandWidget* child, QWidget* parent = Q_NULLPTR);
+    template <class..._Args>
+    CommandWidgetContainer(QWidget* parent, _Args&&... args);
 };
 
 class SoundMacroListing : public QWidget

@@ -257,7 +257,7 @@
               <x>0</x>
               <y>0</y>
               <width>1501</width>
-              <height>85</height>
+              <height>83</height>
              </rect>
             </property>
             <property name="sizePolicy">
@@ -294,7 +294,7 @@
      <x>0</x>
      <y>0</y>
      <width>1360</width>
-     <height>27</height>
+     <height>25</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -358,11 +358,19 @@
     <addaction name="actionPaste"/>
     <addaction name="actionDelete"/>
    </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>Help</string>
+    </property>
+    <addaction name="actionAbout_Amuse"/>
+    <addaction name="actionAbout_Qt"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
    <addaction name="menuProject"/>
    <addaction name="menuAudio"/>
    <addaction name="menuMIDI"/>
+   <addaction name="menuHelp"/>
   </widget>
   <widget class="StatusBarWidget" name="statusbar"/>
   <action name="actionNew_Project">
@@ -420,7 +428,7 @@
     <bool>false</bool>
    </property>
    <property name="icon">
-    <iconset>
+    <iconset resource="resources/resources.qrc">
      <normaloff>:/icons/IconNewSoundGroup.svg</normaloff>:/icons/IconNewSoundGroup.svg</iconset>
    </property>
    <property name="text">
@@ -432,7 +440,7 @@
     <bool>false</bool>
    </property>
    <property name="icon">
-    <iconset>
+    <iconset resource="resources/resources.qrc">
      <normaloff>:/icons/IconNewSongGroup.svg</normaloff>:/icons/IconNewSongGroup.svg</iconset>
    </property>
    <property name="text">
@@ -444,7 +452,7 @@
     <bool>false</bool>
    </property>
    <property name="icon">
-    <iconset>
+    <iconset resource="resources/resources.qrc">
      <normaloff>:/icons/IconNewSoundMacro.svg</normaloff>:/icons/IconNewSoundMacro.svg</iconset>
    </property>
    <property name="text">
@@ -456,7 +464,7 @@
     <bool>false</bool>
    </property>
    <property name="icon">
-    <iconset>
+    <iconset resource="resources/resources.qrc">
      <normaloff>:/icons/IconNewKeymap.svg</normaloff>:/icons/IconNewKeymap.svg</iconset>
    </property>
    <property name="text">
@@ -468,7 +476,7 @@
     <bool>false</bool>
    </property>
    <property name="icon">
-    <iconset>
+    <iconset resource="resources/resources.qrc">
      <normaloff>:/icons/IconNewLayers.svg</normaloff>:/icons/IconNewLayers.svg</iconset>
    </property>
    <property name="text">
@@ -507,7 +515,7 @@
     <bool>false</bool>
    </property>
    <property name="icon">
-    <iconset>
+    <iconset resource="resources/resources.qrc">
      <normaloff>:/icons/IconNewGroup.svg</normaloff>:/icons/IconNewGroup.svg</iconset>
    </property>
    <property name="text">
@@ -519,7 +527,7 @@
     <bool>false</bool>
    </property>
    <property name="icon">
-    <iconset>
+    <iconset resource="resources/resources.qrc">
      <normaloff>:/icons/IconNewADSR.svg</normaloff>:/icons/IconNewADSR.svg</iconset>
    </property>
    <property name="text">
@@ -531,7 +539,7 @@
     <bool>false</bool>
    </property>
    <property name="icon">
-    <iconset>
+    <iconset resource="resources/resources.qrc">
      <normaloff>:/icons/IconNewCurve.svg</normaloff>:/icons/IconNewCurve.svg</iconset>
    </property>
    <property name="text">
@@ -570,6 +578,22 @@
     <string>I&amp;mport Songs</string>
    </property>
   </action>
+  <action name="actionAbout_Amuse">
+   <property name="text">
+    <string>About Amuse</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::AboutRole</enum>
+   </property>
+  </action>
+  <action name="actionAbout_Qt">
+   <property name="text">
+    <string>About Qt</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::AboutQtRole</enum>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
@@ -599,6 +623,8 @@
    <header>KeyboardWidget.hpp</header>
   </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="resources/resources.qrc"/>
+ </resources>
  <connections/>
 </ui>

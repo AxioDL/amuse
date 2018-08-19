@@ -405,7 +405,7 @@ bool ProjectModel::openGroupData(const QString& groupName, UIMessenger& messenge
 {
     m_projectDatabase.setIdDatabases();
     QString path = QFileInfo(m_dir, groupName).filePath();
-    m_groups.insert(std::make_pair(groupName, QStringToSysString(path)));
+    m_groups.insert(std::make_pair(groupName, std::make_unique<amuse::AudioGroupDatabase>(QStringToSysString(path))));
 
     m_needsReset = true;
     return true;
@@ -416,7 +416,7 @@ void ProjectModel::_resetSongRefCount()
     for (auto& song : m_midiFiles)
         song.second.m_refCount = 0;
     for (const auto& g : m_groups)
-        for (const auto& g2 : g.second.getProj().songGroups())
+        for (const auto& g2 : g.second->getProj().songGroups())
             for (const auto& m : g2.second->m_midiSetups)
                 ++m_midiFiles[m.first].m_refCount;
     for (auto it = m_midiFiles.begin(); it != m_midiFiles.end();)
@@ -471,7 +471,7 @@ void ProjectModel::importSongsData(const QString& path)
             amuse::SongConverter::SongToMIDI(song.second.m_data.get(), version, isBig);
         if (!midiData.empty())
         {
-            QFileInfo fi(m_dir, SysStringToQString(song.first + ".mid"));
+            QFileInfo fi(m_dir, SysStringToQString(song.first + _S(".mid")));
             QFile f(fi.filePath());
             if (f.open(QFile::WriteOnly))
             {
@@ -486,15 +486,15 @@ void ProjectModel::importSongsData(const QString& path)
     _resetSongRefCount();
 }
 
-bool ProjectModel::reloadSampleData(const QString& groupName, UIMessenger& messenger)
+bool ProjectModel::reloadSampleData(const QString& groupName, UIMessenger&)
 {
     m_projectDatabase.setIdDatabases();
     QString path = QFileInfo(m_dir, groupName).filePath();
     auto search = m_groups.find(groupName);
     if (search != m_groups.end())
     {
-        search->second.setIdDatabases();
-        search->second.getSdir().reloadSampleData(QStringToSysString(path));
+        search->second->setIdDatabases();
+        search->second->getSdir().reloadSampleData(QStringToSysString(path));
     }
 
     m_needsReset = true;
@@ -506,7 +506,8 @@ bool ProjectModel::importGroupData(const QString& groupName, const amuse::AudioG
 {
     m_projectDatabase.setIdDatabases();
 
-    amuse::AudioGroupDatabase& grp = m_groups.insert(std::make_pair(groupName, data)).first->second;
+    amuse::AudioGroupDatabase& grp = *m_groups.insert(std::make_pair(groupName,
+                                      std::make_unique<amuse::AudioGroupDatabase>(data))).first->second;
 
     if (!MkPath(m_dir.path(), messenger))
         return false;
@@ -570,10 +571,10 @@ bool ProjectModel::saveToFile(UIMessenger& messenger)
         if (!MkPath(dir.path(), messenger))
             return false;
 
-        g.second.setIdDatabases();
+        g.second->setIdDatabases();
         amuse::SystemString groupPath = QStringToSysString(dir.path());
-        g.second.getProj().toYAML(groupPath);
-        g.second.getPool().toYAML(groupPath);
+        g.second->getProj().toYAML(groupPath);
+        g.second->getPool().toYAML(groupPath);
     }
 
     saveSongsIndex();
@@ -601,7 +602,7 @@ bool ProjectModel::exportGroup(const QString& path, const QString& groupName, UI
         messenger.critical(tr("Export Error"), tr("Unable to find group %1").arg(groupName));
         return false;
     }
-    const amuse::AudioGroupDatabase& group = search->second;
+    const amuse::AudioGroupDatabase& group = *search->second;
     m_projectDatabase.setIdDatabases();
     auto basePath = QStringToSysString(QFileInfo(QDir(path), groupName).filePath());
     group.setIdDatabases();
@@ -623,9 +624,20 @@ bool ProjectModel::exportGroup(const QString& path, const QString& groupName, UI
     return true;
 }
 
+void ProjectModel::_buildGroupNodeCollections(GroupNode& gn)
+{
+    gn.reserve(6);
+    gn._appendChild<CollectionNode>(tr("Sound Macros"), QIcon(":/icons/IconSoundMacro.svg"), INode::Type::SoundMacro);
+    gn._appendChild<CollectionNode>(tr("ADSRs"), QIcon(":/icons/IconADSR.svg"), INode::Type::ADSR);
+    gn._appendChild<CollectionNode>(tr("Curves"), QIcon(":/icons/IconCurve.svg"), INode::Type::Curve);
+    gn._appendChild<CollectionNode>(tr("Keymaps"), QIcon(":/icons/IconKeymap.svg"), INode::Type::Keymap);
+    gn._appendChild<CollectionNode>(tr("Layers"), QIcon(":/icons/IconLayers.svg"), INode::Type::Layer);
+    gn._appendChild<CollectionNode>(tr("Samples"), QIcon(":/icons/IconSample.svg"), INode::Type::Sample);
+}
+
 void ProjectModel::_buildGroupNode(GroupNode& gn)
 {
-    amuse::AudioGroup& group = gn.m_it->second;
+    amuse::AudioGroup& group = *gn.m_it->second;
     auto& songGroups = group.getProj().songGroups();
     auto& sfxGroups = group.getProj().sfxGroups();
     auto& soundMacros = group.getPool().soundMacros();
@@ -633,14 +645,14 @@ void ProjectModel::_buildGroupNode(GroupNode& gn)
     auto& keymaps = group.getPool().keymaps();
     auto& layers = group.getPool().layers();
     auto& samples = group.getSdir().sampleEntries();
-    gn.reserve(songGroups.size() + sfxGroups.size() + 4);
+    gn.reserve(songGroups.size() + sfxGroups.size() + 6);
+    _buildGroupNodeCollections(gn);
     for (const auto& grp : SortUnorderedMap(songGroups))
         gn.makeChild<SongGroupNode>(grp.first, grp.second.get());
     for (const auto& grp : SortUnorderedMap(sfxGroups))
         gn.makeChild<SoundGroupNode>(grp.first, grp.second.get());
     {
-        CollectionNode& col =
-            gn._appendChild<CollectionNode>(tr("Sound Macros"), QIcon(":/icons/IconSoundMacro.svg"), INode::Type::SoundMacro);
+        CollectionNode& col = *gn.getCollectionOfType(INode::Type::SoundMacro);
         col.reserve(soundMacros.size());
         for (const auto& macro : SortUnorderedMap(soundMacros))
             col.makeChild<SoundMacroNode>(macro.first, macro.second.get());
@@ -658,8 +670,7 @@ void ProjectModel::_buildGroupNode(GroupNode& gn)
                 curveCount += 1;
         }
         {
-            CollectionNode& col =
-                gn._appendChild<CollectionNode>(tr("ADSRs"), QIcon(":/icons/IconADSR.svg"), INode::Type::ADSR);
+            CollectionNode& col = *gn.getCollectionOfType(INode::Type::ADSR);
             col.reserve(ADSRCount);
             for (auto& t : tablesSort)
             {
@@ -669,8 +680,7 @@ void ProjectModel::_buildGroupNode(GroupNode& gn)
             }
         }
         {
-            CollectionNode& col =
-                gn._appendChild<CollectionNode>(tr("Curves"), QIcon(":/icons/IconCurve.svg"), INode::Type::Curve);
+            CollectionNode& col = *gn.getCollectionOfType(INode::Type::Curve);
             col.reserve(curveCount);
             for (auto& t : tablesSort)
             {
@@ -681,22 +691,19 @@ void ProjectModel::_buildGroupNode(GroupNode& gn)
         }
     }
     {
-        CollectionNode& col =
-            gn._appendChild<CollectionNode>(tr("Keymaps"), QIcon(":/icons/IconKeymap.svg"), INode::Type::Keymap);
+        CollectionNode& col = *gn.getCollectionOfType(INode::Type::Keymap);
         col.reserve(keymaps.size());
         for (auto& keymap : SortUnorderedMap(keymaps))
             col.makeChild<KeymapNode>(keymap.first, keymap.second.get());
     }
     {
-        CollectionNode& col =
-            gn._appendChild<CollectionNode>(tr("Layers"), QIcon(":/icons/IconLayers.svg"), INode::Type::Layer);
+        CollectionNode& col = *gn.getCollectionOfType(INode::Type::Layer);
         col.reserve(layers.size());
         for (auto& keymap : SortUnorderedMap(layers))
             col.makeChild<LayersNode>(keymap.first, keymap.second.get());
     }
     {
-        CollectionNode& col =
-            gn._appendChild<CollectionNode>(tr("Samples"), QIcon(":/icons/IconSample.svg"), INode::Type::Sample);
+        CollectionNode& col = *gn.getCollectionOfType(INode::Type::Sample);
         col.reserve(samples.size());
         for (auto& sample : SortUnorderedMap(samples))
             col.makeChild<SampleNode>(sample.first, sample.second.get());
@@ -711,7 +718,7 @@ void ProjectModel::_resetModelData()
     m_root->reserve(m_groups.size());
     for (auto it = m_groups.begin(); it != m_groups.end(); ++it)
     {
-        it->second.setIdDatabases();
+        it->second->setIdDatabases();
         GroupNode& gn = m_root->makeChild<GroupNode>(it);
         _buildGroupNode(gn);
     }
@@ -890,6 +897,86 @@ void ProjectModel::_preDelNode(INode* n, NameUndoRegistry& registry)
     });
 }
 
+class GroupNodeUndoCommand : public QUndoCommand
+{
+protected:
+    std::unique_ptr<amuse::AudioGroupDatabase> m_data;
+    amuse::ObjToken<ProjectModel::GroupNode> m_node;
+    ProjectModel::NameUndoRegistry m_nameReg;
+    void add()
+    {
+        g_MainWindow->projectModel()->_addNode(m_node.get(), std::move(m_data), m_nameReg);
+        g_MainWindow->recursiveExpandAndSelectOutline(g_MainWindow->projectModel()->index(m_node.get()));
+    }
+    void del()
+    {
+        m_data = g_MainWindow->projectModel()->_delNode(m_node.get(), m_nameReg);
+    }
+public:
+    explicit GroupNodeUndoCommand(const QString& text, std::unique_ptr<amuse::AudioGroupDatabase>&& data, ProjectModel::GroupNode* node)
+    : QUndoCommand(text.arg(node->text())), m_data(std::move(data)), m_node(node) {}
+};
+
+class GroupNodeAddUndoCommand : public GroupNodeUndoCommand
+{
+    using base = GroupNodeUndoCommand;
+public:
+    explicit GroupNodeAddUndoCommand(const QString& text, std::unique_ptr<amuse::AudioGroupDatabase>&& data, ProjectModel::GroupNode* node)
+    : GroupNodeUndoCommand(text, std::move(data), node) {}
+    void undo() { base::del(); }
+    void redo() { base::add(); }
+};
+
+class GroupNodeDelUndoCommand : public GroupNodeUndoCommand
+{
+    using base = GroupNodeUndoCommand;
+public:
+    explicit GroupNodeDelUndoCommand(const QString& text, ProjectModel::GroupNode* node)
+    : GroupNodeUndoCommand(text, {}, node) {}
+    void undo() { base::add(); }
+    void redo() { base::del(); }
+};
+
+void ProjectModel::_addNode(GroupNode* node, std::unique_ptr<amuse::AudioGroupDatabase>&& data, const NameUndoRegistry& registry)
+{
+    int idx = m_root->hypotheticalIndex(node->name());
+    beginInsertRows(QModelIndex(), idx, idx);
+    QDir dir(QFileInfo(m_dir, node->name()).filePath());
+    node->m_it = m_groups.emplace(std::make_pair(node->name(), std::move(data))).first;
+    m_root->insertChild(node);
+    _postAddNode(node, registry);
+    endInsertRows();
+}
+
+std::unique_ptr<amuse::AudioGroupDatabase> ProjectModel::_delNode(GroupNode* node, NameUndoRegistry& registry)
+{
+    int idx = node->row();
+    beginRemoveRows(QModelIndex(), idx, idx);
+    _preDelNode(node, registry);
+    std::unique_ptr<amuse::AudioGroupDatabase> ret = std::move(node->m_it->second);
+    m_groups.erase(node->m_it);
+    node->m_it = {};
+    m_root->removeChild(node);
+    endRemoveRows();
+    return ret;
+}
+
+ProjectModel::GroupNode* ProjectModel::newSubproject(const QString& name)
+{
+    if (m_groups.find(name) != m_groups.cend())
+    {
+        g_MainWindow->uiMessenger().
+        critical(tr("Subproject Conflict"), tr("The subproject %1 is already defined").arg(name));
+        return nullptr;
+    }
+    QString path = QFileInfo(m_dir, name).filePath();
+    auto data = std::make_unique<amuse::AudioGroupDatabase>(QStringToSysString(path));
+    auto node = amuse::MakeObj<GroupNode>(name);
+    _buildGroupNodeCollections(*node);
+    g_MainWindow->pushUndoCommand(new GroupNodeAddUndoCommand(tr("Add Subproject %1"), std::move(data), node.get()));
+    return node.get();
+}
+
 template <class NT>
 class NodeUndoCommand : public QUndoCommand
 {
@@ -932,43 +1019,6 @@ public:
     void undo() { base::add(); }
     void redo() { base::del(); }
 };
-
-void ProjectModel::_addNode(GroupNode* node, GroupNode*, const NameUndoRegistry& registry)
-{
-    int idx = m_root->hypotheticalIndex(node->name());
-    beginInsertRows(QModelIndex(), idx, idx);
-    QDir dir(QFileInfo(m_dir, node->name()).filePath());
-    node->m_it = m_groups.emplace(std::make_pair(node->name(),
-        amuse::AudioGroupDatabase(QStringToSysString(dir.path())))).first;
-    m_root->insertChild(node);
-    _postAddNode(node, registry);
-    endInsertRows();
-}
-
-void ProjectModel::_delNode(GroupNode* node, GroupNode*, NameUndoRegistry& registry)
-{
-    int idx = node->row();
-    beginRemoveRows(QModelIndex(), idx, idx);
-    _preDelNode(node, registry);
-    m_groups.erase(node->m_it);
-    node->m_it = {};
-    m_root->removeChild(node);
-    endRemoveRows();
-}
-
-ProjectModel::GroupNode* ProjectModel::newSubproject(const QString& name)
-{
-    if (m_groups.find(name) != m_groups.cend())
-    {
-        g_MainWindow->uiMessenger().
-        critical(tr("Subproject Conflict"), tr("The subproject %1 is already defined").arg(name));
-        return nullptr;
-    }
-    auto node = amuse::MakeObj<GroupNode>(name);
-    _buildGroupNode(*node);
-    g_MainWindow->pushUndoCommand(new NodeAddUndoCommand(tr("Add Subproject %1"), node.get(), nullptr));
-    return node.get();
-}
 
 template <class NT, class T>
 void ProjectModel::_addGroupNode(NT* node, GroupNode* parent, const NameUndoRegistry& registry, T& container)
@@ -1256,7 +1306,7 @@ void ProjectModel::del(const QModelIndex& index)
     switch (n->type())
     {
     case INode::Type::Group:
-        cmd = new NodeDelUndoCommand(tr("Delete Subproject %1"), static_cast<GroupNode*>(n));
+        cmd = new GroupNodeDelUndoCommand(tr("Delete Subproject %1"), static_cast<GroupNode*>(n));
         break;
     case INode::Type::SongGroup:
         cmd = new NodeDelUndoCommand(tr("Delete SongGroup %1"), static_cast<SongGroupNode*>(n));

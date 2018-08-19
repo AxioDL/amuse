@@ -7,7 +7,7 @@
 #include <QStaticText>
 #include <QLineEdit>
 #include <QPushButton>
-#include <QScriptEngine>
+#include <QJSEngine>
 
 class CurveEditor;
 
@@ -38,7 +38,7 @@ Q_OBJECT
     QLineEdit* m_lineEdit;
     QLabel* m_errLabel;
     QPushButton* m_setExpr;
-    QScriptEngine m_engine;
+    QJSEngine m_engine;
     CurveEditor* getEditor() const;
 public:
     explicit CurveControls(QWidget* parent = Q_NULLPTR);

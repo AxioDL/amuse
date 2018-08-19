@@ -1,4 +1,5 @@
 #include "amuse/DSPCodec.hpp"
+#include <algorithm>
 
 #undef min
 #undef max

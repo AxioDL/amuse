@@ -107,6 +107,9 @@ MainWindow::MainWindow(QWidget* parent)
     m_ui.actionDelete->setShortcut(QKeySequence::Delete);
     onFocusChanged(nullptr, this);
 
+    connect(m_ui.actionAbout_Amuse, SIGNAL(triggered()), this, SLOT(aboutAmuseAction()));
+    connect(m_ui.actionAbout_Qt, SIGNAL(triggered()), this, SLOT(aboutQtAction()));
+
     QGridLayout* faceLayout = new QGridLayout;
     QSvgWidget* faceSvg = new QSvgWidget(QStringLiteral(":/bg/FaceGrey.svg"));
     faceSvg->setGeometry(0, 0, 256, 256);
@@ -292,6 +295,7 @@ bool MainWindow::setProjectPath(const QString& path)
     while (files.size() > MaxRecentFiles)
         files.removeLast();
     settings.setValue("recentFileList", files);
+    settings.sync();
 
     updateRecentFileActions();
 
@@ -782,6 +786,7 @@ void MainWindow::openRecentFileAction()
             QStringList files = settings.value("recentFileList").toStringList();
             files.removeAll(path);
             settings.setValue("recentFileList", files);
+            settings.sync();
             updateRecentFileActions();
         }
 }
@@ -790,6 +795,7 @@ void MainWindow::clearRecentFilesAction()
 {
     QSettings settings;
     settings.setValue("recentFileList", QStringList());
+    settings.sync();
     updateRecentFileActions();
 }
 
@@ -1053,7 +1059,8 @@ ProjectModel::GroupNode* MainWindow::getSelectedGroupNode() const
         return nullptr;
     if (!m_ui.projectOutline->selectionModel()->currentIndex().isValid())
         return nullptr;
-    return m_projectModel->getGroupNode(m_projectModel->node(m_ui.projectOutline->selectionModel()->currentIndex()));
+    return m_projectModel->getGroupNode(m_projectModel->node(
+           m_filterProjectModel.mapToSource(m_ui.projectOutline->selectionModel()->currentIndex())));
 }
 
 QString MainWindow::getSelectedGroupName() const
@@ -1269,6 +1276,62 @@ void MainWindow::setMIDIIO(bool checked)
             action->setChecked(mr->hasMIDIIn(devName.data()));
         }
     }
+}
+
+void MainWindow::aboutAmuseAction()
+{
+#ifdef Q_OS_MAC
+    static QPointer<QMessageBox> oldMsgBox;
+
+    if (oldMsgBox) {
+        oldMsgBox->show();
+        oldMsgBox->raise();
+        oldMsgBox->activateWindow();
+        return;
+    }
+#endif
+
+    QString translatedTextAboutAmuseCaption;
+    translatedTextAboutAmuseCaption = QMessageBox::tr(
+        "<h3>About Amuse</h3>"
+        );
+    QString translatedTextAboutAmuseText;
+    translatedTextAboutAmuseText = QMessageBox::tr(
+        "<p>Amuse is an alternate editor and runtime library for MusyX sound groups.</p>"
+        "<p>MusyX originally served as a widely-deployed audio system for "
+        "developing games on the Nintendo 64, GameCube, and GameBoy Advance.</p>"
+        "<p>Amuse is available under the MIT license.<br>"
+        "Please see <a href=\"https://gitlab.axiodl.com/AxioDL/amuse/blob/master/LICENSE\">"
+        "https://gitlab.axiodl.com/AxioDL/amuse/blob/master/LICENSE</a> for futher information.</p>"
+        "<p>Copyright (C) 2015-2018 Antidote / Jackoalan.</p>"
+        "<p>MusyX is a trademark of Factor 5, LLC.</p>"
+        "<p>Nintendo 64, GameCube, and GameBoy Advance are trademarks of Nintendo Co., Ltd.</p>"
+        );
+    QMessageBox *msgBox = new QMessageBox(this);
+    msgBox->setAttribute(Qt::WA_DeleteOnClose);
+    msgBox->setWindowTitle(tr("About Amuse"));
+    msgBox->setText(translatedTextAboutAmuseCaption);
+    msgBox->setInformativeText(translatedTextAboutAmuseText);
+    msgBox->setIconPixmap(windowIcon().pixmap(64, 64));
+
+    // should perhaps be a style hint
+#ifdef Q_OS_MAC
+    oldMsgBox = msgBox;
+#if 0
+    // ### doesn't work until close button is enabled in title bar
+    msgBox->d_func()->autoAddOkButton = false;
+#else
+    msgBox->d_func()->buttonBox->setCenterButtons(true);
+#endif
+    msgBox->show();
+#else
+    msgBox->exec();
+#endif
+}
+
+void MainWindow::aboutQtAction()
+{
+    QMessageBox::aboutQt(this);
 }
 
 void MainWindow::notePressed(int key)

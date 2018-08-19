@@ -2,12 +2,12 @@ cmake_minimum_required(VERSION 3.10)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-find_package(Qt5Widgets)
-find_package(Qt5Network)
-find_package(Qt5Xml)
-find_package(Qt5Svg)
-find_package(Qt5Script)
-find_package(Qt5LinguistTools)
+find_package(Qt5Widgets REQUIRED)
+find_package(Qt5Network REQUIRED)
+find_package(Qt5Xml REQUIRED)
+find_package(Qt5Svg REQUIRED)
+find_package(Qt5Qml REQUIRED)
+find_package(Qt5LinguistTools REQUIRED)
 
 if(WIN32)
   list(APPEND PLAT_SRCS platforms/win/amuse-gui.rc platforms/win/amuse-gui.manifest)
@@ -83,5 +83,5 @@ target_link_libraries(amuse-gui ${PLAT_LIBS}
         ${Qt5Network_LIBRARIES}
         ${Qt5Xml_LIBRARIES}
         ${Qt5Svg_LIBRARIES}
-        ${Qt5Script_LIBRARIES}
+        ${Qt5Qml_LIBRARIES}
         amuse boo ${BOO_SYS_LIBS} logvisor athena-core athena-libyaml xxhash ${ZLIB_LIBRARIES} ${LZO_LIB})

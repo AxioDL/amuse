@@ -74,7 +74,7 @@ private:
     PageObjectProxyModel m_pageObjectProxy;
 
     amuse::ProjectDatabase m_projectDatabase;
-    std::unordered_map<QString, amuse::AudioGroupDatabase> m_groups;
+    std::unordered_map<QString, std::unique_ptr<amuse::AudioGroupDatabase>> m_groups;
 
     struct Song
     {
@@ -220,9 +220,9 @@ public:
     struct BasePoolObjectNode;
     struct GroupNode : INode
     {
-        std::unordered_map<QString, amuse::AudioGroupDatabase>::iterator m_it;
+        std::unordered_map<QString, std::unique_ptr<amuse::AudioGroupDatabase>>::iterator m_it;
         GroupNode(const QString& name) : INode(name) {}
-        GroupNode(std::unordered_map<QString, amuse::AudioGroupDatabase>::iterator it)
+        GroupNode(std::unordered_map<QString, std::unique_ptr<amuse::AudioGroupDatabase>>::iterator it)
         : INode(it->first), m_it(it) {}
 
         int hypotheticalIndex(const QString& name) const;
@@ -233,7 +233,7 @@ public:
         QIcon icon() const { return Icon; }
 
         CollectionNode* getCollectionOfType(Type tp) const;
-        amuse::AudioGroupDatabase* getAudioGroup() const { return &m_it->second; }
+        amuse::AudioGroupDatabase* getAudioGroup() const { return m_it->second.get(); }
         BasePoolObjectNode* pageObjectNodeOfId(amuse::ObjectId id) const;
     };
     struct SongGroupNode : INode
@@ -347,6 +347,7 @@ public:
     amuse::ObjToken<RootNode> m_root;
 
     bool m_needsReset = false;
+    void _buildGroupNodeCollections(GroupNode& gn);
     void _buildGroupNode(GroupNode& gn);
     void _resetModelData();
     void _resetSongRefCount();
@@ -383,8 +384,8 @@ public:
 
     void _postAddNode(INode* n, const NameUndoRegistry& registry);
     void _preDelNode(INode* n, NameUndoRegistry& registry);
-    void _addNode(GroupNode* node, GroupNode* parent, const NameUndoRegistry& registry);
-    void _delNode(GroupNode* node, GroupNode* parent, NameUndoRegistry& registry);
+    void _addNode(GroupNode* node, std::unique_ptr<amuse::AudioGroupDatabase>&& data, const NameUndoRegistry& registry);
+    std::unique_ptr<amuse::AudioGroupDatabase> _delNode(GroupNode* node, NameUndoRegistry& registry);
     GroupNode* newSubproject(const QString& name);
     template <class NT, class T>
     void _addGroupNode(NT* node, GroupNode* parent, const NameUndoRegistry& registry, T& container);

@@ -277,7 +277,7 @@ Uint32X8Popup::Uint32X8Popup(int min, int max, QWidget* parent)
     for (int i = 0; i < 8; ++i)
     {
         layout->addWidget(new QLabel(tr(ChanNames[i])), i, 0);
-        FieldSlider* slider = new FieldSlider;
+        FieldSlider* slider = new FieldSlider(this);
         m_sliders[i] = slider;
         slider->setToolTip(QStringLiteral("[%1,%2]").arg(min).arg(max));
         slider->setProperty("chanIdx", i);
@@ -336,8 +336,9 @@ void Uint32X8Button::onPressed()
     m_popup->show();
 }
 
-EffectWidget::EffectWidget(amuse::EffectBaseTypeless* effect, amuse::EffectType type)
-: QWidget(nullptr), m_effect(effect), m_introspection(GetEffectIntrospection(type))
+EffectWidget::EffectWidget(QWidget* parent, amuse::EffectBaseTypeless* effect, amuse::EffectType type)
+: QWidget(parent), m_titleLabel(this), m_deleteButton(this),
+  m_effect(effect), m_introspection(GetEffectIntrospection(type))
 {
     QFont titleFont = m_titleLabel.font();
     titleFont.setWeight(QFont::Bold);
@@ -384,12 +385,12 @@ EffectWidget::EffectWidget(amuse::EffectBaseTypeless* effect, amuse::EffectType 
             if (!field.m_name.empty())
             {
                 QString fieldName = tr(field.m_name.data());
-                layout->addWidget(new QLabel(fieldName), 0, f);
+                layout->addWidget(new QLabel(fieldName, this), 0, f);
                 switch (field.m_tp)
                 {
                 case EffectIntrospection::Field::Type::UInt32:
                 {
-                    FieldSlider* sb = new FieldSlider;
+                    FieldSlider* sb = new FieldSlider(this);
                     sb->setProperty("fieldIndex", f);
                     sb->setRange(int(field.m_min), int(field.m_max));
                     sb->setToolTip(QStringLiteral("[%1,%2]").arg(int(field.m_min)).arg(int(field.m_max)));
@@ -400,7 +401,7 @@ EffectWidget::EffectWidget(amuse::EffectBaseTypeless* effect, amuse::EffectType 
                 }
                 case EffectIntrospection::Field::Type::UInt32x8:
                 {
-                    Uint32X8Button* sb = new Uint32X8Button(int(field.m_min), int(field.m_max));
+                    Uint32X8Button* sb = new Uint32X8Button(int(field.m_min), int(field.m_max), this);
                     sb->popup()->setProperty("fieldIndex", f);
                     for (int i = 0; i < 8; ++i)
                         sb->popup()->setValue(i, GetEffectParm<uint32_t>(m_effect, f, i));
@@ -410,7 +411,7 @@ EffectWidget::EffectWidget(amuse::EffectBaseTypeless* effect, amuse::EffectType 
                 }
                 case EffectIntrospection::Field::Type::Float:
                 {
-                    FieldDoubleSlider* sb = new FieldDoubleSlider;
+                    FieldDoubleSlider* sb = new FieldDoubleSlider(this);
                     sb->setProperty("fieldIndex", f);
                     sb->setRange(field.m_min, field.m_max);
                     sb->setToolTip(QStringLiteral("[%1,%2]").arg(field.m_min).arg(field.m_max));
@@ -474,11 +475,11 @@ void EffectWidget::paintEvent(QPaintEvent* event)
     painter.drawStaticText(-15, 10, m_numberText);
 }
 
-EffectWidget::EffectWidget(amuse::EffectBaseTypeless* cmd)
-: EffectWidget(cmd, cmd->Isa()) {}
+EffectWidget::EffectWidget(QWidget* parent, amuse::EffectBaseTypeless* cmd)
+: EffectWidget(parent, cmd, cmd->Isa()) {}
 
-EffectWidget::EffectWidget(amuse::EffectType type)
-: EffectWidget(nullptr, type) {}
+EffectWidget::EffectWidget(QWidget* parent, amuse::EffectType type)
+: EffectWidget(parent, nullptr, type) {}
 
 void EffectWidget::numChanged(int value)
 {
@@ -558,8 +559,9 @@ void EffectWidgetContainer::animationDestroyed()
     m_animation = nullptr;
 }
 
-EffectWidgetContainer::EffectWidgetContainer(EffectWidget* child, QWidget* parent)
-    : QWidget(parent), m_effectWidget(child)
+template <class..._Args>
+EffectWidgetContainer::EffectWidgetContainer(QWidget* parent, _Args&&... args)
+: QWidget(parent), m_effectWidget(new EffectWidget(this, std::forward<_Args>(args)...))
 {
     setMinimumHeight(100);
     setContentsMargins(QMargins());
@@ -567,7 +569,7 @@ EffectWidgetContainer::EffectWidgetContainer(EffectWidget* child, QWidget* paren
     outerLayout->setAlignment(Qt::AlignBottom);
     outerLayout->setContentsMargins(QMargins());
     outerLayout->setSpacing(0);
-    outerLayout->addWidget(child);
+    outerLayout->addWidget(m_effectWidget);
     setLayout(outerLayout);
 }
 
@@ -779,7 +781,7 @@ void EffectListing::insert(amuse::EffectType type, const QString& text)
         break;
     }
     auto it = m_submix->getEffectStack().insert(m_submix->getEffectStack().begin() + insertIdx, std::move(newEffect));
-    m_layout->insertWidget(insertIdx, new EffectWidgetContainer(new EffectWidget(it->get())));
+    m_layout->insertWidget(insertIdx, new EffectWidgetContainer(this, it->get()));
 
     stopAutoscroll();
     reindex();
@@ -818,7 +820,7 @@ bool EffectListing::loadData(amuse::Submix* submix)
     clear();
     int i = 0;
     for (auto& effect : submix->getEffectStack())
-        m_layout->insertWidget(i++, new EffectWidgetContainer(new EffectWidget(effect.get())));
+        m_layout->insertWidget(i++, new EffectWidgetContainer(this, effect.get()));
     reindex();
     update();
     return true;
@@ -842,7 +844,7 @@ EffectListing::EffectListing(QWidget* parent)
 
 EffectCatalogueItem::EffectCatalogueItem(amuse::EffectType type, const QString& name,
                                          const QString& doc, QWidget* parent)
-: QWidget(parent), m_type(type), m_label(name)
+: QWidget(parent), m_type(type), m_iconLab(this), m_label(name, this)
 {
     QHBoxLayout* layout = new QHBoxLayout;
     QString iconPath = QStringLiteral(":/commands/%1.svg").arg(name);
@@ -899,7 +901,7 @@ EffectCatalogue::EffectCatalogue(QWidget* parent)
     {
         QTreeWidgetItem* item = new QTreeWidgetItem(this);
         setItemWidget(item, 0, new EffectCatalogueItem(amuse::EffectType(i),
-                                                       tr(EffectStrings[i-1]), tr(EffectDocStrings[i-1])));
+                                                       tr(EffectStrings[i-1]), tr(EffectDocStrings[i-1]), this));
     }
 }
 

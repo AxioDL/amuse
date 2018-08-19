@@ -3,8 +3,8 @@
 #include <QHBoxLayout>
 #include <QGridLayout>
 #include <QPainter>
-#include <QScriptValueIterator>
 #include <QMouseEvent>
+#include <QJSValueIterator>
 
 class CurveEditUndoCommand : public EditorUndoCommand
 {
@@ -199,24 +199,21 @@ void CurveControls::exprCommit()
         return;
     amuse::Curve& curve = static_cast<amuse::Curve&>(table);
 
-    QScriptSyntaxCheckResult res = QScriptEngine::checkSyntax(m_lineEdit->text());
-    if (res.state() != QScriptSyntaxCheckResult::Valid)
-    {
-        m_errLabel->setText(res.errorMessage());
-        return;
-    }
-    m_errLabel->setText(QString());
-
+    QString progText = m_lineEdit->text();
     curve.data.resize(128);
     uint8_t newData[128];
     std::memcpy(newData, curve.data.data(), 128);
-    QScriptProgram prog(m_lineEdit->text());
     bool notANumber = false;
     for (int i = 0; i < 128; ++i)
     {
         m_engine.globalObject().setProperty(QStringLiteral("x"), i / 127.0);
-        QScriptValue val = m_engine.evaluate(prog);
-        if (val.isNumber())
+        QJSValue val = m_engine.evaluate(progText);
+        if (val.isError())
+        {
+            m_errLabel->setText(val.toString());
+            return;
+        }
+        else if (val.isNumber())
         {
             newData[i] = uint8_t(amuse::clamp(0, int(std::round(val.toNumber() * 127.0)), 127));
         }
@@ -284,7 +281,7 @@ CurveControls::CurveControls(QWidget* parent)
     mainLayout->addLayout(leftLayout);
     setLayout(mainLayout);
 
-    QScriptValueIterator it(m_engine.globalObject().property(QStringLiteral("Math")));
+    QJSValueIterator it(m_engine.globalObject().property(QStringLiteral("Math")));
     QString docStr = tr("Expression interpreter mapping x:[0,1] to y:[0,1] with the following constants and functions available:\n");
     bool needsComma = false;
     while (it.hasNext())

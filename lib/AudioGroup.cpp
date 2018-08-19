@@ -50,7 +50,7 @@ std::pair<ObjToken<SampleEntryData>, const unsigned char*>
         const_cast<SampleEntry*>(sample)->loadLooseData(basePath);
         return {sample->m_data, sample->m_data->m_looseData.get()};
     }
-    return {{}, m_samp + sample->m_data->m_sampleOff};
+    return std::make_pair(ObjToken<SampleEntryData>(), m_samp + sample->m_data->m_sampleOff);
 }
 
 SampleFileState AudioGroup::getSampleFileState(SampleId sfxId, const SampleEntry* sample, SystemString* pathOut) const

@@ -44,7 +44,17 @@ void ShowInGraphicalShell(QWidget* parent, const QString& pathIn)
     const QFileInfo fileInfo(pathIn);
     // Mac, Windows support folder or file.
 #if defined(Q_OS_WIN)
-    const FileName explorer = Environment::systemEnvironment().searchInPath(QLatin1String("explorer.exe"));
+    QString paths = QProcessEnvironment::systemEnvironment().value(QStringLiteral("Path"));
+    QString explorer;
+    for (QString path : paths.split(QStringLiteral(";")))
+    {
+        QFileInfo finfo(QDir(path), QStringLiteral("explorer.exe"));
+        if (finfo.exists())
+        {
+            explorer = finfo.filePath();
+            break;
+        }
+    }
     if (explorer.isEmpty()) {
         QMessageBox::warning(parent,
                              MainWindow::tr("Launching Windows Explorer Failed"),
@@ -55,7 +65,7 @@ void ShowInGraphicalShell(QWidget* parent, const QString& pathIn)
     if (!fileInfo.isDir())
         param += QLatin1String("/select,");
     param += QDir::toNativeSeparators(fileInfo.canonicalFilePath());
-    QProcess::startDetached(explorer.toString(), param);
+    QProcess::startDetached(explorer, param);
 #elif defined(Q_OS_MAC)
     QStringList scriptArgs;
     scriptArgs << QLatin1String("-e")
