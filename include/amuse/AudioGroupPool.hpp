@@ -1157,6 +1157,9 @@ struct SoundMacro
         std::swap(m_cmds[a], m_cmds[b]);
     }
     void buildFromPrototype(const SoundMacro& other);
+
+    void toYAML(athena::io::YAMLDocWriter& w) const;
+    void fromYAML(athena::io::YAMLDocReader& r, size_t cmdCount);
 };
 
 template <typename T>

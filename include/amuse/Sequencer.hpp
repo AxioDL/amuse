@@ -92,9 +92,9 @@ class Sequencer : public Entity
 
 public:
     ~Sequencer();
-    Sequencer(Engine& engine, const AudioGroup& group, int groupId, const SongGroupIndex* songGroup, int setupId,
+    Sequencer(Engine& engine, const AudioGroup& group, GroupId groupId, const SongGroupIndex* songGroup, SongId setupId,
               ObjToken<Studio> studio);
-    Sequencer(Engine& engine, const AudioGroup& group, int groupId, const SFXGroupIndex* sfxGroup,
+    Sequencer(Engine& engine, const AudioGroup& group, GroupId groupId, const SFXGroupIndex* sfxGroup,
               ObjToken<Studio> studio);
 
     /** Advance current song data (if any) */

@@ -251,24 +251,17 @@ void PageObjectDelegate::setEditorData(QWidget* editor, const QModelIndex& index
         idx = g_MainWindow->projectModel()->getPageObjectProxy()->mapFromSource(g_MainWindow->projectModel()->index(node)).row();
     static_cast<EditorFieldPageObjectNode*>(editor)->setCurrentIndex(idx);
     if (static_cast<EditorFieldPageObjectNode*>(editor)->shouldPopupOpen())
-        static_cast<EditorFieldPageObjectNode*>(editor)->showPopup();
+        QApplication::postEvent(editor, new QEvent(QEvent::User));
 }
 
 void PageObjectDelegate::setModelData(QWidget* editor, QAbstractItemModel* m, const QModelIndex& index) const
 {
     const PageModel* model = static_cast<const PageModel*>(m);
     auto entry = model->m_sorted[index.row()];
-    int idx = static_cast<EditorFieldPageObjectNode*>(editor)->currentIndex();
+    ProjectModel::BasePoolObjectNode* node = static_cast<EditorFieldPageObjectNode*>(editor)->currentNode();
     amuse::ObjectId id;
-    if (idx != 0)
-    {
-        ProjectModel::BasePoolObjectNode* node = static_cast<ProjectModel::BasePoolObjectNode*>(
-            g_MainWindow->projectModel()->node(
-                g_MainWindow->projectModel()->getPageObjectProxy()->mapToSource(
-                    g_MainWindow->projectModel()->getPageObjectProxy()->index(idx, 0,
-                        static_cast<EditorFieldPageObjectNode*>(editor)->rootModelIndex()))));
+    if (node)
         id = node->id();
-    }
     if (id == entry->second.objId.id)
     {
         emit m->dataChanged(index, index);
@@ -432,7 +425,7 @@ QVariant PageModel::data(const QModelIndex& index, int role) const
         switch (index.column())
         {
         case 0:
-            return entry->first;
+            return entry->first + 1;
         case 1:
         {
             ProjectModel::GroupNode* group = g_MainWindow->projectModel()->getGroupNode(m_node.get());
@@ -464,9 +457,10 @@ bool PageModel::setData(const QModelIndex& index, const QVariant& value, int rol
     {
     case 0:
     {
-        if (value.toInt() == entry->first)
+        int prog = value.toInt() - 1;
+        if (prog == entry->first)
             return false;
-        if (map.find(value.toInt()) != map.cend())
+        if (map.find(prog) != map.cend())
         {
             QMessageBox::critical(g_MainWindow, tr("Program Conflict"),
                 tr("Program %1 is already defined in table").arg(value.toInt()));
@@ -935,7 +929,7 @@ QVariant SetupModel::data(const QModelIndex& index, int role) const
         switch (index.column())
         {
         case 0:
-            return entry.programNo;
+            return entry.programNo + 1;
         case 1:
             return entry.volume;
         case 2:
@@ -959,26 +953,28 @@ bool SetupModel::setData(const QModelIndex& index, const QVariant& value, int ro
 
     auto& entry = m_data->second[index.row()];
 
+    int val = value.toInt();
     switch (index.column())
     {
     case 0:
-        if (entry.programNo == value.toInt())
+        val -= 1;
+        if (entry.programNo == val)
             return false;
         break;
     case 1:
-        if (entry.volume == value.toInt())
+        if (entry.volume == val)
             return false;
         break;
     case 2:
-        if (entry.panning == value.toInt())
+        if (entry.panning == val)
             return false;
         break;
     case 3:
-        if (entry.reverb == value.toInt())
+        if (entry.reverb == val)
             return false;
         break;
     case 4:
-        if (entry.chorus == value.toInt())
+        if (entry.chorus == val)
             return false;
         break;
     default:
@@ -988,7 +984,7 @@ bool SetupModel::setData(const QModelIndex& index, const QVariant& value, int ro
     g_MainWindow->pushUndoCommand(new SetupDataChangeUndoCommand(
         static_cast<SongGroupEditor*>(parent())->m_setupList.m_node.get(),
         tr("Change %1").arg(headerData(index.column(), Qt::Horizontal).toString()), m_data->first,
-        index.row(), index.column(), value.toInt()));
+        index.row(), index.column(), val));
 
     emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
 
@@ -1076,9 +1072,10 @@ PageTableView::PageTableView(QWidget* parent)
     setGridStyle(Qt::NoPen);
 
     m_127Delegate.setItemEditorFactory(&m_127Factory);
+    m_128Delegate.setItemEditorFactory(&m_128Factory);
     m_255Delegate.setItemEditorFactory(&m_255Factory);
 
-    setItemDelegateForColumn(0, &m_127Delegate);
+    setItemDelegateForColumn(0, &m_128Delegate);
     setItemDelegateForColumn(1, &m_poDelegate);
     setItemDelegateForColumn(2, &m_255Delegate);
     setItemDelegateForColumn(3, &m_255Delegate);
@@ -1095,8 +1092,8 @@ void SetupTableView::setModel(QAbstractItemModel* list, QAbstractItemModel* tabl
     }
     {
         m_tableView->setModel(table);
-        auto hheader = m_tableView->horizontalHeader();
-        hheader->setSectionResizeMode(QHeaderView::Stretch);
+        m_tableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+        m_tableView->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
     }
 }
 
@@ -1142,8 +1139,9 @@ SetupTableView::SetupTableView(QWidget* parent)
     m_tableView->setGridStyle(Qt::NoPen);
 
     m_127Delegate.setItemEditorFactory(&m_127Factory);
+    m_128Delegate.setItemEditorFactory(&m_128Factory);
 
-    m_tableView->setItemDelegateForColumn(0, &m_127Delegate);
+    m_tableView->setItemDelegateForColumn(0, &m_128Delegate);
     m_tableView->setItemDelegateForColumn(1, &m_127Delegate);
     m_tableView->setItemDelegateForColumn(2, &m_127Delegate);
     m_tableView->setItemDelegateForColumn(3, &m_127Delegate);
@@ -1434,28 +1432,13 @@ void SongGroupEditor::setupDataChanged()
     }
 }
 
-bool SongGroupEditor::isItemEditEnabled() const
+AmuseItemEditFlags SongGroupEditor::itemEditFlags() const
 {
     if (PageTableView* table = qobject_cast<PageTableView*>(m_tabs.currentWidget()))
-        return table->hasFocus() && !table->selectionModel()->selectedRows().isEmpty();
+        return (table->hasFocus() && !table->selectionModel()->selectedRows().isEmpty()) ? AmuseItemDelete : AmuseItemNone;
     else if (SetupTableView* table = qobject_cast<SetupTableView*>(m_tabs.currentWidget()))
-        return table->m_listView->hasFocus() && !table->m_listView->selectionModel()->selectedRows().isEmpty();
-    return false;
-}
-
-void SongGroupEditor::itemCutAction()
-{
-
-}
-
-void SongGroupEditor::itemCopyAction()
-{
-
-}
-
-void SongGroupEditor::itemPasteAction()
-{
-
+        return (table->m_listView->hasFocus() && !table->m_listView->selectionModel()->selectedRows().isEmpty()) ? AmuseItemDelete : AmuseItemNone;
+    return AmuseItemNone;
 }
 
 void SongGroupEditor::itemDeleteAction()

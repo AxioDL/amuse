@@ -118,7 +118,7 @@ void SoundMacroDelegate::setEditorData(QWidget* editor, const QModelIndex& index
     ProjectModel::CollectionNode* smColl = group->getCollectionOfType(ProjectModel::INode::Type::SoundMacro);
     static_cast<EditorFieldProjectNode*>(editor)->setCurrentIndex(smColl->indexOfId(layer.macro.id) + 1);
     if (static_cast<EditorFieldProjectNode*>(editor)->shouldPopupOpen())
-        static_cast<EditorFieldProjectNode*>(editor)->showPopup();
+        QApplication::postEvent(editor, new QEvent(QEvent::User));
 }
 
 void SoundMacroDelegate::setModelData(QWidget* editor, QAbstractItemModel* m, const QModelIndex& index) const
@@ -636,24 +636,9 @@ void LayersEditor::doSelectionChanged()
     g_MainWindow->updateFocus();
 }
 
-bool LayersEditor::isItemEditEnabled() const
+AmuseItemEditFlags LayersEditor::itemEditFlags() const
 {
-    return !m_tableView.selectionModel()->selectedRows().isEmpty();
-}
-
-void LayersEditor::itemCutAction()
-{
-
-}
-
-void LayersEditor::itemCopyAction()
-{
-
-}
-
-void LayersEditor::itemPasteAction()
-{
-
+    return m_tableView.selectionModel()->selectedRows().isEmpty() ? AmuseItemNone : AmuseItemDelete;
 }
 
 void LayersEditor::itemDeleteAction()

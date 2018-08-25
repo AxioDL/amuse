@@ -6,6 +6,9 @@ MIDIReader::MIDIReader(amuse::Engine& engine, bool useLock)
 
 void MIDIReader::noteOff(uint8_t chan, uint8_t key, uint8_t velocity)
 {
+    if (g_MainWindow->m_interactiveSeq)
+        g_MainWindow->m_interactiveSeq->keyOff(chan, key, velocity);
+
     auto keySearch = m_chanVoxs.find(key);
     if (keySearch == m_chanVoxs.cend())
         return;
@@ -19,6 +22,9 @@ void MIDIReader::noteOff(uint8_t chan, uint8_t key, uint8_t velocity)
 
 void MIDIReader::noteOn(uint8_t chan, uint8_t key, uint8_t velocity)
 {
+    if (g_MainWindow->m_interactiveSeq)
+        g_MainWindow->m_interactiveSeq->keyOn(chan, key, velocity);
+
     if (m_lastVoice && m_lastVoice->isDestroyed())
         m_lastVoice.reset();
 
@@ -48,13 +54,19 @@ void MIDIReader::noteOn(uint8_t chan, uint8_t key, uint8_t velocity)
 
     amuse::ObjToken<amuse::Voice> newVox = g_MainWindow->startEditorVoice(key, velocity);
     if (newVox)
+    {
         m_chanVoxs[key] = newVox;
+        m_lastVoice = newVox;
+    }
 }
 
 void MIDIReader::notePressure(uint8_t /*chan*/, uint8_t /*key*/, uint8_t /*pressure*/) {}
 
 void MIDIReader::controlChange(uint8_t chan, uint8_t control, uint8_t value)
 {
+    if (g_MainWindow->m_interactiveSeq)
+        g_MainWindow->m_interactiveSeq->setCtrlValue(chan, control, value);
+
     if (control == 1)
     {
         g_MainWindow->m_ui.modulationSlider->setValue(int(value));
@@ -71,17 +83,28 @@ void MIDIReader::controlChange(uint8_t chan, uint8_t control, uint8_t value)
     g_MainWindow->m_ctrlVals[control] = value;
 }
 
-void MIDIReader::programChange(uint8_t chan, uint8_t program) {}
+void MIDIReader::programChange(uint8_t chan, uint8_t program)
+{
+    if (g_MainWindow->m_interactiveSeq)
+        g_MainWindow->m_interactiveSeq->setChanProgram(chan, program);
+}
 
 void MIDIReader::channelPressure(uint8_t /*chan*/, uint8_t /*pressure*/) {}
 
 void MIDIReader::pitchBend(uint8_t chan, int16_t pitch)
 {
-    g_MainWindow->m_ui.pitchSlider->setValue(int((pitch - 0x2000) / float(0x2000) * 2048.f));
+    float pWheel = (pitch - 0x2000) / float(0x2000);
+    if (g_MainWindow->m_interactiveSeq)
+        g_MainWindow->m_interactiveSeq->setPitchWheel(chan, pWheel);
+    else
+        g_MainWindow->m_ui.pitchSlider->setValue(int(pWheel * 2048.f));
 }
 
 void MIDIReader::allSoundOff(uint8_t chan)
 {
+    if (g_MainWindow->m_interactiveSeq)
+        g_MainWindow->m_interactiveSeq->kill();
+
     for (auto& v : m_engine.getActiveVoices())
         v->kill();
 }
@@ -92,6 +115,9 @@ void MIDIReader::localControl(uint8_t /*chan*/, bool /*on*/) {}
 
 void MIDIReader::allNotesOff(uint8_t chan)
 {
+    if (g_MainWindow->m_interactiveSeq)
+        g_MainWindow->m_interactiveSeq->kill();
+
     for (auto& v : m_engine.getActiveVoices())
         v->kill();
 }

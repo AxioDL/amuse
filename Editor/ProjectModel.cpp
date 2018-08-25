@@ -3,10 +3,14 @@
 #include "ProjectModel.hpp"
 #include "Common.hpp"
 #include "athena/YAMLDocWriter.hpp"
+#include "athena/VectorWriter.hpp"
 #include "MainWindow.hpp"
+#include "EditorWidget.hpp"
 #include "amuse/SongConverter.hpp"
 #include "amuse/ContainerRegistry.hpp"
-#include <QUndoCommand>
+#include <QDate>
+#include <QMimeData>
+#include <QClipboard>
 
 QIcon ProjectModel::GroupNode::Icon;
 QIcon ProjectModel::SongGroupNode::Icon;
@@ -305,6 +309,16 @@ ProjectModel::INode::INode(const QString& name)
     m_nullChild = nullNode.get();
 }
 
+void ProjectModel::INode::_sortChildren()
+{
+    std::sort(m_children.begin(), m_children.end(),
+              [](const auto& a, const auto& b)
+              {
+                  return a->name() < b->name();
+              });
+    reindexRows(0);
+}
+
 int ProjectModel::INode::hypotheticalIndex(const QString& name) const
 {
     auto search = std::lower_bound(m_children.cbegin(), m_children.cend(), name,
@@ -324,6 +338,17 @@ int ProjectModel::GroupNode::hypotheticalIndex(const QString& name) const
         return item->name() < name;
     });
     return int(search - m_children.cbegin());
+}
+
+void ProjectModel::GroupNode::_sortChildren()
+{
+    /* Sort prior to pool object collections */
+    std::sort(m_children.begin(), m_children.end() - 6,
+              [](const auto& a, const auto& b)
+              {
+                  return a->name() < b->name();
+              });
+    reindexRows(0);
 }
 
 ProjectModel::CollectionNode* ProjectModel::GroupNode::getCollectionOfType(Type tp) const
@@ -624,6 +649,104 @@ bool ProjectModel::exportGroup(const QString& path, const QString& groupName, UI
     return true;
 }
 
+bool ProjectModel::importHeader(const QString& path, const QString& groupName, UIMessenger& messenger) const
+{
+    m_projectDatabase.setIdDatabases();
+    auto search = m_groups.find(groupName);
+    if (search == m_groups.cend())
+    {
+        messenger.critical(tr("Import Error"), tr("Unable to find group %1").arg(groupName));
+        return false;
+    }
+
+    QFileInfo fi(QDir(path), QStringLiteral("%1.h").arg(groupName));
+    if (!fi.exists())
+        return true;
+
+    QFile fo(fi.filePath());
+    if (!fo.open(QFile::ReadOnly))
+    {
+        messenger.critical(tr("Export Header Error"), tr("Unable to open %1 for reading").arg(fi.filePath()));
+        return false;
+    }
+
+    auto data = fo.readAll();
+    search->second->importCHeader(std::string_view(data.data(), data.size()));
+
+    return true;
+}
+
+bool ProjectModel::exportHeader(const QString& path, const QString& groupName,
+                                bool& yesToAll, UIMessenger& messenger) const
+{
+    m_projectDatabase.setIdDatabases();
+    auto search = m_groups.find(groupName);
+    if (search == m_groups.cend())
+    {
+        messenger.critical(tr("Export Error"), tr("Unable to find group %1").arg(groupName));
+        return false;
+    }
+
+    QFileInfo fi(QDir(path), QStringLiteral("%1.h").arg(groupName));
+    if (!yesToAll && fi.exists())
+    {
+        auto result = messenger.question(tr("File Exists"),
+            tr("%1 already exists. Overwrite?").arg(fi.filePath()),
+            QMessageBox::Yes | QMessageBox::No | QMessageBox::YesToAll | QMessageBox::NoToAll);
+        if (result == QMessageBox::No)
+            return true;
+        else if (result == QMessageBox::NoToAll)
+            return false;
+        else if (result == QMessageBox::YesToAll)
+            yesToAll = true;
+    }
+    std::string header = search->second->exportCHeader(m_dir.dirName().toUtf8().data(), groupName.toUtf8().data());
+    QFile fo(fi.filePath());
+    if (fo.open(QFile::WriteOnly))
+        fo.write(header.data(), header.size());
+
+    return true;
+}
+
+void ProjectModel::updateNodeNames()
+{
+    beginResetModel();
+    m_root->oneLevelTraverse([this](INode* n)
+    {
+        GroupNode* gn = static_cast<GroupNode*>(n);
+        setIdDatabases(gn);
+        gn->oneLevelTraverse([](INode* n)
+        {
+            if (n->type() == INode::Type::SongGroup)
+            {
+                SongGroupNode* sgn = static_cast<SongGroupNode*>(n);
+                sgn->m_name = amuse::GroupId::CurNameDB->resolveNameFromId(sgn->m_id).data();
+            }
+            else if (n->type() == INode::Type::SoundGroup)
+            {
+                SoundGroupNode* sgn = static_cast<SoundGroupNode*>(n);
+                sgn->m_name = amuse::GroupId::CurNameDB->resolveNameFromId(sgn->m_id).data();
+            }
+            else if (n->type() == INode::Type::Collection)
+            {
+                CollectionNode* cn = static_cast<CollectionNode*>(n);
+                cn->oneLevelTraverse([](INode* n)
+                {
+                    BasePoolObjectNode* on = static_cast<BasePoolObjectNode*>(n);
+                    on->m_name = on->getNameDb()->resolveNameFromId(on->m_id).data();
+                    return true;
+                });
+                cn->_sortChildren();
+            }
+            return true;
+        });
+        gn->_sortChildren();
+        return true;
+    });
+    m_root->_sortChildren();
+    endResetModel();
+}
+
 void ProjectModel::_buildGroupNodeCollections(GroupNode& gn)
 {
     gn.reserve(6);
@@ -635,9 +758,8 @@ void ProjectModel::_buildGroupNodeCollections(GroupNode& gn)
     gn._appendChild<CollectionNode>(tr("Samples"), QIcon(":/icons/IconSample.svg"), INode::Type::Sample);
 }
 
-void ProjectModel::_buildGroupNode(GroupNode& gn)
+void ProjectModel::_buildGroupNode(GroupNode& gn, amuse::AudioGroup& group)
 {
-    amuse::AudioGroup& group = *gn.m_it->second;
     auto& songGroups = group.getProj().songGroups();
     auto& sfxGroups = group.getProj().sfxGroups();
     auto& soundMacros = group.getPool().soundMacros();
@@ -720,7 +842,7 @@ void ProjectModel::_resetModelData()
     {
         it->second->setIdDatabases();
         GroupNode& gn = m_root->makeChild<GroupNode>(it);
-        _buildGroupNode(gn);
+        _buildGroupNode(gn, *gn.m_it->second);
     }
     endResetModel();
 }
@@ -835,12 +957,94 @@ QVariant ProjectModel::data(const QModelIndex& index, int role) const
     switch (role)
     {
     case Qt::DisplayRole:
+    case Qt::EditRole:
         return item->text();
     case Qt::DecorationRole:
         return item->icon();
     default:
         return {};
     }
+}
+
+class RenameNodeUndoCommand : public EditorUndoCommand
+{
+    QString m_redoVal, m_undoVal;
+public:
+    RenameNodeUndoCommand(const QString& text, ProjectModel::INode* node, const QString& redoVal)
+    : EditorUndoCommand(node, text.arg(node->name())), m_redoVal(redoVal) {}
+    void undo()
+    {
+        g_MainWindow->projectModel()->_renameNode(m_node.get(), m_undoVal);
+    }
+    void redo()
+    {
+        m_undoVal = m_node->name();
+        g_MainWindow->projectModel()->_renameNode(m_node.get(), m_redoVal);
+    }
+};
+
+void ProjectModel::_renameNode(INode* node, const QString& name)
+{
+    INode* parent = node->parent();
+    if (!parent)
+        return;
+    if (parent->findChild(name))
+        return;
+
+    QString oldName = node->m_name;
+    int oldIdx = parent->hypotheticalIndex(oldName);
+    int newIdx = parent->hypotheticalIndex(name);
+    bool moving = beginMoveRows(index(parent), oldIdx, oldIdx, index(parent), newIdx);
+    node->m_name = name;
+    parent->_sortChildren();
+    switch (node->type())
+    {
+    case INode::Type::Group:
+        m_dir.rename(oldName, name);
+        break;
+    case INode::Type::Sample:
+    {
+        ProjectModel::GroupNode* group = getGroupNode(node);
+        auto utf8Name = name.toUtf8();
+        group->getAudioGroup()->renameSample(static_cast<SampleNode*>(node)->id(),
+            std::string_view(utf8Name.data(), utf8Name.length()));
+        g_MainWindow->saveAction();
+        break;
+    }
+    default:
+        break;
+    }
+    QModelIndex idx = index(node);
+    emit dataChanged(idx, idx, {Qt::DisplayRole, Qt::EditRole});
+    if (g_MainWindow->getEditorNode() == node)
+        g_MainWindow->updateWindowTitle();
+    if (moving)
+        endMoveRows();
+}
+
+bool ProjectModel::setData(const QModelIndex& index, const QVariant& value, int role)
+{
+    if (!index.isValid() || role != Qt::EditRole)
+        return false;
+    assert(index.model() == this && "Not ProjectModel");
+
+    INode* item = static_cast<INode*>(index.internalPointer());
+    INode* parent = item->parent();
+    if (!parent)
+        return false;
+
+    if (item->name() == value.toString())
+        return false;
+
+    if (parent->findChild(value.toString()))
+    {
+        g_MainWindow->uiMessenger().critical(tr("Naming Conflict"),
+            tr("%1 already exists in this context").arg(value.toString()));
+        return false;
+    }
+
+    g_MainWindow->pushUndoCommand(new RenameNodeUndoCommand(tr("Rename %1"), item, value.toString()));
+    return true;
 }
 
 Qt::ItemFlags ProjectModel::flags(const QModelIndex& index) const
@@ -869,12 +1073,12 @@ ProjectModel::GroupNode* ProjectModel::getGroupNode(INode* node) const
     return getGroupNode(node->parent());
 }
 
-bool ProjectModel::canEdit(const QModelIndex& index) const
+AmuseItemEditFlags ProjectModel::editFlags(const QModelIndex& index) const
 {
     if (!index.isValid())
-        return false;
+        return AmuseItemNone;
     assert(index.model() == this && "Not ProjectModel");
-    return (static_cast<INode*>(index.internalPointer())->flags() & Qt::ItemIsSelectable) != Qt::NoItemFlags;
+    return static_cast<INode*>(index.internalPointer())->editFlags();
 }
 
 void ProjectModel::_postAddNode(INode* n, const NameUndoRegistry& registry)
@@ -897,31 +1101,34 @@ void ProjectModel::_preDelNode(INode* n, NameUndoRegistry& registry)
     });
 }
 
-class GroupNodeUndoCommand : public QUndoCommand
+class GroupNodeUndoCommand : public EditorUndoCommand
 {
 protected:
     std::unique_ptr<amuse::AudioGroupDatabase> m_data;
-    amuse::ObjToken<ProjectModel::GroupNode> m_node;
     ProjectModel::NameUndoRegistry m_nameReg;
     void add()
     {
-        g_MainWindow->projectModel()->_addNode(m_node.get(), std::move(m_data), m_nameReg);
+        g_MainWindow->projectModel()->_addNode(static_cast<ProjectModel::GroupNode*>(m_node.get()), std::move(m_data), m_nameReg);
         g_MainWindow->recursiveExpandAndSelectOutline(g_MainWindow->projectModel()->index(m_node.get()));
     }
     void del()
     {
-        m_data = g_MainWindow->projectModel()->_delNode(m_node.get(), m_nameReg);
+        m_data = g_MainWindow->projectModel()->_delNode(static_cast<ProjectModel::GroupNode*>(m_node.get()), m_nameReg);
+        setObsolete(true);
+        g_MainWindow->m_undoStack->clear();
     }
 public:
-    explicit GroupNodeUndoCommand(const QString& text, std::unique_ptr<amuse::AudioGroupDatabase>&& data, ProjectModel::GroupNode* node)
-    : QUndoCommand(text.arg(node->text())), m_data(std::move(data)), m_node(node) {}
+    explicit GroupNodeUndoCommand(const QString& text, std::unique_ptr<amuse::AudioGroupDatabase>&& data,
+                                  ProjectModel::GroupNode* node)
+    : EditorUndoCommand(node, text.arg(node->text())), m_data(std::move(data)) {}
 };
 
 class GroupNodeAddUndoCommand : public GroupNodeUndoCommand
 {
     using base = GroupNodeUndoCommand;
 public:
-    explicit GroupNodeAddUndoCommand(const QString& text, std::unique_ptr<amuse::AudioGroupDatabase>&& data, ProjectModel::GroupNode* node)
+    explicit GroupNodeAddUndoCommand(const QString& text, std::unique_ptr<amuse::AudioGroupDatabase>&& data,
+                                     ProjectModel::GroupNode* node)
     : GroupNodeUndoCommand(text, std::move(data), node) {}
     void undo() { base::del(); }
     void redo() { base::add(); }
@@ -956,6 +1163,7 @@ std::unique_ptr<amuse::AudioGroupDatabase> ProjectModel::_delNode(GroupNode* nod
     std::unique_ptr<amuse::AudioGroupDatabase> ret = std::move(node->m_it->second);
     m_groups.erase(node->m_it);
     node->m_it = {};
+    QDir(QFileInfo(m_dir, node->name()).filePath()).removeRecursively();
     m_root->removeChild(node);
     endRemoveRows();
     return ret;
@@ -978,24 +1186,23 @@ ProjectModel::GroupNode* ProjectModel::newSubproject(const QString& name)
 }
 
 template <class NT>
-class NodeUndoCommand : public QUndoCommand
+class NodeUndoCommand : public EditorUndoCommand
 {
 protected:
     amuse::ObjToken<ProjectModel::GroupNode> m_parent;
-    amuse::ObjToken<NT> m_node;
     ProjectModel::NameUndoRegistry m_nameReg;
     void add()
     {
-        g_MainWindow->projectModel()->_addNode(m_node.get(), m_parent.get(), m_nameReg);
+        g_MainWindow->projectModel()->_addNode(static_cast<NT*>(m_node.get()), m_parent.get(), m_nameReg);
         g_MainWindow->recursiveExpandAndSelectOutline(g_MainWindow->projectModel()->index(m_node.get()));
     }
     void del()
     {
-        g_MainWindow->projectModel()->_delNode(m_node.get(), m_parent.get(), m_nameReg);
+        g_MainWindow->projectModel()->_delNode(static_cast<NT*>(m_node.get()), m_parent.get(), m_nameReg);
     }
 public:
     explicit NodeUndoCommand(const QString& text, NT* node, ProjectModel::GroupNode* parent)
-    : QUndoCommand(text.arg(node->text())), m_parent(parent), m_node(node){}
+    : EditorUndoCommand(node, text.arg(node->text())), m_parent(parent) {}
 };
 
 template <class NT>
@@ -1109,6 +1316,8 @@ static constexpr ProjectModel::INode::Type GetINodeType(ProjectModel::KeymapNode
 { return ProjectModel::INode::Type::Keymap; }
 static constexpr ProjectModel::INode::Type GetINodeType(ProjectModel::LayersNode*)
 { return ProjectModel::INode::Type::Layer; }
+static constexpr ProjectModel::INode::Type GetINodeType(ProjectModel::SampleNode*)
+{ return ProjectModel::INode::Type::Sample; }
 
 static constexpr amuse::NameDB::Type GetNameDBType(ProjectModel::SoundMacroNode*)
 { return amuse::NameDB::Type::SoundMacro; }
@@ -1120,12 +1329,23 @@ static constexpr amuse::NameDB::Type GetNameDBType(ProjectModel::KeymapNode*)
 { return amuse::NameDB::Type::Keymap; }
 static constexpr amuse::NameDB::Type GetNameDBType(ProjectModel::LayersNode*)
 { return amuse::NameDB::Type::Layer; }
+static constexpr amuse::NameDB::Type GetNameDBType(ProjectModel::SampleNode*)
+{ return amuse::NameDB::Type::Sample; }
 
-static amuse::NameDB* GetNameDB(ProjectModel::SoundMacroNode*) { return amuse::SoundMacroId::CurNameDB; }
-static amuse::NameDB* GetNameDB(ProjectModel::ADSRNode*) { return amuse::TableId::CurNameDB; }
-static amuse::NameDB* GetNameDB(ProjectModel::CurveNode*) { return amuse::TableId::CurNameDB; }
-static amuse::NameDB* GetNameDB(ProjectModel::KeymapNode*) { return amuse::KeymapId::CurNameDB; }
-static amuse::NameDB* GetNameDB(ProjectModel::LayersNode*) { return amuse::LayersId::CurNameDB; }
+template <class NT>
+inline amuse::NameDB* GetNameDB() { return nullptr; }
+template <>
+inline amuse::NameDB* GetNameDB<ProjectModel::SoundMacroNode>() { return amuse::SoundMacroId::CurNameDB; }
+template <>
+inline amuse::NameDB* GetNameDB<ProjectModel::ADSRNode>() { return amuse::TableId::CurNameDB; }
+template <>
+inline amuse::NameDB* GetNameDB<ProjectModel::CurveNode>() { return amuse::TableId::CurNameDB; }
+template <>
+inline amuse::NameDB* GetNameDB<ProjectModel::KeymapNode>() { return amuse::KeymapId::CurNameDB; }
+template <>
+inline amuse::NameDB* GetNameDB<ProjectModel::LayersNode>() { return amuse::LayersId::CurNameDB; }
+template <>
+inline amuse::NameDB* GetNameDB<ProjectModel::SampleNode>() { return amuse::SampleId::CurNameDB; }
 
 template <class NT, class T>
 void ProjectModel::_addPoolNode(NT* node, GroupNode* parent, const NameUndoRegistry& registry, T& container)
@@ -1134,8 +1354,8 @@ void ProjectModel::_addPoolNode(NT* node, GroupNode* parent, const NameUndoRegis
     CollectionNode* coll = parent->getCollectionOfType(GetINodeType(node));
     int insertIdx = coll->hypotheticalIndex(node->name());
     beginInsertRows(index(coll), insertIdx, insertIdx);
-    auto newId = GetNameDB(node)->generateId(GetNameDBType(node));
-    GetNameDB(node)->registerPair(node->name().toUtf8().data(), newId);
+    auto newId = GetNameDB<NT>()->generateId(GetNameDBType(node));
+    GetNameDB<NT>()->registerPair(node->name().toUtf8().data(), newId);
     container[newId] = node->m_obj;
     node->m_id = newId;
     coll->insertChild(node);
@@ -1147,11 +1367,11 @@ template <class NT, class T>
 void ProjectModel::_delPoolNode(NT* node, GroupNode* parent, NameUndoRegistry& registry, T& container)
 {
     int idx = node->row();
+    setIdDatabases(parent);
     CollectionNode* coll = parent->getCollectionOfType(GetINodeType(node));
     beginRemoveRows(index(coll), idx, idx);
     _preDelNode(node, registry);
-    setIdDatabases(parent);
-    GetNameDB(node)->remove(node->m_id);
+    GetNameDB<NT>()->remove(node->m_id);
     container.erase(node->m_id);
     node->m_id = {};
     coll->removeChild(node);
@@ -1296,18 +1516,505 @@ ProjectModel::LayersNode* ProjectModel::newLayers(GroupNode* group, const QStrin
     return node.get();
 }
 
+QString ProjectModel::MakeDedupedSubprojectName(const QString& origName)
+{
+    QString dupeName = origName + tr("-copy");
+    QString useName = dupeName;
+    int dupeIdx = 1;
+    while (QFileInfo(m_dir.filePath(useName)).exists())
+        useName = dupeName + QString::number(dupeIdx++);
+    return useName;
+}
+
+QString ProjectModel::MakeDedupedName(const QString& origName, amuse::NameDB* db)
+{
+    QString dupeName = origName + tr("-copy");
+    QString useName = dupeName;
+    int dupeIdx = 1;
+    while (db->m_stringToId.find(useName.toUtf8().data()) != db->m_stringToId.cend())
+        useName = dupeName + QString::number(dupeIdx++);
+    return useName;
+}
+
+static amuse::ObjToken<std::unique_ptr<amuse::ITable>> DuplicateTable(amuse::ITable* table)
+{
+    switch (table->Isa())
+    {
+    case amuse::ITable::Type::ADSR:
+        return amuse::MakeObj<std::unique_ptr<amuse::ITable>>
+            (std::make_unique<amuse::ADSR>(static_cast<amuse::ADSR&>(*table)));
+    case amuse::ITable::Type::ADSRDLS:
+        return amuse::MakeObj<std::unique_ptr<amuse::ITable>>
+            (std::make_unique<amuse::ADSRDLS>(static_cast<amuse::ADSRDLS&>(*table)));
+    case amuse::ITable::Type::Curve:
+        return amuse::MakeObj<std::unique_ptr<amuse::ITable>>
+            (std::make_unique<amuse::Curve>(static_cast<amuse::Curve&>(*table)));
+    default:
+        return {};
+    }
+}
+
+QStringList ProjectModel::mimeTypes() const
+{
+    return {QStringLiteral("application/x-amuse-subprojectpath"),
+            QStringLiteral("application/x-amuse-songgroup"),
+            QStringLiteral("application/x-amuse-soundgroup"),
+            QStringLiteral("application/x-amuse-soundmacro"),
+            QStringLiteral("application/x-amuse-adsr"),
+            QStringLiteral("application/x-amuse-curve"),
+            QStringLiteral("application/x-amuse-keymap"),
+            QStringLiteral("application/x-amuse-layers"),
+            QStringLiteral("application/x-amuse-samplepath")};
+}
+
+static void WriteMimeYAML(athena::io::YAMLDocWriter& w, ProjectModel::SongGroupNode* n) { n->m_index->toYAML(w); }
+static void WriteMimeYAML(athena::io::YAMLDocWriter& w, ProjectModel::SoundGroupNode* n) { n->m_index->toYAML(w); }
+static void WriteMimeYAML(athena::io::YAMLDocWriter& w, ProjectModel::SoundMacroNode* n)
+{
+    if (auto __r2 = w.enterSubVector("cmds"))
+        n->m_obj->toYAML(w);
+}
+static void WriteMimeYAML(athena::io::YAMLDocWriter& w, ProjectModel::ADSRNode* n) { n->m_obj->get()->write(w); }
+static void WriteMimeYAML(athena::io::YAMLDocWriter& w, ProjectModel::CurveNode* n) { n->m_obj->get()->write(w); }
+static void WriteMimeYAML(athena::io::YAMLDocWriter& w, ProjectModel::KeymapNode* n)
+{
+    if (auto __v = w.enterSubVector("entries"))
+    {
+        for (const auto& km : *n->m_obj)
+        {
+            if (auto __r2 = w.enterSubRecord(nullptr))
+            {
+                w.setStyle(athena::io::YAMLNodeStyle::Flow);
+                km.write(w);
+            }
+        }
+    }
+}
+static void WriteMimeYAML(athena::io::YAMLDocWriter& w, ProjectModel::LayersNode* n)
+{
+    if (auto __v = w.enterSubVector("entries"))
+    {
+        for (const auto& lm : *n->m_obj)
+        {
+            if (auto __r2 = w.enterSubRecord(nullptr))
+            {
+                w.setStyle(athena::io::YAMLNodeStyle::Flow);
+                lm.write(w);
+            }
+        }
+    }
+}
+
+template <class NT>
+EditorUndoCommand* ProjectModel::readMimeYAML(athena::io::YAMLDocReader& r, const QString& name, GroupNode* gn) {}
+template <>
+EditorUndoCommand* ProjectModel::readMimeYAML<ProjectModel::SongGroupNode>
+    (athena::io::YAMLDocReader& r, const QString& name, GroupNode* gn)
+{
+    auto dataNode = amuse::MakeObj<amuse::SongGroupIndex>();
+    dataNode->fromYAML(r);
+    auto node = amuse::MakeObj<SongGroupNode>(name, dataNode);
+    return new NodeAddUndoCommand(ProjectModel::tr("Add Song Group %1"), node.get(), gn);
+}
+template <>
+EditorUndoCommand* ProjectModel::readMimeYAML<ProjectModel::SoundGroupNode>
+    (athena::io::YAMLDocReader& r, const QString& name, GroupNode* gn)
+{
+    auto dataNode = amuse::MakeObj<amuse::SFXGroupIndex>();
+    dataNode->fromYAML(r);
+    auto node = amuse::MakeObj<SoundGroupNode>(name, dataNode);
+    return new NodeAddUndoCommand(ProjectModel::tr("Add Sound Group %1"), node.get(), gn);
+}
+template <>
+EditorUndoCommand* ProjectModel::readMimeYAML<ProjectModel::SoundMacroNode>
+    (athena::io::YAMLDocReader& r, const QString& name, GroupNode* gn)
+{
+    auto dataNode = amuse::MakeObj<amuse::SoundMacro>();
+    size_t cmdCount;
+    if (auto __v = r.enterSubVector("cmds", cmdCount))
+        dataNode->fromYAML(r, cmdCount);
+    auto node = amuse::MakeObj<SoundMacroNode>(name, dataNode);
+    return new NodeAddUndoCommand(ProjectModel::tr("Add SoundMacro %1"), node.get(), gn);
+}
+template <>
+EditorUndoCommand* ProjectModel::readMimeYAML<ProjectModel::ADSRNode>
+    (athena::io::YAMLDocReader& r, const QString& name, GroupNode* gn)
+{
+    amuse::ObjToken<std::unique_ptr<amuse::ITable>> dataNode;
+    if (auto __vta = r.enterSubRecord("velToAttack"))
+    {
+        __vta.leave();
+        dataNode = amuse::MakeObj<std::unique_ptr<amuse::ITable>>(std::make_unique<amuse::ADSRDLS>());
+        static_cast<amuse::ADSRDLS&>(**dataNode).read(r);
+    }
+    else
+    {
+        dataNode = amuse::MakeObj<std::unique_ptr<amuse::ITable>>(std::make_unique<amuse::ADSR>());
+        static_cast<amuse::ADSR&>(**dataNode).read(r);
+    }
+    auto node = amuse::MakeObj<ADSRNode>(name, dataNode);
+    return new NodeAddUndoCommand(ProjectModel::tr("Add ADSR %1"), node.get(), gn);
+}
+template <>
+EditorUndoCommand* ProjectModel::readMimeYAML<ProjectModel::CurveNode>
+    (athena::io::YAMLDocReader& r, const QString& name, GroupNode* gn)
+{
+    auto dataNode = amuse::MakeObj<std::unique_ptr<amuse::ITable>>(std::make_unique<amuse::Curve>());
+    static_cast<amuse::Curve&>(**dataNode).read(r);
+    auto node = amuse::MakeObj<CurveNode>(name, dataNode);
+    return new NodeAddUndoCommand(ProjectModel::tr("Add Curve %1"), node.get(), gn);
+}
+template <>
+EditorUndoCommand* ProjectModel::readMimeYAML<ProjectModel::KeymapNode>
+    (athena::io::YAMLDocReader& r, const QString& name, GroupNode* gn)
+{
+    auto dataNode = amuse::MakeObj<std::array<amuse::Keymap, 128>>();
+    size_t entryCount;
+    if (auto __v = r.enterSubVector("entries", entryCount))
+    {
+        for (size_t i = 0; i < entryCount; ++i)
+        {
+            if (auto __r2 = r.enterSubRecord(nullptr))
+            {
+                (*dataNode)[i].read(r);
+            }
+        }
+    }
+    auto node = amuse::MakeObj<KeymapNode>(name, dataNode);
+    return new NodeAddUndoCommand(ProjectModel::tr("Add Keymap %1"), node.get(), gn);
+}
+template <>
+EditorUndoCommand* ProjectModel::readMimeYAML<ProjectModel::LayersNode>
+    (athena::io::YAMLDocReader& r, const QString& name, GroupNode* gn)
+{
+    auto dataNode = amuse::MakeObj<std::vector<amuse::LayerMapping>>();
+    size_t entryCount;
+    if (auto __v = r.enterSubVector("entries", entryCount))
+    {
+        dataNode->resize(entryCount);
+        for (size_t i = 0; i < entryCount; ++i)
+        {
+            if (auto __r2 = r.enterSubRecord(nullptr))
+            {
+                (*dataNode)[i].read(r);
+            }
+        }
+    }
+    auto node = amuse::MakeObj<LayersNode>(name, dataNode);
+    return new NodeAddUndoCommand(ProjectModel::tr("Add Layers %1"), node.get(), gn);
+}
+
+template <class NT>
+void ProjectModel::loadMimeData(const QMimeData* data, const QString& mimeType, GroupNode* gn)
+{
+    auto d = data->data(mimeType);
+    athena::io::MemoryReader mr(d.data(), atUint64(d.length()));
+    athena::io::YAMLDocReader r;
+    if (r.parse(&mr))
+    {
+        QString newName = MakeDedupedName(QString::fromStdString(r.readString("name")), GetNameDB<NT>());
+        g_MainWindow->pushUndoCommand(readMimeYAML<NT>(r, newName, gn));
+    }
+}
+
+template <class NT>
+QMimeData* MakeMimeData(NT* n, const QString& mimeType)
+{
+    QMimeData* data = new QMimeData;
+    athena::io::VectorWriter vw;
+    athena::io::YAMLDocWriter w(nullptr);
+    w.writeString("name", QStringToSysString(n->name()));
+    WriteMimeYAML(w, n);
+    w.finish(&vw);
+    data->setData(mimeType, QByteArray((char*)vw.data().data(), int(vw.data().size())));
+    return data;
+}
+
+QMimeData* ProjectModel::mimeData(const QModelIndexList& indexes) const
+{
+    QModelIndex index = indexes.first();
+    if (!index.isValid())
+        return nullptr;
+    assert(index.model() == this && "Not ProjectModel");
+    INode* n = node(index);
+    switch (n->type())
+    {
+    case INode::Type::Group:
+    {
+        QDir dir(QFileInfo(m_dir, n->name()).filePath());
+        QMimeData* data = new QMimeData;
+        data->setData(QStringLiteral("application/x-amuse-subprojectpath"), dir.path().toUtf8());
+        return data;
+    }
+    case INode::Type::SoundGroup:
+        return MakeMimeData(static_cast<SoundGroupNode*>(n), QStringLiteral("application/x-amuse-soundgroup"));
+    case INode::Type::SongGroup:
+        return MakeMimeData(static_cast<SongGroupNode*>(n), QStringLiteral("application/x-amuse-songgroup"));
+    case INode::Type::SoundMacro:
+        return MakeMimeData(static_cast<SoundMacroNode*>(n), QStringLiteral("application/x-amuse-soundmacro"));
+    case INode::Type::ADSR:
+        return MakeMimeData(static_cast<ADSRNode*>(n), QStringLiteral("application/x-amuse-adsr"));
+    case INode::Type::Curve:
+        return MakeMimeData(static_cast<CurveNode*>(n), QStringLiteral("application/x-amuse-curve"));
+    case INode::Type::Keymap:
+        return MakeMimeData(static_cast<KeymapNode*>(n), QStringLiteral("application/x-amuse-keymap"));
+    case INode::Type::Layer:
+        return MakeMimeData(static_cast<LayersNode*>(n), QStringLiteral("application/x-amuse-layers"));
+    case INode::Type::Sample:
+    {
+        GroupNode* gn = getGroupNode(n);
+        QString path = SysStringToQString(gn->getAudioGroup()->getSampleBasePath(static_cast<SampleNode*>(n)->id()));
+        QMimeData* data = new QMimeData;
+        data->setData(QStringLiteral("application/x-amuse-samplepath"), path.toUtf8());
+        return data;
+    }
+    default:
+        return nullptr;
+    }
+}
+
+bool ProjectModel::dropMimeData(const QMimeData* data, Qt::DropAction action,
+                                int row, int column, const QModelIndex& parent)
+{
+    if (data->hasFormat(QStringLiteral("application/x-amuse-subprojectpath")))
+    {
+        auto path = data->data(QStringLiteral("application/x-amuse-subprojectpath"));
+        QDir oldDir(path);
+        QString newName = MakeDedupedSubprojectName(oldDir.dirName());
+        m_dir.mkdir(newName);
+        QDir newDir(QFileInfo(m_dir, newName).filePath());
+        for (auto ent : oldDir.entryList({"*.wav", "*.dsp", "*.vadpcm", "!pool.yaml", "!project.yaml"}, QDir::Files))
+            QFile::copy(QFileInfo(oldDir, ent).filePath(), QFileInfo(newDir, ent).filePath());
+        auto dataNode = std::make_unique<amuse::AudioGroupDatabase>(QStringToSysString(newDir.path()));
+        auto node = amuse::MakeObj<GroupNode>(newName);
+        _buildGroupNode(*node, *dataNode);
+        g_MainWindow->pushUndoCommand(
+            new GroupNodeAddUndoCommand(tr("Add Subproject %1"), std::move(dataNode), node.get()));
+        return true;
+    }
+
+    GroupNode* gn;
+    if (parent.isValid())
+        gn = getGroupNode(node(parent));
+    else
+        gn = static_cast<GroupNode*>(m_root->child(row));
+    setIdDatabases(gn);
+
+    if (data->hasFormat(QStringLiteral("application/x-amuse-soundgroup")))
+        loadMimeData<SoundGroupNode>(data, QStringLiteral("application/x-amuse-soundgroup"), gn);
+    else if (data->hasFormat(QStringLiteral("application/x-amuse-songgroup")))
+        loadMimeData<SongGroupNode>(data, QStringLiteral("application/x-amuse-songgroup"), gn);
+    else if (data->hasFormat(QStringLiteral("application/x-amuse-soundmacro")))
+        loadMimeData<SoundMacroNode>(data, QStringLiteral("application/x-amuse-soundmacro"), gn);
+    else if (data->hasFormat(QStringLiteral("application/x-amuse-adsr")))
+        loadMimeData<ADSRNode>(data, QStringLiteral("application/x-amuse-adsr"), gn);
+    else if (data->hasFormat(QStringLiteral("application/x-amuse-curve")))
+        loadMimeData<CurveNode>(data, QStringLiteral("application/x-amuse-curve"), gn);
+    else if (data->hasFormat(QStringLiteral("application/x-amuse-keymap")))
+        loadMimeData<KeymapNode>(data, QStringLiteral("application/x-amuse-keymap"), gn);
+    else if (data->hasFormat(QStringLiteral("application/x-amuse-layers")))
+        loadMimeData<LayersNode>(data, QStringLiteral("application/x-amuse-layers"), gn);
+    else if (data->hasFormat(QStringLiteral("application/x-amuse-samplepath")))
+    {
+        auto path = data->data(QStringLiteral("application/x-amuse-samplepath"));
+        QString newName = MakeDedupedName(QFileInfo(path).completeBaseName(), amuse::SampleId::CurNameDB);
+        QString newBasePath = QFileInfo(QFileInfo(m_dir, gn->name()).filePath(), newName).filePath();
+        amuse::SystemString newBasePathStr = QStringToSysString(newBasePath);
+        gn->getAudioGroup()->copySampleInto(QStringToSysString(QString::fromUtf8(path)), newBasePathStr);
+        auto dataNode = amuse::MakeObj<amuse::SampleEntry>();
+        dataNode->loadLooseData(newBasePathStr);
+        auto node = amuse::MakeObj<SampleNode>(newName, dataNode);
+        NameUndoRegistry dummy;
+        _addPoolNode(node.get(), gn, dummy, gn->getAudioGroup()->getSdir().sampleEntries());
+    }
+    else
+        return false;
+
+    return true;
+}
+
+void ProjectModel::cut(const QModelIndex& index)
+{
+    if (!index.isValid())
+        return;
+    assert(index.model() == this && "Not ProjectModel");
+    QMimeData* data = mimeData({index});
+    if (data)
+    {
+        QGuiApplication::clipboard()->setMimeData(data);
+        INode* n = node(index);
+        EditorUndoCommand* cmd = nullptr;
+        switch (n->type())
+        {
+        case INode::Type::SongGroup:
+            cmd = new NodeDelUndoCommand(tr("Cut SongGroup %1"), static_cast<SongGroupNode*>(n));
+            break;
+        case INode::Type::SoundGroup:
+            cmd = new NodeDelUndoCommand(tr("Cut SFXGroup %1"), static_cast<SoundGroupNode*>(n));
+            break;
+        case INode::Type::SoundMacro:
+            cmd = new NodeDelUndoCommand(tr("Cut SoundMacro %1"), static_cast<SoundMacroNode*>(n));
+            break;
+        case INode::Type::ADSR:
+            cmd = new NodeDelUndoCommand(tr("Cut ADSR %1"), static_cast<ADSRNode*>(n));
+            break;
+        case INode::Type::Curve:
+            cmd = new NodeDelUndoCommand(tr("Cut Curve %1"), static_cast<CurveNode*>(n));
+            break;
+        case INode::Type::Keymap:
+            cmd = new NodeDelUndoCommand(tr("Cut Keymap %1"), static_cast<KeymapNode*>(n));
+            break;
+        case INode::Type::Layer:
+            cmd = new NodeDelUndoCommand(tr("Cut Layers %1"), static_cast<LayersNode*>(n));
+            break;
+        default:
+            break;
+        }
+        if (cmd)
+            g_MainWindow->pushUndoCommand(cmd);
+    }
+}
+
+void ProjectModel::copy(const QModelIndex& index)
+{
+    if (!index.isValid())
+        return;
+    assert(index.model() == this && "Not ProjectModel");
+    QMimeData* data = mimeData({index});
+    if (data)
+        QGuiApplication::clipboard()->setMimeData(data);
+}
+
+void ProjectModel::paste(const QModelIndex& index)
+{
+    if (!index.isValid())
+        return;
+    assert(index.model() == this && "Not ProjectModel");
+    dropMimeData(QGuiApplication::clipboard()->mimeData(), Qt::DropAction::CopyAction,
+                 index.row(), index.column(), index.parent());
+}
+
+QModelIndex ProjectModel::duplicate(const QModelIndex& index)
+{
+    QModelIndex ret;
+    if (!index.isValid())
+        return ret;
+    assert(index.model() == this && "Not ProjectModel");
+    INode* n = node(index);
+    setIdDatabases(n);
+    EditorUndoCommand* cmd = nullptr;
+    amuse::NameDB* nameDb = n->getNameDb();
+    QString newName;
+    if (nameDb)
+        newName = MakeDedupedName(n->name(), nameDb);
+    GroupNode* gn = getGroupNode(n);
+    switch (n->type())
+    {
+    case INode::Type::Group:
+    {
+        GroupNode* cn = static_cast<GroupNode*>(n);
+        newName = MakeDedupedSubprojectName(n->name());
+        m_dir.mkdir(newName);
+        QDir oldDir(QFileInfo(m_dir, n->name()).filePath());
+        QDir newDir(QFileInfo(m_dir, newName).filePath());
+        for (auto ent : oldDir.entryList({"*.wav", "*.dsp", "*.vadpcm", "!pool.yaml"}, QDir::Files))
+            QFile::copy(QFileInfo(oldDir, ent).filePath(), QFileInfo(newDir, ent).filePath());
+        auto data = std::make_unique<amuse::AudioGroupDatabase>(*cn->getAudioGroup(), QStringToSysString(newDir.path()));
+        auto node = amuse::MakeObj<GroupNode>(newName);
+        _buildGroupNode(*node, *data);
+        cmd = new GroupNodeAddUndoCommand(tr("Add Subproject %1"), std::move(data), node.get());
+        ret = ProjectModel::index(node.get());
+        break;
+    }
+    case INode::Type::SoundGroup:
+    {
+        SoundGroupNode* cn = static_cast<SoundGroupNode*>(n);
+        auto node = amuse::MakeObj<SoundGroupNode>(newName, amuse::MakeObj<amuse::SFXGroupIndex>(*cn->m_index));
+        cmd = new NodeAddUndoCommand(tr("Add Sound Group %1"), node.get(), gn);
+        ret = ProjectModel::index(node.get());
+        break;
+    }
+    case INode::Type::SongGroup:
+    {
+        SongGroupNode* cn = static_cast<SongGroupNode*>(n);
+        auto node = amuse::MakeObj<SongGroupNode>(newName, amuse::MakeObj<amuse::SongGroupIndex>(*cn->m_index));
+        cmd = new NodeAddUndoCommand(tr("Add Song Group %1"), node.get(), gn);
+        ret = ProjectModel::index(node.get());
+        break;
+    }
+    case INode::Type::SoundMacro:
+    {
+        SoundMacroNode* cn = static_cast<SoundMacroNode*>(n);
+        auto dataNode = amuse::MakeObj<amuse::SoundMacro>();
+        dataNode->buildFromPrototype(*cn->m_obj);
+        auto node = amuse::MakeObj<SoundMacroNode>(newName, dataNode);
+        cmd = new NodeAddUndoCommand(tr("Add Sound Macro %1"), node.get(), gn);
+        ret = ProjectModel::index(node.get());
+        break;
+    }
+    case INode::Type::ADSR:
+    {
+        ADSRNode* cn = static_cast<ADSRNode*>(n);
+        auto node = amuse::MakeObj<ADSRNode>(newName, DuplicateTable(cn->m_obj->get()));
+        cmd = new NodeAddUndoCommand(tr("Add ADSR %1"), node.get(), gn);
+        ret = ProjectModel::index(node.get());
+        break;
+    }
+    case INode::Type::Curve:
+    {
+        CurveNode* cn = static_cast<CurveNode*>(n);
+        auto node = amuse::MakeObj<CurveNode>(newName, DuplicateTable(cn->m_obj->get()));
+        cmd = new NodeAddUndoCommand(tr("Add Curve %1"), node.get(), gn);
+        ret = ProjectModel::index(node.get());
+        break;
+    }
+    case INode::Type::Keymap:
+    {
+        KeymapNode* cn = static_cast<KeymapNode*>(n);
+        auto node = amuse::MakeObj<KeymapNode>(newName, amuse::MakeObj<std::array<amuse::Keymap, 128>>(*cn->m_obj));
+        cmd = new NodeAddUndoCommand(tr("Add Keymap %1"), node.get(), gn);
+        ret = ProjectModel::index(node.get());
+        break;
+    }
+    case INode::Type::Layer:
+    {
+        LayersNode* cn = static_cast<LayersNode*>(n);
+        auto node = amuse::MakeObj<LayersNode>(newName, amuse::MakeObj<std::vector<amuse::LayerMapping>>(*cn->m_obj));
+        cmd = new NodeAddUndoCommand(tr("Add Layers %1"), node.get(), gn);
+        ret = ProjectModel::index(node.get());
+        break;
+    }
+    default:
+        break;
+    }
+    if (cmd)
+        g_MainWindow->pushUndoCommand(cmd);
+    return ret;
+}
+
 void ProjectModel::del(const QModelIndex& index)
 {
     if (!index.isValid())
         return;
     assert(index.model() == this && "Not ProjectModel");
     INode* n = node(index);
-    QUndoCommand* cmd = nullptr;
+    EditorUndoCommand* cmd = nullptr;
     switch (n->type())
     {
     case INode::Type::Group:
-        cmd = new GroupNodeDelUndoCommand(tr("Delete Subproject %1"), static_cast<GroupNode*>(n));
+    {
+        int result = g_MainWindow->uiMessenger().warning(tr("Delete Subproject"),
+            tr("<p>The subproject %1 will be permanently deleted from the project. "
+               "Sample files will be permanently removed from the file system.</p>"
+               "<p><strong>This action cannot be undone!</strong></p><p>Continue?</p>").arg(n->name()),
+               QMessageBox::Yes, QMessageBox::No);
+        if (result == QMessageBox::No)
+            return;
+        NameUndoRegistry nameReg;
+        g_MainWindow->projectModel()->_delNode(static_cast<GroupNode*>(n), nameReg);
+        g_MainWindow->m_undoStack->clear();
         break;
+    }
     case INode::Type::SongGroup:
         cmd = new NodeDelUndoCommand(tr("Delete SongGroup %1"), static_cast<SongGroupNode*>(n));
         break;
@@ -1329,6 +2036,21 @@ void ProjectModel::del(const QModelIndex& index)
     case INode::Type::Layer:
         cmd = new NodeDelUndoCommand(tr("Delete Layers %1"), static_cast<LayersNode*>(n));
         break;
+    case INode::Type::Sample:
+    {
+        int result = g_MainWindow->uiMessenger().warning(tr("Delete Sample"),
+            tr("<p>The sample %1 will be permanently deleted from the file system. "
+               "<p><strong>This action cannot be undone!</strong></p><p>Continue?</p>").arg(n->name()),
+               QMessageBox::Yes, QMessageBox::No);
+        if (result == QMessageBox::No)
+            return;
+        NameUndoRegistry nameReg;
+        GroupNode* gn = getGroupNode(n);
+        gn->getAudioGroup()->deleteSample(static_cast<SampleNode*>(n)->id());
+        _delPoolNode(static_cast<SampleNode*>(n), gn, nameReg, gn->getAudioGroup()->getSdir().sampleEntries());
+        g_MainWindow->m_undoStack->clear();
+        break;
+    }
     default:
         break;
     }

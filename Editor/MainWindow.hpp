@@ -7,6 +7,7 @@
 #include <QThread>
 #include <QStyledItemDelegate>
 #include <QSortFilterProxyModel>
+#include <QLinkedList>
 #include "ui_MainWindow.h"
 #include "amuse/Engine.hpp"
 #include "amuse/BooBackend.hpp"
@@ -77,13 +78,27 @@ public:
                      QAbstractItemModel *model,
                      const QStyleOptionViewItem &option,
                      const QModelIndex &index);
+public slots:
+    void doCut();
+    void doCopy();
+    void doPaste();
+    void doDuplicate();
+    void doDelete();
+    void doRename();
 };
 
 class MainWindow : public QMainWindow
 {
     friend class MIDIReader;
+    friend class ProjectModel;
+    friend class GroupNodeUndoCommand;
+    friend class TreeDelegate;
     Q_OBJECT
     Ui::MainWindow m_ui;
+    QAction* m_goBack;
+    QAction* m_goForward;
+    QLinkedList<ProjectModel::INode*> m_navList;
+    QLinkedList<ProjectModel::INode*>::iterator m_navIt;
     QAction* m_clearRecentFileAct;
     QAction* m_recentFileActs[MaxRecentFiles];
     TreeDelegate m_treeDelegate;
@@ -105,12 +120,14 @@ class MainWindow : public QMainWindow
     std::unique_ptr<VoiceAllocator> m_voxAllocator;
     std::unique_ptr<amuse::Engine> m_engine;
     amuse::ObjToken<amuse::Voice> m_lastSound;
+    amuse::ObjToken<amuse::Sequencer> m_interactiveSeq;
     int m_velocity = 90;
     float m_pitch = 0.f;
     int8_t m_ctrlVals[128] = {};
     float m_auxAVol = 0.f;
     float m_auxBVol = 0.f;
     bool m_uiDisabled = false;
+    bool m_clipboardAmuseData = false;
 
     QUndoStack* m_undoStack;
 
@@ -128,6 +145,7 @@ class MainWindow : public QMainWindow
 
     void updateWindowTitle();
     void updateRecentFileActions();
+    void updateNavigationButtons();
     bool setProjectPath(const QString& path);
     void refreshAudioIO();
     void refreshMIDIIO();
@@ -139,7 +157,7 @@ class MainWindow : public QMainWindow
     void startBackgroundTask(int id, const QString& windowTitle, const QString& label,
                              std::function<void(BackgroundTask&)>&& task);
 
-    bool _setEditor(EditorWidget* widget);
+    bool _setEditor(EditorWidget* widget, bool appendNav = true);
 
 public:
     explicit MainWindow(QWidget* parent = Q_NULLPTR);
@@ -147,15 +165,15 @@ public:
 
     bool openProject(const QString& path);
 
-    bool openEditor(ProjectModel::SongGroupNode* node);
-    bool openEditor(ProjectModel::SoundGroupNode* node);
-    bool openEditor(ProjectModel::SoundMacroNode* node);
-    bool openEditor(ProjectModel::ADSRNode* node);
-    bool openEditor(ProjectModel::CurveNode* node);
-    bool openEditor(ProjectModel::KeymapNode* node);
-    bool openEditor(ProjectModel::LayersNode* node);
-    bool openEditor(ProjectModel::SampleNode* node);
-    bool openEditor(ProjectModel::INode* node);
+    bool openEditor(ProjectModel::SongGroupNode* node, bool appendNav = true);
+    bool openEditor(ProjectModel::SoundGroupNode* node, bool appendNav = true);
+    bool openEditor(ProjectModel::SoundMacroNode* node, bool appendNav = true);
+    bool openEditor(ProjectModel::ADSRNode* node, bool appendNav = true);
+    bool openEditor(ProjectModel::CurveNode* node, bool appendNav = true);
+    bool openEditor(ProjectModel::KeymapNode* node, bool appendNav = true);
+    bool openEditor(ProjectModel::LayersNode* node, bool appendNav = true);
+    bool openEditor(ProjectModel::SampleNode* node, bool appendNav = true);
+    bool openEditor(ProjectModel::INode* node, bool appendNav = true);
     void closeEditor();
 
     ProjectModel::INode* getEditorNode() const;
@@ -164,7 +182,7 @@ public:
     amuse::ObjToken<amuse::Voice> startSFX(amuse::GroupId groupId, amuse::SFXId sfxId);
     amuse::ObjToken<amuse::Sequencer> startSong(amuse::GroupId groupId, amuse::SongId songId,
                                                 const unsigned char* arrData);
-    void pushUndoCommand(QUndoCommand* cmd);
+    void pushUndoCommand(EditorUndoCommand* cmd);
     void updateFocus();
     void aboutToDeleteNode(ProjectModel::INode* node);
     void closeEvent(QCloseEvent* ev);
@@ -179,6 +197,11 @@ public:
     ProjectModel* projectModel() const { return m_projectModel; }
     UIMessenger& uiMessenger() { return m_mainMessenger; }
 
+    void setItemEditFlags(AmuseItemEditFlags flags);
+    void setItemNewEnabled(bool enabled);
+    AmuseItemEditFlags outlineEditFlags();
+    bool isUiDisabled() const { return m_uiDisabled; }
+
 public slots:
     void newAction();
     void openAction();
@@ -190,6 +213,8 @@ public slots:
     void importAction();
     void importSongsAction();
     void exportAction();
+    void importHeadersAction();
+    void exportHeadersAction();
 
     void newSubprojectAction();
     void newSFXGroupAction();
@@ -199,6 +224,9 @@ public slots:
     void newCurveAction();
     void newKeymapAction();
     void newLayersAction();
+
+    void goForward();
+    void goBack();
 
     void aboutToShowAudioIOMenu();
     void aboutToShowMIDIIOMenu();
@@ -226,10 +254,8 @@ public slots:
     void outlineDeleteAction();
 
     void onFocusChanged(QWidget* old, QWidget* now);
+    void onClipboardChanged();
     void outlineItemActivated(const QModelIndex& index);
-    void setItemEditEnabled(bool enabled);
-    void setItemNewEnabled(bool enabled);
-    bool canEditOutline();
     void onOutlineSelectionChanged(const QItemSelection& selected, const QItemSelection& deselected);
     void onTextSelect();
     void onTextDelete();

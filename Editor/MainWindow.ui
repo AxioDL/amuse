@@ -53,26 +53,59 @@
          <number>0</number>
         </property>
         <item>
-         <widget class="QLineEdit" name="projectOutlineFilter">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
+         <layout class="QHBoxLayout" name="outlineLayout2">
+          <property name="spacing">
+           <number>0</number>
           </property>
-          <property name="minimumSize">
-           <size>
-            <width>200</width>
-            <height>0</height>
-           </size>
-          </property>
-          <property name="placeholderText">
-           <string>Filter</string>
-          </property>
-          <property name="clearButtonEnabled">
-           <bool>true</bool>
-          </property>
-         </widget>
+          <item>
+           <widget class="QLineEdit" name="projectOutlineFilter">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>200</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="placeholderText">
+             <string>Filter</string>
+            </property>
+            <property name="clearButtonEnabled">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QToolButton" name="backButton">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="icon">
+             <iconset resource="resources/resources.qrc">
+              <normaloff>:/icons/IconBack.svg</normaloff>
+              <disabledoff>:/icons/IconBackDisabled.svg</disabledoff>
+              <disabledon>:/icons/IconBackDisabled.svg</disabledon>:/icons/IconBack.svg</iconset>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QToolButton" name="forwardButton">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="icon">
+             <iconset resource="resources/resources.qrc">
+              <normaloff>:/icons/IconForward.svg</normaloff>
+              <disabledoff>:/icons/IconForwardDisabled.svg</disabledoff>
+              <disabledon>:/icons/IconForwardDisabled.svg</disabledon>:/icons/IconForward.svg</iconset>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
         <item>
          <widget class="QTreeView" name="projectOutline">
@@ -90,6 +123,9 @@
           </property>
           <property name="focusPolicy">
            <enum>Qt::WheelFocus</enum>
+          </property>
+          <property name="editTriggers">
+           <set>QAbstractItemView::EditKeyPressed|QAbstractItemView::SelectedClicked</set>
           </property>
           <property name="animated">
            <bool>true</bool>
@@ -257,7 +293,7 @@
               <x>0</x>
               <y>0</y>
               <width>1501</width>
-              <height>83</height>
+              <height>85</height>
              </rect>
             </property>
             <property name="sizePolicy">
@@ -294,7 +330,7 @@
      <x>0</x>
      <y>0</y>
      <width>1360</width>
-     <height>25</height>
+     <height>27</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -308,6 +344,9 @@
      <property name="title">
       <string>Recent &amp;Projects</string>
      </property>
+     <property name="icon">
+      <iconset theme="document-open-recent"/>
+     </property>
     </widget>
     <addaction name="actionNew_Project"/>
     <addaction name="actionOpen_Project"/>
@@ -319,6 +358,10 @@
     <addaction name="actionImport_Groups"/>
     <addaction name="actionImport_Songs"/>
     <addaction name="actionExport_GameCube_Groups"/>
+    <addaction name="actionImport_C_Headers"/>
+    <addaction name="actionExport_C_Headers"/>
+    <addaction name="separator"/>
+    <addaction name="actionQuit"/>
    </widget>
    <widget class="QMenu" name="menuProject">
     <property name="title">
@@ -360,7 +403,7 @@
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
-     <string>Help</string>
+     <string>&amp;Help</string>
     </property>
     <addaction name="actionAbout_Amuse"/>
     <addaction name="actionAbout_Qt"/>
@@ -374,11 +417,17 @@
   </widget>
   <widget class="StatusBarWidget" name="statusbar"/>
   <action name="actionNew_Project">
+   <property name="icon">
+    <iconset theme="document-new"/>
+   </property>
    <property name="text">
     <string>&amp;New Project</string>
    </property>
   </action>
   <action name="actionOpen_Project">
+   <property name="icon">
+    <iconset theme="document-open"/>
+   </property>
    <property name="text">
     <string>&amp;Open Project</string>
    </property>
@@ -386,6 +435,9 @@
   <action name="actionCut">
    <property name="enabled">
     <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="edit-cut"/>
    </property>
    <property name="text">
     <string>&amp;Cut</string>
@@ -395,6 +447,9 @@
    <property name="enabled">
     <bool>false</bool>
    </property>
+   <property name="icon">
+    <iconset theme="edit-copy"/>
+   </property>
    <property name="text">
     <string>C&amp;opy</string>
    </property>
@@ -403,6 +458,9 @@
    <property name="enabled">
     <bool>false</bool>
    </property>
+   <property name="icon">
+    <iconset theme="edit-paste"/>
+   </property>
    <property name="text">
     <string>&amp;Paste</string>
    </property>
@@ -410,6 +468,9 @@
   <action name="actionDelete">
    <property name="enabled">
     <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="edit-delete"/>
    </property>
    <property name="text">
     <string>&amp;Delete</string>
@@ -550,6 +611,9 @@
    <property name="enabled">
     <bool>false</bool>
    </property>
+   <property name="icon">
+    <iconset theme="document-save"/>
+   </property>
    <property name="text">
     <string>&amp;Save Project</string>
    </property>
@@ -557,6 +621,9 @@
   <action name="actionRevert_Project">
    <property name="enabled">
     <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="document-revert"/>
    </property>
    <property name="text">
     <string>&amp;Revert Project</string>
@@ -579,19 +646,52 @@
    </property>
   </action>
   <action name="actionAbout_Amuse">
+   <property name="icon">
+    <iconset theme="help-about"/>
+   </property>
    <property name="text">
-    <string>About Amuse</string>
+    <string>&amp;About Amuse</string>
    </property>
    <property name="menuRole">
     <enum>QAction::AboutRole</enum>
    </property>
   </action>
   <action name="actionAbout_Qt">
+   <property name="icon">
+    <iconset theme="help-about"/>
+   </property>
    <property name="text">
-    <string>About Qt</string>
+    <string>About &amp;Qt</string>
    </property>
    <property name="menuRole">
     <enum>QAction::AboutQtRole</enum>
+   </property>
+  </action>
+  <action name="actionExport_C_Headers">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Export &amp;C Headers</string>
+   </property>
+  </action>
+  <action name="actionQuit">
+   <property name="icon">
+    <iconset theme="application-exit"/>
+   </property>
+   <property name="text">
+    <string>&amp;Quit</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::QuitRole</enum>
+   </property>
+  </action>
+  <action name="actionImport_C_Headers">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Import C &amp;Headers</string>
    </property>
   </action>
  </widget>

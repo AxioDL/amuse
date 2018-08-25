@@ -91,8 +91,22 @@ void FieldDoubleSlider::doValueChanged(int value)
 }
 
 FieldProjectNode::FieldProjectNode(ProjectModel::CollectionNode* collection, QWidget* parent)
-: FieldComboBox(parent)
+: QWidget(parent), m_comboBox(this), m_button(this)
 {
+    m_button.setDisabled(true);
+    m_button.setFixedSize(30, 30);
+    m_comboBox.setFixedHeight(30);
+    connect(&m_comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(_currentIndexChanged(int)));
+    connect(&m_button, SIGNAL(clicked(bool)), this, SLOT(openCurrent()));
+    QIcon icon(QStringLiteral(":/icons/IconForward.svg"));
+    icon.addFile(QStringLiteral(":/icons/IconForwardDisabled.svg"), {}, QIcon::Disabled);
+    m_button.setIcon(icon);
+    QHBoxLayout* layout = new QHBoxLayout;
+    layout->setContentsMargins({});
+    layout->setSpacing(0);
+    layout->addWidget(&m_comboBox);
+    layout->addWidget(&m_button);
+    setLayout(layout);
     setCollection(collection);
 }
 
@@ -102,18 +116,65 @@ void FieldProjectNode::setCollection(ProjectModel::CollectionNode* collection)
 
     if (!collection)
     {
-        setModel(new QStandardItemModel(0, 1, this));
+        m_comboBox.setModel(new QStandardItemModel(0, 1, this));
+        m_button.setDisabled(true);
         return;
     }
 
     ProjectModel* model = g_MainWindow->projectModel();
-    setModel(model->getNullProxy());
-    setRootModelIndex(model->getNullProxy()->mapFromSource(model->index(collection)));
+    m_comboBox.setModel(model->getNullProxy());
+    m_comboBox.setRootModelIndex(model->getNullProxy()->mapFromSource(model->index(collection)));
+}
+
+void FieldProjectNode::_currentIndexChanged(int index)
+{
+    m_button.setEnabled(index != 0);
+    emit currentIndexChanged(index);
+}
+
+ProjectModel::BasePoolObjectNode* FieldProjectNode::currentNode() const
+{
+    int index = m_comboBox.currentIndex();
+    if (index == 0)
+        return nullptr;
+    else
+        return m_collection->nodeOfIndex(index - 1);
+}
+
+bool FieldProjectNode::event(QEvent* ev)
+{
+    if (ev->type() == QEvent::User)
+    {
+        showPopup();
+        return true;
+    }
+    return QWidget::event(ev);
+}
+
+void FieldProjectNode::openCurrent()
+{
+    if (ProjectModel::BasePoolObjectNode* node = currentNode())
+        if (!g_MainWindow->isUiDisabled())
+            g_MainWindow->openEditor(node);
 }
 
 FieldPageObjectNode::FieldPageObjectNode(ProjectModel::GroupNode* group, QWidget* parent)
-: FieldComboBox(parent)
+: QWidget(parent), m_comboBox(this), m_button(this)
 {
+    m_button.setDisabled(true);
+    m_button.setFixedSize(30, 30);
+    m_comboBox.setFixedHeight(30);
+    connect(&m_comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(_currentIndexChanged(int)));
+    connect(&m_button, SIGNAL(clicked(bool)), this, SLOT(openCurrent()));
+    QIcon icon(QStringLiteral(":/icons/IconForward.svg"));
+    icon.addFile(QStringLiteral(":/icons/IconForwardDisabled.svg"), {}, QIcon::Disabled);
+    m_button.setIcon(icon);
+    QHBoxLayout* layout = new QHBoxLayout;
+    layout->setContentsMargins({});
+    layout->setSpacing(0);
+    layout->addWidget(&m_comboBox);
+    layout->addWidget(&m_button);
+    setLayout(layout);
     setGroup(group);
 }
 
@@ -123,13 +184,53 @@ void FieldPageObjectNode::setGroup(ProjectModel::GroupNode* group)
 
     if (!group)
     {
-        setModel(new QStandardItemModel(0, 1, this));
+        m_comboBox.setModel(new QStandardItemModel(0, 1, this));
+        m_button.setDisabled(true);
         return;
     }
 
     ProjectModel* model = g_MainWindow->projectModel();
-    setModel(model->getPageObjectProxy());
-    setRootModelIndex(model->getPageObjectProxy()->mapFromSource(model->index(group)));
+    m_comboBox.setModel(model->getPageObjectProxy());
+    m_comboBox.setRootModelIndex(model->getPageObjectProxy()->mapFromSource(model->index(group)));
+}
+
+void FieldPageObjectNode::_currentIndexChanged(int index)
+{
+    m_button.setEnabled(index != 0);
+    emit currentIndexChanged(index);
+}
+
+ProjectModel::BasePoolObjectNode* FieldPageObjectNode::currentNode() const
+{
+    int index = m_comboBox.currentIndex();
+    if (index == 0)
+    {
+        return nullptr;
+    }
+    else
+    {
+        ProjectModel* model = g_MainWindow->projectModel();
+        return static_cast<ProjectModel::BasePoolObjectNode*>(
+            model->node(model->getPageObjectProxy()->mapToSource(
+                model->getPageObjectProxy()->index(index, 0, m_comboBox.rootModelIndex()))));
+    }
+}
+
+bool FieldPageObjectNode::event(QEvent* ev)
+{
+    if (ev->type() == QEvent::User)
+    {
+        showPopup();
+        return true;
+    }
+    return QWidget::event(ev);
+}
+
+void FieldPageObjectNode::openCurrent()
+{
+    if (ProjectModel::BasePoolObjectNode* node = currentNode())
+        if (!g_MainWindow->isUiDisabled())
+            g_MainWindow->openEditor(node);
 }
 
 AddRemoveButtons::AddRemoveButtons(QWidget* parent)

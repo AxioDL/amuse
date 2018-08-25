@@ -8,7 +8,7 @@
 
 class SFXObjectDelegate : public QStyledItemDelegate
 {
-Q_OBJECT
+    Q_OBJECT
 public:
     explicit SFXObjectDelegate(QObject* parent = Q_NULLPTR);
     QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const;
@@ -20,7 +20,7 @@ private slots:
 
 class SFXModel : public QAbstractTableModel
 {
-Q_OBJECT
+    Q_OBJECT
     friend class SoundGroupEditor;
     friend class SFXObjectDelegate;
     friend class SFXTableView;
@@ -69,7 +69,7 @@ public:
 
 class SFXTableView : public QTableView
 {
-Q_OBJECT
+    Q_OBJECT
     SFXObjectDelegate m_sfxDelegate;
     RangedValueFactory<0, 127> m_127Factory;
     RangedValueFactory<0, 255> m_255Factory;
@@ -104,7 +104,7 @@ public slots:
 
 class SoundGroupEditor : public EditorWidget
 {
-Q_OBJECT
+    Q_OBJECT
     SFXModel m_sfxs;
     SFXTableView* m_sfxTable;
     AddRemoveButtons m_addRemoveButtons;
@@ -116,15 +116,11 @@ public:
     void setEditorEnabled(bool en) {}
     void resizeEvent(QResizeEvent* ev);
     QTableView* getSFXListView() const { return m_sfxTable; }
-    bool isItemEditEnabled() const;
+    AmuseItemEditFlags itemEditFlags() const;
 public slots:
     void doAdd();
     void doSelectionChanged();
     void sfxDataChanged();
-
-    void itemCutAction();
-    void itemCopyAction();
-    void itemPasteAction();
     void itemDeleteAction();
 };
 

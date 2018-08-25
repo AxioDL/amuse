@@ -62,15 +62,15 @@ struct Event
     uint8_t noteOrCtrl;
     uint8_t velOrVal;
     uint8_t program;
-    uint16_t length;
+    int length;
     int pitchBend;
 
-    Event(NoteEvent, uint8_t chan, uint8_t note, uint8_t vel, uint16_t len)
+    Event(NoteEvent, uint8_t chan, uint8_t note, uint8_t vel, int len)
     : m_type(Type::Note), channel(chan), noteOrCtrl(note), velOrVal(vel), length(len)
     {
     }
 
-    Event(CtrlEvent, uint8_t chan, uint8_t note, uint8_t vel, uint16_t len)
+    Event(CtrlEvent, uint8_t chan, uint8_t note, uint8_t vel, int len)
     : m_type(Type::Control), channel(chan), noteOrCtrl(note), velOrVal(vel), length(len)
     {
     }
@@ -83,16 +83,17 @@ struct Event
 class MIDIDecoder
 {
     int m_tick = 0;
-    std::vector<std::pair<int, std::multimap<int, Event>>> m_results;
+    std::vector<std::pair<int, std::multimap<int, Event>>> m_results[16];
     std::multimap<int, int> m_tempos;
-    std::array<std::multimap<int, Event>::iterator, 128> m_notes;
+    std::array<std::multimap<int, Event>::iterator, 128> m_notes[16];
 
-    void _addProgramChange(int prog)
+    void _addProgramChange(int chan, int prog)
     {
-        m_results.emplace_back();
-        m_results.back().first = prog;
+        auto& results = m_results[chan];
+        results.emplace_back();
+        results.back().first = prog;
         for (size_t i = 0; i < 128; ++i)
-            m_notes[i] = m_results.back().second.end();
+            m_notes[chan][i] = results.back().second.end();
     }
 
     uint8_t m_status = 0;
@@ -128,154 +129,93 @@ public:
                                                       std::vector<uint8_t>::const_iterator end)
     {
         std::vector<uint8_t>::const_iterator it = begin;
-        if (it == end)
-            return begin;
-
-        uint32_t deltaTime;
-        _readContinuedValue(it, end, deltaTime);
-        m_tick += deltaTime;
-
-        uint8_t a = *it++;
-        uint8_t b;
-        if (a & 0x80)
-            m_status = a;
-        else
-            it--;
-
-        /* Not actually used as such for now */
-        if (m_results.empty())
-            _addProgramChange(0);
-        std::multimap<int, Event>& res = m_results.back().second;
-
-        if (m_status == 0xff)
+        while (it != end)
         {
-            /* Meta events */
-            if (it == end)
-                return begin;
-            a = *it++;
+            uint32_t deltaTime;
+            _readContinuedValue(it, end, deltaTime);
+            m_tick += deltaTime;
 
-            uint32_t length;
-            _readContinuedValue(it, end, length);
+            uint8_t a = *it++;
+            uint8_t b;
+            if (a & 0x80)
+                m_status = a;
+            else
+                it--;
 
-            switch (a)
+            if (m_status == 0xff)
             {
-            case 0x51:
-            {
-                uint32_t tempo = 0;
-                memcpy(&reinterpret_cast<uint8_t*>(&tempo)[1], &*it, 3);
-                m_tempos.emplace(m_tick, 60000000 / SBig(tempo));
-            }
-            default:
-                it += length;
-            }
-        }
-        else
-        {
-            uint8_t chan = m_status & 0xf;
-            switch (Status(m_status & 0xf0))
-            {
-            case Status::NoteOff:
-            {
+                /* Meta events */
                 if (it == end)
                     return begin;
                 a = *it++;
-                if (it == end)
-                    return begin;
-                b = *it++;
 
-                uint8_t notenum = clamp7(a);
-                std::multimap<int, Event>::iterator note = m_notes[notenum];
-                if (note != res.end())
+                uint32_t length;
+                _readContinuedValue(it, end, length);
+
+                switch (a)
                 {
-                    note->second.length = uint16_t(m_tick - note->first);
-                    m_notes[notenum] = res.end();
+                case 0x51:
+                {
+                    uint32_t tempo = 0;
+                    memcpy(&reinterpret_cast<uint8_t*>(&tempo)[1], &*it, 3);
+                    m_tempos.emplace(m_tick, 60000000 / SBig(tempo));
                 }
-                break;
-            }
-            case Status::NoteOn:
-            {
-                if (it == end)
-                    return begin;
-                a = *it++;
-                if (it == end)
-                    return begin;
-                b = *it++;
-
-                uint8_t notenum = clamp7(a);
-                uint8_t vel = clamp7(b);
-                std::multimap<int, Event>::iterator note = m_notes[notenum];
-                if (note != res.end())
-                    note->second.length = uint16_t(m_tick - note->first);
-
-                m_notes[notenum] = res.emplace(m_tick, Event{NoteEvent{}, chan, notenum, vel, 0});
-                break;
-            }
-            case Status::NotePressure:
-            {
-                if (it == end)
-                    return begin;
-                a = *it++;
-                if (it == end)
-                    return begin;
-                b = *it++;
-                break;
-            }
-            case Status::ControlChange:
-            {
-                if (it == end)
-                    return begin;
-                a = *it++;
-                if (it == end)
-                    return begin;
-                b = *it++;
-                res.emplace(m_tick, Event{CtrlEvent{}, chan, clamp7(a), clamp7(b), 0});
-                break;
-            }
-            case Status::ProgramChange:
-            {
-                if (it == end)
-                    return begin;
-                a = *it++;
-                res.emplace(m_tick, Event{ProgEvent{}, chan, a});
-                break;
-            }
-            case Status::ChannelPressure:
-            {
-                if (it == end)
-                    return begin;
-                a = *it++;
-                break;
-            }
-            case Status::PitchBend:
-            {
-                if (it == end)
-                    return begin;
-                a = *it++;
-                if (it == end)
-                    return begin;
-                b = *it++;
-                res.emplace(m_tick, Event{PitchEvent{}, chan, clamp7(b) * 128 + clamp7(a)});
-                break;
-            }
-            case Status::SysEx:
-            {
-                switch (Status(m_status & 0xff))
-                {
-                case Status::SysEx:
-                {
-                    uint32_t len;
-                    if (!_readContinuedValue(it, end, len) || end - it < len)
-                        return begin;
-                    break;
+                default:
+                    it += length;
                 }
-                case Status::TimecodeQuarterFrame:
+            } else
+            {
+                uint8_t chan = m_status & 0xf;
+                auto& results = m_results[chan];
+
+                /* Not actually used as such for now */
+                if (results.empty())
+                    _addProgramChange(chan, 0);
+                std::multimap<int, Event>& res = results.back().second;
+
+                switch (Status(m_status & 0xf0))
+                {
+                case Status::NoteOff:
                 {
                     if (it == end)
                         return begin;
                     a = *it++;
+                    if (it == end)
+                        return begin;
+                    b = *it++;
+
+                    uint8_t notenum = clamp7(a);
+                    std::multimap<int, Event>::iterator note = m_notes[chan][notenum];
+                    if (note != res.end())
+                    {
+                        note->second.length = m_tick - note->first;
+                        m_notes[chan][notenum] = res.end();
+                    }
                     break;
                 }
-                case Status::SongPositionPointer:
+                case Status::NoteOn:
+                {
+                    if (it == end)
+                        return begin;
+                    a = *it++;
+                    if (it == end)
+                        return begin;
+                    b = *it++;
+
+                    uint8_t notenum = clamp7(a);
+                    uint8_t vel = clamp7(b);
+                    std::multimap<int, Event>::iterator note = m_notes[chan][notenum];
+                    if (note != res.end())
+                        note->second.length = m_tick - note->first;
+
+                    if (vel != 0)
+                        m_notes[chan][notenum] = res.emplace(m_tick, Event{NoteEvent{}, chan, notenum, vel, 0});
+                    else
+                        m_notes[chan][notenum] = res.end();
+
+                    break;
+                }
+                case Status::NotePressure:
                 {
                     if (it == end)
                         return begin;
@@ -285,35 +225,100 @@ public:
                     b = *it++;
                     break;
                 }
-                case Status::SongSelect:
+                case Status::ControlChange:
+                {
+                    if (it == end)
+                        return begin;
+                    a = *it++;
+                    if (it == end)
+                        return begin;
+                    b = *it++;
+                    res.emplace(m_tick, Event{CtrlEvent{}, chan, clamp7(a), clamp7(b), 0});
+                    break;
+                }
+                case Status::ProgramChange:
+                {
+                    if (it == end)
+                        return begin;
+                    a = *it++;
+                    res.emplace(m_tick, Event{ProgEvent{}, chan, a});
+                    break;
+                }
+                case Status::ChannelPressure:
                 {
                     if (it == end)
                         return begin;
                     a = *it++;
                     break;
                 }
-                case Status::TuneRequest:
-                case Status::Start:
-                case Status::Continue:
-                case Status::Stop:
-                case Status::Reset:
-                case Status::SysExTerm:
-                case Status::TimingClock:
-                case Status::ActiveSensing:
+                case Status::PitchBend:
+                {
+                    if (it == end)
+                        return begin;
+                    a = *it++;
+                    if (it == end)
+                        return begin;
+                    b = *it++;
+                    res.emplace(m_tick, Event{PitchEvent{}, chan, clamp7(b) * 128 + clamp7(a)});
+                    break;
+                }
+                case Status::SysEx:
+                {
+                    switch (Status(m_status & 0xff))
+                    {
+                    case Status::SysEx:
+                    {
+                        uint32_t len;
+                        if (!_readContinuedValue(it, end, len) || end - it < len)
+                            return begin;
+                        break;
+                    }
+                    case Status::TimecodeQuarterFrame:
+                    {
+                        if (it == end)
+                            return begin;
+                        a = *it++;
+                        break;
+                    }
+                    case Status::SongPositionPointer:
+                    {
+                        if (it == end)
+                            return begin;
+                        a = *it++;
+                        if (it == end)
+                            return begin;
+                        b = *it++;
+                        break;
+                    }
+                    case Status::SongSelect:
+                    {
+                        if (it == end)
+                            return begin;
+                        a = *it++;
+                        break;
+                    }
+                    case Status::TuneRequest:
+                    case Status::Start:
+                    case Status::Continue:
+                    case Status::Stop:
+                    case Status::Reset:
+                    case Status::SysExTerm:
+                    case Status::TimingClock:
+                    case Status::ActiveSensing:
+                    default:
+                        break;
+                    }
+                    break;
+                }
                 default:
                     break;
                 }
-                break;
-            }
-            default:
-                break;
             }
         }
-
         return it;
     }
 
-    std::vector<std::pair<int, std::multimap<int, Event>>>& getResults() { return m_results; }
+    std::vector<std::pair<int, std::multimap<int, Event>>>& getResults(int chan) { return m_results[chan]; }
     std::multimap<int, int>& getTempos() { return m_tempos; }
 };
 
@@ -1031,8 +1036,7 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
             std::vector<uint8_t>::const_iterator end = it + length;
 
             MIDIDecoder dec;
-            while (begin != end)
-                begin = dec.receiveBytes(begin, end);
+            dec.receiveBytes(begin, end);
 
             std::multimap<int, int>& tempos = dec.getTempos();
             if (tempos.size() == 1)
@@ -1065,12 +1069,11 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
         it = end;
 
         MIDIDecoder dec;
-        while (begin != end)
-            begin = dec.receiveBytes(begin, end);
+        dec.receiveBytes(begin, end);
 
-        std::vector<std::pair<int, std::multimap<int, Event>>>& results = dec.getResults();
         for (int c = 0; c < 16; ++c)
         {
+            std::vector<std::pair<int, std::multimap<int, Event>>>& results = dec.getResults(c);
             int lastTrackStartTick = 0;
             bool didChanInit = false;
             for (auto& prog : results)
@@ -1177,20 +1180,21 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
                         case Event::Type::Pitch:
                         {
                             int newPitch = event.second.pitchBend - 0x2000;
-                            EncodeDelta(region.modBuf, eventTick - lastPitchTick, newPitch - lastPitchVal);
+                            EncodeDelta(region.pitchBuf, eventTick - lastPitchTick, newPitch - lastPitchVal);
                             lastPitchTick = eventTick;
                             lastPitchVal = newPitch;
                             break;
                         }
                         case Event::Type::Note:
                         {
+                            int lenTicks = event.second.length * 384 / header.div;
                             if (version == 1)
                             {
                                 EncodeTime(region.eventBuf, uint32_t(eventTick - lastEventTick));
                                 lastEventTick = eventTick;
                                 region.eventBuf.push_back(event.second.noteOrCtrl);
                                 region.eventBuf.push_back(event.second.velOrVal);
-                                uint16_t lenBig = SBig(uint16_t(event.second.length));
+                                uint16_t lenBig = SBig(uint16_t(lenTicks));
                                 region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&lenBig)[0]);
                                 region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&lenBig)[1]);
                             }
@@ -1201,7 +1205,7 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
                                     uint32_t tickBig = SBig(uint32_t(eventTick - startTick));
                                     for (int i = 0; i < 4; ++i)
                                         region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&tickBig)[i]);
-                                    uint16_t lenBig = SBig(uint16_t(event.second.length));
+                                    uint16_t lenBig = SBig(uint16_t(lenTicks));
                                     region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&lenBig)[0]);
                                     region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&lenBig)[1]);
                                     region.eventBuf.push_back(event.second.noteOrCtrl);
@@ -1212,7 +1216,7 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
                                     uint32_t tick = uint32_t(eventTick - startTick);
                                     for (int i = 0; i < 4; ++i)
                                         region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&tick)[i]);
-                                    uint16_t len = uint16_t(event.second.length);
+                                    uint16_t len = uint16_t(lenTicks);
                                     region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&len)[0]);
                                     region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&len)[1]);
                                     region.eventBuf.push_back(event.second.noteOrCtrl);

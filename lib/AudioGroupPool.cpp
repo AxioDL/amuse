@@ -279,12 +279,7 @@ AudioGroupPool AudioGroupPool::CreateAudioGroupPool(SystemStringView groupPath)
                     smOut = MakeObj<SoundMacro>();
                     size_t cmdCount;
                     if (auto __v = r.enterSubVector(sm.first.c_str(), cmdCount))
-                    {
-                        smOut->m_cmds.reserve(cmdCount);
-                        for (int c = 0; c < cmdCount; ++c)
-                            if (auto __r2 = r.enterSubRecord(nullptr))
-                                smOut->m_cmds.push_back(SoundMacro::CmdDo<MakeCmdOp, std::unique_ptr<SoundMacro::ICmd>>(r));
-                    }
+                        smOut->fromYAML(r, cmdCount);
                 }
             }
 
@@ -414,6 +409,27 @@ void SoundMacro::buildFromPrototype(const SoundMacro& other)
     m_cmds.reserve(other.m_cmds.size());
     for (auto& cmd : other.m_cmds)
         m_cmds.push_back(CmdDo<MakeCopyCmdOp, std::unique_ptr<SoundMacro::ICmd>>(*cmd));
+}
+
+void SoundMacro::toYAML(athena::io::YAMLDocWriter& w) const
+{
+    for (const auto& c : m_cmds)
+    {
+        if (auto __r2 = w.enterSubRecord(nullptr))
+        {
+            w.setStyle(athena::io::YAMLNodeStyle::Flow);
+            w.writeString("cmdOp", SoundMacro::CmdOpToStr(c->Isa()));
+            c->write(w);
+        }
+    }
+}
+
+void SoundMacro::fromYAML(athena::io::YAMLDocReader& r, size_t cmdCount)
+{
+    m_cmds.reserve(cmdCount);
+    for (int c = 0; c < cmdCount; ++c)
+        if (auto __r2 = r.enterSubRecord(nullptr))
+            m_cmds.push_back(SoundMacro::CmdDo<MakeCmdOp, std::unique_ptr<SoundMacro::ICmd>>(r));
 }
 
 const SoundMacro* AudioGroupPool::soundMacro(ObjectId id) const
@@ -1002,15 +1018,7 @@ bool AudioGroupPool::toYAML(SystemStringView groupPath) const
             {
                 if (auto __v = w.enterSubVector(SoundMacroId::CurNameDB->resolveNameFromId(p.first).data()))
                 {
-                    for (const auto& c : p.second.get()->m_cmds)
-                    {
-                        if (auto __r2 = w.enterSubRecord(nullptr))
-                        {
-                            w.setStyle(athena::io::YAMLNodeStyle::Flow);
-                            w.writeString("cmdOp", SoundMacro::CmdOpToStr(c->Isa()));
-                            c->write(w);
-                        }
-                    }
+                    p.second.get()->toYAML(w);
                 }
             }
         }

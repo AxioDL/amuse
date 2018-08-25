@@ -349,6 +349,7 @@ public:
     static AudioGroupSampleDirectory CreateAudioGroupSampleDirectory(SystemStringView groupPath);
 
     const std::unordered_map<SampleId, ObjToken<Entry>>& sampleEntries() const { return m_entries; }
+    std::unordered_map<SampleId, ObjToken<Entry>>& sampleEntries() { return m_entries; }
 
     void extractWAV(SampleId id, amuse::SystemStringView destDir, const unsigned char* samp) const;
     void extractAllWAV(amuse::SystemStringView destDir, const unsigned char* samp) const;

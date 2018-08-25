@@ -280,7 +280,8 @@ const SoundMacro::CmdIntrospection SoundMacro::CmdWaitTicks::Introspective =
     CmdType::Structure,
     "Wait Ticks"sv,
     "Suspend SoundMacro execution for specified length of time. Value of 65535 "
-    "will wait indefinitely, relying on Key Off or Sample End to signal stop."sv,
+    "will wait indefinitely, relying on Key Off or Sample End to signal stop. "
+    "Absolute mode waits relative to the start of the SoundMacro."sv,
     {
         {
             FIELD_HEAD(SoundMacro::CmdWaitTicks, keyOff),
@@ -442,7 +443,8 @@ const SoundMacro::CmdIntrospection SoundMacro::CmdWaitMs::Introspective =
     CmdType::Structure,
     "Wait Millisec"sv,
     "Suspend SoundMacro execution for specified length of time. Value of 65535 "
-    "will wait indefinitely, relying on Key Off or Sample End to signal stop."sv,
+    "will wait indefinitely, relying on Key Off or Sample End to signal stop. "
+    "Absolute mode waits relative to the start of the SoundMacro."sv,
     {
         {
             FIELD_HEAD(SoundMacro::CmdWaitMs, keyOff),
@@ -1468,7 +1470,7 @@ const SoundMacro::CmdIntrospection SoundMacro::CmdSetPitchAdsr::Introspective =
 {
     CmdType::Pitch,
     "Set Pitch ADSR"sv,
-    "Define the pitch ADSR from a pool object. The pitch range is "
+    "Define the pitch ADSR from a DLS ADSR pool object. The pitch range is "
     "specified using Note and Cents parameters."sv,
     {
         {

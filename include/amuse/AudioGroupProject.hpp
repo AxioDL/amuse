@@ -125,6 +125,9 @@ struct SongGroupIndex : AudioGroupIndex
           reverb(setup.reverb), chorus(setup.chorus) {}
     };
     std::unordered_map<SongId, std::array<MIDISetup, 16>> m_midiSetups;
+
+    void toYAML(athena::io::YAMLDocWriter& w) const;
+    void fromYAML(athena::io::YAMLDocReader& r);
 };
 
 /** Root index of SFXGroup */
@@ -177,6 +180,12 @@ struct SFXGroupIndex : AudioGroupIndex
         }
     };
     std::unordered_map<SFXId, SFXEntry> m_sfxEntries;
+
+    SFXGroupIndex() = default;
+    SFXGroupIndex(const SFXGroupIndex& other);
+
+    void toYAML(athena::io::YAMLDocWriter& w) const;
+    void fromYAML(athena::io::YAMLDocReader& r);
 };
 
 /** Collection of SongGroup and SFXGroup indexes */
@@ -196,6 +205,7 @@ public:
     AudioGroupProject() = default;
     static AudioGroupProject CreateAudioGroupProject(const AudioGroupData& data);
     static AudioGroupProject CreateAudioGroupProject(SystemStringView groupPath);
+    static AudioGroupProject CreateAudioGroupProject(const AudioGroupProject& oldProj);
     static void BootstrapObjectIDs(const AudioGroupData& data);
 
     const SongGroupIndex* getSongGroupIndex(int groupId) const;

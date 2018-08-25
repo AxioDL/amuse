@@ -84,7 +84,7 @@ class SongState
         int32_t m_modVal = 0;                            /**< Accumulated value of mod */
         uint32_t m_nextModTick = 0;                      /**< Upcoming position of mod wheel change */
         int32_t m_nextModDelta = 0;                      /**< Upcoming delta value of mod */
-        std::array<int, 128> m_remNoteLengths;           /**< Remaining ticks per note */
+        std::array<int, 128> m_remNoteLengths = {};      /**< Remaining ticks per note */
 
         int32_t m_eventWaitCountdown = 0; /**< Current wait in ticks */
         int32_t m_lastN64EventTick =

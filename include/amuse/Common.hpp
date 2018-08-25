@@ -16,6 +16,7 @@
 #include <strings.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <fcntl.h>
 #else
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN 1
@@ -176,6 +177,10 @@ public:
     ObjTokenBase& operator=(ObjTokenBase&& other)
     { if (m_obj) m_obj->decrement(); m_obj = other.m_obj; other.m_obj = nullptr; return *this; }
     ~ObjTokenBase() { if (m_obj) m_obj->decrement(); }
+    bool operator==(const ObjTokenBase& other) const { return m_obj == other.m_obj; }
+    bool operator!=(const ObjTokenBase& other) const { return m_obj != other.m_obj; }
+    bool operator<(const ObjTokenBase& other) const { return m_obj < other.m_obj; }
+    bool operator>(const ObjTokenBase& other) const { return m_obj > other.m_obj; }
     operator bool() const { return m_obj != nullptr; }
     void reset() { if (m_obj) m_obj->decrement(); m_obj = nullptr; }
 };
@@ -275,6 +280,16 @@ typedef struct stat Sstat;
 static inline int Mkdir(const char* path, mode_t mode) { return mkdir(path, mode); }
 static inline int Stat(const char* path, Sstat* statout) { return stat(path, statout); }
 #endif
+
+static inline int Rename(const SystemChar* oldpath, const SystemChar* newpath)
+{
+#if _WIN32
+    //return _wrename(oldpath, newpath);
+    return MoveFileExW(oldpath, newpath, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) == 0;
+#else
+    return rename(oldpath, newpath);
+#endif
+}
 
 #if _WIN32
 static inline int CompareCaseInsensitive(const char* a, const char* b) { return _stricmp(a, b); }
@@ -414,6 +429,8 @@ static inline void Unlink(const SystemChar* file)
     unlink(file);
 #endif
 }
+
+bool Copy(const SystemChar* from, const SystemChar* to);
 
 #undef bswap16
 #undef bswap32
@@ -618,7 +635,7 @@ DECL_ID_HASH(GroupId)
 template<class T>
 struct hash<amuse::ObjToken<T>>
 {
-    size_t operator()(const amuse::ObjToken<T>& val) const noexcept { return reinterpret_cast<size_t>(val.get()); }
+    size_t operator()(const amuse::ObjToken<T>& val) const noexcept { return hash<T*>()(val.get()); }
 };
 }
 

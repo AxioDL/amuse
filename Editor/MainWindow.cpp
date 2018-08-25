@@ -5,6 +5,7 @@
 #include <QInputDialog>
 #include <QProgressDialog>
 #include <QMouseEvent>
+#include <QClipboard>
 #include <QtSvg/QtSvg>
 #include "amuse/ContainerRegistry.hpp"
 #include "Common.hpp"
@@ -21,6 +22,7 @@
 
 MainWindow::MainWindow(QWidget* parent)
 : QMainWindow(parent),
+  m_navIt(m_navList.begin()),
   m_treeDelegate(*this, this),
   m_mainMessenger(this),
   m_filterProjectModel(this),
@@ -41,6 +43,17 @@ MainWindow::MainWindow(QWidget* parent)
     m_ui.projectOutline->setItemDelegate(&m_treeDelegate);
     connect(m_ui.projectOutline, SIGNAL(activated(const QModelIndex&)),
             this, SLOT(outlineItemActivated(const QModelIndex&)));
+    m_goBack = new QAction(m_ui.backButton->icon(), tr("Go Back"), this);
+    m_goBack->setEnabled(false);
+    connect(m_goBack, SIGNAL(triggered()), this, SLOT(goBack()));
+    m_goBack->setShortcut(QKeySequence::Back);
+    m_ui.backButton->setDefaultAction(m_goBack);
+    m_goForward = new QAction(m_ui.forwardButton->icon(), tr("Go Forward"), this);
+    m_goForward->setEnabled(false);
+    connect(m_goForward, SIGNAL(triggered()), this, SLOT(goForward()));
+    m_goForward->setShortcut(QKeySequence::Forward);
+    m_ui.forwardButton->setDefaultAction(m_goForward);
+
     connectMessenger(&m_mainMessenger, Qt::DirectConnection);
 
     m_ui.statusbar->connectKillClicked(this, SLOT(killSounds()));
@@ -71,6 +84,10 @@ MainWindow::MainWindow(QWidget* parent)
     connect(m_ui.actionImport_Groups, SIGNAL(triggered()), this, SLOT(importAction()));
     connect(m_ui.actionImport_Songs, SIGNAL(triggered()), this, SLOT(importSongsAction()));
     connect(m_ui.actionExport_GameCube_Groups, SIGNAL(triggered()), this, SLOT(exportAction()));
+    connect(m_ui.actionImport_C_Headers, SIGNAL(triggered()), this, SLOT(importHeadersAction()));
+    connect(m_ui.actionExport_C_Headers, SIGNAL(triggered()), this, SLOT(exportHeadersAction()));
+    m_ui.actionQuit->setShortcut(QKeySequence::Quit);
+    connect(m_ui.actionQuit, SIGNAL(triggered()), qApp, SLOT(quit()));
 
     for (int i = 0; i < MaxRecentFiles; ++i)
     {
@@ -84,21 +101,16 @@ MainWindow::MainWindow(QWidget* parent)
     connect(m_clearRecentFileAct, SIGNAL(triggered()), this, SLOT(clearRecentFilesAction()));
     m_ui.menuRecent_Projects->addAction(m_clearRecentFileAct);
 
-#ifndef __APPLE__
-    m_ui.menuFile->addSeparator();
-    QAction* quitAction = m_ui.menuFile->addAction(tr("Quit"));
-    quitAction->setShortcut(QKeySequence::Quit);
-    connect(quitAction, SIGNAL(triggered()), qApp, SLOT(quit()));
-#endif
-
     updateRecentFileActions();
 
     connect(m_undoStack, SIGNAL(cleanChanged(bool)), this, SLOT(cleanChanged(bool)));
     QAction* undoAction = m_undoStack->createUndoAction(this);
     undoAction->setShortcut(QKeySequence::Undo);
+    undoAction->setIcon(QIcon::fromTheme(QStringLiteral("edit-undo")));
     m_ui.menuEdit->insertAction(m_ui.actionCut, undoAction);
     QAction* redoAction = m_undoStack->createRedoAction(this);
     redoAction->setShortcut(QKeySequence::Redo);
+    redoAction->setIcon(QIcon::fromTheme(QStringLiteral("edit-redo")));
     m_ui.menuEdit->insertAction(m_ui.actionCut, redoAction);
     m_ui.menuEdit->insertSeparator(m_ui.actionCut);
     m_ui.actionCut->setShortcut(QKeySequence::Cut);
@@ -153,6 +165,7 @@ MainWindow::MainWindow(QWidget* parent)
     connect(m_ui.menuMIDI, SIGNAL(aboutToShow()), this, SLOT(aboutToShowMIDIIOMenu()));
 
     connect(qApp, SIGNAL(focusChanged(QWidget*,QWidget*)), this, SLOT(onFocusChanged(QWidget*,QWidget*)));
+    connect(QGuiApplication::clipboard(), SIGNAL(dataChanged()), this, SLOT(onClipboardChanged()));
 
     m_voxEngine = boo::NewAudioVoiceEngine();
     m_voxAllocator = std::make_unique<VoiceAllocator>(*m_voxEngine);
@@ -233,6 +246,7 @@ void MainWindow::updateRecentFileActions()
         QString text = QStringLiteral("&%1 %2").arg(i + 1).arg(QDir(files[i]).dirName());
         m_recentFileActs[i]->setText(text);
         m_recentFileActs[i]->setData(files[i]);
+        m_recentFileActs[i]->setToolTip(files[i]);
         m_recentFileActs[i]->setVisible(true);
     }
     for (int j = numRecentFiles; j < MaxRecentFiles; ++j)
@@ -282,11 +296,17 @@ bool MainWindow::setProjectPath(const QString& path)
     m_ui.actionReload_Sample_Data->setEnabled(true);
     m_ui.actionImport_Songs->setEnabled(true);
     m_ui.actionExport_GameCube_Groups->setEnabled(true);
+    m_ui.actionImport_C_Headers->setEnabled(true);
+    m_ui.actionExport_C_Headers->setEnabled(true);
     m_ui.actionNew_Subproject->setEnabled(true);
     setWindowFilePath(path);
     updateWindowTitle();
     updateFocus();
     m_undoStack->clear();
+    m_navList.clear();
+    m_navIt = m_navList.begin();
+
+    updateNavigationButtons();
 
     QSettings settings;
     QStringList files = settings.value("recentFileList").toStringList();
@@ -399,9 +419,8 @@ void MainWindow::timerEvent(QTimerEvent* ev)
         for (int i = 0; i < songTable->model()->rowCount(); ++i)
             if (MIDIPlayerWidget* player = qobject_cast<MIDIPlayerWidget*>(
                 songTable->indexWidget(songTable->model()->index(i, 1))))
-                for (auto& p : m_engine->getActiveSequencers())
-                    if (p.get() == player->sequencer() && p->state() != amuse::SequencerState::Playing)
-                        player->stopped();
+                if (player->sequencer() && player->sequencer()->state() != amuse::SequencerState::Playing)
+                    player->stopped();
 
         QTableView* sfxTable = m_soundGroupEditor->getSFXListView();
         for (int i = 0; i < sfxTable->model()->rowCount(); ++i)
@@ -481,83 +500,119 @@ void MainWindow::startBackgroundTask(int id, const QString& windowTitle, const Q
     QMetaObject::invokeMethod(m_backgroundTask, "run", Qt::QueuedConnection);
 }
 
-bool MainWindow::_setEditor(EditorWidget* editor)
+bool MainWindow::_setEditor(EditorWidget* editor, bool appendNav)
 {
+    m_interactiveSeq.reset();
     if (editor != m_ui.editorContents->currentWidget() &&
         m_ui.editorContents->currentWidget() != m_faceSvg)
         getEditorWidget()->unloadData();
+    if (appendNav && m_navIt != m_navList.end())
+        m_navList.erase(m_navIt + 1, m_navList.end());
     if (!editor || !editor->valid())
     {
         m_ui.editorContents->setCurrentWidget(m_faceSvg);
         updateWindowTitle();
+        if (appendNav)
+        {
+            m_navIt = m_navList.end();
+            updateNavigationButtons();
+        }
         return false;
     }
     m_ui.editorContents->setCurrentWidget(editor);
     m_ui.editorContents->update();
     updateWindowTitle();
+    ProjectModel::INode* currentNode = editor->currentNode();
+    if (appendNav)
+    {
+        if (m_navIt == m_navList.end() || *m_navIt != currentNode)
+            m_navIt = m_navList.insert(m_navList.end(), currentNode);
+        updateNavigationButtons();
+    }
+    recursiveExpandAndSelectOutline(m_projectModel->index(currentNode));
     return true;
 }
 
-bool MainWindow::openEditor(ProjectModel::SongGroupNode* node)
+bool MainWindow::openEditor(ProjectModel::SongGroupNode* node, bool appendNav)
 {
-    return _setEditor(m_songGroupEditor->loadData(node) ? m_songGroupEditor : nullptr);
+    bool ret = _setEditor(m_songGroupEditor->loadData(node) ? m_songGroupEditor : nullptr, appendNav);
+    if (ProjectModel::INode* n = getEditorNode())
+    {
+        if (n->type() == ProjectModel::INode::Type::SongGroup)
+        {
+            ProjectModel::SongGroupNode* cn = static_cast<ProjectModel::SongGroupNode*>(n);
+            ProjectModel::GroupNode* gn = m_projectModel->getGroupNode(n);
+            m_interactiveSeq = m_engine->seqPlay(gn->getAudioGroup(), cn->m_id, {}, nullptr);
+        }
+    }
+    return ret;
 }
 
-bool MainWindow::openEditor(ProjectModel::SoundGroupNode* node)
+bool MainWindow::openEditor(ProjectModel::SoundGroupNode* node, bool appendNav)
 {
-    return _setEditor(m_soundGroupEditor->loadData(node) ? m_soundGroupEditor : nullptr);
+    bool ret = _setEditor(m_soundGroupEditor->loadData(node) ? m_soundGroupEditor : nullptr, appendNav);
+    if (ProjectModel::INode* n = getEditorNode())
+    {
+        if (n->type() == ProjectModel::INode::Type::SoundGroup)
+        {
+            ProjectModel::SoundGroupNode* cn = static_cast<ProjectModel::SoundGroupNode*>(n);
+            ProjectModel::GroupNode* gn = m_projectModel->getGroupNode(n);
+            m_interactiveSeq = m_engine->seqPlay(gn->getAudioGroup(), cn->m_id, {}, nullptr);
+        }
+    }
+    return ret;
 }
 
-bool MainWindow::openEditor(ProjectModel::SoundMacroNode* node)
+bool MainWindow::openEditor(ProjectModel::SoundMacroNode* node, bool appendNav)
 {
-    return _setEditor(m_soundMacroEditor->loadData(node) ? m_soundMacroEditor : nullptr);
+    return _setEditor(m_soundMacroEditor->loadData(node) ? m_soundMacroEditor : nullptr, appendNav);
 }
 
-bool MainWindow::openEditor(ProjectModel::ADSRNode* node)
+bool MainWindow::openEditor(ProjectModel::ADSRNode* node, bool appendNav)
 {
-    return _setEditor(m_adsrEditor->loadData(node) ? m_adsrEditor : nullptr);
+    return _setEditor(m_adsrEditor->loadData(node) ? m_adsrEditor : nullptr, appendNav);
 }
 
-bool MainWindow::openEditor(ProjectModel::CurveNode* node)
+bool MainWindow::openEditor(ProjectModel::CurveNode* node, bool appendNav)
 {
-    return _setEditor(m_curveEditor->loadData(node) ? m_curveEditor : nullptr);
+    return _setEditor(m_curveEditor->loadData(node) ? m_curveEditor : nullptr, appendNav);
 }
 
-bool MainWindow::openEditor(ProjectModel::KeymapNode* node)
+bool MainWindow::openEditor(ProjectModel::KeymapNode* node, bool appendNav)
 {
-    return _setEditor(m_keymapEditor->loadData(node) ? m_keymapEditor : nullptr);
+    return _setEditor(m_keymapEditor->loadData(node) ? m_keymapEditor : nullptr, appendNav);
 }
 
-bool MainWindow::openEditor(ProjectModel::LayersNode* node)
+bool MainWindow::openEditor(ProjectModel::LayersNode* node, bool appendNav)
 {
-    return _setEditor(m_layersEditor->loadData(node) ? m_layersEditor : nullptr);
+    return _setEditor(m_layersEditor->loadData(node) ? m_layersEditor : nullptr, appendNav);
 }
 
-bool MainWindow::openEditor(ProjectModel::SampleNode* node)
+bool MainWindow::openEditor(ProjectModel::SampleNode* node, bool appendNav)
 {
-    return _setEditor(m_sampleEditor->loadData(node) ? m_sampleEditor : nullptr);
+    return _setEditor(m_sampleEditor->loadData(node) ? m_sampleEditor : nullptr, appendNav);
 }
 
-bool MainWindow::openEditor(ProjectModel::INode* node)
+bool MainWindow::openEditor(ProjectModel::INode* node, bool appendNav)
 {
     switch (node->type())
     {
     case ProjectModel::INode::Type::SongGroup:
-        return openEditor(static_cast<ProjectModel::SongGroupNode*>(node));
+        return openEditor(static_cast<ProjectModel::SongGroupNode*>(node), appendNav);
     case ProjectModel::INode::Type::SoundGroup:
-        return openEditor(static_cast<ProjectModel::SoundGroupNode*>(node));
+        return openEditor(static_cast<ProjectModel::SoundGroupNode*>(node), appendNav);
     case ProjectModel::INode::Type::SoundMacro:
-        return openEditor(static_cast<ProjectModel::SoundMacroNode*>(node));
+        return openEditor(static_cast<ProjectModel::SoundMacroNode*>(node), appendNav);
     case ProjectModel::INode::Type::ADSR:
-        return openEditor(static_cast<ProjectModel::ADSRNode*>(node));
+        return openEditor(static_cast<ProjectModel::ADSRNode*>(node), appendNav);
     case ProjectModel::INode::Type::Curve:
-        return openEditor(static_cast<ProjectModel::CurveNode*>(node));
+        return openEditor(static_cast<ProjectModel::CurveNode*>(node), appendNav);
     case ProjectModel::INode::Type::Keymap:
-        return openEditor(static_cast<ProjectModel::KeymapNode*>(node));
+        return openEditor(static_cast<ProjectModel::KeymapNode*>(node), appendNav);
     case ProjectModel::INode::Type::Layer:
-        return openEditor(static_cast<ProjectModel::LayersNode*>(node));
+        return openEditor(static_cast<ProjectModel::LayersNode*>(node), appendNav);
     case ProjectModel::INode::Type::Sample:
-        return openEditor(static_cast<ProjectModel::SampleNode*>(node));
+        return openEditor(static_cast<ProjectModel::SampleNode*>(node), appendNav);
     default:
         return false;
     }
@@ -646,7 +701,7 @@ amuse::ObjToken<amuse::Sequencer> MainWindow::startSong(amuse::GroupId groupId, 
     return {};
 }
 
-void MainWindow::pushUndoCommand(QUndoCommand* cmd)
+void MainWindow::pushUndoCommand(EditorUndoCommand* cmd)
 {
     m_undoStack->push(cmd);
 }
@@ -658,6 +713,21 @@ void MainWindow::updateFocus()
 
 void MainWindow::aboutToDeleteNode(ProjectModel::INode* node)
 {
+    if (*m_navIt == node && m_navIt != m_navList.end())
+    {
+        m_navList.erase(m_navIt, m_navList.end());
+        m_navIt = m_navList.end();
+    }
+    for (auto it = m_navList.begin(); it != m_navList.end();)
+    {
+        if (*it == node)
+        {
+            it = m_navList.erase(it);
+            continue;
+        }
+        ++it;
+    }
+    updateNavigationButtons();
     if (getEditorNode() == node)
         closeEditor();
 }
@@ -813,6 +883,9 @@ void MainWindow::revertAction()
     QString path = m_projectModel->path();
     closeEditor();
     m_undoStack->clear();
+    m_navList.clear();
+    m_navIt = m_navList.begin();
+    updateNavigationButtons();
     delete m_projectModel;
     m_projectModel = nullptr;
     openProject(path);
@@ -936,6 +1009,7 @@ void MainWindow::importAction()
                             return;
                     }
                 }
+                model->openSongsData();
             });
 
 
@@ -978,6 +1052,7 @@ void MainWindow::importAction()
                 return;
             task.setValue(++curVal);
         }
+        model->openSongsData();
     });
 }
 
@@ -1024,26 +1099,176 @@ void MainWindow::exportAction()
     });
 }
 
+void MainWindow::importHeadersAction()
+{
+    if (!m_projectModel)
+        return;
+
+    int confirm = m_mainMessenger.warning(tr("Import C Headers"),
+        tr("<p>Importing names from C headers depends on up-to-date, "
+           "consistent names relative to the sound group data.</p>"
+           "<p>Headers are imported on a per-subproject basis from "
+           "a single directory. Headers must be named with the form "
+           "<code>&lt;subproject&gt;.h</code>.</p>"
+           "<p>Group, Song and SFX definitions are matched according to the following forms:"
+           "<pre>#define GRP&lt;name&gt; &lt;id&gt;\n#define SNG&lt;name&gt; &lt;id&gt;\n"
+           "#define SFX&lt;name> &lt;id&gt;</pre></p>"
+           "<p><strong>This operation cannot be undone! Is is recommended to "
+           "make a backup of the project directory before proceeding.</strong></p>"
+           "<p>Continue?</p>"), QMessageBox::Yes | QMessageBox::No);
+    if (confirm == QMessageBox::No)
+        return;
+
+    QString path = QFileDialog::getExistingDirectory(this, tr("Import C Headers"), m_projectModel->dir().path());
+    if (path.isEmpty())
+        return;
+
+    closeEditor();
+
+    for (QString group : m_projectModel->getGroupList())
+        m_projectModel->importHeader(path, group, m_mainMessenger);
+    m_projectModel->updateNodeNames();
+
+    /* Samples may have been renamed.. stay consistent! */
+    saveAction();
+}
+
+void MainWindow::exportHeadersAction()
+{
+    if (!m_projectModel)
+        return;
+
+    QString path = QFileDialog::getExistingDirectory(this, tr("Export C Headers"), m_projectModel->dir().path());
+    if (path.isEmpty())
+        return;
+
+    bool yesToAll = false;
+    for (QString group : m_projectModel->getGroupList())
+        if (!m_projectModel->exportHeader(path, group, yesToAll, m_mainMessenger))
+            return;
+}
+
 bool TreeDelegate::editorEvent(QEvent* event,
-                               QAbstractItemModel* _model,
+                               QAbstractItemModel* __model,
                                const QStyleOptionViewItem& option,
                                const QModelIndex& index)
 {
-    ProjectModel* model = static_cast<ProjectModel*>(_model);
-    ProjectModel::INode* node = model->node(index);
-    if (!node)
+    QSortFilterProxyModel* _model = static_cast<QSortFilterProxyModel*>(__model);
+    ProjectModel* model = static_cast<ProjectModel*>(_model->sourceModel());
+    ProjectModel::INode* node = model->node(_model->mapToSource(index));
+    if (!node || !(node->flags() & Qt::ItemIsEditable))
         return false;
+    AmuseItemEditFlags flags = node->editFlags();
 
-#if 0
-    if ((event->type() == QEvent::MouseButtonDblClick &&
-         static_cast<QMouseEvent*>(event)->button() == Qt::LeftButton))
+    if (event->type() == QEvent::MouseButtonPress)
     {
-        // Open in editor
-        return m_window.openEditor(node);
+        QMouseEvent* ev = static_cast<QMouseEvent*>(event);
+        if (ev->button() == Qt::RightButton)
+        {
+            m_window.m_ui.projectOutline->setCurrentIndex(index);
+            QMenu* menu = new QMenu(g_MainWindow->m_ui.projectOutline);
+
+            QAction* cutAction = new QAction(tr("Cut"), menu);
+            cutAction->setData(index);
+            cutAction->setEnabled(flags & AmuseItemCut);
+            cutAction->setIcon(QIcon::fromTheme(QStringLiteral("edit-cut")));
+            cutAction->setShortcut(QKeySequence::Cut);
+            connect(cutAction, SIGNAL(triggered()), this, SLOT(doCut()));
+            menu->addAction(cutAction);
+
+            QAction* copyAction = new QAction(tr("Copy"), menu);
+            copyAction->setData(index);
+            copyAction->setEnabled(flags & AmuseItemCopy);
+            copyAction->setIcon(QIcon::fromTheme(QStringLiteral("edit-copy")));
+            copyAction->setShortcut(QKeySequence::Copy);
+            connect(copyAction, SIGNAL(triggered()), this, SLOT(doCopy()));
+            menu->addAction(copyAction);
+
+            QAction* pasteAction = new QAction(tr("Paste"), menu);
+            pasteAction->setData(index);
+            pasteAction->setEnabled(g_MainWindow->m_clipboardAmuseData && flags & AmuseItemPaste);
+            pasteAction->setIcon(QIcon::fromTheme(QStringLiteral("edit-paste")));
+            pasteAction->setShortcut(QKeySequence::Paste);
+            connect(pasteAction, SIGNAL(triggered()), this, SLOT(doPaste()));
+            menu->addAction(pasteAction);
+
+            QAction* dupeAction = new QAction(tr("Duplicate"), menu);
+            dupeAction->setData(index);
+            connect(dupeAction, SIGNAL(triggered()), this, SLOT(doDuplicate()));
+            menu->addAction(dupeAction);
+
+            QAction* deleteAction = new QAction(tr("Delete"), menu);
+            deleteAction->setData(index);
+            deleteAction->setEnabled(flags & AmuseItemDelete);
+            deleteAction->setIcon(QIcon::fromTheme(QStringLiteral("edit-delete")));
+            deleteAction->setShortcut(QKeySequence::Delete);
+            connect(deleteAction, SIGNAL(triggered()), this, SLOT(doDelete()));
+            menu->addAction(deleteAction);
+
+            QAction* renameAction = new QAction(tr("Rename"), menu);
+            renameAction->setData(index);
+            renameAction->setShortcut(tr("F2"));
+            connect(renameAction, SIGNAL(triggered()), this, SLOT(doRename()));
+            menu->addAction(renameAction);
+
+            menu->popup(ev->globalPos());
+            return true;
+        }
     }
-#endif
 
     return false;
+}
+
+void TreeDelegate::doCut()
+{
+    QAction* act = qobject_cast<QAction*>(sender());
+    if (!m_window.m_projectModel)
+        return;
+    m_window.m_projectModel->cut(m_window.m_filterProjectModel.mapToSource(act->data().toModelIndex()));
+}
+
+void TreeDelegate::doCopy()
+{
+    QAction* act = qobject_cast<QAction*>(sender());
+    if (!m_window.m_projectModel)
+        return;
+    m_window.m_projectModel->copy(m_window.m_filterProjectModel.mapToSource(act->data().toModelIndex()));
+}
+
+void TreeDelegate::doPaste()
+{
+    QAction* act = qobject_cast<QAction*>(sender());
+    if (!m_window.m_projectModel)
+        return;
+    m_window.m_projectModel->paste(m_window.m_filterProjectModel.mapToSource(act->data().toModelIndex()));
+}
+
+void TreeDelegate::doDuplicate()
+{
+    QAction* act = qobject_cast<QAction*>(sender());
+    if (!m_window.m_projectModel)
+        return;
+    QModelIndex newIdx =
+        m_window.m_projectModel->duplicate(m_window.m_filterProjectModel.mapToSource(act->data().toModelIndex()));
+    if (newIdx.isValid())
+    {
+        newIdx = m_window.m_filterProjectModel.mapFromSource(newIdx);
+        m_window.m_ui.projectOutline->edit(newIdx);
+    }
+}
+
+void TreeDelegate::doDelete()
+{
+    QAction* act = qobject_cast<QAction*>(sender());
+    if (!m_window.m_projectModel)
+        return;
+    m_window.m_projectModel->del(m_window.m_filterProjectModel.mapToSource(act->data().toModelIndex()));
+}
+
+void TreeDelegate::doRename()
+{
+    QAction* act = qobject_cast<QAction*>(sender());
+    m_window.m_ui.projectOutline->edit(act->data().toModelIndex());
 }
 
 QString MainWindow::getGroupName(ProjectModel::GroupNode* group) const
@@ -1057,10 +1282,10 @@ ProjectModel::GroupNode* MainWindow::getSelectedGroupNode() const
 {
     if (!m_projectModel)
         return nullptr;
-    if (!m_ui.projectOutline->selectionModel()->currentIndex().isValid())
+    if (!m_ui.projectOutline->currentIndex().isValid())
         return nullptr;
     return m_projectModel->getGroupNode(m_projectModel->node(
-           m_filterProjectModel.mapToSource(m_ui.projectOutline->selectionModel()->currentIndex())));
+           m_filterProjectModel.mapToSource(m_ui.projectOutline->currentIndex())));
 }
 
 QString MainWindow::getSelectedGroupName() const
@@ -1082,10 +1307,7 @@ void MainWindow::recursiveExpandAndSelectOutline(const QModelIndex& index) const
     QModelIndex filterIndex = m_filterProjectModel.mapFromSource(index);
     _recursiveExpandOutline(filterIndex);
     if (filterIndex.isValid())
-    {
-        m_ui.projectOutline->selectionModel()->setCurrentIndex(filterIndex, QItemSelectionModel::ClearAndSelect);
-        m_ui.projectOutline->selectionModel()->setCurrentIndex(filterIndex, QItemSelectionModel::Current);
-    }
+        m_ui.projectOutline->setCurrentIndex(filterIndex);
 }
 
 void MainWindow::newSubprojectAction()
@@ -1236,6 +1458,30 @@ void MainWindow::newLayersAction()
     ProjectModel::LayersNode* node = m_projectModel->newLayers(group, newName);
     if (node)
         openEditor(node);
+}
+
+void MainWindow::updateNavigationButtons()
+{
+    m_goForward->setDisabled(m_navIt == m_navList.end() || m_navIt + 1 == m_navList.end());
+    m_goBack->setDisabled(m_navIt == m_navList.begin());
+}
+
+void MainWindow::goForward()
+{
+    if (m_navIt == m_navList.end() || m_navIt + 1 == m_navList.end())
+        return;
+    ++m_navIt;
+    openEditor(*m_navIt, false);
+    updateNavigationButtons();
+}
+
+void MainWindow::goBack()
+{
+    if (m_navIt == m_navList.begin())
+        return;
+    --m_navIt;
+    openEditor(*m_navIt, false);
+    updateNavigationButtons();
 }
 
 void MainWindow::aboutToShowAudioIOMenu()
@@ -1413,27 +1659,30 @@ void MainWindow::auxBChanged(int vol)
 
 void MainWindow::outlineCutAction()
 {
-
+    if (!m_projectModel)
+        return;
+    m_projectModel->cut(m_filterProjectModel.mapToSource(m_ui.projectOutline->currentIndex()));
 }
 
 void MainWindow::outlineCopyAction()
 {
-
+    if (!m_projectModel)
+        return;
+    m_projectModel->copy(m_filterProjectModel.mapToSource(m_ui.projectOutline->currentIndex()));
 }
 
 void MainWindow::outlinePasteAction()
 {
-
+    if (!m_projectModel)
+        return;
+    m_projectModel->paste(m_filterProjectModel.mapToSource(m_ui.projectOutline->currentIndex()));
 }
 
 void MainWindow::outlineDeleteAction()
 {
     if (!m_projectModel)
         return;
-    QModelIndexList indexes = m_ui.projectOutline->selectionModel()->selectedIndexes();
-    if (indexes.empty())
-        return;
-    m_projectModel->del(m_filterProjectModel.mapToSource(indexes.front()));
+    m_projectModel->del(m_filterProjectModel.mapToSource(m_ui.projectOutline->currentIndex()));
 }
 
 void MainWindow::onFocusChanged(QWidget* old, QWidget* now)
@@ -1460,7 +1709,10 @@ void MainWindow::onFocusChanged(QWidget* old, QWidget* now)
 
     if (now == m_ui.projectOutline || m_ui.projectOutline->isAncestorOf(now))
     {
-        setItemEditEnabled(canEditOutline());
+        AmuseItemEditFlags editFlags = outlineEditFlags();
+        if (!m_clipboardAmuseData)
+            editFlags = AmuseItemEditFlags(editFlags & ~AmuseItemPaste);
+        setItemEditFlags(editFlags);
         if (m_projectModel)
         {
             m_cutConn = connect(m_ui.actionCut, SIGNAL(triggered()), this, SLOT(outlineCutAction()));
@@ -1471,20 +1723,40 @@ void MainWindow::onFocusChanged(QWidget* old, QWidget* now)
     }
     else if (now == m_ui.editorContents || m_ui.editorContents->isAncestorOf(now))
     {
-        setItemEditEnabled(false);
         if (EditorWidget* editor = getEditorWidget())
         {
-            if (editor->isItemEditEnabled())
+            setItemEditFlags(editor->itemEditFlags());
+            m_cutConn = connect(m_ui.actionCut, SIGNAL(triggered()), editor, SLOT(itemCutAction()));
+            m_copyConn = connect(m_ui.actionCopy, SIGNAL(triggered()), editor, SLOT(itemCopyAction()));
+            m_pasteConn = connect(m_ui.actionPaste, SIGNAL(triggered()), editor, SLOT(itemPasteAction()));
+            m_deleteConn = connect(m_ui.actionDelete, SIGNAL(triggered()), editor, SLOT(itemDeleteAction()));
+        }
+        else
+        {
+            setItemEditFlags(AmuseItemNone);
+        }
+    }
+}
+
+void MainWindow::onClipboardChanged()
+{
+    if (QClipboard* cb = qobject_cast<QClipboard*>(sender()))
+    {
+        if (const QMimeData* md = cb->mimeData())
+        {
+            for (const QString& str : md->formats())
             {
-                setItemEditEnabled(true);
-                m_cutConn = connect(m_ui.actionCut, SIGNAL(triggered()), editor, SLOT(itemCutAction()));
-                m_copyConn = connect(m_ui.actionCopy, SIGNAL(triggered()), editor, SLOT(itemCopyAction()));
-                m_pasteConn = connect(m_ui.actionPaste, SIGNAL(triggered()), editor, SLOT(itemPasteAction()));
-                m_deleteConn = connect(m_ui.actionDelete, SIGNAL(triggered()), editor, SLOT(itemDeleteAction()));
+                if (str.startsWith(QStringLiteral("application/x-amuse-")))
+                {
+                    m_clipboardAmuseData = true;
+                    updateFocus();
+                    return;
+                }
             }
         }
     }
-
+    m_clipboardAmuseData = false;
+    updateFocus();
 }
 
 void MainWindow::outlineItemActivated(const QModelIndex& index)
@@ -1495,12 +1767,12 @@ void MainWindow::outlineItemActivated(const QModelIndex& index)
     openEditor(node);
 }
 
-void MainWindow::setItemEditEnabled(bool enabled)
+void MainWindow::setItemEditFlags(AmuseItemEditFlags flags)
 {
-    m_ui.actionCut->setEnabled(enabled);
-    m_ui.actionCopy->setEnabled(enabled);
-    m_ui.actionPaste->setEnabled(enabled);
-    m_ui.actionDelete->setEnabled(enabled);
+    m_ui.actionCut->setEnabled(flags & AmuseItemCut);
+    m_ui.actionCopy->setEnabled(flags & AmuseItemCopy);
+    m_ui.actionPaste->setEnabled(flags & AmuseItemPaste);
+    m_ui.actionDelete->setEnabled(flags & AmuseItemDelete);
 }
 
 void MainWindow::setItemNewEnabled(bool enabled)
@@ -1514,25 +1786,25 @@ void MainWindow::setItemNewEnabled(bool enabled)
     m_ui.actionNew_Layers->setEnabled(enabled);
 }
 
-bool MainWindow::canEditOutline()
+AmuseItemEditFlags MainWindow::outlineEditFlags()
 {
     if (!m_projectModel)
-        return false;
-    QModelIndex curIndex = m_ui.projectOutline->selectionModel()->currentIndex();
+        return AmuseItemNone;
+    QModelIndex curIndex = m_ui.projectOutline->currentIndex();
     if (!curIndex.isValid())
-        return false;
-    return m_projectModel->canEdit(m_filterProjectModel.mapToSource(curIndex));
+        return AmuseItemNone;
+    return m_projectModel->editFlags(m_filterProjectModel.mapToSource(curIndex));
 }
 
 void MainWindow::onOutlineSelectionChanged(const QItemSelection& selected, const QItemSelection& deselected)
 {
     if (!m_projectModel)
         return;
-    setItemNewEnabled(m_ui.projectOutline->selectionModel()->currentIndex().isValid());
+    setItemNewEnabled(m_ui.projectOutline->currentIndex().isValid());
     if (selected.indexes().empty())
-        setItemEditEnabled(false);
+        setItemEditFlags(AmuseItemNone);
     else
-        setItemEditEnabled(m_projectModel->canEdit(m_filterProjectModel.mapToSource(selected.indexes().front())));
+        setItemEditFlags(m_projectModel->editFlags(m_filterProjectModel.mapToSource(selected.indexes().front())));
 }
 
 void MainWindow::onTextSelect()

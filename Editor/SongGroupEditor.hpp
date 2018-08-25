@@ -170,8 +170,9 @@ class PageTableView : public QTableView
     Q_OBJECT
     PageObjectDelegate m_poDelegate;
     RangedValueFactory<0, 127> m_127Factory;
+    RangedValueFactory<1, 128> m_128Factory;
     RangedValueFactory<0, 255> m_255Factory;
-    QStyledItemDelegate m_127Delegate, m_255Delegate;
+    QStyledItemDelegate m_127Delegate, m_128Delegate, m_255Delegate;
 public:
     explicit PageTableView(QWidget* parent = Q_NULLPTR);
     void setModel(QAbstractItemModel* model);
@@ -187,7 +188,8 @@ class SetupTableView : public QSplitter
     QTableView* m_tableView;
     MIDIFileDelegate m_midiDelegate;
     RangedValueFactory<0, 127> m_127Factory;
-    QStyledItemDelegate m_127Delegate;
+    RangedValueFactory<1, 128> m_128Factory;
+    QStyledItemDelegate m_127Delegate, m_128Delegate;
 public:
     explicit SetupTableView(QWidget* parent = Q_NULLPTR);
     void setModel(QAbstractItemModel* list, QAbstractItemModel* table);
@@ -262,7 +264,7 @@ public:
     void setEditorEnabled(bool en) {}
     void resizeEvent(QResizeEvent* ev);
     QTableView* getSetupListView() const { return m_setupTable->m_listView; }
-    bool isItemEditEnabled() const;
+    AmuseItemEditFlags itemEditFlags() const;
 public slots:
     void doAdd();
     void doSelectionChanged();
@@ -271,10 +273,6 @@ public slots:
     void rowsAboutToBeRemoved(const QModelIndex &parent, int first, int last);
     void modelAboutToBeReset();
     void setupDataChanged();
-
-    void itemCutAction();
-    void itemCopyAction();
-    void itemPasteAction();
     void itemDeleteAction();
 };
 

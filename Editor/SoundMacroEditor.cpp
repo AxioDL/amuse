@@ -37,11 +37,7 @@ void FieldSoundMacroStep::targetPressed()
 {
     ProjectModel::SoundMacroNode* node = nullptr;
     if (m_macroField)
-    {
-        int val = m_macroField->currentIndex();
-        if (val != 0)
-            node = static_cast<ProjectModel::SoundMacroNode*>(m_macroField->collection()->nodeOfIndex(val - 1));
-    }
+        node = static_cast<ProjectModel::SoundMacroNode*>(m_macroField->currentNode());
 
     if (!m_macroField || node == getListing()->currentNode())
         if (SoundMacroEditor* editor = getEditor())
@@ -60,8 +56,8 @@ void FieldSoundMacroStep::updateMacroField()
         return;
     }
 
-    int val = m_macroField->currentIndex();
-    if (val == 0)
+    ProjectModel::SoundMacroNode* node = static_cast<ProjectModel::SoundMacroNode*>(m_macroField->currentNode());
+    if (node == nullptr)
     {
         m_spinBox.setValue(0);
         m_spinBox.setDisabled(true);
@@ -69,8 +65,6 @@ void FieldSoundMacroStep::updateMacroField()
     }
     else
     {
-        ProjectModel::SoundMacroNode* node = static_cast<ProjectModel::SoundMacroNode*>(
-            m_macroField->collection()->nodeOfIndex(val - 1));
         int numCmds = int(node->m_obj->m_cmds.size());
         m_spinBox.setMaximum(numCmds - 1);
         m_spinBox.setDisabled(false);

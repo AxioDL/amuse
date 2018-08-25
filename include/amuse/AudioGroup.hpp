@@ -4,15 +4,18 @@
 #include "AudioGroupPool.hpp"
 #include "AudioGroupProject.hpp"
 #include "AudioGroupSampleDirectory.hpp"
+#include <unordered_set>
 
 namespace amuse
 {
 class AudioGroupData;
+class ProjectDatabase;
 
 /** Runtime audio group index container */
 class AudioGroup
 {
     friend class AudioGroupSampleDirectory;
+protected:
     AudioGroupProject m_proj;
     AudioGroupPool m_pool;
     AudioGroupSampleDirectory m_sdir;
@@ -20,16 +23,17 @@ class AudioGroup
     SystemString m_groupPath; /* Typically only set by editor */
     bool m_valid;
 
-    SystemString getSampleBasePath(SampleId sfxId) const;
-
 public:
+    SystemString getSampleBasePath(SampleId sfxId) const;
     operator bool() const { return m_valid; }
     AudioGroup() = default;
     explicit AudioGroup(const AudioGroupData& data) { assign(data); }
     explicit AudioGroup(SystemStringView groupPath) { assign(groupPath); }
+    explicit AudioGroup(const AudioGroup& data, SystemStringView groupPath) { assign(data, groupPath); }
 
     void assign(const AudioGroupData& data);
     void assign(SystemStringView groupPath);
+    void assign(const AudioGroup& data, SystemStringView groupPath);
     void setGroupPath(SystemStringView groupPath) { m_groupPath = groupPath; }
 
     const SampleEntry* getSample(SampleId sfxId) const;
@@ -58,6 +62,9 @@ class AudioGroupDatabase final : public AudioGroup
     NameDB m_keymapDb;
     NameDB m_layersDb;
 
+    void _recursiveRenameMacro(SoundMacroId id, std::string_view str, int& macroIdx,
+                               std::unordered_set<SoundMacroId>& renamedIds);
+
 public:
     AudioGroupDatabase() = default;
     explicit AudioGroupDatabase(const AudioGroupData& data)
@@ -70,6 +77,11 @@ public:
         setIdDatabases();
         assign(groupPath);
     }
+    explicit AudioGroupDatabase(const AudioGroupDatabase& data, SystemStringView groupPath)
+    {
+        setIdDatabases();
+        assign(data, groupPath);
+    }
 
     void setIdDatabases() const
     {
@@ -79,6 +91,13 @@ public:
         KeymapId::CurNameDB = const_cast<NameDB*>(&m_keymapDb);
         LayersId::CurNameDB = const_cast<NameDB*>(&m_layersDb);
     }
+
+    void renameSample(SampleId id, std::string_view str);
+    void deleteSample(SampleId id);
+    void copySampleInto(const SystemString& basePath, const SystemString& newBasePath);
+
+    void importCHeader(std::string_view header);
+    std::string exportCHeader(std::string_view projectName, std::string_view groupName) const;
 };
 
 class ProjectDatabase

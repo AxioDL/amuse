@@ -142,24 +142,17 @@ void SFXObjectDelegate::setEditorData(QWidget* editor, const QModelIndex& index)
         idx = g_MainWindow->projectModel()->getPageObjectProxy()->mapFromSource(g_MainWindow->projectModel()->index(node)).row();
     static_cast<EditorFieldPageObjectNode*>(editor)->setCurrentIndex(idx);
     if (static_cast<EditorFieldPageObjectNode*>(editor)->shouldPopupOpen())
-        static_cast<EditorFieldPageObjectNode*>(editor)->showPopup();
+        QApplication::postEvent(editor, new QEvent(QEvent::User));
 }
 
 void SFXObjectDelegate::setModelData(QWidget* editor, QAbstractItemModel* m, const QModelIndex& index) const
 {
     const SFXModel* model = static_cast<const SFXModel*>(m);
     auto entry = model->m_sorted[index.row()];
-    int idx = static_cast<EditorFieldPageObjectNode*>(editor)->currentIndex();
+    ProjectModel::BasePoolObjectNode* node = static_cast<EditorFieldPageObjectNode*>(editor)->currentNode();
     amuse::ObjectId id;
-    if (idx != 0)
-    {
-        ProjectModel::BasePoolObjectNode* node = static_cast<ProjectModel::BasePoolObjectNode*>(
-            g_MainWindow->projectModel()->node(
-                g_MainWindow->projectModel()->getPageObjectProxy()->mapToSource(
-                    g_MainWindow->projectModel()->getPageObjectProxy()->index(idx, 0,
-                        static_cast<EditorFieldPageObjectNode*>(editor)->rootModelIndex()))));
+    if (node)
         id = node->id();
-    }
     if (id == entry->second.objId.id)
     {
         emit m->dataChanged(index, index);
@@ -614,9 +607,9 @@ void SoundGroupEditor::resizeEvent(QResizeEvent* ev)
     m_addRemoveButtons.move(0, ev->size().height() - 32);
 }
 
-bool SoundGroupEditor::isItemEditEnabled() const
+AmuseItemEditFlags SoundGroupEditor::itemEditFlags() const
 {
-    return m_sfxTable->hasFocus() && !m_sfxTable->selectionModel()->selectedRows().isEmpty();
+    return (m_sfxTable->hasFocus() && !m_sfxTable->selectionModel()->selectedRows().isEmpty()) ? AmuseItemDelete : AmuseItemNone;
 }
 
 void SoundGroupEditor::doAdd()
@@ -650,21 +643,6 @@ void SoundGroupEditor::sfxDataChanged()
         }
         ++idx;
     }
-}
-
-void SoundGroupEditor::itemCutAction()
-{
-
-}
-
-void SoundGroupEditor::itemCopyAction()
-{
-
-}
-
-void SoundGroupEditor::itemPasteAction()
-{
-
 }
 
 void SoundGroupEditor::itemDeleteAction()

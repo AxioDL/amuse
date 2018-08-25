@@ -36,6 +36,10 @@
         <file>IconFX.svg</file>
         <file>IconB.svg</file>
         <file>IconA.svg</file>
+        <file>IconBack.svg</file>
+        <file>IconForward.svg</file>
+        <file>IconBackDisabled.svg</file>
+        <file>IconForwardDisabled.svg</file>
     </qresource>
     <qresource prefix="/bg">
         <file>FaceGrey.svg</file>

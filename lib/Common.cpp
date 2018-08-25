@@ -7,6 +7,35 @@ namespace amuse
 {
 static logvisor::Module Log("amuse");
 
+bool Copy(const SystemChar* from, const SystemChar* to)
+{
+#if _WIN32
+    return CopyFileW(from, to, FALSE) != 0;
+#else
+    FILE* fi = fopen(from, "rb");
+    if (!fi)
+        return false;
+    FILE* fo = fopen(to, "wb");
+    if (!fo)
+    {
+        fclose(fi);
+        return false;
+    }
+    std::unique_ptr<uint8_t[]> buf(new uint8_t[65536]);
+    size_t readSz = 0;
+    while ((readSz = fread(buf.get(), 1, 65536, fi)))
+        fwrite(buf.get(), 1, readSz, fo);
+    fclose(fi);
+    fclose(fo);
+    struct stat theStat;
+    if (::stat(from, &theStat))
+        return true;
+    struct timespec times[] = { theStat.st_atim, theStat.st_mtim };
+    utimensat(AT_FDCWD, to, times, 0);
+    return true;
+#endif
+}
+
 #define DEFINE_ID_TYPE(type, typeName) \
 thread_local NameDB* type::CurNameDB = nullptr; \
 template<> template<> \

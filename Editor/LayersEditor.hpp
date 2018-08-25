@@ -78,14 +78,10 @@ public:
     void unloadData();
     ProjectModel::INode* currentNode() const;
     void resizeEvent(QResizeEvent* ev);
-    bool isItemEditEnabled() const;
+    AmuseItemEditFlags itemEditFlags() const;
 public slots:
     void doAdd();
     void doSelectionChanged();
-
-    void itemCutAction();
-    void itemCopyAction();
-    void itemPasteAction();
     void itemDeleteAction();
 };
 

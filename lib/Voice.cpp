@@ -117,6 +117,7 @@ bool Voice::_checkSamplePos(bool& looped)
 
 void Voice::_doKeyOff()
 {
+    m_voxState = VoiceState::KeyOff;
     if (m_state.m_inWait && m_state.m_keyoffWait)
     {
         if (m_volAdsr.isAdsrSet() || m_state.m_useAdsrControllers)
@@ -480,7 +481,7 @@ void Voice::preSupplyAudio(double dt)
     }
     if (m_pitchEnv)
     {
-        newPitch *= m_pitchAdsr.advance(dt);
+        newPitch += m_pitchAdsr.advance(dt) * m_pitchEnvRange;
         refresh = true;
     }
 
@@ -934,7 +935,6 @@ void Voice::_macroKeyOff()
             m_sustainKeyOff = true;
         else
             _doKeyOff();
-        m_voxState = VoiceState::KeyOff;
     }
 }
 
@@ -1456,10 +1456,7 @@ void Voice::_notifyCtrlChange(uint8_t ctrl, int8_t val)
 {
     if (ctrl == 0x40)
     {
-        if (val >= 0x40)
-            setPedal(true);
-        else
-            setPedal(false);
+        setPedal(val >= 0x40);
     }
     else if (ctrl == 0x5b)
     {

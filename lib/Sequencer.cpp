@@ -32,6 +32,8 @@ void Sequencer::ChannelState::_bringOutYourDead()
         }
         ++it;
     }
+    std::unordered_set<ObjToken<Voice>> newSet = m_keyoffVoxs;
+    m_keyoffVoxs = newSet;
 }
 
 void Sequencer::_bringOutYourDead()
@@ -57,8 +59,8 @@ Sequencer::~Sequencer()
         m_studio.reset();
 }
 
-Sequencer::Sequencer(Engine& engine, const AudioGroup& group, int groupId, const SongGroupIndex* songGroup, int setupId,
-                     ObjToken<Studio> studio)
+Sequencer::Sequencer(Engine& engine, const AudioGroup& group, GroupId groupId, const SongGroupIndex* songGroup,
+                     SongId setupId, ObjToken<Studio> studio)
 : Entity(engine, group, groupId), m_songGroup(songGroup), m_studio(studio)
 {
     auto it = m_songGroup->m_midiSetups.find(setupId);
@@ -66,7 +68,7 @@ Sequencer::Sequencer(Engine& engine, const AudioGroup& group, int groupId, const
         m_midiSetup = it->second.data();
 }
 
-Sequencer::Sequencer(Engine& engine, const AudioGroup& group, int groupId, const SFXGroupIndex* sfxGroup,
+Sequencer::Sequencer(Engine& engine, const AudioGroup& group, GroupId groupId, const SFXGroupIndex* sfxGroup,
                      ObjToken<Studio> studio)
 : Entity(engine, group, groupId), m_sfxGroup(sfxGroup), m_studio(studio)
 {
@@ -238,7 +240,7 @@ ObjToken<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velocity)
             m_lastVoice.reset();
         keySearch->second->keyOff();
         keySearch->second->setPedal(false);
-        m_keyoffVoxs.emplace(std::move(keySearch->second));
+        m_keyoffVoxs.emplace(keySearch->second);
         m_chanVoxs.erase(keySearch);
     }
 
@@ -310,7 +312,7 @@ void Sequencer::ChannelState::keyOff(uint8_t note, uint8_t velocity)
     if ((m_lastVoice && m_lastVoice->isDestroyed()) || keySearch->second == m_lastVoice)
         m_lastVoice.reset();
     keySearch->second->keyOff();
-    m_keyoffVoxs.emplace(std::move(keySearch->second));
+    m_keyoffVoxs.emplace(keySearch->second);
     m_chanVoxs.erase(keySearch);
 }
 
@@ -455,7 +457,7 @@ void Sequencer::ChannelState::allOff()
         if (it->second == m_lastVoice)
             m_lastVoice.reset();
         it->second->keyOff();
-        m_keyoffVoxs.emplace(std::move(it->second));
+        m_keyoffVoxs.emplace(it->second);
         it = m_chanVoxs.erase(it);
     }
 }
@@ -517,7 +519,7 @@ void Sequencer::ChannelState::killKeygroup(uint8_t kg, bool now)
                 continue;
             }
             vox->keyOff();
-            m_keyoffVoxs.emplace(std::move(it->second));
+            m_keyoffVoxs.emplace(it->second);
             it = m_chanVoxs.erase(it);
             continue;
         }

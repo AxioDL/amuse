@@ -23,7 +23,7 @@ public:
     virtual void unloadData() {}
     virtual ProjectModel::INode* currentNode() const { return nullptr; }
     virtual void setEditorEnabled(bool en) { setEnabled(en); }
-    virtual bool isItemEditEnabled() const { return false; }
+    virtual AmuseItemEditFlags itemEditFlags() const { return AmuseItemNone; }
 public slots:
     virtual void itemCutAction() {}
     virtual void itemCopyAction() {}
@@ -125,24 +125,51 @@ public:
     void wheelEvent(QWheelEvent* event) { event->ignore(); }
 };
 
-class FieldProjectNode : public FieldComboBox
+class FieldProjectNode : public QWidget
 {
     Q_OBJECT
     ProjectModel::CollectionNode* m_collection;
+    FieldComboBox m_comboBox;
+    QPushButton m_button;
 public:
     explicit FieldProjectNode(ProjectModel::CollectionNode* collection = Q_NULLPTR, QWidget* parent = Q_NULLPTR);
     void setCollection(ProjectModel::CollectionNode* collection);
     ProjectModel::CollectionNode* collection() const { return m_collection; }
+    int currentIndex() const { return m_comboBox.currentIndex(); }
+    void setCurrentIndex(int index) { m_comboBox.setCurrentIndex(index); }
+    void showPopup() { m_comboBox.showPopup(); }
+    ProjectModel::BasePoolObjectNode* currentNode() const;
+    bool event(QEvent* ev);
+private slots:
+    void _currentIndexChanged(int);
+public slots:
+    void openCurrent();
+signals:
+    void currentIndexChanged(int);
 };
 
-class FieldPageObjectNode : public FieldComboBox
+class FieldPageObjectNode : public QWidget
 {
     Q_OBJECT
     ProjectModel::GroupNode* m_group;
+    FieldComboBox m_comboBox;
+    QPushButton m_button;
 public:
     explicit FieldPageObjectNode(ProjectModel::GroupNode* group = Q_NULLPTR, QWidget* parent = Q_NULLPTR);
     void setGroup(ProjectModel::GroupNode* group);
     ProjectModel::GroupNode* group() const { return m_group; }
+    int currentIndex() const { return m_comboBox.currentIndex(); }
+    void setCurrentIndex(int index) { m_comboBox.setCurrentIndex(index); }
+    QModelIndex rootModelIndex() const { return m_comboBox.rootModelIndex(); }
+    void showPopup() { m_comboBox.showPopup(); }
+    ProjectModel::BasePoolObjectNode* currentNode() const;
+    bool event(QEvent* ev);
+private slots:
+    void _currentIndexChanged(int);
+public slots:
+    void openCurrent();
+signals:
+    void currentIndexChanged(int);
 };
 
 template <class T>
