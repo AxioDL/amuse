@@ -307,10 +307,17 @@ std::string AudioGroupDatabase::exportCHeader(std::string_view projectName, std:
     ret += "\n"
            " * Date: "sv;
     time_t curTime = time(nullptr);
+#ifndef _WIN32
     struct tm curTm;
     localtime_r(&curTime, &curTm);
     char curTmStr[26];
     asctime_r(&curTm, curTmStr);
+#else
+    struct tm curTm;
+    localtime_s(&curTm, &curTime);
+    char curTmStr[26];
+    asctime_s(curTmStr, &curTm);
+#endif
     ret += curTmStr;
     ret += "\n"
            " */\n\n\n"sv;

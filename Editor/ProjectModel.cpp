@@ -1882,7 +1882,7 @@ QMimeData* MakeMimeData(NT* n, const QString& mimeType)
     QMimeData* data = new QMimeData;
     athena::io::VectorWriter vw;
     athena::io::YAMLDocWriter w(nullptr);
-    w.writeString("name", QStringToSysString(n->name()));
+    w.writeString("name", n->name().toStdString());
     WriteMimeYAML(w, n);
     w.finish(&vw);
     data->setData(mimeType, QByteArray((char*)vw.data().data(), int(vw.data().size())));
