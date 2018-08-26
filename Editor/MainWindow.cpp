@@ -25,7 +25,6 @@ MainWindow::MainWindow(QWidget* parent)
   m_navIt(m_navList.begin()),
   m_treeDelegate(*this, this),
   m_mainMessenger(this),
-  m_filterProjectModel(this),
   m_undoStack(new QUndoStack(this)),
   m_backgroundThread(this)
 {
@@ -36,10 +35,6 @@ MainWindow::MainWindow(QWidget* parent)
     QPalette palette = m_ui.projectOutlineFilter->palette();
     palette.setColor(QPalette::Base, palette.color(QPalette::Background));
     m_ui.projectOutlineFilter->setPalette(palette);
-    connect(m_ui.projectOutlineFilter, SIGNAL(textChanged(const QString&)),
-            &m_filterProjectModel, SLOT(setFilterRegExp(const QString&)));
-    m_filterProjectModel.setRecursiveFilteringEnabled(true);
-    m_filterProjectModel.setFilterCaseSensitivity(Qt::CaseInsensitive);
     m_ui.projectOutline->setItemDelegate(&m_treeDelegate);
     connect(m_ui.projectOutline, SIGNAL(activated(const QModelIndex&)),
             this, SLOT(outlineItemActivated(const QModelIndex&)));
@@ -286,8 +281,10 @@ bool MainWindow::setProjectPath(const QString& path)
     if (m_projectModel)
         m_projectModel->deleteLater();
     m_projectModel = new ProjectModel(path, this);
-    m_filterProjectModel.setSourceModel(m_projectModel);
-    m_ui.projectOutline->setModel(&m_filterProjectModel);
+    m_ui.projectOutlineFilter->clear();
+    connect(m_ui.projectOutlineFilter, SIGNAL(textChanged(const QString&)),
+            m_projectModel->getOutlineProxy(), SLOT(setFilterRegExp(const QString&)));
+    m_ui.projectOutline->setModel(m_projectModel->getOutlineProxy());
     connect(m_ui.projectOutline->selectionModel(),
             SIGNAL(selectionChanged(const QItemSelection&, const QItemSelection&)),
             this, SLOT(onOutlineSelectionChanged(const QItemSelection&, const QItemSelection&)));
@@ -1165,8 +1162,25 @@ bool TreeDelegate::editorEvent(QEvent* event,
         QMouseEvent* ev = static_cast<QMouseEvent*>(event);
         if (ev->button() == Qt::RightButton)
         {
-            m_window.m_ui.projectOutline->setCurrentIndex(index);
-            QMenu* menu = new QMenu(g_MainWindow->m_ui.projectOutline);
+            ContextMenu* menu = new ContextMenu;
+
+            if (node->type() == ProjectModel::INode::Type::Group)
+            {
+                QAction* exportGroupAction = new QAction(tr("Export GameCube Group"), menu);
+                exportGroupAction->setData(QVariant::fromValue((void*)node));
+                connect(exportGroupAction, SIGNAL(triggered()), this, SLOT(doExportGroup()));
+                menu->addAction(exportGroupAction);
+
+                menu->addSeparator();
+            }
+
+            QAction* findUsagesAction = new QAction(tr("Find Usages"), menu);
+            findUsagesAction->setData(QVariant::fromValue((void*)node));
+            findUsagesAction->setIcon(QIcon::fromTheme(QStringLiteral("edit-find")));
+            connect(findUsagesAction, SIGNAL(triggered()), this, SLOT(doFindUsages()));
+            menu->addAction(findUsagesAction);
+
+            menu->addSeparator();
 
             QAction* cutAction = new QAction(tr("Cut"), menu);
             cutAction->setData(index);
@@ -1207,16 +1221,48 @@ bool TreeDelegate::editorEvent(QEvent* event,
 
             QAction* renameAction = new QAction(tr("Rename"), menu);
             renameAction->setData(index);
-            renameAction->setShortcut(tr("F2"));
+            renameAction->setShortcut(Qt::Key_F2);
             connect(renameAction, SIGNAL(triggered()), this, SLOT(doRename()));
             menu->addAction(renameAction);
 
             menu->popup(ev->globalPos());
-            return true;
         }
     }
 
     return false;
+}
+
+void TreeDelegate::doExportGroup()
+{
+    if (!m_window.m_projectModel)
+        return;
+    QAction* act = qobject_cast<QAction*>(sender());
+    if (ProjectModel::INode* node = reinterpret_cast<ProjectModel::INode*>(act->data().value<void*>()))
+    {
+        if (node->type() != ProjectModel::INode::Type::Group)
+            return;
+        QString groupName = static_cast<ProjectModel::GroupNode*>(node)->name();
+        ProjectModel* model = m_window.m_projectModel;
+
+        QFileInfo dirInfo(model->dir(), QStringLiteral("out"));
+        if (!MkPath(dirInfo.filePath(), m_window.m_mainMessenger))
+            return;
+
+        QDir dir(dirInfo.filePath());
+
+        m_window.startBackgroundTask(BackgroundTaskId::TaskExport, tr("Exporting"), tr("Exporting %1").arg(groupName),
+        [model, dir, groupName](BackgroundTask& task)
+        {
+            model->exportGroup(dir.path(), groupName, task.uiMessenger());
+        });
+    }
+}
+
+void TreeDelegate::doFindUsages()
+{
+    QAction* act = qobject_cast<QAction*>(sender());
+    if (ProjectModel::INode* node = reinterpret_cast<ProjectModel::INode*>(act->data().value<void*>()))
+        m_window.findUsages(node);
 }
 
 void TreeDelegate::doCut()
@@ -1224,7 +1270,7 @@ void TreeDelegate::doCut()
     QAction* act = qobject_cast<QAction*>(sender());
     if (!m_window.m_projectModel)
         return;
-    m_window.m_projectModel->cut(m_window.m_filterProjectModel.mapToSource(act->data().toModelIndex()));
+    m_window.m_projectModel->cut(m_window.m_projectModel->getOutlineProxy()->mapToSource(act->data().toModelIndex()));
 }
 
 void TreeDelegate::doCopy()
@@ -1232,7 +1278,7 @@ void TreeDelegate::doCopy()
     QAction* act = qobject_cast<QAction*>(sender());
     if (!m_window.m_projectModel)
         return;
-    m_window.m_projectModel->copy(m_window.m_filterProjectModel.mapToSource(act->data().toModelIndex()));
+    m_window.m_projectModel->copy(m_window.m_projectModel->getOutlineProxy()->mapToSource(act->data().toModelIndex()));
 }
 
 void TreeDelegate::doPaste()
@@ -1240,7 +1286,7 @@ void TreeDelegate::doPaste()
     QAction* act = qobject_cast<QAction*>(sender());
     if (!m_window.m_projectModel)
         return;
-    m_window.m_projectModel->paste(m_window.m_filterProjectModel.mapToSource(act->data().toModelIndex()));
+    m_window.m_projectModel->paste(m_window.m_projectModel->getOutlineProxy()->mapToSource(act->data().toModelIndex()));
 }
 
 void TreeDelegate::doDuplicate()
@@ -1249,10 +1295,10 @@ void TreeDelegate::doDuplicate()
     if (!m_window.m_projectModel)
         return;
     QModelIndex newIdx =
-        m_window.m_projectModel->duplicate(m_window.m_filterProjectModel.mapToSource(act->data().toModelIndex()));
+        m_window.m_projectModel->duplicate(m_window.m_projectModel->getOutlineProxy()->mapToSource(act->data().toModelIndex()));
     if (newIdx.isValid())
     {
-        newIdx = m_window.m_filterProjectModel.mapFromSource(newIdx);
+        newIdx = m_window.m_projectModel->getOutlineProxy()->mapFromSource(newIdx);
         m_window.m_ui.projectOutline->edit(newIdx);
     }
 }
@@ -1262,7 +1308,7 @@ void TreeDelegate::doDelete()
     QAction* act = qobject_cast<QAction*>(sender());
     if (!m_window.m_projectModel)
         return;
-    m_window.m_projectModel->del(m_window.m_filterProjectModel.mapToSource(act->data().toModelIndex()));
+    m_window.m_projectModel->del(m_window.m_projectModel->getOutlineProxy()->mapToSource(act->data().toModelIndex()));
 }
 
 void TreeDelegate::doRename()
@@ -1285,7 +1331,7 @@ ProjectModel::GroupNode* MainWindow::getSelectedGroupNode() const
     if (!m_ui.projectOutline->currentIndex().isValid())
         return nullptr;
     return m_projectModel->getGroupNode(m_projectModel->node(
-           m_filterProjectModel.mapToSource(m_ui.projectOutline->currentIndex())));
+        m_projectModel->getOutlineProxy()->mapToSource(m_ui.projectOutline->currentIndex())));
 }
 
 QString MainWindow::getSelectedGroupName() const
@@ -1304,7 +1350,7 @@ void MainWindow::_recursiveExpandOutline(const QModelIndex& filterIndex) const
 
 void MainWindow::recursiveExpandAndSelectOutline(const QModelIndex& index) const
 {
-    QModelIndex filterIndex = m_filterProjectModel.mapFromSource(index);
+    QModelIndex filterIndex = m_projectModel->getOutlineProxy()->mapFromSource(index);
     _recursiveExpandOutline(filterIndex);
     if (filterIndex.isValid())
         m_ui.projectOutline->setCurrentIndex(filterIndex);
@@ -1484,6 +1530,11 @@ void MainWindow::goBack()
     updateNavigationButtons();
 }
 
+void MainWindow::findUsages(ProjectModel::INode* node)
+{
+    m_ui.projectOutlineFilter->setText(QStringLiteral("usages:") + node->name());
+}
+
 void MainWindow::aboutToShowAudioIOMenu()
 {
     refreshAudioIO();
@@ -1661,28 +1712,28 @@ void MainWindow::outlineCutAction()
 {
     if (!m_projectModel)
         return;
-    m_projectModel->cut(m_filterProjectModel.mapToSource(m_ui.projectOutline->currentIndex()));
+    m_projectModel->cut(m_projectModel->getOutlineProxy()->mapToSource(m_ui.projectOutline->currentIndex()));
 }
 
 void MainWindow::outlineCopyAction()
 {
     if (!m_projectModel)
         return;
-    m_projectModel->copy(m_filterProjectModel.mapToSource(m_ui.projectOutline->currentIndex()));
+    m_projectModel->copy(m_projectModel->getOutlineProxy()->mapToSource(m_ui.projectOutline->currentIndex()));
 }
 
 void MainWindow::outlinePasteAction()
 {
     if (!m_projectModel)
         return;
-    m_projectModel->paste(m_filterProjectModel.mapToSource(m_ui.projectOutline->currentIndex()));
+    m_projectModel->paste(m_projectModel->getOutlineProxy()->mapToSource(m_ui.projectOutline->currentIndex()));
 }
 
 void MainWindow::outlineDeleteAction()
 {
     if (!m_projectModel)
         return;
-    m_projectModel->del(m_filterProjectModel.mapToSource(m_ui.projectOutline->currentIndex()));
+    m_projectModel->del(m_projectModel->getOutlineProxy()->mapToSource(m_ui.projectOutline->currentIndex()));
 }
 
 void MainWindow::onFocusChanged(QWidget* old, QWidget* now)
@@ -1761,7 +1812,7 @@ void MainWindow::onClipboardChanged()
 
 void MainWindow::outlineItemActivated(const QModelIndex& index)
 {
-    ProjectModel::INode* node = m_projectModel->node(m_filterProjectModel.mapToSource(index));
+    ProjectModel::INode* node = m_projectModel->node(m_projectModel->getOutlineProxy()->mapToSource(index));
     if (!node)
         return;
     openEditor(node);
@@ -1793,7 +1844,7 @@ AmuseItemEditFlags MainWindow::outlineEditFlags()
     QModelIndex curIndex = m_ui.projectOutline->currentIndex();
     if (!curIndex.isValid())
         return AmuseItemNone;
-    return m_projectModel->editFlags(m_filterProjectModel.mapToSource(curIndex));
+    return m_projectModel->editFlags(m_projectModel->getOutlineProxy()->mapToSource(curIndex));
 }
 
 void MainWindow::onOutlineSelectionChanged(const QItemSelection& selected, const QItemSelection& deselected)
@@ -1804,7 +1855,7 @@ void MainWindow::onOutlineSelectionChanged(const QItemSelection& selected, const
     if (selected.indexes().empty())
         setItemEditFlags(AmuseItemNone);
     else
-        setItemEditFlags(m_projectModel->editFlags(m_filterProjectModel.mapToSource(selected.indexes().front())));
+        setItemEditFlags(m_projectModel->editFlags(m_projectModel->getOutlineProxy()->mapToSource(selected.indexes().front())));
 }
 
 void MainWindow::onTextSelect()

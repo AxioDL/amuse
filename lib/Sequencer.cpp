@@ -515,6 +515,7 @@ void Sequencer::ChannelState::killKeygroup(uint8_t kg, bool now)
                 m_lastVoice.reset();
             if (now)
             {
+                vox->kill();
                 it = m_chanVoxs.erase(it);
                 continue;
             }
@@ -533,6 +534,7 @@ void Sequencer::ChannelState::killKeygroup(uint8_t kg, bool now)
             Voice* vox = it->get();
             if (vox->m_keygroup == kg)
             {
+                vox->kill();
                 it = m_keyoffVoxs.erase(it);
                 continue;
             }

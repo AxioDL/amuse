@@ -120,7 +120,17 @@ public:
 };
 
 SFXObjectDelegate::SFXObjectDelegate(QObject* parent)
-: QStyledItemDelegate(parent) {}
+: BaseObjectDelegate(parent) {}
+
+ProjectModel::INode* SFXObjectDelegate::getNode(const QAbstractItemModel* __model, const QModelIndex& index) const
+{
+    const SFXModel* model = static_cast<const SFXModel*>(__model);
+    auto entry = model->m_sorted[index.row()];
+    if (entry->second.objId.id.id == 0xffff)
+        return nullptr;
+    ProjectModel::GroupNode* group = g_MainWindow->projectModel()->getGroupNode(model->m_node.get());
+    return group->pageObjectNodeOfId(entry->second.objId.id);
+}
 
 QWidget* SFXObjectDelegate::createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const
 {
@@ -133,12 +143,8 @@ QWidget* SFXObjectDelegate::createEditor(QWidget* parent, const QStyleOptionView
 
 void SFXObjectDelegate::setEditorData(QWidget* editor, const QModelIndex& index) const
 {
-    const SFXModel* model = static_cast<const SFXModel*>(index.model());
-    auto entry = model->m_sorted[index.row()];
-    ProjectModel::GroupNode* group = g_MainWindow->projectModel()->getGroupNode(model->m_node.get());
-    ProjectModel::BasePoolObjectNode* node = group->pageObjectNodeOfId(entry->second.objId.id);
     int idx = 0;
-    if (node)
+    if (ProjectModel::BasePoolObjectNode* node = static_cast<ProjectModel::BasePoolObjectNode*>(getNode(index.model(), index)))
         idx = g_MainWindow->projectModel()->getPageObjectProxy()->mapFromSource(g_MainWindow->projectModel()->index(node)).row();
     static_cast<EditorFieldPageObjectNode*>(editor)->setCurrentIndex(idx);
     if (static_cast<EditorFieldPageObjectNode*>(editor)->shouldPopupOpen())
@@ -561,12 +567,24 @@ void SFXPlayerWidget::stopped()
 
 void SFXPlayerWidget::resizeEvent(QResizeEvent* event)
 {
-    m_button.setGeometry(event->size().width() - event->size().height(), 0, event->size().height(), event->size().height());
+    m_button.setGeometry(event->size().width() - event->size().height(), 0,
+                         event->size().height(), event->size().height());
 }
 
 void SFXPlayerWidget::mouseDoubleClickEvent(QMouseEvent* event)
 {
     qobject_cast<QTableView*>(parentWidget()->parentWidget())->setIndexWidget(m_index, nullptr);
+    event->ignore();
+}
+
+void SFXPlayerWidget::mousePressEvent(QMouseEvent* event)
+{
+    if (event->button() == Qt::RightButton)
+    {
+        QTableView* view = qobject_cast<QTableView*>(parentWidget()->parentWidget());
+        QAbstractItemDelegate* delegate = view->itemDelegateForColumn(1);
+        delegate->editorEvent(event, view->model(), {}, m_index);
+    }
     event->ignore();
 }
 

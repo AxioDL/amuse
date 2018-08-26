@@ -229,7 +229,17 @@ public:
 };
 
 PageObjectDelegate::PageObjectDelegate(QObject* parent)
-: QStyledItemDelegate(parent) {}
+: BaseObjectDelegate(parent) {}
+
+ProjectModel::INode* PageObjectDelegate::getNode(const QAbstractItemModel* __model, const QModelIndex& index) const
+{
+    const PageModel* model = static_cast<const PageModel*>(__model);
+    auto entry = model->m_sorted[index.row()];
+    if (entry->second.objId.id.id == 0xffff)
+        return nullptr;
+    ProjectModel::GroupNode* group = g_MainWindow->projectModel()->getGroupNode(model->m_node.get());
+    return group->pageObjectNodeOfId(entry->second.objId.id);
+}
 
 QWidget* PageObjectDelegate::createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const
 {
@@ -242,12 +252,8 @@ QWidget* PageObjectDelegate::createEditor(QWidget* parent, const QStyleOptionVie
 
 void PageObjectDelegate::setEditorData(QWidget* editor, const QModelIndex& index) const
 {
-    const PageModel* model = static_cast<const PageModel*>(index.model());
-    auto entry = model->m_sorted[index.row()];
-    ProjectModel::GroupNode* group = g_MainWindow->projectModel()->getGroupNode(model->m_node.get());
-    ProjectModel::BasePoolObjectNode* node = group->pageObjectNodeOfId(entry->second.objId.id);
     int idx = 0;
-    if (node)
+    if (ProjectModel::BasePoolObjectNode* node = static_cast<ProjectModel::BasePoolObjectNode*>(getNode(index.model(), index)))
         idx = g_MainWindow->projectModel()->getPageObjectProxy()->mapFromSource(g_MainWindow->projectModel()->index(node)).row();
     static_cast<EditorFieldPageObjectNode*>(editor)->setCurrentIndex(idx);
     if (static_cast<EditorFieldPageObjectNode*>(editor)->shouldPopupOpen())
@@ -316,6 +322,14 @@ QWidget* MIDIFileDelegate::createEditor(QWidget* parent, const QStyleOptionViewI
     return field;
 }
 
+void MIDIFileDelegate::destroyEditor(QWidget *editor, const QModelIndex &index) const
+{
+    QTableView* table = static_cast<QTableView*>(editor->parentWidget()->parentWidget());
+    editor->deleteLater();
+    emit const_cast<QAbstractItemModel*>(index.model())->dataChanged(index, index);
+    table->setCurrentIndex(index);
+}
+
 void MIDIFileDelegate::setEditorData(QWidget* editor, const QModelIndex& index) const
 {
     MIDIFileFieldWidget* widget = static_cast<MIDIFileFieldWidget*>(editor);
@@ -337,6 +351,152 @@ void MIDIFileDelegate::setModelData(QWidget* editor, QAbstractItemModel* m, cons
     g_MainWindow->pushUndoCommand(new SongMIDIPathChangeUndoCommand(model->m_node.get(),
         tr("Change MIDI Path"), entry->first, widget->path()));
     emit m->dataChanged(index, index);
+}
+
+bool MIDIFileDelegate::editorEvent(QEvent* event, QAbstractItemModel* model,
+                                   const QStyleOptionViewItem& option, const QModelIndex& index)
+{
+    if (event->type() == QEvent::MouseButtonPress)
+    {
+        QMouseEvent* ev = static_cast<QMouseEvent*>(event);
+        if (ev->button() == Qt::RightButton)
+        {
+            QString path = index.data().toString();
+            if (path.isEmpty())
+                return false;
+
+            ContextMenu* menu = new ContextMenu;
+
+            QAction* midiAction = new QAction(tr("Save As MIDI"), menu);
+            midiAction->setData(path);
+            midiAction->setIcon(QIcon::fromTheme(QStringLiteral("file-save")));
+            connect(midiAction, SIGNAL(triggered()), this, SLOT(doExportMIDI()));
+            menu->addAction(midiAction);
+
+            QAction* sngAction = new QAction(tr("Save As SNG"), menu);
+            sngAction->setData(path);
+            sngAction->setIcon(QIcon::fromTheme(QStringLiteral("file-save")));
+            connect(sngAction, SIGNAL(triggered()), this, SLOT(doExportSNG()));
+            menu->addAction(sngAction);
+
+            menu->popup(ev->globalPos());
+        }
+    }
+    return false;
+}
+
+void MIDIFileDelegate::doExportMIDI()
+{
+    QAction* act = static_cast<QAction*>(sender());
+    QString path = act->data().toString();
+    if (path.isEmpty())
+        return;
+
+    QString inPath = g_MainWindow->projectModel()->dir().absoluteFilePath(path);
+    std::vector<uint8_t> data;
+    {
+        QFile fi(inPath);
+        if (!fi.open(QFile::ReadOnly))
+        {
+            g_MainWindow->uiMessenger().critical(tr("File Error"),
+                tr("Unable to open %1 for reading: %1").arg(inPath).arg(fi.errorString()));
+            return;
+        }
+        auto d = fi.readAll();
+        data.resize(d.size());
+        memcpy(&data[0], d.data(), d.size());
+    }
+
+    if (!memcmp(data.data(), "MThd", 4))
+    {
+        //data = amuse::SongConverter::MIDIToSong(data, 1, true);
+    }
+    else
+    {
+        bool isBig;
+        if (amuse::SongState::DetectVersion(data.data(), isBig) < 0)
+        {
+            g_MainWindow->uiMessenger().critical(tr("File Error"),
+                tr("Invalid song data at %1").arg(inPath));
+            return;
+        }
+        int version;
+        data = amuse::SongConverter::SongToMIDI(data.data(), version, isBig);
+    }
+
+    QFileInfo inInfo(inPath);
+    QString outPath =
+        QFileDialog::getSaveFileName(g_MainWindow, tr("Export MIDI"),
+        QFileInfo(inInfo.path(), inInfo.completeBaseName() + QStringLiteral(".mid")).filePath(), tr("MIDI(*.mid)"));
+    if (outPath.isEmpty())
+        return;
+    QFile fo(outPath);
+    if (!fo.open(QFile::WriteOnly))
+    {
+        g_MainWindow->uiMessenger().critical(tr("File Error"),
+            tr("Unable to open %1 for writing: %1").arg(outPath).arg(fo.errorString()));
+        return;
+    }
+    fo.write((char*)data.data(), data.size());
+}
+
+void MIDIFileDelegate::doExportSNG()
+{
+    QAction* act = static_cast<QAction*>(sender());
+    QString path = act->data().toString();
+    if (path.isEmpty())
+        return;
+
+    QString inPath = g_MainWindow->projectModel()->dir().absoluteFilePath(path);
+    std::vector<uint8_t> data;
+    {
+        QFile fi(inPath);
+        if (!fi.open(QFile::ReadOnly))
+        {
+            g_MainWindow->uiMessenger().critical(tr("File Error"),
+                tr("Unable to open %1 for reading: %1").arg(inPath).arg(fi.errorString()));
+            return;
+        }
+        auto d = fi.readAll();
+        data.resize(d.size());
+        memcpy(&data[0], d.data(), d.size());
+    }
+
+    if (!memcmp(data.data(), "MThd", 4))
+    {
+        data = amuse::SongConverter::MIDIToSong(data, 1, true);
+        if (data.empty())
+        {
+            g_MainWindow->uiMessenger().critical(tr("File Error"),
+                tr("Invalid MIDI data at %1").arg(inPath));
+            return;
+        }
+    }
+    else
+    {
+        bool isBig;
+        if (amuse::SongState::DetectVersion(data.data(), isBig) < 0)
+        {
+            g_MainWindow->uiMessenger().critical(tr("File Error"),
+                tr("Invalid song data at %1").arg(inPath));
+            return;
+        }
+    }
+
+    QFileInfo inInfo(inPath);
+    QString outPath =
+        QFileDialog::getSaveFileName(g_MainWindow, tr("Export SNG"),
+        QFileInfo(inInfo.path(), inInfo.completeBaseName() + QStringLiteral(".sng")).filePath(), tr("Song(*.sng)"));
+    if (outPath.isEmpty())
+        return;
+    QFile fo(outPath);
+    if (!fo.open(QFile::WriteOnly))
+    {
+        g_MainWindow->uiMessenger().critical(tr("File Error"),
+            tr("Unable to open %1 for writing: %1").arg(outPath).arg(fo.errorString()));
+        return;
+    }
+    fo.write((char*)data.data(), data.size());
 }
 
 void MIDIFileDelegate::pathChanged()
@@ -1210,12 +1370,24 @@ void MIDIPlayerWidget::stopped()
 
 void MIDIPlayerWidget::resizeEvent(QResizeEvent* event)
 {
-    m_button.setGeometry(event->size().width() - event->size().height(), 0, event->size().height(), event->size().height());
+    m_button.setGeometry(event->size().width() - event->size().height(), 0,
+                         event->size().height(), event->size().height());
 }
 
 void MIDIPlayerWidget::mouseDoubleClickEvent(QMouseEvent* event)
 {
     qobject_cast<QTableView*>(parentWidget()->parentWidget())->setIndexWidget(m_index, nullptr);
+    event->ignore();
+}
+
+void MIDIPlayerWidget::mousePressEvent(QMouseEvent* event)
+{
+    if (event->button() == Qt::RightButton)
+    {
+        QTableView* view = qobject_cast<QTableView*>(parentWidget()->parentWidget());
+        QAbstractItemDelegate* delegate = view->itemDelegateForColumn(1);
+        delegate->editorEvent(event, view->model(), {}, m_index);
+    }
     event->ignore();
 }
 
@@ -1406,6 +1578,11 @@ void SongGroupEditor::setupDataChanged()
     {
         QString path = g_MainWindow->projectModel()->getMIDIPathOfSong(p.m_it->first);
         QModelIndex index = m_setupList.index(idx, 1);
+        if (m_setupTable->m_listView->isPersistentEditorOpen(index))
+        {
+            ++idx;
+            continue;
+        }
         if (path.isEmpty())
         {
             m_setupTable->m_listView->setIndexWidget(index, nullptr);

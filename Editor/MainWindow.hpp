@@ -79,6 +79,8 @@ public:
                      const QStyleOptionViewItem &option,
                      const QModelIndex &index);
 public slots:
+    void doExportGroup();
+    void doFindUsages();
     void doCut();
     void doCopy();
     void doPaste();
@@ -104,7 +106,6 @@ class MainWindow : public QMainWindow
     TreeDelegate m_treeDelegate;
     UIMessenger m_mainMessenger;
     ProjectModel* m_projectModel = nullptr;
-    QSortFilterProxyModel m_filterProjectModel;
     QWidget* m_faceSvg;
     SongGroupEditor* m_songGroupEditor = nullptr;
     SoundGroupEditor* m_soundGroupEditor = nullptr;
@@ -201,6 +202,7 @@ public:
     void setItemNewEnabled(bool enabled);
     AmuseItemEditFlags outlineEditFlags();
     bool isUiDisabled() const { return m_uiDisabled; }
+    void findUsages(ProjectModel::INode* node);
 
 public slots:
     void newAction();

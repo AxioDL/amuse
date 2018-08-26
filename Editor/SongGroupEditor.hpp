@@ -4,7 +4,6 @@
 #include "EditorWidget.hpp"
 #include <QTabWidget>
 #include <QAbstractTableModel>
-#include <QStyledItemDelegate>
 #include <QTableView>
 #include <QToolButton>
 #include <QAction>
@@ -16,9 +15,11 @@
 #include <QProxyStyle>
 #include "amuse/Sequencer.hpp"
 
-class PageObjectDelegate : public QStyledItemDelegate
+class PageObjectDelegate : public BaseObjectDelegate
 {
     Q_OBJECT
+protected:
+    ProjectModel::INode* getNode(const QAbstractItemModel* model, const QModelIndex& index) const;
 public:
     explicit PageObjectDelegate(QObject* parent = Q_NULLPTR);
     QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const;
@@ -51,8 +52,14 @@ class MIDIFileDelegate : public QStyledItemDelegate
 public:
     explicit MIDIFileDelegate(QObject* parent = Q_NULLPTR);
     QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const;
+    void destroyEditor(QWidget *editor, const QModelIndex &index) const;
     void setEditorData(QWidget* editor, const QModelIndex& index) const;
     void setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const;
+    bool editorEvent(QEvent *event, QAbstractItemModel *model,
+                     const QStyleOptionViewItem &option, const QModelIndex &index);
+private slots:
+    void doExportMIDI();
+    void doExportSNG();
 public slots:
     void pathChanged();
 };
@@ -239,6 +246,8 @@ public:
     void stopped();
     void resizeEvent(QResizeEvent* event);
     void mouseDoubleClickEvent(QMouseEvent* event);
+    void mousePressEvent(QMouseEvent* event);
+    void mouseReleaseEvent(QMouseEvent* event) { event->ignore(); }
 public slots:
     void clicked();
 };

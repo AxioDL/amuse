@@ -16,6 +16,165 @@ QIcon ProjectModel::GroupNode::Icon;
 QIcon ProjectModel::SongGroupNode::Icon;
 QIcon ProjectModel::SoundGroupNode::Icon;
 
+OutlineFilterProxyModel::OutlineFilterProxyModel(ProjectModel* source)
+: QSortFilterProxyModel(source), m_usageKey({}, Qt::CaseInsensitive)
+{
+    setSourceModel(source);
+    setRecursiveFilteringEnabled(true);
+    setFilterCaseSensitivity(Qt::CaseInsensitive);
+}
+
+void OutlineFilterProxyModel::setFilterRegExp(const QString& pattern)
+{
+    if (pattern.startsWith(QStringLiteral("usages:")))
+    {
+        m_usageKey.setPattern(pattern.mid(7));
+        QSortFilterProxyModel::setFilterRegExp(QString());
+    }
+    else
+    {
+        m_usageKey.setPattern(QString());
+        QSortFilterProxyModel::setFilterRegExp(pattern);
+    }
+}
+
+static void VisitObjectFields(ProjectModel::SongGroupNode* n,
+    const std::function<bool(amuse::ObjectId, amuse::NameDB*)>& func)
+{
+    for (const auto& p : n->m_index->m_normPages)
+        if (!func(p.second.objId.id, nullptr))
+            return;
+    for (const auto& p : n->m_index->m_drumPages)
+        if (!func(p.second.objId.id, nullptr))
+            return;
+}
+
+static void VisitObjectFields(ProjectModel::SoundGroupNode* n,
+    const std::function<bool(amuse::ObjectId, amuse::NameDB*)>& func)
+{
+    for (const auto& p : n->m_index->m_sfxEntries)
+        if (!func(p.second.objId.id, nullptr))
+            return;
+}
+
+static void VisitObjectFields(ProjectModel::SoundMacroNode* n,
+    const std::function<bool(amuse::ObjectId, amuse::NameDB*)>& func)
+{
+    for (const auto& p : n->m_obj->m_cmds)
+    {
+        const amuse::SoundMacro::CmdIntrospection* in = amuse::SoundMacro::GetCmdIntrospection(p->Isa());
+        if (!in)
+            continue;
+        for (int i = 0; i < 7; ++i)
+        {
+            const auto& field = in->m_fields[i];
+            if (field.m_name.empty())
+                break;
+            switch (field.m_tp)
+            {
+            case amuse::SoundMacro::CmdIntrospection::Field::Type::SoundMacroId:
+                if (!func(amuse::AccessField<amuse::SoundMacroIdDNA<athena::Little>>(p.get(), field).id, amuse::SoundMacroId::CurNameDB))
+                    return;
+                break;
+            case amuse::SoundMacro::CmdIntrospection::Field::Type::TableId:
+                if (!func(amuse::AccessField<amuse::TableIdDNA<athena::Little>>(p.get(), field).id, amuse::TableId::CurNameDB))
+                    return;
+                break;
+            case amuse::SoundMacro::CmdIntrospection::Field::Type::SampleId:
+                if (!func(amuse::AccessField<amuse::SampleIdDNA<athena::Little>>(p.get(), field).id, amuse::SampleId::CurNameDB))
+                    return;
+                break;
+            default:
+                break;
+            }
+        }
+    }
+}
+
+static void VisitObjectFields(ProjectModel::KeymapNode* n,
+    const std::function<bool(amuse::ObjectId, amuse::NameDB*)>& func)
+{
+    for (const auto& p : *n->m_obj)
+        if (!func(p.macro.id, amuse::SoundMacroId::CurNameDB))
+            return;
+}
+
+static void VisitObjectFields(ProjectModel::LayersNode* n,
+    const std::function<bool(amuse::ObjectId, amuse::NameDB*)>& func)
+{
+    for (const auto& p : *n->m_obj)
+        if (!func(p.macro.id, amuse::SoundMacroId::CurNameDB))
+            return;
+}
+
+bool OutlineFilterProxyModel::filterAcceptsRow(int sourceRow, const QModelIndex& sourceParent) const
+{
+    if (m_usageKey.pattern().isEmpty())
+        return QSortFilterProxyModel::filterAcceptsRow(sourceRow, sourceParent);
+
+    ProjectModel* model = static_cast<ProjectModel*>(sourceModel());
+    ProjectModel::INode* node = model->node(model->index(sourceRow, 0, sourceParent));
+    ProjectModel::GroupNode* gn = model->getGroupNode(node);
+    if (!gn)
+        return true;
+    model->setIdDatabases(gn);
+
+    bool foundMatch = false;
+    auto visitor = [this, &foundMatch](amuse::ObjectId id, amuse::NameDB* db)
+    {
+        if (id.id == 0xffff)
+            return true;
+
+        std::string_view name;
+        if (!db)
+        {
+            if (id.id & 0x8000)
+                name = amuse::LayersId::CurNameDB->resolveNameFromId(id);
+            else if (id.id & 0x4000)
+                name = amuse::KeymapId::CurNameDB->resolveNameFromId(id);
+            else
+                name = amuse::SoundMacroId::CurNameDB->resolveNameFromId(id);
+        }
+        else
+        {
+            auto search = db->m_idToString.find(id);
+            if (search != db->m_idToString.cend())
+                name = search->second;
+        }
+
+        if (!name.empty() && QString::fromUtf8(name.data(), int(name.length())).contains(m_usageKey))
+        {
+            foundMatch = true;
+            return false;
+        }
+
+        return true;
+    };
+
+    switch (node->type())
+    {
+    case ProjectModel::INode::Type::SongGroup:
+        VisitObjectFields(static_cast<ProjectModel::SongGroupNode*>(node), visitor);
+        break;
+    case ProjectModel::INode::Type::SoundGroup:
+        VisitObjectFields(static_cast<ProjectModel::SoundGroupNode*>(node), visitor);
+        break;
+    case ProjectModel::INode::Type::SoundMacro:
+        VisitObjectFields(static_cast<ProjectModel::SoundMacroNode*>(node), visitor);
+        break;
+    case ProjectModel::INode::Type::Keymap:
+        VisitObjectFields(static_cast<ProjectModel::KeymapNode*>(node), visitor);
+        break;
+    case ProjectModel::INode::Type::Layer:
+        VisitObjectFields(static_cast<ProjectModel::LayersNode*>(node), visitor);
+        break;
+    default:
+        break;
+    }
+
+    return foundMatch;
+}
+
 NullItemProxyModel::NullItemProxyModel(ProjectModel* source)
 : QIdentityProxyModel(source)
 {
@@ -407,7 +566,7 @@ ProjectModel::BasePoolObjectNode* ProjectModel::CollectionNode::nodeOfId(amuse::
 }
 
 ProjectModel::ProjectModel(const QString& path, QObject* parent)
-: QAbstractItemModel(parent), m_dir(path), m_nullProxy(this), m_pageObjectProxy(this)
+: QAbstractItemModel(parent), m_dir(path), m_outlineProxy(this), m_nullProxy(this), m_pageObjectProxy(this)
 {
     m_root = amuse::MakeObj<RootNode>();
 

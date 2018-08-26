@@ -315,7 +315,7 @@ inline T ClampFull(float in)
 {    
     if (std::is_floating_point<T>())
     {
-        return std::min<T>(std::max<T>(in, -1.f), 1.f);
+        return in;
     }
     else
     {

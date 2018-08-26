@@ -12,6 +12,8 @@
 #include <QAction>
 #include <QPushButton>
 #include <QLabel>
+#include <QMenu>
+#include <QStyledItemDelegate>
 #include "ProjectModel.hpp"
 
 class EditorWidget : public QWidget
@@ -223,6 +225,30 @@ public:
     explicit ListingDeleteButton(QWidget* parent = Q_NULLPTR);
     void enterEvent(QEvent* event);
     void leaveEvent(QEvent* event);
+};
+
+class ContextMenu : public QMenu
+{
+public:
+    void hideEvent(QHideEvent* ev)
+    {
+        QMenu::hideEvent(ev);
+        deleteLater();
+    }
+};
+
+class BaseObjectDelegate : public QStyledItemDelegate
+{
+    Q_OBJECT
+protected:
+    virtual ProjectModel::INode* getNode(const QAbstractItemModel* model, const QModelIndex& index) const = 0;
+public:
+    explicit BaseObjectDelegate(QObject* parent = Q_NULLPTR) : QStyledItemDelegate(parent) {}
+    bool editorEvent(QEvent *event, QAbstractItemModel *model,
+                     const QStyleOptionViewItem &option, const QModelIndex &index);
+private slots:
+    void doOpenEditor();
+    void doFindUsages();
 };
 
 #endif //AMUSE_EDITOR_WIDGET_HPP

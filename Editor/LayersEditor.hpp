@@ -8,9 +8,11 @@
 #include <QToolButton>
 #include <QStyledItemDelegate>
 
-class SoundMacroDelegate : public QStyledItemDelegate
+class SoundMacroDelegate : public BaseObjectDelegate
 {
     Q_OBJECT
+protected:
+    ProjectModel::INode* getNode(const QAbstractItemModel* model, const QModelIndex& index) const;
 public:
     explicit SoundMacroDelegate(QObject* parent = Q_NULLPTR);
     QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const;

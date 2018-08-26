@@ -6,9 +6,11 @@
 #include <QTableView>
 #include "amuse/Voice.hpp"
 
-class SFXObjectDelegate : public QStyledItemDelegate
+class SFXObjectDelegate : public BaseObjectDelegate
 {
     Q_OBJECT
+protected:
+    ProjectModel::INode* getNode(const QAbstractItemModel* model, const QModelIndex& index) const;
 public:
     explicit SFXObjectDelegate(QObject* parent = Q_NULLPTR);
     QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const;
@@ -98,6 +100,8 @@ public:
     void stopped();
     void resizeEvent(QResizeEvent* event);
     void mouseDoubleClickEvent(QMouseEvent* event);
+    void mousePressEvent(QMouseEvent* event);
+    void mouseReleaseEvent(QMouseEvent* event) { event->ignore(); }
 public slots:
     void clicked();
 };

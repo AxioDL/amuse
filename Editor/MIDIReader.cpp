@@ -7,7 +7,10 @@ MIDIReader::MIDIReader(amuse::Engine& engine, bool useLock)
 void MIDIReader::noteOff(uint8_t chan, uint8_t key, uint8_t velocity)
 {
     if (g_MainWindow->m_interactiveSeq)
+    {
         g_MainWindow->m_interactiveSeq->keyOff(chan, key, velocity);
+        return;
+    }
 
     auto keySearch = m_chanVoxs.find(key);
     if (keySearch == m_chanVoxs.cend())
@@ -23,7 +26,10 @@ void MIDIReader::noteOff(uint8_t chan, uint8_t key, uint8_t velocity)
 void MIDIReader::noteOn(uint8_t chan, uint8_t key, uint8_t velocity)
 {
     if (g_MainWindow->m_interactiveSeq)
+    {
         g_MainWindow->m_interactiveSeq->keyOn(chan, key, velocity);
+        return;
+    }
 
     if (m_lastVoice && m_lastVoice->isDestroyed())
         m_lastVoice.reset();
@@ -65,7 +71,10 @@ void MIDIReader::notePressure(uint8_t /*chan*/, uint8_t /*key*/, uint8_t /*press
 void MIDIReader::controlChange(uint8_t chan, uint8_t control, uint8_t value)
 {
     if (g_MainWindow->m_interactiveSeq)
+    {
         g_MainWindow->m_interactiveSeq->setCtrlValue(chan, control, value);
+        return;
+    }
 
     if (control == 1)
     {
@@ -103,7 +112,10 @@ void MIDIReader::pitchBend(uint8_t chan, int16_t pitch)
 void MIDIReader::allSoundOff(uint8_t chan)
 {
     if (g_MainWindow->m_interactiveSeq)
+    {
         g_MainWindow->m_interactiveSeq->kill();
+        return;
+    }
 
     for (auto& v : m_engine.getActiveVoices())
         v->kill();
@@ -116,7 +128,10 @@ void MIDIReader::localControl(uint8_t /*chan*/, bool /*on*/) {}
 void MIDIReader::allNotesOff(uint8_t chan)
 {
     if (g_MainWindow->m_interactiveSeq)
+    {
         g_MainWindow->m_interactiveSeq->kill();
+        return;
+    }
 
     for (auto& v : m_engine.getActiveVoices())
         v->kill();

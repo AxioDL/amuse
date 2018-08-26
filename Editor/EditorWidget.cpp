@@ -278,3 +278,47 @@ ListingDeleteButton::ListingDeleteButton(QWidget* parent)
     setToolTip(tr("Delete this SoundMacro"));
     setIcon(ListingDeleteIcon);
 }
+
+bool BaseObjectDelegate::editorEvent(QEvent *event, QAbstractItemModel* model,
+                                     const QStyleOptionViewItem &option, const QModelIndex &index)
+{
+    if (event->type() == QEvent::MouseButtonPress)
+    {
+        QMouseEvent* ev = static_cast<QMouseEvent*>(event);
+        if (ev->button() == Qt::RightButton)
+        {
+            ProjectModel::INode* node = getNode(model, index);
+
+            ContextMenu* menu = new ContextMenu;
+
+            QAction* openEditorAction = new QAction(tr("Open in Editor"), menu);
+            openEditorAction->setData(QVariant::fromValue((void*)node));
+            openEditorAction->setIcon(QIcon::fromTheme(QStringLiteral("document-edit")));
+            connect(openEditorAction, SIGNAL(triggered()), this, SLOT(doOpenEditor()));
+            menu->addAction(openEditorAction);
+
+            QAction* findUsagesAction = new QAction(tr("Find Usages"), menu);
+            findUsagesAction->setData(QVariant::fromValue((void*)node));
+            findUsagesAction->setIcon(QIcon::fromTheme(QStringLiteral("edit-find")));
+            connect(findUsagesAction, SIGNAL(triggered()), this, SLOT(doFindUsages()));
+            menu->addAction(findUsagesAction);
+
+            menu->popup(ev->globalPos());
+        }
+    }
+    return false;
+}
+
+void BaseObjectDelegate::doOpenEditor()
+{
+    QAction* act = static_cast<QAction*>(sender());
+    if (ProjectModel::INode* node = reinterpret_cast<ProjectModel::INode*>(act->data().value<void*>()))
+        g_MainWindow->openEditor(node);
+}
+
+void BaseObjectDelegate::doFindUsages()
+{
+    QAction* act = static_cast<QAction*>(sender());
+    if (ProjectModel::INode* node = reinterpret_cast<ProjectModel::INode*>(act->data().value<void*>()))
+        g_MainWindow->findUsages(node);
+}

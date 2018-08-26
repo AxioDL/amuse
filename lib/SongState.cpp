@@ -520,6 +520,8 @@ bool SongState::Track::advance(Sequencer& seq, int32_t ticks)
                 uint16_t length = (m_parent->m_bigEndian ? SBig(*reinterpret_cast<const uint16_t*>(m_data + 2))
                                                         : *reinterpret_cast<const uint16_t*>(m_data + 2));
                 seq.keyOn(m_midiChan, note, vel);
+                if (length == 0)
+                    seq.keyOff(m_midiChan, note, 0);
                 m_remNoteLengths[note] = length;
                 m_data += 4;
             }
@@ -559,6 +561,8 @@ bool SongState::Track::advance(Sequencer& seq, int32_t ticks)
                     uint8_t note = m_data[2] & 0x7f;
                     uint8_t vel = m_data[3] & 0x7f;
                     seq.keyOn(m_midiChan, note, vel);
+                    if (length == 0)
+                        seq.keyOff(m_midiChan, note, 0);
                     m_remNoteLengths[note] = length;
                 }
                 else if (m_data[2] & 0x80 && m_data[3] & 0x80)

@@ -3,6 +3,7 @@
 
 #include <QAbstractItemModel>
 #include <QIdentityProxyModel>
+#include <QSortFilterProxyModel>
 #include <QDir>
 #include <QIcon>
 #include <map>
@@ -26,6 +27,17 @@ enum AmuseItemEditFlags
     AmuseItemDelete = 8,
     AmuseItemNoCut  = (AmuseItemCopy | AmuseItemPaste | AmuseItemDelete),
     AmuseItemAll    = (AmuseItemCut | AmuseItemCopy | AmuseItemPaste | AmuseItemDelete)
+};
+
+class OutlineFilterProxyModel : public QSortFilterProxyModel
+{
+    Q_OBJECT
+    QRegExp m_usageKey;
+public:
+    explicit OutlineFilterProxyModel(ProjectModel* source);
+public slots:
+    void setFilterRegExp(const QString &pattern);
+    bool filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const;
 };
 
 class NullItemProxyModel : public QIdentityProxyModel
@@ -82,6 +94,7 @@ public:
 
 private:
     QDir m_dir;
+    OutlineFilterProxyModel m_outlineProxy;
     NullItemProxyModel m_nullProxy;
     PageObjectProxyModel m_pageObjectProxy;
 
@@ -484,6 +497,7 @@ public:
 
     const QDir& dir() const { return m_dir; }
     QString path() const { return m_dir.path(); }
+    OutlineFilterProxyModel* getOutlineProxy() { return &m_outlineProxy; }
     NullItemProxyModel* getNullProxy() { return &m_nullProxy; }
     PageObjectProxyModel* getPageObjectProxy() { return &m_pageObjectProxy; }
 

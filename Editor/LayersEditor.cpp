@@ -98,7 +98,16 @@ public:
 };
 
 SoundMacroDelegate::SoundMacroDelegate(QObject* parent)
-: QStyledItemDelegate(parent) {}
+: BaseObjectDelegate(parent) {}
+
+ProjectModel::INode* SoundMacroDelegate::getNode(const QAbstractItemModel* __model, const QModelIndex& index) const
+{
+    const LayersModel* model = static_cast<const LayersModel*>(__model);
+    const amuse::LayerMapping& layer = (*model->m_node->m_obj)[index.row()];
+    ProjectModel::GroupNode* group = g_MainWindow->projectModel()->getGroupNode(model->m_node.get());
+    ProjectModel::CollectionNode* smColl = group->getCollectionOfType(ProjectModel::INode::Type::SoundMacro);
+    return smColl->nodeOfId(layer.macro.id);
+}
 
 QWidget* SoundMacroDelegate::createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const
 {
