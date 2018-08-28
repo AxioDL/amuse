@@ -30,7 +30,11 @@ bool Copy(const SystemChar* from, const SystemChar* to)
     struct stat theStat;
     if (::stat(from, &theStat))
         return true;
+#if __APPLE__
+    struct timespec times[] = { theStat.st_atimespec, theStat.st_mtimespec };
+#else
     struct timespec times[] = { theStat.st_atim, theStat.st_mtim };
+#endif
     utimensat(AT_FDCWD, to, times, 0);
     return true;
 #endif
@@ -399,13 +403,20 @@ void NameDB::rename(ObjectId id, std::string_view str)
     auto search = m_idToString.find(id);
     if (search == m_idToString.cend())
         return;
+    if (search->second == str)
+        return;
     auto search2 = m_stringToId.find(search->second);
     if (search2 == m_stringToId.cend())
         return;
+#if __APPLE__
+    std::swap(m_stringToId[std::string(str)], search2->second);
+    m_stringToId.erase(search2);
+#else
     auto nh = m_stringToId.extract(search2);
     nh.key() = str;
     m_stringToId.insert(std::move(nh));
-    m_idToString[id] = str;
+#endif
+    search->second = str;
 }
 
 template<>

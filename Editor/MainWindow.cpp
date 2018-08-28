@@ -190,6 +190,20 @@ void MainWindow::connectMessenger(UIMessenger* messenger, Qt::ConnectionType typ
                            const QString&, QMessageBox::StandardButtons,
                            QMessageBox::StandardButton)), type);
     connect(messenger, SIGNAL(question(const QString&,
+                              const QString&,
+                              const QString&,
+                              const QString&,
+                              const QString&,
+                              int,
+                              int)),
+            this, SLOT(msgQuestion(const QString&,
+                             const QString&,
+                             const QString&,
+                             const QString&,
+                             const QString&,
+                             int,
+                             int)), type);
+    connect(messenger, SIGNAL(question(const QString&,
                                   const QString&, QMessageBox::StandardButtons,
                                   QMessageBox::StandardButton)),
             this, SLOT(msgQuestion(const QString&,
@@ -256,13 +270,13 @@ bool MainWindow::setProjectPath(const QString& path)
     if (dir.path().isEmpty() || dir.path() == QStringLiteral(".") || dir.path() == QStringLiteral(".."))
     {
         QString msg = QString(tr("The directory at '%1' must not be empty.")).arg(path);
-        QMessageBox::critical(this, tr("Directory empty"), msg);
+        m_mainMessenger.critical(tr("Directory empty"), msg);
         return false;
     }
     else if (!dir.exists())
     {
         QString msg = QString(tr("The directory at '%1' must exist for the Amuse editor.")).arg(path);
-        QMessageBox::critical(this, tr("Directory does not exist"), msg);
+        m_mainMessenger.critical(tr("Directory does not exist"), msg);
         return false;
     }
     QString testWritePath = dir.filePath(tr("__amuse_test__"));
@@ -272,7 +286,7 @@ bool MainWindow::setProjectPath(const QString& path)
 
         QString msg = QString(tr("The directory at '%1' must be writable for the Amuse editor: %2")).arg(path).
             arg(testWriteFile.errorString());
-        QMessageBox::critical(this, tr("Unable to write to directory"), msg);
+        m_mainMessenger.critical(tr("Unable to write to directory"), msg);
         return false;
     }
     testWriteFile.remove();
@@ -385,10 +399,13 @@ void MainWindow::timerEvent(QTimerEvent* ev)
     if (m_voxEngine && m_engine)
     {
         m_voxEngine->pumpAndMixVoices();
-        m_ui.statusbar->setVoiceCount(int(m_engine->getNumTotalActiveVoices()));
+        if (!(m_timerFireCount % 10)) /* Rate limit voice counter */
+            m_ui.statusbar->setVoiceCount(int(m_engine->getNumTotalActiveVoices()));
         if (m_engine->getActiveVoices().empty() && m_uiDisabled)
         {
             m_ui.projectOutline->setEnabled(true);
+            m_ui.backButton->setEnabled(true);
+            m_ui.forwardButton->setEnabled(true);
             if (EditorWidget* w = getEditorWidget())
                 w->setEditorEnabled(true);
             m_ui.menubar->setEnabled(true);
@@ -397,6 +414,8 @@ void MainWindow::timerEvent(QTimerEvent* ev)
         else if (!m_engine->getActiveVoices().empty() && !m_uiDisabled)
         {
             m_ui.projectOutline->setEnabled(false);
+            m_ui.backButton->setEnabled(false);
+            m_ui.forwardButton->setEnabled(false);
             if (EditorWidget* w = getEditorWidget())
                 w->setEditorEnabled(false);
             m_ui.menubar->setEnabled(false);
@@ -425,6 +444,8 @@ void MainWindow::timerEvent(QTimerEvent* ev)
                 sfxTable->indexWidget(sfxTable->model()->index(i, 1))))
                 if (player->voice() && player->voice()->state() != amuse::VoiceState::Playing)
                     player->stopped();
+
+        ++m_timerFireCount;
     }
 }
 
@@ -740,7 +761,7 @@ void MainWindow::closeEvent(QCloseEvent* ev)
     if (!m_undoStack->isClean())
     {
         QDir dir(m_projectModel->path());
-        int result = QMessageBox::question(this, tr("Unsaved Changes"), tr("Save Changes in %1?").arg(dir.dirName()),
+        int result = m_mainMessenger.question(tr("Unsaved Changes"), tr("Save Changes in %1?").arg(dir.dirName()),
                      QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Save);
         if (result == QMessageBox::Save)
         {
@@ -789,13 +810,13 @@ bool MainWindow::openProject(const QString& path)
     if (dir.path().isEmpty() || dir.path() == QStringLiteral(".") || dir.path() == QStringLiteral(".."))
     {
         QString msg = QString(tr("The directory at '%1' must not be empty.")).arg(path);
-        QMessageBox::critical(this, tr("Directory empty"), msg);
+        m_mainMessenger.critical(tr("Directory empty"), msg);
         return false;
     }
     else if (!dir.exists())
     {
         QString msg = QString(tr("The directory at '%1' does not exist.")).arg(path);
-        QMessageBox::critical(this, tr("Bad Directory"), msg);
+        m_mainMessenger.critical(tr("Bad Directory"), msg);
         return false;
     }
 
@@ -935,12 +956,12 @@ void MainWindow::importAction()
     if (tp == amuse::ContainerRegistry::Type::Invalid)
     {
         QString msg = QString(tr("The file at '%1' could not be interpreted as a MusyX container.")).arg(path);
-        QMessageBox::critical(this, tr("Unsupported MusyX Container"), msg);
+        m_mainMessenger.critical(tr("Unsupported MusyX Container"), msg);
         return;
     }
 
     /* Ask user about sample conversion */
-    int impMode = QMessageBox::question(this, tr("Sample Import Mode"),
+    int impMode = m_mainMessenger.question(tr("Sample Import Mode"),
         tr("Amuse can import samples as WAV files for ease of editing, "
            "import original compressed data for lossless repacking, or both. "
            "Exporting the project will prefer whichever version was modified "
@@ -961,9 +982,9 @@ void MainWindow::importAction()
     /* Special handling for raw groups - gather sibling groups in filesystem */
     if (tp == amuse::ContainerRegistry::Type::Raw4)
     {
-        int scanMode = QMessageBox::question(this, tr("Raw Import Mode"),
-                                             tr("Would you like to scan for all MusyX group files in this directory?"),
-                                             QMessageBox::Yes, QMessageBox::No);
+        int scanMode = m_mainMessenger.question(tr("Raw Import Mode"),
+                       tr("Would you like to scan for all MusyX group files in this directory?"),
+                       QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
         if (scanMode == QMessageBox::Yes)
         {
             /* Auto-create project */
@@ -1616,9 +1637,9 @@ void MainWindow::aboutAmuseAction()
     oldMsgBox = msgBox;
 #if 0
     // ### doesn't work until close button is enabled in title bar
-    msgBox->d_func()->autoAddOkButton = false;
+    //msgBox->d_func()->autoAddOkButton = false;
 #else
-    msgBox->d_func()->buttonBox->setCenterButtons(true);
+    //msgBox->d_func()->buttonBox->setCenterButtons(true);
 #endif
     msgBox->show();
 #else
@@ -1903,13 +1924,14 @@ void MainWindow::onBackgroundTaskFinished(int id)
         if (m_mainMessenger.question(tr("Export Complete"), tr("%1?").
             arg(ShowInGraphicalShellString())) == QMessageBox::Yes)
         {
-            QFileInfo dirInfo(m_projectModel->dir(), QStringLiteral("out"));
+            QFileInfo
+            dirInfo(m_projectModel->dir(), QStringLiteral("out"));
             QDir dir(dirInfo.filePath());
             QStringList entryList = dir.entryList(QDir::Files);
-            ShowInGraphicalShell(this, entryList.empty() ? dirInfo.filePath() : QFileInfo(dir, entryList.first()).filePath());
+            ShowInGraphicalShell(this,
+                                 entryList.empty() ? dirInfo.filePath() : QFileInfo(dir, entryList.first()).filePath());
         }
-    }
-    else
+    } else
     {
         bool hasGroups = m_projectModel->ensureModelData();
         m_ui.actionImport_Groups->setDisabled(hasGroups);
@@ -1919,30 +1941,97 @@ void MainWindow::onBackgroundTaskFinished(int id)
     setEnabled(true);
 }
 
+static int ShowOldMessageBox(QWidget *parent, QMessageBox::Icon icon,
+                             const QString &title, const QString &text,
+                             const QString &button0Text,
+                             const QString &button1Text,
+                             const QString &button2Text,
+                             int defaultButtonNumber,
+                             int escapeButtonNumber)
+{
+    QMessageBox messageBox(icon, title, text, QMessageBox::NoButton, parent);
+    messageBox.setWindowModality(Qt::WindowModal);
+    QString myButton0Text = button0Text;
+    if (myButton0Text.isEmpty())
+        myButton0Text = QDialogButtonBox::tr("OK");
+    messageBox.addButton(myButton0Text, QMessageBox::ActionRole);
+    if (!button1Text.isEmpty())
+        messageBox.addButton(button1Text, QMessageBox::ActionRole);
+    if (!button2Text.isEmpty())
+        messageBox.addButton(button2Text, QMessageBox::ActionRole);
+
+    const QList<QAbstractButton *> &buttonList = messageBox.buttons();
+    messageBox.setDefaultButton(static_cast<QPushButton *>(buttonList.value(defaultButtonNumber)));
+    messageBox.setEscapeButton(buttonList.value(escapeButtonNumber));
+
+    return messageBox.exec();
+}
+
+static QMessageBox::StandardButton ShowNewMessageBox(QWidget *parent,
+       QMessageBox::Icon icon, const QString& title, const QString& text,
+       QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton)
+{
+    QMessageBox msgBox(icon, title, text, QMessageBox::NoButton, parent);
+    msgBox.setWindowModality(Qt::WindowModal);
+    QDialogButtonBox *buttonBox = msgBox.findChild<QDialogButtonBox*>();
+    Q_ASSERT(buttonBox != 0);
+
+    uint mask = QMessageBox::FirstButton;
+    while (mask <= QMessageBox::LastButton) {
+        uint sb = buttons & mask;
+        mask <<= 1;
+        if (!sb)
+            continue;
+        QPushButton *button = msgBox.addButton((QMessageBox::StandardButton)sb);
+        // Choose the first accept role as the default
+        if (msgBox.defaultButton())
+            continue;
+        if ((defaultButton == QMessageBox::NoButton && buttonBox->buttonRole(button) == QDialogButtonBox::AcceptRole)
+            || (defaultButton != QMessageBox::NoButton && sb == uint(defaultButton)))
+            msgBox.setDefaultButton(button);
+    }
+    if (msgBox.exec() == -1)
+        return QMessageBox::Cancel;
+    return msgBox.standardButton(msgBox.clickedButton());
+}
+
 QMessageBox::StandardButton MainWindow::msgInformation(const QString &title,
     const QString &text, QMessageBox::StandardButtons buttons,
     QMessageBox::StandardButton defaultButton)
 {
-    return QMessageBox::information(this, title, text, buttons, defaultButton);
+    return ShowNewMessageBox(this, QMessageBox::Information, title, text, buttons, defaultButton);
+}
+
+int MainWindow::msgQuestion(const QString &title,
+                            const QString& text,
+                            const QString& button0Text,
+                            const QString& button1Text,
+                            const QString& button2Text,
+                            int defaultButtonNumber,
+                            int escapeButtonNumber)
+{
+    return ShowOldMessageBox(this, QMessageBox::Question, title, text,
+                             button0Text, button1Text, button2Text,
+                             defaultButtonNumber, escapeButtonNumber);
 }
 
 QMessageBox::StandardButton MainWindow::msgQuestion(const QString &title,
     const QString &text, QMessageBox::StandardButtons buttons,
     QMessageBox::StandardButton defaultButton)
 {
-    return QMessageBox::question(this, title, text, buttons, defaultButton);
+    return ShowNewMessageBox(this, QMessageBox::Question, title, text, buttons, defaultButton);
 }
 
 QMessageBox::StandardButton MainWindow::msgWarning(const QString &title,
     const QString &text, QMessageBox::StandardButtons buttons,
     QMessageBox::StandardButton defaultButton)
 {
-    return QMessageBox::warning(this, title, text, buttons, defaultButton);
+    return ShowNewMessageBox(this, QMessageBox::Warning, title, text, buttons, defaultButton);
 }
 
 QMessageBox::StandardButton MainWindow::msgCritical(const QString &title,
     const QString &text, QMessageBox::StandardButtons buttons,
     QMessageBox::StandardButton defaultButton)
 {
-    return QMessageBox::critical(this, title, text, buttons, defaultButton);
+    return ShowNewMessageBox(this, QMessageBox::Critical, title, text, buttons, defaultButton);
 }

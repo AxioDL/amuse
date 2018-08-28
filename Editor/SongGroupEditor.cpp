@@ -24,10 +24,18 @@ public:
         {
         case 0:
         {
+            if (m_prog == m_undoVal)
+                break;
+#if __APPLE__
+            auto search = map.find(m_prog);
+            std::swap(map[m_undoVal], search->second);
+            map.erase(search);
+#else
             auto nh = map.extract(m_prog);
             nh.key() = m_undoVal;
-            m_prog = m_undoVal;
             map.insert(std::move(nh));
+#endif
+            m_prog = m_undoVal;
             break;
         }
         case 1:
@@ -55,11 +63,19 @@ public:
         {
         case 0:
         {
-            auto nh = map.extract(m_prog);
             m_undoVal = m_prog;
+            if (m_prog == m_redoVal)
+                break;
+#if __APPLE__
+            auto search = map.find(m_prog);
+            std::swap(map[m_redoVal], search->second);
+            map.erase(search);
+#else
+            auto nh = map.extract(m_prog);
             nh.key() = m_redoVal;
-            m_prog = m_redoVal;
             map.insert(std::move(nh));
+#endif
+            m_prog = m_redoVal;
             break;
         }
         case 1:
@@ -178,10 +194,19 @@ public:
 
         amuse::SongId newId = g_MainWindow->projectModel()->exchangeSongId(m_song, m_undoVal);
 
-        auto nh = map.extract(m_song);
-        nh.key() = newId;
-        m_song = newId;
-        map.insert(std::move(nh));
+        if (m_song != newId)
+        {
+#if __APPLE__
+            auto search = map.find(m_song);
+            std::swap(map[newId], search->second);
+            map.erase(search);
+#else
+            auto nh = map.extract(m_song);
+            nh.key() = newId;
+            map.insert(std::move(nh));
+#endif
+            m_song = newId;
+        }
 
         EditorUndoCommand::undo();
     }
@@ -194,10 +219,19 @@ public:
         m_undoVal = amuse::SongId::CurNameDB->resolveNameFromId(m_song);
         amuse::SongId newId = g_MainWindow->projectModel()->exchangeSongId(m_song, m_redoVal);
 
-        auto nh = map.extract(m_song);
-        nh.key() = newId;
-        m_song = newId;
-        map.insert(std::move(nh));
+        if (m_song != newId)
+        {
+#if __APPLE__
+            auto search = map.find(m_song);
+            std::swap(map[newId], search->second);
+            map.erase(search);
+#else
+            auto nh = map.extract(m_song);
+            nh.key() = newId;
+            map.insert(std::move(nh));
+#endif
+            m_song = newId;
+        }
 
         if (m_undid)
             EditorUndoCommand::redo();
@@ -622,7 +656,7 @@ bool PageModel::setData(const QModelIndex& index, const QVariant& value, int rol
             return false;
         if (map.find(prog) != map.cend())
         {
-            QMessageBox::critical(g_MainWindow, tr("Program Conflict"),
+            g_MainWindow->uiMessenger().critical(tr("Program Conflict"),
                 tr("Program %1 is already defined in table").arg(value.toInt()));
             return false;
         }
@@ -895,8 +929,8 @@ bool SetupListModel::setData(const QModelIndex& index, const QVariant& value, in
     {
         if (idIt->second == entry->first)
             return false;
-        QMessageBox::critical(g_MainWindow, tr("Song Conflict"),
-                              tr("Song %1 is already defined in project").arg(value.toString()));
+        g_MainWindow->uiMessenger().critical(tr("Song Conflict"),
+            tr("Song %1 is already defined in project").arg(value.toString()));
         return false;
     }
     emit layoutAboutToBeChanged();

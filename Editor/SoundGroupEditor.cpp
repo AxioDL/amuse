@@ -300,8 +300,8 @@ bool SFXModel::setData(const QModelIndex& index, const QVariant& value, int role
         {
             if (idIt->second == entry->first)
                 return false;
-            QMessageBox::critical(g_MainWindow, tr("SFX Conflict"),
-                                  tr("SFX %1 is already defined in project").arg(value.toString()));
+            g_MainWindow->uiMessenger().critical(tr("SFX Conflict"),
+                tr("SFX %1 is already defined in project").arg(value.toString()));
             return false;
         }
         emit layoutAboutToBeChanged();

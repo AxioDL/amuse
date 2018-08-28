@@ -18,6 +18,13 @@ signals:
     QMessageBox::StandardButton information(const QString &title,
             const QString &text, QMessageBox::StandardButtons buttons = QMessageBox::Ok,
             QMessageBox::StandardButton defaultButton = QMessageBox::NoButton);
+    int question(const QString &title,
+                 const QString& text,
+                 const QString& button0Text,
+                 const QString& button1Text = QString(),
+                 const QString& button2Text = QString(),
+                 int defaultButtonNumber = 0,
+                 int escapeButtonNumber = -1);
     QMessageBox::StandardButton question(const QString &title,
             const QString &text, QMessageBox::StandardButtons buttons =
                 QMessageBox::StandardButtons(QMessageBox::Yes | QMessageBox::No),

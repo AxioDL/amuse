@@ -142,6 +142,8 @@ class MainWindow : public QMainWindow
     QProgressDialog* m_backgroundDialog = nullptr;
     QThread m_backgroundThread;
 
+    uint64_t m_timerFireCount = 0;
+
     void connectMessenger(UIMessenger* messenger, Qt::ConnectionType type);
 
     void updateWindowTitle();
@@ -271,6 +273,13 @@ public slots:
     QMessageBox::StandardButton msgInformation(const QString &title,
         const QString &text, QMessageBox::StandardButtons buttons = QMessageBox::Ok,
         QMessageBox::StandardButton defaultButton = QMessageBox::NoButton);
+    int msgQuestion(const QString &title,
+                    const QString& text,
+                    const QString& button0Text,
+                    const QString& button1Text = QString(),
+                    const QString& button2Text = QString(),
+                    int defaultButtonNumber = 0,
+                    int escapeButtonNumber = -1);
     QMessageBox::StandardButton msgQuestion(const QString &title,
         const QString &text, QMessageBox::StandardButtons buttons =
     QMessageBox::StandardButtons(QMessageBox::Yes | QMessageBox::No),

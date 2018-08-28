@@ -10,6 +10,7 @@
 #include <string_view>
 #include <cstring>
 #include <atomic>
+#include <unordered_map>
 #include "athena/DNA.hpp"
 
 #ifndef _WIN32

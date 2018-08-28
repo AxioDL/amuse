@@ -513,7 +513,11 @@ static void SetAudioFileTime(const SystemString& path, const Sstat& stat)
     __utimbuf64 times = { stat.st_atime, stat.st_mtime };
     _wutime64(path.c_str(), &times);
 #else
+#if __APPLE__
+    struct timespec times[] = { stat.st_atimespec, stat.st_mtimespec };
+#else
     struct timespec times[] = { stat.st_atim, stat.st_mtim };
+#endif
     utimensat(AT_FDCWD, path.c_str(), times, 0);
 #endif
 }
