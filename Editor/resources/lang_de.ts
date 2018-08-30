@@ -245,17 +245,17 @@
 <context>
     <name>LayersEditor</name>
     <message>
-        <location filename="../LayersEditor.cpp" line="639"/>
+        <location filename="../LayersEditor.cpp" line="648"/>
         <source>Add Layer</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../LayersEditor.cpp" line="665"/>
+        <location filename="../LayersEditor.cpp" line="678"/>
         <source>Add new layer mapping</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../LayersEditor.cpp" line="667"/>
+        <location filename="../LayersEditor.cpp" line="680"/>
         <source>Remove selected layer mappings</source>
         <translation type="unfinished"></translation>
     </message>
@@ -321,12 +321,12 @@
 <context>
     <name>LayersTableView</name>
     <message>
-        <location filename="../LayersEditor.cpp" line="561"/>
+        <location filename="../LayersEditor.cpp" line="560"/>
         <source>Delete Layers</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../LayersEditor.cpp" line="561"/>
+        <location filename="../LayersEditor.cpp" line="560"/>
         <source>Delete Layer</source>
         <translation type="unfinished"></translation>
     </message>
@@ -427,13 +427,13 @@
 <context>
     <name>MIDIPlayerWidget</name>
     <message>
-        <location filename="../SongGroupEditor.cpp" line="1405"/>
+        <location filename="../SongGroupEditor.cpp" line="1400"/>
         <source>Stop</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SongGroupEditor.cpp" line="1419"/>
-        <location filename="../SongGroupEditor.cpp" line="1454"/>
+        <location filename="../SongGroupEditor.cpp" line="1414"/>
+        <location filename="../SongGroupEditor.cpp" line="1449"/>
         <source>Play</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1138,27 +1138,27 @@
     </message>
     <message>
         <location filename="../SongGroupEditor.cpp" line="683"/>
-        <location filename="../SongGroupEditor.cpp" line="709"/>
+        <location filename="../SongGroupEditor.cpp" line="708"/>
         <source>Change %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SongGroupEditor.cpp" line="723"/>
+        <location filename="../SongGroupEditor.cpp" line="722"/>
         <source>Program</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SongGroupEditor.cpp" line="725"/>
+        <location filename="../SongGroupEditor.cpp" line="724"/>
         <source>Object</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SongGroupEditor.cpp" line="727"/>
+        <location filename="../SongGroupEditor.cpp" line="726"/>
         <source>Priority</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SongGroupEditor.cpp" line="729"/>
+        <location filename="../SongGroupEditor.cpp" line="728"/>
         <source>Max Voices</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1192,12 +1192,12 @@
 <context>
     <name>PageTableView</name>
     <message>
-        <location filename="../SongGroupEditor.cpp" line="1262"/>
+        <location filename="../SongGroupEditor.cpp" line="1257"/>
         <source>Delete Page Entries</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SongGroupEditor.cpp" line="1262"/>
+        <location filename="../SongGroupEditor.cpp" line="1257"/>
         <source>Delete Page Entry</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1588,47 +1588,47 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundGroupEditor.cpp" line="309"/>
+        <location filename="../SoundGroupEditor.cpp" line="310"/>
         <source>Change SFX Name</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundGroupEditor.cpp" line="342"/>
+        <location filename="../SoundGroupEditor.cpp" line="343"/>
         <source>Change %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundGroupEditor.cpp" line="356"/>
+        <location filename="../SoundGroupEditor.cpp" line="357"/>
         <source>SFX</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundGroupEditor.cpp" line="358"/>
+        <location filename="../SoundGroupEditor.cpp" line="359"/>
         <source>Object</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundGroupEditor.cpp" line="360"/>
+        <location filename="../SoundGroupEditor.cpp" line="361"/>
         <source>Priority</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundGroupEditor.cpp" line="362"/>
+        <location filename="../SoundGroupEditor.cpp" line="363"/>
         <source>Max Voices</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundGroupEditor.cpp" line="364"/>
+        <location filename="../SoundGroupEditor.cpp" line="365"/>
         <source>Velocity</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundGroupEditor.cpp" line="366"/>
+        <location filename="../SoundGroupEditor.cpp" line="367"/>
         <source>Panning</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundGroupEditor.cpp" line="368"/>
+        <location filename="../SoundGroupEditor.cpp" line="369"/>
         <source>Key</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1644,13 +1644,13 @@
 <context>
     <name>SFXPlayerWidget</name>
     <message>
-        <location filename="../SoundGroupEditor.cpp" line="550"/>
+        <location filename="../SoundGroupEditor.cpp" line="549"/>
         <source>Stop</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundGroupEditor.cpp" line="564"/>
-        <location filename="../SoundGroupEditor.cpp" line="598"/>
+        <location filename="../SoundGroupEditor.cpp" line="563"/>
+        <location filename="../SoundGroupEditor.cpp" line="597"/>
         <source>Play</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1658,12 +1658,12 @@
 <context>
     <name>SFXTableView</name>
     <message>
-        <location filename="../SoundGroupEditor.cpp" line="504"/>
+        <location filename="../SoundGroupEditor.cpp" line="503"/>
         <source>Delete SFX Entries</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundGroupEditor.cpp" line="504"/>
+        <location filename="../SoundGroupEditor.cpp" line="503"/>
         <source>Delete SFX Entry</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1742,27 +1742,27 @@
 <context>
     <name>SetupListModel</name>
     <message>
-        <location filename="../SongGroupEditor.cpp" line="949"/>
+        <location filename="../SongGroupEditor.cpp" line="946"/>
         <source>Song Conflict</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SongGroupEditor.cpp" line="950"/>
+        <location filename="../SongGroupEditor.cpp" line="947"/>
         <source>Song %1 is already defined in project</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SongGroupEditor.cpp" line="955"/>
+        <location filename="../SongGroupEditor.cpp" line="952"/>
         <source>Change Song Name</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SongGroupEditor.cpp" line="972"/>
+        <location filename="../SongGroupEditor.cpp" line="969"/>
         <source>Song</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SongGroupEditor.cpp" line="974"/>
+        <location filename="../SongGroupEditor.cpp" line="971"/>
         <source>MIDI File</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1770,32 +1770,32 @@
 <context>
     <name>SetupModel</name>
     <message>
-        <location filename="../SongGroupEditor.cpp" line="1197"/>
+        <location filename="../SongGroupEditor.cpp" line="1192"/>
         <source>Change %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SongGroupEditor.cpp" line="1214"/>
+        <location filename="../SongGroupEditor.cpp" line="1209"/>
         <source>Program</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SongGroupEditor.cpp" line="1216"/>
+        <location filename="../SongGroupEditor.cpp" line="1211"/>
         <source>Volume</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SongGroupEditor.cpp" line="1218"/>
+        <location filename="../SongGroupEditor.cpp" line="1213"/>
         <source>Panning</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SongGroupEditor.cpp" line="1220"/>
+        <location filename="../SongGroupEditor.cpp" line="1215"/>
         <source>Reverb</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SongGroupEditor.cpp" line="1222"/>
+        <location filename="../SongGroupEditor.cpp" line="1217"/>
         <source>Chorus</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1803,12 +1803,12 @@
 <context>
     <name>SetupTableView</name>
     <message>
-        <location filename="../SongGroupEditor.cpp" line="1327"/>
+        <location filename="../SongGroupEditor.cpp" line="1322"/>
         <source>Delete Setup Entries</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SongGroupEditor.cpp" line="1327"/>
+        <location filename="../SongGroupEditor.cpp" line="1322"/>
         <source>Delete Setup Entry</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1816,37 +1816,37 @@
 <context>
     <name>SongGroupEditor</name>
     <message>
-        <location filename="../SongGroupEditor.cpp" line="1525"/>
+        <location filename="../SongGroupEditor.cpp" line="1520"/>
         <source>Add Page Entry</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SongGroupEditor.cpp" line="1537"/>
+        <location filename="../SongGroupEditor.cpp" line="1532"/>
         <source>Add Setup Entry</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SongGroupEditor.cpp" line="1686"/>
+        <location filename="../SongGroupEditor.cpp" line="1713"/>
         <source>Normal Pages</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SongGroupEditor.cpp" line="1687"/>
+        <location filename="../SongGroupEditor.cpp" line="1714"/>
         <source>Drum Pages</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SongGroupEditor.cpp" line="1688"/>
+        <location filename="../SongGroupEditor.cpp" line="1715"/>
         <source>MIDI Setups</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SongGroupEditor.cpp" line="1717"/>
+        <location filename="../SongGroupEditor.cpp" line="1756"/>
         <source>Add new page entry</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SongGroupEditor.cpp" line="1719"/>
+        <location filename="../SongGroupEditor.cpp" line="1758"/>
         <source>Remove selected page entries</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1854,17 +1854,17 @@
 <context>
     <name>SoundGroupEditor</name>
     <message>
-        <location filename="../SoundGroupEditor.cpp" line="641"/>
+        <location filename="../SoundGroupEditor.cpp" line="640"/>
         <source>Add SFX Entry</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundGroupEditor.cpp" line="689"/>
+        <location filename="../SoundGroupEditor.cpp" line="700"/>
         <source>Add new SFX entry</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundGroupEditor.cpp" line="691"/>
+        <location filename="../SoundGroupEditor.cpp" line="702"/>
         <source>Remove selected SFX entries</source>
         <translation type="unfinished"></translation>
     </message>

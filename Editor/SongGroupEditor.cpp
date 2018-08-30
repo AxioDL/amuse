@@ -677,15 +677,14 @@ bool PageModel::setData(const QModelIndex& index, const QVariant& value, int rol
                 tr("Program %1 is already defined in table").arg(value.toInt()));
             return false;
         }
-        emit layoutAboutToBeChanged();
-
+        int newIdx = _hypotheticalIndexOfProgram(prog);
+        bool moving = beginMoveRows(index.parent(), index.row(), index.row(), index.parent(), newIdx);
         g_MainWindow->pushUndoCommand(new PageDataChangeUndoCommand(m_node.get(),
-            tr("Change %1").arg(headerData(0, Qt::Horizontal).toString()), m_drum, entry->first, 0, value.toInt()));
-
+            tr("Change %1").arg(headerData(0, Qt::Horizontal).toString()), m_drum, entry->first, 0, prog));
         _buildSortedList();
-        QModelIndex newIndex = _indexOfProgram(value.toInt());
-        changePersistentIndex(index, newIndex);
-        emit layoutChanged();
+        if (moving)
+            endMoveRows();
+        QModelIndex newIndex = _indexOfProgram(prog);
         emit dataChanged(newIndex, newIndex);
         return true;
     }
@@ -755,9 +754,7 @@ protected:
         for (const auto& p : m_data)
         {
             int row = static_cast<PageModel*>(m_view->model())->_insertRow(p);
-            m_view->selectionModel()->select(QItemSelection(
-                m_view->model()->index(row, 0), m_view->model()->index(row, 3)),
-                                       QItemSelectionModel::SelectCurrent);
+            m_view->setCurrentIndex(m_view->model()->index(row, 0));
         }
     }
     void del()
@@ -950,13 +947,13 @@ bool SetupListModel::setData(const QModelIndex& index, const QVariant& value, in
             tr("Song %1 is already defined in project").arg(value.toString()));
         return false;
     }
-    emit layoutAboutToBeChanged();
+    bool moving = beginMoveRows(index.parent(), index.row(), index.row(), index.parent(), _hypotheticalIndexOfSong(utf8key.data()));
     g_MainWindow->pushUndoCommand(new SongNameChangeUndoCommand(m_node.get(),
         tr("Change Song Name"), entry.m_it->first, utf8key.data()));
     _buildSortedList();
+    if (moving)
+        endMoveRows();
     QModelIndex newIndex = _indexOfSong(entry.m_it->first);
-    changePersistentIndex(index, newIndex);
-    emit layoutChanged();
     emit dataChanged(newIndex, newIndex, {Qt::DisplayRole, Qt::EditRole});
 
     return true;
@@ -999,9 +996,7 @@ protected:
         for (auto& p : m_data)
         {
             int row = static_cast<SetupListModel*>(m_view->m_listView->model())->_insertRow(p);
-            listView->selectionModel()->select(QItemSelection(
-                listView->model()->index(row, 0), listView->model()->index(row, 1)),
-                                             QItemSelectionModel::SelectCurrent);
+            listView->setCurrentIndex(listView->model()->index(row, 0));
         }
     }
     void del()
@@ -1060,7 +1055,7 @@ int SetupListModel::_insertRow(
     if (std::get<0>(data).id == 0xffff)
         std::get<0>(data) = amuse::SongId::CurNameDB->generateId(amuse::NameDB::Type::Song);
 
-    g_MainWindow->projectModel()->_allocateSongId(std::get<0>(data), std::get<1>(data));
+    g_MainWindow->projectModel()->allocateSongId(std::get<0>(data), std::get<1>(data));
     int idx = _hypotheticalIndexOfSong(std::get<1>(data));
     beginInsertRows(QModelIndex(), idx, idx);
     map[std::get<0>(data)] = std::get<2>(data);
@@ -1255,7 +1250,7 @@ void PageTableView::deleteSelection()
     std::vector<std::pair<uint8_t, amuse::SongGroupIndex::PageEntry>> data;
     data.reserve(list.size());
     for (QModelIndex idx : list)
-        data.push_back(std::make_pair(model()->data(idx).toInt(), amuse::SongGroupIndex::PageEntry{}));
+        data.push_back(std::make_pair(model()->data(idx).toInt() - 1, amuse::SongGroupIndex::PageEntry{}));
     std::sort(data.begin(), data.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
     g_MainWindow->pushUndoCommand(
         new PageRowDelUndoCommand(static_cast<PageModel*>(model())->m_node.get(),
@@ -1531,7 +1526,7 @@ void SongGroupEditor::doAdd()
         SetupListModel* model = static_cast<SetupListModel*>(table->m_listView->model());
         g_MainWindow->projectModel()->setIdDatabases(model->m_node.get());
         std::vector<std::tuple<amuse::SongId, std::string, std::array<amuse::SongGroupIndex::MIDISetup, 16>>> data;
-        auto songId = g_MainWindow->projectModel()->allocateSongId();
+        auto songId = g_MainWindow->projectModel()->bootstrapSongId();
         data.push_back(std::make_tuple(songId.first, songId.second, std::array<amuse::SongGroupIndex::MIDISetup, 16>{}));
         g_MainWindow->pushUndoCommand(
             new SetupRowAddUndoCommand(model->m_node.get(), tr("Add Setup Entry"), table, std::move(data)));
@@ -1575,7 +1570,39 @@ void SongGroupEditor::currentTabChanged(int idx)
     }
 }
 
-void SongGroupEditor::rowsAboutToBeRemoved(const QModelIndex &parent, int first, int last)
+void SongGroupEditor::normRowsInserted(const QModelIndex& parent, int first, int last)
+{
+    m_normTable->scrollTo(m_normTable->model()->index(first, 0));
+}
+
+void SongGroupEditor::normRowsMoved(const QModelIndex& parent, int start, int end, const QModelIndex& destination, int row)
+{
+    m_normTable->scrollTo(m_normTable->model()->index(row, 0));
+}
+
+void SongGroupEditor::drumRowsInserted(const QModelIndex& parent, int first, int last)
+{
+    m_drumTable->scrollTo(m_drumTable->model()->index(first, 0));
+}
+
+void SongGroupEditor::drumRowsMoved(const QModelIndex& parent, int start, int end, const QModelIndex& destination, int row)
+{
+    m_drumTable->scrollTo(m_drumTable->model()->index(row, 0));
+}
+
+void SongGroupEditor::setupRowsInserted(const QModelIndex& parent, int first, int last)
+{
+    m_setupTable->m_listView->scrollTo(m_setupTable->m_listView->model()->index(first, 0));
+    setupDataChanged();
+}
+
+void SongGroupEditor::setupRowsMoved(const QModelIndex& parent, int start, int end, const QModelIndex& destination, int row)
+{
+    m_setupTable->m_listView->scrollTo(m_setupTable->m_listView->model()->index(row, 0));
+    setupDataChanged();
+}
+
+void SongGroupEditor::setupRowsAboutToBeRemoved(const QModelIndex &parent, int first, int last)
 {
     for (int i = first; i <= last; ++i)
     {
@@ -1588,7 +1615,7 @@ void SongGroupEditor::rowsAboutToBeRemoved(const QModelIndex &parent, int first,
     }
 }
 
-void SongGroupEditor::modelAboutToBeReset()
+void SongGroupEditor::setupModelAboutToBeReset()
 {
     m_setup.unloadData();
 }
@@ -1699,12 +1726,24 @@ SongGroupEditor::SongGroupEditor(QWidget* parent)
     connect(m_setupTable->m_listView->selectionModel(), SIGNAL(selectionChanged(const QItemSelection&, const QItemSelection&)),
             this, SLOT(doSetupSelectionChanged()));
 
-    connect(&m_setupList, SIGNAL(rowsAboutToBeRemoved(const QModelIndex&, int, int)),
-            this, SLOT(rowsAboutToBeRemoved(const QModelIndex&, int, int)));
-    connect(&m_setupList, SIGNAL(modelAboutToBeReset()),
-            this, SLOT(modelAboutToBeReset()));
+    connect(&m_normPages, SIGNAL(rowsInserted(const QModelIndex&, int, int)),
+            this, SLOT(normRowsInserted(const QModelIndex&, int, int)));
+    connect(&m_normPages, SIGNAL(rowsMoved(const QModelIndex&, int, int, const QModelIndex&, int)),
+            this, SLOT(normRowsMoved(const QModelIndex&, int, int, const QModelIndex&, int)));
+
+    connect(&m_drumPages, SIGNAL(rowsInserted(const QModelIndex&, int, int)),
+            this, SLOT(drumRowsInserted(const QModelIndex&, int, int)));
+    connect(&m_drumPages, SIGNAL(rowsMoved(const QModelIndex&, int, int, const QModelIndex&, int)),
+            this, SLOT(drumRowsMoved(const QModelIndex&, int, int, const QModelIndex&, int)));
+
     connect(&m_setupList, SIGNAL(rowsInserted(const QModelIndex&, int, int)),
-            this, SLOT(setupDataChanged()));
+            this, SLOT(setupRowsInserted(const QModelIndex&, int, int)));
+    connect(&m_setupList, SIGNAL(rowsMoved(const QModelIndex&, int, int, const QModelIndex&, int)),
+            this, SLOT(setupRowsMoved(const QModelIndex&, int, int, const QModelIndex&, int)));
+    connect(&m_setupList, SIGNAL(rowsAboutToBeRemoved(const QModelIndex&, int, int)),
+            this, SLOT(setupRowsAboutToBeRemoved(const QModelIndex&, int, int)));
+    connect(&m_setupList, SIGNAL(modelAboutToBeReset()),
+            this, SLOT(setupModelAboutToBeReset()));
     connect(&m_setupList, SIGNAL(rowsRemoved(const QModelIndex&, int, int)),
             this, SLOT(setupDataChanged()));
     connect(&m_setupList, SIGNAL(dataChanged(const QModelIndex&, const QModelIndex&, const QVector<int>&)),

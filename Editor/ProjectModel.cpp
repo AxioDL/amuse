@@ -438,7 +438,7 @@ void ProjectModel::NameUndoRegistry::registerSongName(amuse::SongId id) const
 {
     auto search = m_songIDs.find(id);
     if (search != m_songIDs.cend())
-        g_MainWindow->projectModel()->_allocateSongId(id, search->second);
+        g_MainWindow->projectModel()->allocateSongId(id, search->second);
 }
 void ProjectModel::NameUndoRegistry::unregisterSongName(amuse::SongId id)
 {
@@ -1173,12 +1173,12 @@ void ProjectModel::_renameNode(INode* node, const QString& name)
     default:
         break;
     }
+    if (moving)
+        endMoveRows();
     QModelIndex idx = index(node);
     emit dataChanged(idx, idx, {Qt::DisplayRole, Qt::EditRole});
     if (g_MainWindow->getEditorNode() == node)
         g_MainWindow->updateWindowTitle();
-    if (moving)
-        endMoveRows();
 }
 
 bool ProjectModel::setData(const QModelIndex& index, const QVariant& value, int role)
@@ -2253,23 +2253,23 @@ void ProjectModel::setMIDIPathOfSong(amuse::SongId id, const QString& path)
     m_midiFiles[id].m_path = path;
 }
 
-void ProjectModel::_allocateSongId(amuse::SongId id, std::string_view name)
-{
-    m_projectDatabase.setIdDatabases();
-    amuse::SongId::CurNameDB->registerPair(name, id);
-    Song& song = m_midiFiles[id];
-    ++song.m_refCount;
-}
-
-std::pair<amuse::SongId, std::string> ProjectModel::allocateSongId()
+std::pair<amuse::SongId, std::string> ProjectModel::bootstrapSongId()
 {
     m_projectDatabase.setIdDatabases();
     std::pair<amuse::SongId, std::string> ret;
     ret.first = amuse::SongId::CurNameDB->generateId(amuse::NameDB::Type::Song);
     ret.second = amuse::SongId::CurNameDB->generateName(ret.first, amuse::NameDB::Type::Song);
     amuse::SongId::CurNameDB->registerPair(ret.second, ret.first);
-    m_midiFiles[ret.first] = {{}, 1};
+    m_midiFiles[ret.first] = {{}, 0};
     return ret;
+}
+
+void ProjectModel::allocateSongId(amuse::SongId id, std::string_view name)
+{
+    m_projectDatabase.setIdDatabases();
+    amuse::SongId::CurNameDB->registerPair(name, id);
+    Song& song = m_midiFiles[id];
+    ++song.m_refCount;
 }
 
 void ProjectModel::deallocateSongId(amuse::SongId oldId)

@@ -280,13 +280,19 @@ public:
     void resizeEvent(QResizeEvent* ev);
     QTableView* getSetupListView() const { return m_setupTable->m_listView; }
     AmuseItemEditFlags itemEditFlags() const;
-public slots:
+private slots:
     void doAdd();
     void doSelectionChanged();
     void doSetupSelectionChanged();
     void currentTabChanged(int idx);
-    void rowsAboutToBeRemoved(const QModelIndex &parent, int first, int last);
-    void modelAboutToBeReset();
+    void normRowsInserted(const QModelIndex& parent, int first, int last);
+    void normRowsMoved(const QModelIndex& parent, int start, int end, const QModelIndex& destination, int row);
+    void drumRowsInserted(const QModelIndex& parent, int first, int last);
+    void drumRowsMoved(const QModelIndex& parent, int start, int end, const QModelIndex& destination, int row);
+    void setupRowsInserted(const QModelIndex& parent, int first, int last);
+    void setupRowsMoved(const QModelIndex& parent, int start, int end, const QModelIndex& destination, int row);
+    void setupRowsAboutToBeRemoved(const QModelIndex &parent, int first, int last);
+    void setupModelAboutToBeReset();
     void setupDataChanged();
     void itemDeleteAction();
 };

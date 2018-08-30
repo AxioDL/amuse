@@ -81,7 +81,9 @@ public:
     ProjectModel::INode* currentNode() const;
     void resizeEvent(QResizeEvent* ev);
     AmuseItemEditFlags itemEditFlags() const;
-public slots:
+private slots:
+    void rowsInserted(const QModelIndex& parent, int first, int last);
+    void rowsMoved(const QModelIndex& parent, int start, int end, const QModelIndex& destination, int row);
     void doAdd();
     void doSelectionChanged();
     void itemDeleteAction();

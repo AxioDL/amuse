@@ -415,9 +415,7 @@ protected:
         for (const auto& p : m_data)
         {
             static_cast<LayersModel*>(m_view->model())->_insertRow(p.second, p.first);
-            m_view->selectionModel()->select(QItemSelection(
-                m_view->model()->index(p.second, 0), m_view->model()->index(p.second, 7)),
-                    QItemSelectionModel::SelectCurrent);
+            m_view->setCurrentIndex(m_view->model()->index(p.second, 0));
         }
     }
     void del()
@@ -481,7 +479,7 @@ bool LayersModel::moveRows(const QModelIndex& sourceParent, int sourceRow, int c
 {
     if (!m_node)
         return false;
-    beginMoveRows(sourceParent, sourceRow, sourceRow + count - 1, destinationParent, destinationChild);
+    bool moving = beginMoveRows(sourceParent, sourceRow, sourceRow + count - 1, destinationParent, destinationChild);
     std::vector<amuse::LayerMapping>& layers = *m_node->m_obj;
     if (destinationChild < sourceRow)
     {
@@ -505,7 +503,8 @@ bool LayersModel::moveRows(const QModelIndex& sourceParent, int sourceRow, int c
             layers[destinationChild - 1] = std::move(tmp);
         }
     }
-    endMoveRows();
+    if (moving)
+        endMoveRows();
     return true;
 }
 
@@ -627,6 +626,16 @@ void LayersEditor::resizeEvent(QResizeEvent* ev)
     m_addRemoveButtons.move(0, ev->size().height() - 32);
 }
 
+void LayersEditor::rowsInserted(const QModelIndex& parent, int first, int last)
+{
+    m_tableView.scrollTo(m_tableView.model()->index(first, 0));
+}
+
+void LayersEditor::rowsMoved(const QModelIndex& parent, int start, int end, const QModelIndex& destination, int row)
+{
+    m_tableView.scrollTo(m_tableView.model()->index(row, 0));
+}
+
 void LayersEditor::doAdd()
 {
     QModelIndex idx = m_tableView.selectionModel()->currentIndex();
@@ -661,6 +670,10 @@ LayersEditor::LayersEditor(QWidget* parent)
     m_tableView.setModel(&m_model);
     connect(m_tableView.selectionModel(), SIGNAL(selectionChanged(const QItemSelection&, const QItemSelection&)),
             this, SLOT(doSelectionChanged()));
+    connect(&m_model, SIGNAL(rowsInserted(const QModelIndex&, int, int)),
+            this, SLOT(rowsInserted(const QModelIndex&, int, int)));
+    connect(&m_model, SIGNAL(rowsMoved(const QModelIndex&, int, int, const QModelIndex&, int)),
+            this, SLOT(rowsMoved(const QModelIndex&, int, int, const QModelIndex&, int)));
 
     m_addRemoveButtons.addAction()->setToolTip(tr("Add new layer mapping"));
     connect(m_addRemoveButtons.addAction(), SIGNAL(triggered(bool)), this, SLOT(doAdd()));

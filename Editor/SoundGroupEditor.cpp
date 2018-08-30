@@ -304,13 +304,14 @@ bool SFXModel::setData(const QModelIndex& index, const QVariant& value, int role
                 tr("SFX %1 is already defined in project").arg(value.toString()));
             return false;
         }
-        emit layoutAboutToBeChanged();
+        int newIdx = _hypotheticalIndexOfSFX(utf8key.data());
+        bool moving = beginMoveRows(index.parent(), index.row(), index.row(), index.parent(), newIdx);
         g_MainWindow->pushUndoCommand(new SFXNameChangeUndoCommand(m_node.get(),
             tr("Change SFX Name"), entry->first, utf8key.data()));
         _buildSortedList();
+        if (moving)
+            endMoveRows();
         QModelIndex newIndex = _indexOfSFX(entry->first);
-        changePersistentIndex(index, newIndex);
-        emit layoutChanged();
         emit dataChanged(newIndex, newIndex, {Qt::DisplayRole, Qt::EditRole});
         return true;
     }
@@ -394,9 +395,7 @@ protected:
         for (auto& p : m_data)
         {
             int row = static_cast<SFXModel*>(m_view->model())->_insertRow(p);
-            m_view->selectionModel()->select(QItemSelection(
-                m_view->model()->index(row, 0), m_view->model()->index(row, 6)),
-                                               QItemSelectionModel::SelectCurrent);
+            m_view->setCurrentIndex(m_view->model()->index(row, 0));
         }
     }
     void del()
@@ -647,6 +646,18 @@ void SoundGroupEditor::doSelectionChanged()
     g_MainWindow->updateFocus();
 }
 
+void SoundGroupEditor::rowsInserted(const QModelIndex &parent, int first, int last)
+{
+    m_sfxTable->scrollTo(m_sfxTable->model()->index(first, 0));
+    sfxDataChanged();
+}
+
+void SoundGroupEditor::rowsMoved(const QModelIndex &parent, int start, int end, const QModelIndex &destination, int row)
+{
+    m_sfxTable->scrollTo(m_sfxTable->model()->index(row, 0));
+    sfxDataChanged();
+}
+
 void SoundGroupEditor::sfxDataChanged()
 {
     int idx = 0;
@@ -676,13 +687,13 @@ SoundGroupEditor::SoundGroupEditor(QWidget* parent)
             this, SLOT(doSelectionChanged()));
 
     connect(&m_sfxs, SIGNAL(rowsInserted(const QModelIndex&, int, int)),
-            this, SLOT(sfxDataChanged()));
+            this, SLOT(rowsInserted(const QModelIndex&, int, int)));
     connect(&m_sfxs, SIGNAL(rowsRemoved(const QModelIndex&, int, int)),
             this, SLOT(sfxDataChanged()));
     connect(&m_sfxs, SIGNAL(dataChanged(const QModelIndex&, const QModelIndex&, const QVector<int>&)),
             this, SLOT(sfxDataChanged()));
-    connect(&m_sfxs, SIGNAL(layoutChanged(const QList<QPersistentModelIndex>&, QAbstractItemModel::LayoutChangeHint)),
-            this, SLOT(sfxDataChanged()));
+    connect(&m_sfxs, SIGNAL(rowsMoved(const QModelIndex&, int, int, const QModelIndex&, int)),
+            this, SLOT(rowsMoved(const QModelIndex&, int, int, const QModelIndex&, int)));
     connect(&m_sfxs, SIGNAL(modelReset()),
             this, SLOT(sfxDataChanged()));
 

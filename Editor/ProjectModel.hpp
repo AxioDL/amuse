@@ -504,8 +504,8 @@ public:
     GroupNode* getGroupOfSfx(amuse::SFXId id) const;
     QString getMIDIPathOfSong(amuse::SongId id) const;
     void setMIDIPathOfSong(amuse::SongId id, const QString& path);
-    void _allocateSongId(amuse::SongId id, std::string_view name);
-    std::pair<amuse::SongId, std::string> allocateSongId();
+    std::pair<amuse::SongId, std::string> bootstrapSongId();
+    void allocateSongId(amuse::SongId id, std::string_view name);
     void deallocateSongId(amuse::SongId oldId);
     amuse::SongId exchangeSongId(amuse::SongId oldId, std::string_view newName);
 
