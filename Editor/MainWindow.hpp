@@ -188,6 +188,7 @@ public:
     void pushUndoCommand(EditorUndoCommand* cmd);
     void updateFocus();
     void aboutToDeleteNode(ProjectModel::INode* node);
+    bool askAboutSave();
     void closeEvent(QCloseEvent* ev);
     void showEvent(QShowEvent* ev);
 

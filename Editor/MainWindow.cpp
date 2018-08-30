@@ -613,6 +613,8 @@ bool MainWindow::openEditor(ProjectModel::SampleNode* node, bool appendNav)
 
 bool MainWindow::openEditor(ProjectModel::INode* node, bool appendNav)
 {
+    if (m_uiDisabled)
+        return false;
     switch (node->type())
     {
     case ProjectModel::INode::Type::SongGroup:
@@ -750,13 +752,10 @@ void MainWindow::aboutToDeleteNode(ProjectModel::INode* node)
         closeEditor();
 }
 
-void MainWindow::closeEvent(QCloseEvent* ev)
+bool MainWindow::askAboutSave()
 {
     if (!m_projectModel)
-    {
-        ev->accept();
-        return;
-    }
+        return true;
 
     if (!m_undoStack->isClean())
     {
@@ -766,21 +765,22 @@ void MainWindow::closeEvent(QCloseEvent* ev)
         if (result == QMessageBox::Save)
         {
             saveAction();
-            ev->accept();
+            return true;
         }
-        else if (result == QMessageBox::Discard)
-        {
-            ev->accept();
-        }
-        else
-        {
-            ev->ignore();
-        }
+        return result == QMessageBox::Discard;
     }
     else
     {
-        ev->accept();
+        return true;
     }
+}
+
+void MainWindow::closeEvent(QCloseEvent* ev)
+{
+    if (askAboutSave())
+        ev->accept();
+    else
+        ev->ignore();
 }
 
 void MainWindow::showEvent(QShowEvent* ev)
@@ -790,6 +790,9 @@ void MainWindow::showEvent(QShowEvent* ev)
 
 void MainWindow::newAction()
 {
+    if (!askAboutSave())
+        return;
+
     QString path = QFileDialog::getSaveFileName(this, tr("New Project"));
     if (path.isEmpty())
         return;
@@ -858,6 +861,9 @@ bool MainWindow::openProject(const QString& path)
 
 void MainWindow::openAction()
 {
+    if (!askAboutSave())
+        return;
+
     QString path = QFileDialog::getExistingDirectory(this, tr("Open Project"));
     if (path.isEmpty())
         return;
@@ -866,6 +872,9 @@ void MainWindow::openAction()
 
 void MainWindow::openRecentFileAction()
 {
+    if (!askAboutSave())
+        return;
+
     if (QAction *action = qobject_cast<QAction *>(sender()))
         if (!openProject(action->data().toString()))
         {
@@ -898,6 +907,15 @@ void MainWindow::saveAction()
 
 void MainWindow::revertAction()
 {
+    if (m_projectModel && !m_undoStack->isClean())
+    {
+        QDir dir(m_projectModel->path());
+        int result = m_mainMessenger.question(tr("Unsaved Changes"), tr("Discard Changes in %1?").arg(dir.dirName()),
+                     QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Cancel);
+        if (result == QMessageBox::Cancel)
+            return;
+    }
+
     QString path = m_projectModel->path();
     closeEditor();
     m_undoStack->clear();

@@ -185,10 +185,8 @@ void ADSRView::mousePressEvent(QMouseEvent* ev)
         PointDistance(ev->localPos(), points[2])
     };
 
-    QPointF testPos = ev->localPos();
-
     int minDist = 0;
-    if (dists[1] < dists[minDist])
+    if (dists[1] < dists[minDist] + 8.0) /* pt1 overlaps pt0, so include radius in test */
         minDist = 1;
     if (dists[2] < dists[minDist])
         minDist = 2;

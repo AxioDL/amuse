@@ -1261,6 +1261,7 @@ void PageTableView::setModel(QAbstractItemModel* model)
 PageTableView::PageTableView(QWidget* parent)
 : QTableView(parent)
 {
+    setObjectName("amusetable");
     setSelectionBehavior(QAbstractItemView::SelectRows);
     setSelectionMode(QAbstractItemView::ExtendedSelection);
     setGridStyle(Qt::NoPen);

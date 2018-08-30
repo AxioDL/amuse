@@ -1275,6 +1275,7 @@ protected:
         m_data = g_MainWindow->projectModel()->_delNode(static_cast<ProjectModel::GroupNode*>(m_node.get()), m_nameReg);
         setObsolete(true);
         g_MainWindow->m_undoStack->clear();
+        g_MainWindow->m_undoStack->resetClean();
     }
 public:
     explicit GroupNodeUndoCommand(const QString& text, std::unique_ptr<amuse::AudioGroupDatabase>&& data,
@@ -2172,6 +2173,7 @@ void ProjectModel::del(const QModelIndex& index)
         NameUndoRegistry nameReg;
         g_MainWindow->projectModel()->_delNode(static_cast<GroupNode*>(n), nameReg);
         g_MainWindow->m_undoStack->clear();
+        g_MainWindow->m_undoStack->resetClean();
         break;
     }
     case INode::Type::SongGroup:
@@ -2208,6 +2210,7 @@ void ProjectModel::del(const QModelIndex& index)
         gn->getAudioGroup()->deleteSample(static_cast<SampleNode*>(n)->id());
         _delPoolNode(static_cast<SampleNode*>(n), gn, nameReg, gn->getAudioGroup()->getSdir().sampleEntries());
         g_MainWindow->m_undoStack->clear();
+        g_MainWindow->m_undoStack->resetClean();
         break;
     }
     default:
