@@ -8,6 +8,7 @@
 #include <QStyledItemDelegate>
 #include <QSortFilterProxyModel>
 #include <QLinkedList>
+#include <QFileDialog>
 #include "ui_MainWindow.h"
 #include "amuse/Engine.hpp"
 #include "amuse/BooBackend.hpp"
@@ -116,6 +117,7 @@ class MainWindow : public QMainWindow
     LayersEditor* m_layersEditor = nullptr;
     SampleEditor* m_sampleEditor = nullptr;
     StudioSetupWidget* m_studioSetup = nullptr;
+    QFileDialog m_fileDialog;
 
     std::unique_ptr<boo::IAudioVoiceEngine> m_voxEngine;
     std::unique_ptr<VoiceAllocator> m_voxAllocator;
@@ -143,6 +145,7 @@ class MainWindow : public QMainWindow
     QThread m_backgroundThread;
 
     uint64_t m_timerFireCount = 0;
+    int m_peakVoices = 0;
 
     void connectMessenger(UIMessenger* messenger, Qt::ConnectionType type);
 
@@ -186,6 +189,7 @@ public:
     amuse::ObjToken<amuse::Sequencer> startSong(amuse::GroupId groupId, amuse::SongId songId,
                                                 const unsigned char* arrData);
     void pushUndoCommand(EditorUndoCommand* cmd);
+    QFileDialog& fileDialog() { return m_fileDialog; }
     void updateFocus();
     void aboutToDeleteNode(ProjectModel::INode* node);
     void closeEvent(QCloseEvent* ev);
@@ -208,17 +212,23 @@ public:
 
 public slots:
     void newAction();
+    void _newAction(const QString& path);
     void openAction();
+    void _openAction(const QString& path);
     void openRecentFileAction();
     void clearRecentFilesAction();
     void saveAction();
     void revertAction();
     void reloadSampleDataAction();
     void importAction();
+    void _importAction(const QString& path);
     void importSongsAction();
+    void _importSongsAction(const QString& path);
     void exportAction();
     void importHeadersAction();
+    void _importHeadersAction(const QString& path);
     void exportHeadersAction();
+    void _exportHeadersAction(const QString& path);
 
     void newSubprojectAction();
     void newSFXGroupAction();

@@ -347,6 +347,7 @@ MIDIFileFieldWidget::MIDIFileFieldWidget(QWidget* parent)
     connect(&m_button, SIGNAL(clicked(bool)), this, SLOT(buttonPressed()));
 
     m_dialog.setFileMode(QFileDialog::ExistingFile);
+    m_dialog.setAcceptMode(QFileDialog::AcceptOpen);
 }
 
 QWidget* MIDIFileDelegate::createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const
@@ -427,7 +428,7 @@ void MIDIFileDelegate::doExportMIDI()
         return;
 
     QString inPath = g_MainWindow->projectModel()->dir().absoluteFilePath(path);
-    std::vector<uint8_t> data;
+    m_exportData.clear();
     {
         QFile fi(inPath);
         if (!fi.open(QFile::ReadOnly))
@@ -437,41 +438,48 @@ void MIDIFileDelegate::doExportMIDI()
             return;
         }
         auto d = fi.readAll();
-        data.resize(d.size());
-        memcpy(&data[0], d.data(), d.size());
+        m_exportData.resize(d.size());
+        memcpy(&m_exportData[0], d.data(), d.size());
     }
 
-    if (!memcmp(data.data(), "MThd", 4))
+    if (!memcmp(m_exportData.data(), "MThd", 4))
     {
         //data = amuse::SongConverter::MIDIToSong(data, 1, true);
     }
     else
     {
         bool isBig;
-        if (amuse::SongState::DetectVersion(data.data(), isBig) < 0)
+        if (amuse::SongState::DetectVersion(m_exportData.data(), isBig) < 0)
         {
             g_MainWindow->uiMessenger().critical(tr("File Error"),
                 tr("Invalid song data at %1").arg(inPath));
             return;
         }
         int version;
-        data = amuse::SongConverter::SongToMIDI(data.data(), version, isBig);
+        m_exportData = amuse::SongConverter::SongToMIDI(m_exportData.data(), version, isBig);
     }
 
     QFileInfo inInfo(inPath);
-    QString outPath =
-        QFileDialog::getSaveFileName(g_MainWindow, tr("Export MIDI"),
-        QFileInfo(inInfo.path(), inInfo.completeBaseName() + QStringLiteral(".mid")).filePath(), tr("MIDI(*.mid)"));
-    if (outPath.isEmpty())
+    m_fileDialogMid.setDirectory(QFileInfo(inInfo.path(), inInfo.completeBaseName() + QStringLiteral(".mid")).filePath());
+    m_fileDialogMid.setAcceptMode(QFileDialog::AcceptSave);
+    m_fileDialogMid.setFileMode(QFileDialog::AnyFile);
+    m_fileDialogMid.setOption(QFileDialog::ShowDirsOnly, false);
+    m_fileDialogMid.open(this, SLOT(_doExportMIDI(const QString&)));
+}
+
+void MIDIFileDelegate::_doExportMIDI(const QString& path)
+{
+    m_fileDialogMid.close();
+    if (path.isEmpty())
         return;
-    QFile fo(outPath);
+    QFile fo(path);
     if (!fo.open(QFile::WriteOnly))
     {
         g_MainWindow->uiMessenger().critical(tr("File Error"),
-            tr("Unable to open %1 for writing: %1").arg(outPath).arg(fo.errorString()));
+        tr("Unable to open %1 for writing: %1").arg(path).arg(fo.errorString()));
         return;
     }
-    fo.write((char*)data.data(), data.size());
+    fo.write((char*)m_exportData.data(), m_exportData.size());
 }
 
 void MIDIFileDelegate::doExportSNG()
@@ -482,7 +490,7 @@ void MIDIFileDelegate::doExportSNG()
         return;
 
     QString inPath = g_MainWindow->projectModel()->dir().absoluteFilePath(path);
-    std::vector<uint8_t> data;
+    m_exportData.clear();
     {
         QFile fi(inPath);
         if (!fi.open(QFile::ReadOnly))
@@ -492,14 +500,14 @@ void MIDIFileDelegate::doExportSNG()
             return;
         }
         auto d = fi.readAll();
-        data.resize(d.size());
-        memcpy(&data[0], d.data(), d.size());
+        m_exportData.resize(d.size());
+        memcpy(&m_exportData[0], d.data(), d.size());
     }
 
-    if (!memcmp(data.data(), "MThd", 4))
+    if (!memcmp(m_exportData.data(), "MThd", 4))
     {
-        data = amuse::SongConverter::MIDIToSong(data, 1, true);
-        if (data.empty())
+        m_exportData = amuse::SongConverter::MIDIToSong(m_exportData, 1, true);
+        if (m_exportData.empty())
         {
             g_MainWindow->uiMessenger().critical(tr("File Error"),
                 tr("Invalid MIDI data at %1").arg(inPath));
@@ -509,7 +517,7 @@ void MIDIFileDelegate::doExportSNG()
     else
     {
         bool isBig;
-        if (amuse::SongState::DetectVersion(data.data(), isBig) < 0)
+        if (amuse::SongState::DetectVersion(m_exportData.data(), isBig) < 0)
         {
             g_MainWindow->uiMessenger().critical(tr("File Error"),
                 tr("Invalid song data at %1").arg(inPath));
@@ -518,19 +526,26 @@ void MIDIFileDelegate::doExportSNG()
     }
 
     QFileInfo inInfo(inPath);
-    QString outPath =
-        QFileDialog::getSaveFileName(g_MainWindow, tr("Export SNG"),
-        QFileInfo(inInfo.path(), inInfo.completeBaseName() + QStringLiteral(".sng")).filePath(), tr("Song(*.sng)"));
-    if (outPath.isEmpty())
+    m_fileDialogSng.setDirectory(QFileInfo(inInfo.path(), inInfo.completeBaseName() + QStringLiteral(".sng")).filePath());
+    m_fileDialogSng.setAcceptMode(QFileDialog::AcceptSave);
+    m_fileDialogSng.setFileMode(QFileDialog::AnyFile);
+    m_fileDialogSng.setOption(QFileDialog::ShowDirsOnly, false);
+    m_fileDialogSng.open(this, SLOT(_doExportSNG(const QString&)));
+}
+
+void MIDIFileDelegate::_doExportSNG(const QString& path)
+{
+    m_fileDialogSng.close();
+    if (path.isEmpty())
         return;
-    QFile fo(outPath);
+    QFile fo(path);
     if (!fo.open(QFile::WriteOnly))
     {
         g_MainWindow->uiMessenger().critical(tr("File Error"),
-            tr("Unable to open %1 for writing: %1").arg(outPath).arg(fo.errorString()));
+        tr("Unable to open %1 for writing: %1").arg(path).arg(fo.errorString()));
         return;
     }
-    fo.write((char*)data.data(), data.size());
+    fo.write((char*)m_exportData.data(), m_exportData.size());
 }
 
 void MIDIFileDelegate::pathChanged()
@@ -538,8 +553,10 @@ void MIDIFileDelegate::pathChanged()
     emit commitData(static_cast<MIDIFileFieldWidget*>(sender()));
 }
 
-MIDIFileDelegate::MIDIFileDelegate(QObject* parent)
-: QStyledItemDelegate(parent) {}
+MIDIFileDelegate::MIDIFileDelegate(SetupTableView* parent)
+: QStyledItemDelegate(parent),
+  m_fileDialogMid(parent, tr("Export MIDI"), {}, tr("MIDI(*.mid)")),
+  m_fileDialogSng(parent, tr("Export Song"), {}, tr("Song(*.sng)")) {}
 
 std::unordered_map<uint8_t, amuse::SongGroupIndex::PageEntry>& PageModel::_getMap() const
 {
@@ -1315,7 +1332,7 @@ void SetupTableView::showEvent(QShowEvent* event)
 }
 
 SetupTableView::SetupTableView(QWidget* parent)
-: QSplitter(parent), m_listView(new QTableView), m_tableView(new QTableView)
+: QSplitter(parent), m_listView(new QTableView), m_tableView(new QTableView), m_midiDelegate(this)
 {
     setChildrenCollapsible(false);
     setStretchFactor(0, 1);
