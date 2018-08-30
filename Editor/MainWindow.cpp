@@ -25,6 +25,7 @@ MainWindow::MainWindow(QWidget* parent)
   m_navIt(m_navList.begin()),
   m_treeDelegate(*this, this),
   m_mainMessenger(this),
+  m_fileDialog(this),
   m_undoStack(new QUndoStack(this)),
   m_backgroundThread(this)
 {
@@ -82,7 +83,7 @@ MainWindow::MainWindow(QWidget* parent)
     connect(m_ui.actionImport_C_Headers, SIGNAL(triggered()), this, SLOT(importHeadersAction()));
     connect(m_ui.actionExport_C_Headers, SIGNAL(triggered()), this, SLOT(exportHeadersAction()));
     m_ui.actionQuit->setShortcut(QKeySequence::Quit);
-    connect(m_ui.actionQuit, SIGNAL(triggered()), qApp, SLOT(quit()));
+    connect(m_ui.actionQuit, SIGNAL(triggered()), this, SLOT(close()));
 
     for (int i = 0; i < MaxRecentFiles; ++i)
     {
@@ -165,7 +166,7 @@ MainWindow::MainWindow(QWidget* parent)
     m_voxEngine = boo::NewAudioVoiceEngine();
     m_voxAllocator = std::make_unique<VoiceAllocator>(*m_voxEngine);
     m_engine = std::make_unique<amuse::Engine>(*m_voxAllocator);
-    m_voxEngine->setVolume(0.7f);
+    m_engine->setVolume(0.7f);
     m_studioSetup->loadData(m_engine->getDefaultStudio().get());
 
     m_ctrlVals[7] = 127;
@@ -302,6 +303,7 @@ bool MainWindow::setProjectPath(const QString& path)
     connect(m_ui.projectOutline->selectionModel(),
             SIGNAL(selectionChanged(const QItemSelection&, const QItemSelection&)),
             this, SLOT(onOutlineSelectionChanged(const QItemSelection&, const QItemSelection&)));
+    m_fileDialog.setDirectory(path);
     m_ui.actionSave_Project->setEnabled(true);
     m_ui.actionRevert_Project->setEnabled(true);
     m_ui.actionReload_Sample_Data->setEnabled(true);
@@ -399,8 +401,14 @@ void MainWindow::timerEvent(QTimerEvent* ev)
     if (m_voxEngine && m_engine)
     {
         m_voxEngine->pumpAndMixVoices();
-        if (!(m_timerFireCount % 10)) /* Rate limit voice counter */
-            m_ui.statusbar->setVoiceCount(int(m_engine->getNumTotalActiveVoices()));
+
+        m_peakVoices = std::max(int(m_engine->getNumTotalActiveVoices()), m_peakVoices);
+        if (!(m_timerFireCount % 10))
+        {
+            /* Rate limit voice counter */
+            m_ui.statusbar->setVoiceCount(m_peakVoices);
+            m_peakVoices = 0;
+        }
         if (m_engine->getActiveVoices().empty() && m_uiDisabled)
         {
             m_ui.projectOutline->setEnabled(true);
@@ -793,7 +801,16 @@ void MainWindow::newAction()
     if (!askAboutSave())
         return;
 
-    QString path = QFileDialog::getSaveFileName(this, tr("New Project"));
+    m_fileDialog.setWindowTitle(tr("New Project"));
+    m_fileDialog.setAcceptMode(QFileDialog::AcceptSave);
+    m_fileDialog.setFileMode(QFileDialog::AnyFile);
+    m_fileDialog.setOption(QFileDialog::ShowDirsOnly, false);
+    m_fileDialog.open(this, SLOT(_newAction(const QString&)));
+}
+
+void MainWindow::_newAction(const QString& path)
+{
+    m_fileDialog.close();
     if (path.isEmpty())
         return;
     if (!MkPath(path, m_mainMessenger))
@@ -864,7 +881,16 @@ void MainWindow::openAction()
     if (!askAboutSave())
         return;
 
-    QString path = QFileDialog::getExistingDirectory(this, tr("Open Project"));
+    m_fileDialog.setWindowTitle(tr("Open Project"));
+    m_fileDialog.setAcceptMode(QFileDialog::AcceptOpen);
+    m_fileDialog.setFileMode(QFileDialog::Directory);
+    m_fileDialog.setOption(QFileDialog::ShowDirsOnly, true);
+    m_fileDialog.open(this, SLOT(_openAction(const QString&)));
+}
+
+void MainWindow::_openAction(const QString& path)
+{
+    m_fileDialog.close();
     if (path.isEmpty())
         return;
     openProject(path);
@@ -963,8 +989,16 @@ void MainWindow::reloadSampleDataAction()
 
 void MainWindow::importAction()
 {
-    QString path = QFileDialog::getOpenFileName(this, tr("Import Project"),
-        m_projectModel ? m_projectModel->dir().path() : QString());
+    m_fileDialog.setWindowTitle(tr("Import Project"));
+    m_fileDialog.setAcceptMode(QFileDialog::AcceptOpen);
+    m_fileDialog.setFileMode(QFileDialog::ExistingFile);
+    m_fileDialog.setOption(QFileDialog::ShowDirsOnly, false);
+    m_fileDialog.open(this, SLOT(_importAction(const QString&)));
+}
+
+void MainWindow::_importAction(const QString& path)
+{
+    m_fileDialog.close();
     if (path.isEmpty())
         return;
 
@@ -980,11 +1014,11 @@ void MainWindow::importAction()
 
     /* Ask user about sample conversion */
     int impMode = m_mainMessenger.question(tr("Sample Import Mode"),
-        tr("Amuse can import samples as WAV files for ease of editing, "
-           "import original compressed data for lossless repacking, or both. "
-           "Exporting the project will prefer whichever version was modified "
-           "most recently."),
-        tr("Import Compressed"), tr("Import WAVs"), tr("Import Both"));
+                                           tr("Amuse can import samples as WAV files for ease of editing, "
+                                              "import original compressed data for lossless repacking, or both. "
+                                              "Exporting the project will prefer whichever version was modified "
+                                              "most recently."),
+                                           tr("Import Compressed"), tr("Import WAVs"), tr("Import Both"));
 
     switch (impMode)
     {
@@ -1001,8 +1035,8 @@ void MainWindow::importAction()
     if (tp == amuse::ContainerRegistry::Type::Raw4)
     {
         int scanMode = m_mainMessenger.question(tr("Raw Import Mode"),
-                       tr("Would you like to scan for all MusyX group files in this directory?"),
-                       QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+                                                tr("Would you like to scan for all MusyX group files in this directory?"),
+                                                QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
         if (scanMode == QMessageBox::Yes)
         {
             /* Auto-create project */
@@ -1097,7 +1131,16 @@ void MainWindow::importSongsAction()
     if (!m_projectModel)
         return;
 
-    QString path = QFileDialog::getOpenFileName(this, tr("Import Songs"), m_projectModel->dir().path());
+    m_fileDialog.setWindowTitle(tr("Import Songs"));
+    m_fileDialog.setAcceptMode(QFileDialog::AcceptOpen);
+    m_fileDialog.setFileMode(QFileDialog::ExistingFile);
+    m_fileDialog.setOption(QFileDialog::ShowDirsOnly, false);
+    m_fileDialog.open(this, SLOT(_importSongsAction(const QString&)));
+}
+
+void MainWindow::_importSongsAction(const QString& path)
+{
+    m_fileDialog.close();
     if (path.isEmpty())
         return;
 
@@ -1149,13 +1192,22 @@ void MainWindow::importHeadersAction()
            "<p>Group, Song and SFX definitions are matched according to the following forms:"
            "<pre>#define GRP&lt;name&gt; &lt;id&gt;\n#define SNG&lt;name&gt; &lt;id&gt;\n"
            "#define SFX&lt;name> &lt;id&gt;</pre></p>"
-           "<p><strong>This operation cannot be undone! Is is recommended to "
+           "<p><strong>This operation cannot be undone! It is recommended to "
            "make a backup of the project directory before proceeding.</strong></p>"
            "<p>Continue?</p>"), QMessageBox::Yes | QMessageBox::No);
     if (confirm == QMessageBox::No)
         return;
 
-    QString path = QFileDialog::getExistingDirectory(this, tr("Import C Headers"), m_projectModel->dir().path());
+    m_fileDialog.setWindowTitle(tr("Import C Headers"));
+    m_fileDialog.setAcceptMode(QFileDialog::AcceptOpen);
+    m_fileDialog.setFileMode(QFileDialog::Directory);
+    m_fileDialog.setOption(QFileDialog::ShowDirsOnly, true);
+    m_fileDialog.open(this, SLOT(_importHeadersAction(const QString&)));
+}
+
+void MainWindow::_importHeadersAction(const QString& path)
+{
+    m_fileDialog.close();
     if (path.isEmpty())
         return;
 
@@ -1174,7 +1226,16 @@ void MainWindow::exportHeadersAction()
     if (!m_projectModel)
         return;
 
-    QString path = QFileDialog::getExistingDirectory(this, tr("Export C Headers"), m_projectModel->dir().path());
+    m_fileDialog.setWindowTitle(tr("Export C Headers"));
+    m_fileDialog.setAcceptMode(QFileDialog::AcceptOpen);
+    m_fileDialog.setFileMode(QFileDialog::Directory);
+    m_fileDialog.setOption(QFileDialog::ShowDirsOnly, true);
+    m_fileDialog.open(this, SLOT(_exportHeadersAction(const QString&)));
+}
+
+void MainWindow::_exportHeadersAction(const QString& path)
+{
+    m_fileDialog.close();
     if (path.isEmpty())
         return;
 
@@ -1457,6 +1518,7 @@ void MainWindow::newSoundMacroAction()
     while (result == QDialog::Accepted && newName.isEmpty())
     {
         NewSoundMacroDialog dialog(groupName, this);
+        dialog.setWindowModality(Qt::WindowModal);
         result = dialog.exec();
         newName = dialog.getName();
         templ = dialog.getSelectedTemplate();
@@ -1931,6 +1993,7 @@ void MainWindow::studioSetupShown()
 
 void MainWindow::onBackgroundTaskFinished(int id)
 {
+    m_backgroundDialog->close();
     m_backgroundDialog->reset();
     m_backgroundDialog->deleteLater();
     m_backgroundDialog = nullptr;
@@ -1942,8 +2005,7 @@ void MainWindow::onBackgroundTaskFinished(int id)
         if (m_mainMessenger.question(tr("Export Complete"), tr("%1?").
             arg(ShowInGraphicalShellString())) == QMessageBox::Yes)
         {
-            QFileInfo
-            dirInfo(m_projectModel->dir(), QStringLiteral("out"));
+            QFileInfo dirInfo(m_projectModel->dir(), QStringLiteral("out"));
             QDir dir(dirInfo.filePath());
             QStringList entryList = dir.entryList(QDir::Files);
             ShowInGraphicalShell(this,

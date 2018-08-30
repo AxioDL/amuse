@@ -15,6 +15,8 @@
 #include <QProxyStyle>
 #include "amuse/Sequencer.hpp"
 
+class SetupTableView;
+
 class PageObjectDelegate : public BaseObjectDelegate
 {
     Q_OBJECT
@@ -49,8 +51,10 @@ signals:
 class MIDIFileDelegate : public QStyledItemDelegate
 {
     Q_OBJECT
+    QFileDialog m_fileDialogMid, m_fileDialogSng;
+    std::vector<uint8_t> m_exportData;
 public:
-    explicit MIDIFileDelegate(QObject* parent = Q_NULLPTR);
+    explicit MIDIFileDelegate(SetupTableView* parent = Q_NULLPTR);
     QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const;
     void destroyEditor(QWidget *editor, const QModelIndex &index) const;
     void setEditorData(QWidget* editor, const QModelIndex& index) const;
@@ -59,7 +63,9 @@ public:
                      const QStyleOptionViewItem &option, const QModelIndex &index);
 private slots:
     void doExportMIDI();
+    void _doExportMIDI(const QString& path);
     void doExportSNG();
+    void _doExportSNG(const QString& path);
 public slots:
     void pathChanged();
 };

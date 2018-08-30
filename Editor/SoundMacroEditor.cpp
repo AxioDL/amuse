@@ -128,7 +128,7 @@ CommandWidget::CommandWidget(QWidget* parent, amuse::SoundMacro::ICmd* cmd,
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     m_numberFont.setWeight(QFont::Bold);
     m_numberFont.setStyleHint(QFont::Monospace);
-    m_numberFont.setPointSize(16);
+    m_numberFont.setPointSize(m_numberFont.pointSize() * 2);
 
     setContentsMargins(QMargins());
     setFixedHeight(100);
@@ -186,6 +186,7 @@ CommandWidget::CommandWidget(QWidget* parent, amuse::SoundMacro::ICmd* cmd,
                 case amuse::SoundMacro::CmdIntrospection::Field::Type::UInt32:
                 {
                     FieldSpinBox* sb = new FieldSpinBox(this);
+                    sb->setFixedHeight(30);
                     sb->setProperty("fieldIndex", f);
                     sb->setProperty("fieldName", fieldName);
                     sb->setMinimum(int(field.m_min));
@@ -253,6 +254,7 @@ CommandWidget::CommandWidget(QWidget* parent, amuse::SoundMacro::ICmd* cmd,
                 case amuse::SoundMacro::CmdIntrospection::Field::Type::SoundMacroStep:
                 {
                     FieldSoundMacroStep* sb = new FieldSoundMacroStep(nf, this);
+                    sb->setFixedHeight(30);
                     sb->setProperty("fieldIndex", f);
                     sb->setProperty("fieldName", fieldName);
                     sb->m_spinBox.setValue(amuse::AccessField<amuse::SoundMacroStepDNA<athena::Little>>(m_cmd, field).step);
@@ -264,6 +266,7 @@ CommandWidget::CommandWidget(QWidget* parent, amuse::SoundMacro::ICmd* cmd,
                 case amuse::SoundMacro::CmdIntrospection::Field::Type::Choice:
                 {
                     FieldComboBox* cb = new FieldComboBox(this);
+                    cb->setFixedHeight(30);
                     cb->setProperty("fieldIndex", f);
                     cb->setProperty("fieldName", fieldName);
                     for (int j = 0; j < 4; ++j)

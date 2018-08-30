@@ -318,6 +318,8 @@ std::string AudioGroupDatabase::exportCHeader(std::string_view projectName, std:
     char curTmStr[26];
     asctime_s(curTmStr, &curTm);
 #endif
+    if (char* ch = strchr(curTmStr, '\n'))
+        *ch = '\0';
     ret += curTmStr;
     ret += "\n"
            " */\n\n\n"sv;

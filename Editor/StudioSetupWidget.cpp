@@ -351,7 +351,7 @@ EffectWidget::EffectWidget(QWidget* parent, amuse::EffectBaseTypeless* effect, a
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     m_numberFont.setWeight(QFont::Bold);
     m_numberFont.setStyleHint(QFont::Monospace);
-    m_numberFont.setPointSize(16);
+    m_numberFont.setPointSize(m_numberFont.pointSize() * 2);
 
     setContentsMargins(QMargins());
     setFixedHeight(100);
