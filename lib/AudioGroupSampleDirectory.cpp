@@ -51,7 +51,8 @@ AudioGroupSampleDirectory::AudioGroupSampleDirectory(athena::io::IStreamReader& 
         EntryDNA<athena::Big> ent;
         ent.read(r);
         m_entries[ent.m_sfxId] = MakeObj<Entry>(ent);
-        SampleId::CurNameDB->registerPair(NameDB::generateName(ent.m_sfxId, NameDB::Type::Sample), ent.m_sfxId);
+        if (SampleId::CurNameDB)
+            SampleId::CurNameDB->registerPair(NameDB::generateName(ent.m_sfxId, NameDB::Type::Sample), ent.m_sfxId);
     }
 
     for (auto& p : m_entries)
