@@ -717,8 +717,20 @@ bool ProjectModel::importGroupData(const QString& groupName, const amuse::AudioG
         break;
     }
 
-    grp.getProj().toYAML(sysDir);
-    grp.getPool().toYAML(sysDir);
+    {
+        auto proj = grp.getProj().toYAML();
+        athena::io::FileWriter fo(QStringToSysString(QFileInfo(dir, QStringLiteral("!project.yaml")).filePath()));
+        if (fo.hasError())
+            return false;
+        fo.writeUBytes(proj.data(), proj.size());
+    }
+    {
+        auto pool = grp.getPool().toYAML();
+        athena::io::FileWriter fo(QStringToSysString(QFileInfo(dir, QStringLiteral("!pool.yaml")).filePath()));
+        if (fo.hasError())
+            return false;
+        fo.writeUBytes(pool.data(), pool.size());
+    }
 
     m_needsReset = true;
     return true;
@@ -756,9 +768,21 @@ bool ProjectModel::saveToFile(UIMessenger& messenger)
             return false;
 
         g.second->setIdDatabases();
-        amuse::SystemString groupPath = QStringToSysString(dir.path());
-        g.second->getProj().toYAML(groupPath);
-        g.second->getPool().toYAML(groupPath);
+
+        {
+            auto proj = g.second->getProj().toYAML();
+            athena::io::FileWriter fo(QStringToSysString(QFileInfo(dir, QStringLiteral("!project.yaml")).filePath()));
+            if (fo.hasError())
+                return false;
+            fo.writeUBytes(proj.data(), proj.size());
+        }
+        {
+            auto pool = g.second->getPool().toYAML();
+            athena::io::FileWriter fo(QStringToSysString(QFileInfo(dir, QStringLiteral("!pool.yaml")).filePath()));
+            if (fo.hasError())
+                return false;
+            fo.writeUBytes(pool.data(), pool.size());
+        }
     }
 
     saveSongsIndex();
@@ -780,6 +804,8 @@ QStringList ProjectModel::getGroupList() const
 
 bool ProjectModel::exportGroup(const QString& path, const QString& groupName, UIMessenger& messenger) const
 {
+    if (!MkPath(path, messenger))
+        return false;
     auto search = m_groups.find(groupName);
     if (search == m_groups.cend())
     {
@@ -788,22 +814,48 @@ bool ProjectModel::exportGroup(const QString& path, const QString& groupName, UI
     }
     const amuse::AudioGroupDatabase& group = *search->second;
     m_projectDatabase.setIdDatabases();
-    auto basePath = QStringToSysString(QFileInfo(QDir(path), groupName).filePath());
+    QString basePath = QFileInfo(QDir(path), groupName).filePath();
     group.setIdDatabases();
-    if (!group.getProj().toGCNData(basePath, group.getPool(), group.getSdir()))
     {
-        messenger.critical(tr("Export Error"), tr("Unable to export %1.proj").arg(groupName));
-        return false;
+        auto proj = group.getProj().toGCNData(group.getPool(), group.getSdir());
+        athena::io::FileWriter fo(QStringToSysString(basePath + QStringLiteral(".proj")));
+        if (fo.hasError())
+        {
+            messenger.critical(tr("Export Error"), tr("Unable to export %1.proj").arg(groupName));
+            return false;
+        }
+        fo.writeUBytes(proj.data(), proj.size());
     }
-    if (!group.getPool().toData<athena::Big>(basePath))
     {
-        messenger.critical(tr("Export Error"), tr("Unable to export %1.pool").arg(groupName));
-        return false;
+        auto pool = group.getPool().toData<athena::Big>();
+        athena::io::FileWriter fo(QStringToSysString(basePath + QStringLiteral(".pool")));
+        if (fo.hasError())
+        {
+            messenger.critical(tr("Export Error"), tr("Unable to export %1.pool").arg(groupName));
+            return false;
+        }
+        fo.writeUBytes(pool.data(), pool.size());
     }
-    if (!group.getSdir().toGCNData(basePath, group))
     {
-        messenger.critical(tr("Export Error"), tr("Unable to export %1.sdir").arg(groupName));
-        return false;
+        auto sdirSamp = group.getSdir().toGCNData(group);
+        {
+            athena::io::FileWriter fo(QStringToSysString(basePath + QStringLiteral(".sdir")));
+            if (fo.hasError())
+            {
+                messenger.critical(tr("Export Error"), tr("Unable to export %1.sdir").arg(groupName));
+                return false;
+            }
+            fo.writeUBytes(sdirSamp.first.data(), sdirSamp.first.size());
+        }
+        {
+            athena::io::FileWriter fo(QStringToSysString(basePath + QStringLiteral(".samp")));
+            if (fo.hasError())
+            {
+                messenger.critical(tr("Export Error"), tr("Unable to export %1.samp").arg(groupName));
+                return false;
+            }
+            fo.writeUBytes(sdirSamp.second.data(), sdirSamp.second.size());
+        }
     }
     return true;
 }

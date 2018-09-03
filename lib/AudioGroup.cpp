@@ -175,6 +175,7 @@ void AudioGroupDatabase::_recursiveRenameMacro(SoundMacroId id, std::string_view
                         ++sampleIdx;
                         renameSample(ss->sample.id, sampleName);
                     }
+                    break;
                 }
                 case SoundMacro::CmdOp::SplitKey:
                     _recursiveRenameMacro(static_cast<SoundMacro::CmdSplitKey*>(cmd.get())->macro, str, macroIdx, renamedIds);
@@ -324,18 +325,23 @@ std::string AudioGroupDatabase::exportCHeader(std::string_view projectName, std:
     ret += "\n"
            " */\n\n\n"sv;
 
+    bool addLF = false;
     for (const auto& sg : SortUnorderedMap(getProj().songGroups()))
     {
         auto name = amuse::GroupId::CurNameDB->resolveNameFromId(sg.first);
         WriteDefineLine(ret, "GRP"sv, name, sg.first);
+        addLF = true;
     }
     for (const auto& sg : SortUnorderedMap(getProj().sfxGroups()))
     {
         auto name = amuse::GroupId::CurNameDB->resolveNameFromId(sg.first);
         WriteDefineLine(ret, "GRP"sv, name, sg.first);
+        addLF = true;
     }
 
-    ret += "\n\n"sv;
+    if (addLF)
+        ret += "\n\n"sv;
+    addLF = false;
 
     std::unordered_set<amuse::SongId> songIds;
     for (const auto& sg : getProj().songGroups())
@@ -345,9 +351,12 @@ std::string AudioGroupDatabase::exportCHeader(std::string_view projectName, std:
     {
         auto name = amuse::SongId::CurNameDB->resolveNameFromId(id);
         WriteDefineLine(ret, "SNG"sv, name, id);
+        addLF = true;
     }
 
-    ret += "\n\n"sv;
+    if (addLF)
+        ret += "\n\n"sv;
+    addLF = false;
 
     for (const auto& sg : SortUnorderedMap(getProj().sfxGroups()))
     {
@@ -355,8 +364,12 @@ std::string AudioGroupDatabase::exportCHeader(std::string_view projectName, std:
         {
             auto name = amuse::SFXId::CurNameDB->resolveNameFromId(sfx.first);
             WriteDefineLine(ret, "SFX"sv, name, sfx.first.id);
+            addLF = true;
         }
     }
+
+    if (addLF)
+        ret += "\n\n"sv;
 
     return ret;
 }

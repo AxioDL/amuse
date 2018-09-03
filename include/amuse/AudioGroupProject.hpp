@@ -216,8 +216,8 @@ public:
     std::unordered_map<GroupId, ObjToken<SongGroupIndex>>& songGroups() { return m_songGroups; }
     std::unordered_map<GroupId, ObjToken<SFXGroupIndex>>& sfxGroups() { return m_sfxGroups; }
 
-    bool toYAML(SystemStringView groupPath) const;
-    bool toGCNData(SystemStringView groupPath, const AudioGroupPool& pool, const AudioGroupSampleDirectory& sdir) const;
+    std::vector<uint8_t> toYAML() const;
+    std::vector<uint8_t> toGCNData(const AudioGroupPool& pool, const AudioGroupSampleDirectory& sdir) const;
 
     AudioGroupProject(const AudioGroupProject&) = delete;
     AudioGroupProject& operator=(const AudioGroupProject&) = delete;

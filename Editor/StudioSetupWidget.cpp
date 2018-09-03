@@ -468,11 +468,11 @@ void EffectWidget::paintEvent(QPaintEvent* event)
     painter.drawRect(17, 51, 32, 32);
 
     QTransform rotate;
-    rotate.rotate(-45.0);
+    rotate.rotate(-45.0).translate(-15, 8);
     painter.setTransform(rotate);
     painter.setFont(m_numberFont);
     painter.setPen(palette().color(QPalette::Background));
-    painter.drawStaticText(-15, 10, m_numberText);
+    painter.drawStaticText(0, 0, m_numberText);
 }
 
 EffectWidget::EffectWidget(QWidget* parent, amuse::EffectBaseTypeless* cmd)

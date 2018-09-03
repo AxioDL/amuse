@@ -1,3 +1,4 @@
+#include <athena/VectorWriter.hpp>
 #include "amuse/AudioGroupProject.hpp"
 #include "amuse/AudioGroupPool.hpp"
 #include "amuse/AudioGroupSampleDirectory.hpp"
@@ -331,6 +332,8 @@ AudioGroupProject AudioGroupProject::_AudioGroupProject(athena::io::IStreamReade
 
 AudioGroupProject AudioGroupProject::CreateAudioGroupProject(const AudioGroupData& data)
 {
+    if (data.getProjSize() < 4)
+        return {};
     athena::io::MemoryReader r(data.getProj(), data.getProjSize());
     switch (data.getDataFormat())
     {
@@ -754,7 +757,7 @@ void SFXGroupIndex::toYAML(athena::io::YAMLDocWriter& w) const
     }
 }
 
-bool AudioGroupProject::toYAML(SystemStringView groupPath) const
+std::vector<uint8_t> AudioGroupProject::toYAML() const
 {
     athena::io::YAMLDocWriter w("amuse::Project");
 
@@ -790,10 +793,9 @@ bool AudioGroupProject::toYAML(SystemStringView groupPath) const
         }
     }
 
-    SystemString projPath(groupPath);
-    projPath += _S("/!project.yaml");
-    athena::io::FileWriter fo(projPath);
-    return w.finish(&fo);
+    athena::io::VectorWriter fo;
+    w.finish(&fo);
+    return fo.data();
 }
 
 #if 0
@@ -906,16 +908,12 @@ struct ObjectIdPool
 };
 #endif
 
-bool AudioGroupProject::toGCNData(SystemStringView groupPath, const AudioGroupPool& pool,
-                                  const AudioGroupSampleDirectory& sdir) const
+std::vector<uint8_t> AudioGroupProject::toGCNData(const AudioGroupPool& pool,
+                                                  const AudioGroupSampleDirectory& sdir) const
 {
     constexpr athena::Endian DNAE = athena::Big;
 
-    SystemString projPath(groupPath);
-    projPath += _S(".proj");
-    athena::io::FileWriter fo(projPath);
-    if (fo.hasError())
-        return false;
+    athena::io::VectorWriter fo;
 
     std::vector<GroupId> groupIds;
     groupIds.reserve(m_songGroups.size() + m_sfxGroups.size());
@@ -1032,7 +1030,7 @@ bool AudioGroupProject::toGCNData(SystemStringView groupPath, const AudioGroupPo
     const uint32_t finalTerm = 0xffffffff;
     athena::io::Write<athena::io::PropType::None>::Do<decltype(finalTerm), DNAE>({}, finalTerm, fo);
 
-    return true;
+    return fo.data();
 }
 
 }

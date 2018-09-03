@@ -6,6 +6,7 @@
 #include "logvisor/logvisor.hpp"
 #include "athena/FileWriter.hpp"
 #include "athena/FileReader.hpp"
+#include "athena/VectorWriter.hpp"
 
 using namespace std::literals;
 
@@ -204,6 +205,8 @@ template AudioGroupPool AudioGroupPool::_AudioGroupPool<athena::Little>(athena::
 
 AudioGroupPool AudioGroupPool::CreateAudioGroupPool(const AudioGroupData& data)
 {
+    if (data.getPoolSize() < 16)
+        return {};
     athena::io::MemoryReader r(data.getPool(), data.getPoolSize());
     switch (data.getDataFormat())
     {
@@ -503,7 +506,8 @@ static SoundMacro::CmdOp _ReadCmdOp(const SoundMacro::ICmd& op)
 template <class Op, class O, class... _Args>
 O SoundMacro::CmdDo(_Args&&... args)
 {
-    switch (_ReadCmdOp(std::forward<_Args>(args)...))
+    SoundMacro::CmdOp op = _ReadCmdOp(std::forward<_Args>(args)...);
+    switch (op)
     {
     case CmdOp::End:
         return Op::template Do<CmdEnd>(std::forward<_Args>(args)...);
@@ -645,6 +649,10 @@ O SoundMacro::CmdDo(_Args&&... args)
         return Op::template Do<CmdSetKeygroup>(std::forward<_Args>(args)...);
     case CmdOp::SRCmodeSelect:
         return Op::template Do<CmdSRCmodeSelect>(std::forward<_Args>(args)...);
+    case CmdOp::WiiUnknown:
+        return Op::template Do<CmdWiiUnknown>(std::forward<_Args>(args)...);
+    case CmdOp::WiiUnknown2:
+        return Op::template Do<CmdWiiUnknown2>(std::forward<_Args>(args)...);
     case CmdOp::AddVars:
         return Op::template Do<CmdAddVars>(std::forward<_Args>(args)...);
     case CmdOp::SubVars:
@@ -824,6 +832,10 @@ std::string_view SoundMacro::CmdOpToStr(CmdOp op)
         return "SetKeygroup"sv;
     case CmdOp::SRCmodeSelect:
         return "SRCmodeSelect"sv;
+    case CmdOp::WiiUnknown:
+        return "WiiUnknown"sv;
+    case CmdOp::WiiUnknown2:
+        return "WiiUnknown2"sv;
     case CmdOp::AddVars:
         return "AddVars"sv;
     case CmdOp::SubVars:
@@ -987,6 +999,10 @@ SoundMacro::CmdOp SoundMacro::CmdStrToOp(std::string_view op)
         return CmdOp::SetKeygroup;
     else if (!CompareCaseInsensitive(op.data(), "SRCmodeSelect"))
         return CmdOp::SRCmodeSelect;
+    else if (!CompareCaseInsensitive(op.data(), "WiiUnknown"))
+        return CmdOp::WiiUnknown;
+    else if (!CompareCaseInsensitive(op.data(), "WiiUnknown2"))
+        return CmdOp::WiiUnknown2;
     else if (!CompareCaseInsensitive(op.data(), "AddVars"))
         return CmdOp::AddVars;
     else if (!CompareCaseInsensitive(op.data(), "SubVars"))
@@ -1006,7 +1022,7 @@ SoundMacro::CmdOp SoundMacro::CmdStrToOp(std::string_view op)
     return CmdOp::Invalid;
 }
 
-bool AudioGroupPool::toYAML(SystemStringView groupPath) const
+std::vector<uint8_t> AudioGroupPool::toYAML() const
 {
     athena::io::YAMLDocWriter w("amuse::Pool");
 
@@ -1081,20 +1097,15 @@ bool AudioGroupPool::toYAML(SystemStringView groupPath) const
         }
     }
 
-    SystemString poolPath(groupPath);
-    poolPath += _S("/!pool.yaml");
-    athena::io::FileWriter fo(poolPath);
-    return w.finish(&fo);
+    athena::io::VectorWriter fo;
+    w.finish(&fo);
+    return fo.data();
 }
 
 template <athena::Endian DNAE>
-bool AudioGroupPool::toData(SystemStringView groupPath) const
+std::vector<uint8_t> AudioGroupPool::toData() const
 {
-    SystemString poolPath(groupPath);
-    poolPath += _S(".pool");
-    athena::io::FileWriter fo(poolPath);
-    if (fo.hasError())
-        return false;
+    athena::io::VectorWriter fo;
 
     PoolHeader<DNAE> head = {};
     head.write(fo);
@@ -1202,10 +1213,10 @@ bool AudioGroupPool::toData(SystemStringView groupPath) const
     fo.seek(0, athena::Begin);
     head.write(fo);
 
-    return true;
+    return fo.data();
 }
-template bool AudioGroupPool::toData<athena::Big>(SystemStringView groupPath) const;
-template bool AudioGroupPool::toData<athena::Little>(SystemStringView groupPath) const;
+template std::vector<uint8_t> AudioGroupPool::toData<athena::Big>() const;
+template std::vector<uint8_t> AudioGroupPool::toData<athena::Little>() const;
 
 template <>
 void amuse::Curve::Enumerate<LittleDNA::Read>(athena::io::IStreamReader& r)

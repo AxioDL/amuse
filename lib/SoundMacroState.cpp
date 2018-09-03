@@ -192,7 +192,7 @@ bool SoundMacro::CmdEnd::Do(SoundMacroState& st, Voice& vox) const
 const SoundMacro::CmdIntrospection SoundMacro::CmdStop::Introspective =
 {
     CmdType::Structure,
-     "Stop"sv,
+    "Stop"sv,
     "Stops the macro at any point."sv,
 };
 bool SoundMacro::CmdStop::Do(SoundMacroState& st, Voice& vox) const
@@ -318,7 +318,7 @@ const SoundMacro::CmdIntrospection SoundMacro::CmdWaitTicks::Introspective =
 bool SoundMacro::CmdWaitTicks::Do(SoundMacroState& st, Voice& vox) const
 {
     /* Set wait state */
-    if (ticksOrMs >= 0)
+    if (ticksOrMs != 65535)
     {
         float q = msSwitch ? 1000.f : st.m_ticksPerSec;
         float secTime = ticksOrMs / q;
@@ -476,7 +476,7 @@ const SoundMacro::CmdIntrospection SoundMacro::CmdWaitMs::Introspective =
 bool SoundMacro::CmdWaitMs::Do(SoundMacroState& st, Voice& vox) const
 {
     /* Set wait state */
-    if (ms >= 0)
+    if (ms != 65535)
     {
         float secTime = ms / 1000.f;
         /* Randomize at the proper resolution */
@@ -2761,6 +2761,42 @@ const SoundMacro::CmdIntrospection SoundMacro::CmdSRCmodeSelect::Introspective =
     }
 };
 bool SoundMacro::CmdSRCmodeSelect::Do(SoundMacroState& st, Voice& vox) const
+{
+    return false;
+}
+
+const SoundMacro::CmdIntrospection SoundMacro::CmdWiiUnknown::Introspective =
+{
+    CmdType::Setup,
+    "Wii Unknown"sv,
+    "????"sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdWiiUnknown, flag),
+            "?"sv,
+            0, 1, 0
+        }
+    }
+};
+bool SoundMacro::CmdWiiUnknown::Do(SoundMacroState& st, Voice& vox) const
+{
+    return false;
+}
+
+const SoundMacro::CmdIntrospection SoundMacro::CmdWiiUnknown2::Introspective =
+{
+    CmdType::Setup,
+    "Wii Unknown 2"sv,
+    "????"sv,
+    {
+        {
+            FIELD_HEAD(SoundMacro::CmdWiiUnknown2, flag),
+            "?"sv,
+            0, 1, 0
+        }
+    }
+};
+bool SoundMacro::CmdWiiUnknown2::Do(SoundMacroState& st, Voice& vox) const
 {
     return false;
 }

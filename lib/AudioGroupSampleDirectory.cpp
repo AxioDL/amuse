@@ -8,6 +8,7 @@
 #include "athena/MemoryReader.hpp"
 #include "athena/FileWriter.hpp"
 #include "athena/FileReader.hpp"
+#include "athena/VectorWriter.hpp"
 #include <cstring>
 #ifndef _WIN32
 #include <fcntl.h>
@@ -126,6 +127,8 @@ AudioGroupSampleDirectory::AudioGroupSampleDirectory(athena::io::IStreamReader& 
 
 AudioGroupSampleDirectory AudioGroupSampleDirectory::CreateAudioGroupSampleDirectory(const AudioGroupData& data)
 {
+    if (data.getSdirSize() < 4)
+        return {};
     athena::io::MemoryReader r(data.getSdir(), data.getSdirSize());
     switch (data.getDataFormat())
     {
@@ -885,21 +888,14 @@ void AudioGroupSampleDirectory::reloadSampleData(SystemStringView groupPath)
     }
 }
 
-bool AudioGroupSampleDirectory::toGCNData(SystemStringView groupPath, const AudioGroupDatabase& group) const
+std::pair<std::vector<uint8_t>, std::vector<uint8_t>>
+AudioGroupSampleDirectory::toGCNData(const AudioGroupDatabase& group) const
 {
     constexpr athena::Endian DNAE = athena::Big;
     group.setIdDatabases();
 
-    SystemString sdirPath(groupPath);
-    SystemString sampPath(groupPath);
-    sdirPath += _S(".sdir");
-    sampPath += _S(".samp");
-    athena::io::FileWriter fo(sdirPath);
-    if (fo.hasError())
-        return false;
-    athena::io::FileWriter sfo(sampPath);
-    if (sfo.hasError())
-        return false;
+    athena::io::VectorWriter fo;
+    athena::io::VectorWriter sfo;
 
     std::vector<std::pair<EntryDNA<DNAE>, ADPCMParms>> entries;
     entries.reserve(m_entries.size());
@@ -975,6 +971,6 @@ bool AudioGroupSampleDirectory::toGCNData(SystemStringView groupPath, const Audi
         fo.writeUBytes((uint8_t*)&p.second, sizeof(ADPCMParms::DSPParms));
     }
 
-    return true;
+    return {fo.data(), sfo.data()};
 }
 }

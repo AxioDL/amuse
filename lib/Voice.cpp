@@ -431,33 +431,35 @@ void Voice::preSupplyAudio(double dt)
 
     /* Process active pan-sweep */
     bool refresh = false;
-    if (m_panningTime >= 0.f)
+    if (!m_panningQueue.empty())
     {
-        m_panningTime += dt;
-        float start = (m_panPos - 64) / 64.f;
-        float end = (m_panPos + m_panWidth - 64) / 64.f;
-        float t = clamp(0.f, m_panningTime / m_panningDur, 1.f);
+        Panning& p = m_panningQueue.front();
+        p.m_time += dt;
+        float start = (p.m_pos - 64) / 64.f;
+        float end = (p.m_pos + p.m_width - 64) / 64.f;
+        float t = clamp(0.f, p.m_time / p.m_dur, 1.f);
         _setPan((start * (1.0f - t)) + (end * t));
         refresh = true;
 
         /* Done with panning */
-        if (m_panningTime > m_panningDur)
-            m_panningTime = -1.f;
+        if (p.m_time > p.m_dur)
+            m_panningQueue.pop();
     }
 
     /* Process active span-sweep */
-    if (m_spanningTime >= 0.f)
+    if (!m_spanningQueue.empty())
     {
-        m_spanningTime += dt;
-        float start = (m_spanPos - 64) / 64.f;
-        float end = (m_spanPos + m_spanWidth - 64) / 64.f;
-        float t = clamp(0.f, m_spanningTime / m_spanningDur, 1.f);
+        Panning& s = m_spanningQueue.front();
+        s.m_time += dt;
+        float start = (s.m_pos - 64) / 64.f;
+        float end = (s.m_pos + s.m_width - 64) / 64.f;
+        float t = clamp(0.f, s.m_time / s.m_dur, 1.f);
         _setSurroundPan((start * (1.0f - t)) + (end * t));
         refresh = true;
 
         /* Done with spanning */
-        if (m_spanningTime > m_spanningDur)
-            m_spanningTime = -1.f;
+        if (s.m_time > s.m_dur)
+            m_spanningQueue.pop();
     }
 
     /* Calculate total pitch */
@@ -681,7 +683,10 @@ size_t Voice::supplyAudio(size_t samples, int16_t* data)
         }
     }
     else
+    {
+        _macroSampleEnd();
         memset(data, 0, sizeof(int16_t) * samples);
+    }
 
     if (m_voxState == VoiceState::Dead)
         m_curSample.reset();
@@ -1018,6 +1023,8 @@ void Voice::startSample(SampleId sampId, int32_t offset)
         m_lastSamplePos = m_curSample->m_loopLengthSamples
                               ? (m_curSample->m_loopStartSample + m_curSample->m_loopLengthSamples)
                               : numSamples;
+        if (m_lastSamplePos)
+            --m_lastSamplePos;
 
         bool looped;
         _checkSamplePos(looped);
@@ -1238,18 +1245,12 @@ void Voice::startFadeIn(double dur, float vol, const Curve* envCurve)
 
 void Voice::startPanning(double dur, uint8_t panPos, int8_t panWidth)
 {
-    m_panningTime = 0.f;
-    m_panningDur = dur;
-    m_panPos = panPos;
-    m_panWidth = panWidth;
+    m_panningQueue.push({0.f, dur, panPos, panWidth});
 }
 
 void Voice::startSpanning(double dur, uint8_t spanPos, int8_t spanWidth)
 {
-    m_spanningTime = 0.f;
-    m_spanningDur = dur;
-    m_spanPos = spanPos;
-    m_spanWidth = spanWidth;
+    m_spanningQueue.push({0.f, dur, spanPos, spanWidth});
 }
 
 void Voice::setPitchKey(int32_t cents)

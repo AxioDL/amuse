@@ -358,7 +358,7 @@ public:
 
     void reloadSampleData(SystemStringView groupPath);
 
-    bool toGCNData(SystemStringView groupPath, const AudioGroupDatabase& group) const;
+    std::pair<std::vector<uint8_t>, std::vector<uint8_t>> toGCNData(const AudioGroupDatabase& group) const;
 
     AudioGroupSampleDirectory(const AudioGroupSampleDirectory&) = delete;
     AudioGroupSampleDirectory& operator=(const AudioGroupSampleDirectory&) = delete;

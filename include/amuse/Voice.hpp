@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <memory>
 #include <list>
+#include <queue>
 #include "SoundMacroState.hpp"
 #include "Entity.hpp"
 #include "AudioGroupSampleDirectory.hpp"
@@ -51,6 +52,14 @@ class Voice : public Entity
         float m_curVolLUTVal = 0.f;  /**< Current output level cached out of LUT */
         float getVolume(float vol, bool dls);
         float getCachedVolume() const { return m_curVolLUTVal; }
+    };
+
+    struct Panning
+    {
+        float m_time;   /**< time of PANNING command */
+        float m_dur;    /**< requested duration of PANNING command */
+        uint8_t m_pos;  /**< initial pan value of PANNING command */
+        int8_t m_width; /**< delta pan value to target of PANNING command */
     };
 
     void _setObjectId(ObjectId id) { m_objectId = id; }
@@ -129,15 +138,8 @@ class Voice : public Entity
     uint8_t m_pitchSweep1It = 0;    /**< Current iteration of PITCHSWEEP1 controller */
     uint8_t m_pitchSweep2It = 0;    /**< Current iteration of PITCHSWEEP2 controller */
 
-    float m_panningTime = -1.f; /**< time since last PANNING command, -1 for no active pan-sweep */
-    float m_panningDur;         /**< requested duration of last PANNING command */
-    uint8_t m_panPos;           /**< initial pan value of last PANNING command */
-    int8_t m_panWidth;          /**< delta pan value to target of last PANNING command */
-
-    float m_spanningTime = -1.f; /**< time since last SPANNING command, -1 for no active span-sweep */
-    float m_spanningDur;         /**< requested duration of last SPANNING command */
-    uint8_t m_spanPos;           /**< initial pan value of last SPANNING command */
-    int8_t m_spanWidth;          /**< delta pan value to target of last SPANNING command */
+    std::queue<Panning> m_panningQueue; /**< Queue of PANNING commands */
+    std::queue<Panning> m_spanningQueue; /**< Queue of SPANNING commands */
 
     float m_vibratoTime = -1.f;     /**< time since last VIBRATO command, -1 for no active vibrato */
     int32_t m_vibratoLevel = 0;     /**< scale of vibrato effect (in cents) */

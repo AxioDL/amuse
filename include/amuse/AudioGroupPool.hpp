@@ -114,6 +114,8 @@ struct SoundMacro
         ModeSelect = 0x58,
         SetKeygroup,
         SRCmodeSelect, /* unimplemented */
+        WiiUnknown = 0x5E,
+        WiiUnknown2 = 0x5F,
         AddVars = 0x60,
         SubVars,
         MulVars,
@@ -522,8 +524,8 @@ struct SoundMacro
         AT_DECL_DNA_YAML
         AT_DECL_DNAV
         static const CmdIntrospection Introspective;
-        Value<atUint8> levelNote;
-        Value<atUint8> levelFine;
+        Value<atInt8> levelNote;
+        Value<atInt8> levelFine;
         Value<bool> modwheelFlag;
         Seek<1, athena::SeekOrigin::Current> seek;
         Value<bool> msSwitch;
@@ -1009,6 +1011,24 @@ struct SoundMacro
         bool Do(SoundMacroState& st, Voice& vox) const;
         CmdOp Isa() const { return CmdOp::SRCmodeSelect; }
     };
+    struct CmdWiiUnknown : ICmd
+    {
+        AT_DECL_DNA_YAML
+        AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
+        Value<bool> flag;
+        bool Do(SoundMacroState& st, Voice& vox) const;
+        CmdOp Isa() const { return CmdOp::WiiUnknown; }
+    };
+    struct CmdWiiUnknown2 : ICmd
+    {
+        AT_DECL_DNA_YAML
+        AT_DECL_DNAV
+        static const CmdIntrospection Introspective;
+        Value<bool> flag;
+        bool Do(SoundMacroState& st, Voice& vox) const;
+        CmdOp Isa() const { return CmdOp::WiiUnknown2; }
+    };
     struct CmdAddVars : ICmd
     {
         AT_DECL_DNA_YAML
@@ -1428,9 +1448,9 @@ public:
     const ADSRDLS* tableAsAdsrDLS(ObjectId id) const;
     const Curve* tableAsCurves(ObjectId id) const;
 
-    bool toYAML(SystemStringView groupPath) const;
+    std::vector<uint8_t> toYAML() const;
     template <athena::Endian DNAE>
-    bool toData(SystemStringView groupPath) const;
+    std::vector<uint8_t> toData() const;
 
     AudioGroupPool(const AudioGroupPool&) = delete;
     AudioGroupPool& operator=(const AudioGroupPool&) = delete;
