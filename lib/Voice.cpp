@@ -435,10 +435,10 @@ void Voice::preSupplyAudio(double dt)
     {
         Panning& p = m_panningQueue.front();
         p.m_time += dt;
-        float start = (p.m_pos - 64) / 64.f;
-        float end = (p.m_pos + p.m_width - 64) / 64.f;
-        float t = clamp(0.f, p.m_time / p.m_dur, 1.f);
-        _setPan((start * (1.0f - t)) + (end * t));
+        double start = (p.m_pos - 64) / 64.0;
+        double end = (p.m_pos + p.m_width - 64) / 64.0;
+        double t = clamp(0.0, p.m_time / p.m_dur, 1.0);
+        _setPan(float((start * (1.0 - t)) + (end * t)));
         refresh = true;
 
         /* Done with panning */
@@ -451,10 +451,10 @@ void Voice::preSupplyAudio(double dt)
     {
         Panning& s = m_spanningQueue.front();
         s.m_time += dt;
-        float start = (s.m_pos - 64) / 64.f;
-        float end = (s.m_pos + s.m_width - 64) / 64.f;
-        float t = clamp(0.f, s.m_time / s.m_dur, 1.f);
-        _setSurroundPan((start * (1.0f - t)) + (end * t));
+        double start = (s.m_pos - 64) / 64.0;
+        double end = (s.m_pos + s.m_width - 64) / 64.0;
+        double t = clamp(0.0, s.m_time / s.m_dur, 1.0);
+        _setSurroundPan(float((start * (1.0 - t)) + (end * t)));
         refresh = true;
 
         /* Done with spanning */

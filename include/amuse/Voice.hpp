@@ -56,8 +56,8 @@ class Voice : public Entity
 
     struct Panning
     {
-        float m_time;   /**< time of PANNING command */
-        float m_dur;    /**< requested duration of PANNING command */
+        double m_time;   /**< time of PANNING command */
+        double m_dur;    /**< requested duration of PANNING command */
         uint8_t m_pos;  /**< initial pan value of PANNING command */
         int8_t m_width; /**< delta pan value to target of PANNING command */
     };
