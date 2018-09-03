@@ -47,7 +47,8 @@ static void ReadRangedObjectIds(NameDB* db, athena::io::IStreamReader& r, NameDB
                 useId.id |= 0x8000;
             else if (tp == NameDB::Type::Keymap)
                 useId.id |= 0x4000;
-            db->registerPair(NameDB::generateName(useId, tp), useId);
+            if (db)
+                db->registerPair(NameDB::generateName(useId, tp), useId);
         }
     }
     else
@@ -56,7 +57,8 @@ static void ReadRangedObjectIds(NameDB* db, athena::io::IStreamReader& r, NameDB
             id |= 0x8000;
         else if (tp == NameDB::Type::Keymap)
             id |= 0x4000;
-        db->registerPair(NameDB::generateName(id, tp), id);
+        if (db)
+            db->registerPair(NameDB::generateName(id, tp), id);
     }
 }
 
@@ -98,7 +100,8 @@ AudioGroupProject::AudioGroupProject(athena::io::IStreamReader& r, GCNDataTag)
         GroupHeader<athena::Big> header;
         header.read(r);
 
-        GroupId::CurNameDB->registerPair(NameDB::generateName(header.groupId, NameDB::Type::Group), header.groupId);
+        if (GroupId::CurNameDB)
+            GroupId::CurNameDB->registerPair(NameDB::generateName(header.groupId, NameDB::Type::Group), header.groupId);
 
         /* Sound Macros */
         r.seek(header.soundMacroIdsOff, athena::Begin);
@@ -157,7 +160,8 @@ AudioGroupProject::AudioGroupProject(athena::io::IStreamReader& r, GCNDataTag)
                 std::array<SongGroupIndex::MIDISetup, 16>& setup = idx->m_midiSetups[songId];
                 for (int i = 0; i < 16 ; ++i)
                     setup[i].read(r);
-                SongId::CurNameDB->registerPair(NameDB::generateName(songId, NameDB::Type::Song), songId);
+                if (SongId::CurNameDB)
+                    SongId::CurNameDB->registerPair(NameDB::generateName(songId, NameDB::Type::Song), songId);
             }
         }
         else if (header.type == GroupType::SFX)
@@ -175,7 +179,8 @@ AudioGroupProject::AudioGroupProject(athena::io::IStreamReader& r, GCNDataTag)
                 SFXGroupIndex::SFXEntryDNA<athena::Big> entry;
                 entry.read(r);
                 idx->m_sfxEntries[entry.sfxId.id] = entry;
-                SFXId::CurNameDB->registerPair(
+                if (SFXId::CurNameDB)
+                    SFXId::CurNameDB->registerPair(
                     NameDB::generateName(entry.sfxId.id, NameDB::Type::SFX), entry.sfxId.id);
             }
         }
