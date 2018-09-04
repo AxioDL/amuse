@@ -100,6 +100,7 @@ int main(int argc, const boo::SystemChar** argv)
     std::vector<boo::SystemString> m_args;
     m_args.reserve(argc);
     double rate = NativeSampleRate;
+    int chCount = 2;
     for (int i = 1; i < argc; ++i)
     {
 #if _WIN32
@@ -110,6 +111,16 @@ int main(int argc, const boo::SystemChar** argv)
             else if (argc > (i + 1))
             {
                 rate = wcstod(argv[i + 1], nullptr);
+                ++i;
+            }
+        }
+        else if (!wcsncmp(argv[i], L"-c", 2))
+        {
+            if (argv[i][2])
+                chCount = wcstoul(&argv[i][2], nullptr, 0);
+            else if (argc > (i + 1))
+            {
+                chCount = wcstoul(argv[i + 1], nullptr, 0);
                 ++i;
             }
         }
@@ -126,6 +137,16 @@ int main(int argc, const boo::SystemChar** argv)
                 ++i;
             }
         }
+        else if (!strncmp(argv[i], "-c", 2))
+        {
+            if (argv[i][2])
+                chCount = strtoul(&argv[i][2], nullptr, 0);
+            else if (argc > (i + 1))
+            {
+                chCount = strtoul(argv[i + 1], nullptr, 0);
+                ++i;
+            }
+        }
         else
             m_args.push_back(argv[i]);
 #endif
@@ -134,7 +155,7 @@ int main(int argc, const boo::SystemChar** argv)
     /* Load data */
     if (m_args.size() < 1)
     {
-        Log.report(logvisor::Error, "Usage: amuserender <group-file> [<songs-file>] [-r <sample-rate>]");
+        Log.report(logvisor::Error, "Usage: amuserender <group-file> [<songs-file>] [-r <sample-rate>] [-c <channel-count>]");
         return 1;
     }
 
@@ -452,7 +473,7 @@ int main(int argc, const boo::SystemChar** argv)
     Log.report(logvisor::Info, _S("Writing to %s"), pathOut);
 
     /* Build voice engine */
-    std::unique_ptr<boo::IAudioVoiceEngine> voxEngine = boo::NewWAVAudioVoiceEngine(pathOut, rate);
+    std::unique_ptr<boo::IAudioVoiceEngine> voxEngine = boo::NewWAVAudioVoiceEngine(pathOut, rate, chCount);
     amuse::BooBackendVoiceAllocator booBackend(*voxEngine);
     amuse::Engine engine(booBackend, amuse::AmplitudeMode::PerSample);
 
