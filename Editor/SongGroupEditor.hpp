@@ -241,11 +241,12 @@ class MIDIPlayerWidget : public QWidget
     QModelIndex m_index;
     amuse::GroupId m_groupId;
     amuse::SongId m_songId;
+    QString m_path;
     std::vector<uint8_t> m_arrData;
     amuse::ObjToken<amuse::Sequencer> m_seq;
 public:
     explicit MIDIPlayerWidget(QModelIndex index, amuse::GroupId gid, amuse::SongId id,
-                              std::vector<uint8_t>&& arrData, QWidget* parent = Q_NULLPTR);
+                              const QString& path, QWidget* parent = Q_NULLPTR);
     ~MIDIPlayerWidget();
     amuse::SongId songId() const { return m_songId; }
     amuse::Sequencer* sequencer() const { return m_seq.get(); }

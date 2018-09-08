@@ -84,7 +84,7 @@ bool Voice::_checkSamplePos(bool& looped)
 
     if (m_curSamplePos >= m_lastSamplePos)
     {
-        if (m_curSample->m_loopLengthSamples)
+        if (m_curSample->isLooped())
         {
             /* Turn over looped sample */
             m_curSamplePos = m_curSample->m_loopStartSample;
@@ -493,7 +493,10 @@ void Voice::preSupplyAudio(double dt)
         m_vibratoTime += dt;
         float vibrato = TriangleWave(m_vibratoTime / m_vibratoPeriod);
         if (m_vibratoModWheel)
-            newPitch += m_vibratoModLevel * vibrato * (m_state.m_curMod / 127.f);
+        {
+            int32_t range = m_vibratoModLevel ? m_vibratoModLevel : m_vibratoLevel;
+            newPitch += range * vibrato * (m_state.m_curMod / 127.f);
+        }
         else
             newPitch += m_vibratoLevel * vibrato;
         refresh = true;
@@ -1002,7 +1005,7 @@ void Voice::startSample(SampleId sampId, int32_t offset)
         int32_t numSamples = m_curSample->getNumSamples();
         if (offset)
         {
-            if (m_curSample->m_loopLengthSamples)
+            if (m_curSample->isLooped())
             {
                 if (offset > int32_t(m_curSample->m_loopStartSample))
                     offset =
@@ -1020,9 +1023,8 @@ void Voice::startSample(SampleId sampId, int32_t offset)
         if (m_curFormat == SampleFormat::DSP_DRUM)
             m_curFormat = SampleFormat::DSP;
 
-        m_lastSamplePos = m_curSample->m_loopLengthSamples
-                              ? (m_curSample->m_loopStartSample + m_curSample->m_loopLengthSamples)
-                              : numSamples;
+        m_lastSamplePos = m_curSample->isLooped()
+                          ? (m_curSample->m_loopStartSample + m_curSample->m_loopLengthSamples) : numSamples;
         if (m_lastSamplePos)
             --m_lastSamplePos;
 

@@ -441,7 +441,7 @@ void Engine::removeListener(Listener* listener)
 }
 
 /** Start song playing from loaded audio groups */
-ObjToken<Sequencer> Engine::seqPlay(GroupId groupId, SongId songId, const unsigned char* arrData, ObjToken<Studio> smx)
+ObjToken<Sequencer> Engine::seqPlay(GroupId groupId, SongId songId, const unsigned char* arrData, bool loop, ObjToken<Studio> smx)
 {
     std::pair<AudioGroup*, const SongGroupIndex*> songGrp = _findSongGroup(groupId);
     if (songGrp.second)
@@ -451,7 +451,7 @@ ObjToken<Sequencer> Engine::seqPlay(GroupId groupId, SongId songId, const unsign
             return {};
 
         if (arrData)
-            (*ret)->playSong(arrData);
+            (*ret)->playSong(arrData, loop);
         return *ret;
     }
 
@@ -468,7 +468,7 @@ ObjToken<Sequencer> Engine::seqPlay(GroupId groupId, SongId songId, const unsign
 }
 
 ObjToken<Sequencer> Engine::seqPlay(const AudioGroup* group, GroupId groupId, SongId songId,
-                                    const unsigned char* arrData, ObjToken<Studio> smx)
+                                    const unsigned char* arrData, bool loop, ObjToken<Studio> smx)
 {
     const SongGroupIndex* sgIdx = group->getProj().getSongGroupIndex(groupId);
     if (sgIdx)
@@ -478,7 +478,7 @@ ObjToken<Sequencer> Engine::seqPlay(const AudioGroup* group, GroupId groupId, So
             return {};
 
         if (arrData)
-            (*ret)->playSong(arrData);
+            (*ret)->playSong(arrData, loop);
         return *ret;
     }
 

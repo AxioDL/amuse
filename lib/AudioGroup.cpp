@@ -10,8 +10,8 @@ namespace amuse
 
 void AudioGroup::assign(const AudioGroupData& data)
 {
-    m_proj = AudioGroupProject::CreateAudioGroupProject(data);
     m_pool = AudioGroupPool::CreateAudioGroupPool(data);
+    m_proj = AudioGroupProject::CreateAudioGroupProject(data);
     m_sdir = AudioGroupSampleDirectory::CreateAudioGroupSampleDirectory(data);
     m_samp = data.getSamp();
 }

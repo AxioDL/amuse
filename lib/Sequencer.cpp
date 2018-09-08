@@ -257,7 +257,7 @@ ObjToken<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velocity)
         if (m_parent->m_songGroup)
         {
             oid = m_page->objId;
-            res = (*ret)->loadPageObject(oid, m_parent->m_ticksPerSec, note, velocity, m_ctrlVals[1]);
+            res = (*ret)->loadPageObject(oid, m_ticksPerSec, note, velocity, m_ctrlVals[1]);
         }
         else if (m_parent->m_sfxMappings.size())
         {
@@ -265,7 +265,7 @@ ObjToken<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velocity)
             const SFXGroupIndex::SFXEntry* sfxEntry = m_parent->m_sfxMappings[lookupIdx];
             oid = sfxEntry->objId;
             note = sfxEntry->defKey;
-            res = (*ret)->loadPageObject(oid, m_parent->m_ticksPerSec, note, velocity, m_ctrlVals[1]);
+            res = (*ret)->loadPageObject(oid, m_ticksPerSec, note, velocity, m_ctrlVals[1]);
         }
         else
             return {};
@@ -446,7 +446,16 @@ void Sequencer::setPitchWheel(uint8_t chan, float pitchWheel)
     m_chanStates[chan].setPitchWheel(pitchWheel);
 }
 
-void Sequencer::setTempo(double ticksPerSec) { m_ticksPerSec = ticksPerSec; }
+void Sequencer::setTempo(uint8_t chan, double ticksPerSec)
+{
+    m_chanStates[chan].m_ticksPerSec = ticksPerSec;
+}
+
+void Sequencer::setTempo(double ticksPerSec)
+{
+    for (auto& c : m_chanStates)
+        c.m_ticksPerSec = ticksPerSec;
+}
 
 void Sequencer::ChannelState::allOff()
 {
@@ -598,12 +607,12 @@ void Sequencer::sendMacroMessage(ObjectId macroId, int32_t val)
             chan.sendMacroMessage(macroId, val);
 }
 
-void Sequencer::playSong(const unsigned char* arrData, bool dieOnEnd)
+void Sequencer::playSong(const unsigned char* arrData, bool loop, bool dieOnEnd)
 {
     m_arrData = arrData;
     m_dieOnEnd = dieOnEnd;
-    m_songState.initialize(arrData);
-    setTempo(m_songState.getTempo() * 384 / 60);
+    m_songState.initialize(arrData, loop);
+    setTempo(m_songState.getInitialTempo() * 384 / 60.0);
     m_state = SequencerState::Playing;
 }
 

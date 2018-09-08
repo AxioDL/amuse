@@ -101,6 +101,7 @@ int main(int argc, const boo::SystemChar** argv)
     m_args.reserve(argc);
     double rate = NativeSampleRate;
     int chCount = 2;
+    double volume = 1.0;
     for (int i = 1; i < argc; ++i)
     {
 #if _WIN32
@@ -121,6 +122,16 @@ int main(int argc, const boo::SystemChar** argv)
             else if (argc > (i + 1))
             {
                 chCount = wcstoul(argv[i + 1], nullptr, 0);
+                ++i;
+            }
+        }
+        else if (!wcsncmp(argv[i], L"-v", 2))
+        {
+            if (argv[i][2])
+                volume = wcstod(&argv[i][2], nullptr);
+            else if (argc > (i + 1))
+            {
+                volume = wcstod(argv[i + 1], nullptr);
                 ++i;
             }
         }
@@ -147,6 +158,16 @@ int main(int argc, const boo::SystemChar** argv)
                 ++i;
             }
         }
+        else if (!strncmp(argv[i], "-v", 2))
+        {
+            if (argv[i][2])
+                volume = strtod(&argv[i][2], nullptr);
+            else if (argc > (i + 1))
+            {
+                volume = strtod(argv[i + 1], nullptr);
+                ++i;
+            }
+        }
         else
             m_args.push_back(argv[i]);
 #endif
@@ -155,7 +176,7 @@ int main(int argc, const boo::SystemChar** argv)
     /* Load data */
     if (m_args.size() < 1)
     {
-        Log.report(logvisor::Error, "Usage: amuserender <group-file> [<songs-file>] [-r <sample-rate>] [-c <channel-count>]");
+        Log.report(logvisor::Error, "Usage: amuserender <group-file> [<songs-file>] [-r <sample-rate>] [-c <channel-count>] [-v <volume 0.0-1.0>]");
         return 1;
     }
 
@@ -476,6 +497,7 @@ int main(int argc, const boo::SystemChar** argv)
     std::unique_ptr<boo::IAudioVoiceEngine> voxEngine = boo::NewWAVAudioVoiceEngine(pathOut, rate, chCount);
     amuse::BooBackendVoiceAllocator booBackend(*voxEngine);
     amuse::Engine engine(booBackend, amuse::AmplitudeMode::PerSample);
+    engine.setVolume(float(amuse::clamp(0.0, volume, 1.0)));
 
     /* Load group into engine */
     const amuse::AudioGroup* group = engine.addAudioGroup(*selData);
@@ -486,7 +508,7 @@ int main(int argc, const boo::SystemChar** argv)
     }
 
     /* Enter playback loop */
-    amuse::ObjToken<amuse::Sequencer> seq = engine.seqPlay(m_groupId, m_setupId, m_arrData->m_data.get());
+    amuse::ObjToken<amuse::Sequencer> seq = engine.seqPlay(m_groupId, m_setupId, m_arrData->m_data.get(), false);
     size_t wroteFrames = 0;
     signal(SIGINT, SIGINTHandler);
     do

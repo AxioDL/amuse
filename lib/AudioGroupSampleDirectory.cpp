@@ -210,6 +210,29 @@ void AudioGroupSampleDirectory::EntryData::loadLooseDSP(SystemStringView dspPath
     }
 }
 
+void AudioGroupSampleDirectory::EntryData::loadLooseVADPCM(SystemStringView vadpcmPath)
+{
+    athena::io::FileReader r(vadpcmPath);
+    if (!r.hasError())
+    {
+        VADPCMHeader header;
+        header.read(r);
+        m_pitch = header.m_pitchSampleRate >> 24;
+        m_sampleRate = header.m_pitchSampleRate & 0xffff;
+        m_numSamples = header.m_numSamples & 0xffff;
+        m_numSamples |= atUint32(SampleFormat::N64) << 24;
+        m_loopStartSample = header.m_loopStartSample;
+        m_loopLengthSamples = header.m_loopLengthSamples;
+
+        uint32_t dataLen = 256 + (m_numSamples + 63) / 64 * 40;
+        m_looseData.reset(new uint8_t[dataLen]);
+        r.readUBytesToBuf(m_looseData.get(), dataLen);
+
+        memcpy(&m_ADPCMParms, m_looseData.get(), 256);
+        m_ADPCMParms.swapBigVADPCM();
+    }
+}
+
 void AudioGroupSampleDirectory::EntryData::loadLooseWAV(SystemStringView wavPath)
 {
     athena::io::FileReader r(wavPath);
@@ -263,9 +286,11 @@ void AudioGroupSampleDirectory::Entry::loadLooseData(SystemStringView basePath)
 {
     SystemString wavPath = SystemString(basePath) + _S(".wav");
     SystemString dspPath = SystemString(basePath) + _S(".dsp");
-    Sstat wavStat, dspStat;
+    SystemString vadpcmPath = SystemString(basePath) + _S(".vadpcm");
+    Sstat wavStat, dspStat, vadpcmStat;
     bool wavValid = !Stat(wavPath.c_str(), &wavStat) && S_ISREG(wavStat.st_mode);
     bool dspValid = !Stat(dspPath.c_str(), &dspStat) && S_ISREG(dspStat.st_mode);
+    bool vadpcmValid = !Stat(vadpcmPath.c_str(), &vadpcmStat) && S_ISREG(vadpcmStat.st_mode);
 
     if (wavValid && dspValid)
     {
@@ -273,6 +298,20 @@ void AudioGroupSampleDirectory::Entry::loadLooseData(SystemStringView basePath)
             dspValid = false;
         else
             wavValid = false;
+    }
+    if (wavValid && vadpcmValid)
+    {
+        if (wavStat.st_mtime > vadpcmStat.st_mtime)
+            vadpcmValid = false;
+        else
+            wavValid = false;
+    }
+    if (dspValid && vadpcmValid)
+    {
+        if (dspStat.st_mtime > vadpcmStat.st_mtime)
+            vadpcmValid = false;
+        else
+            dspValid = false;
     }
 
     EntryData& curData = *m_data;
@@ -282,6 +321,12 @@ void AudioGroupSampleDirectory::Entry::loadLooseData(SystemStringView basePath)
         m_data = MakeObj<EntryData>();
         m_data->loadLooseDSP(dspPath);
         m_data->m_looseModTime = dspStat.st_mtime;
+    }
+    else if (vadpcmValid && (!curData.m_looseData || vadpcmStat.st_mtime > curData.m_looseModTime))
+    {
+        m_data = MakeObj<EntryData>();
+        m_data->loadLooseVADPCM(vadpcmPath);
+        m_data->m_looseModTime = vadpcmStat.st_mtime;
     }
     else if (wavValid && (!curData.m_looseData || wavStat.st_mtime > curData.m_looseModTime))
     {
@@ -295,12 +340,14 @@ SampleFileState AudioGroupSampleDirectory::Entry::getFileState(SystemStringView 
 {
     SystemString wavPath = SystemString(basePath) + _S(".wav");
     SystemString dspPath = SystemString(basePath) + _S(".dsp");
-    Sstat wavStat, dspStat;
+    SystemString vadpcmPath = SystemString(basePath) + _S(".vadpcm");
+    Sstat wavStat, dspStat, vadpcmStat;
     bool wavValid = !Stat(wavPath.c_str(), &wavStat) && S_ISREG(wavStat.st_mode);
     bool dspValid = !Stat(dspPath.c_str(), &dspStat) && S_ISREG(dspStat.st_mode);
+    bool vadpcmValid = !Stat(vadpcmPath.c_str(), &vadpcmStat) && S_ISREG(vadpcmStat.st_mode);
 
     EntryData& curData = *m_data;
-    if (!wavValid && !dspValid)
+    if (!wavValid && !dspValid && !vadpcmValid)
     {
         if (!curData.m_looseData)
             return SampleFileState::NoData;
@@ -321,11 +368,41 @@ SampleFileState AudioGroupSampleDirectory::Entry::getFileState(SystemStringView 
             *pathOut = dspPath;
         return SampleFileState::CompressedRecent;
     }
+    if (wavValid && vadpcmValid)
+    {
+        if (wavStat.st_mtime > vadpcmStat.st_mtime)
+        {
+            if (pathOut)
+                *pathOut = wavPath;
+            return SampleFileState::WAVRecent;
+        }
+        if (pathOut)
+            *pathOut = vadpcmPath;
+        return SampleFileState::CompressedRecent;
+    }
+    if (dspValid && vadpcmValid)
+    {
+        if (dspStat.st_mtime > vadpcmStat.st_mtime)
+        {
+            if (pathOut)
+                *pathOut = dspPath;
+            return SampleFileState::CompressedNoWAV;
+        }
+        if (pathOut)
+            *pathOut = vadpcmPath;
+        return SampleFileState::CompressedNoWAV;
+    }
 
     if (dspValid)
     {
         if (pathOut)
             *pathOut = dspPath;
+        return SampleFileState::CompressedNoWAV;
+    }
+    if (vadpcmValid)
+    {
+        if (pathOut)
+            *pathOut = vadpcmPath;
         return SampleFileState::CompressedNoWAV;
     }
     if (pathOut)
@@ -341,7 +418,7 @@ void AudioGroupSampleDirectory::EntryData::patchMetadataDSP(SystemStringView dsp
         DSPADPCMHeader head;
         head.read(r);
 
-        if (m_loopLengthSamples != 0)
+        if (isLooped())
         {
             uint32_t block = getLoopStartSample() / 14;
             uint32_t rem = getLoopStartSample() % 14;
@@ -381,6 +458,22 @@ void AudioGroupSampleDirectory::EntryData::patchMetadataDSP(SystemStringView dsp
             w.seek(0, athena::Begin);
             head.write(w);
         }
+    }
+}
+
+void AudioGroupSampleDirectory::EntryData::patchMetadataVADPCM(SystemStringView vadpcmPath)
+{
+    athena::io::FileWriter w(vadpcmPath, false);
+    if (!w.hasError())
+    {
+        w.seek(0, athena::Begin);
+        VADPCMHeader header;
+        header.m_pitchSampleRate = m_pitch << 24;
+        header.m_pitchSampleRate |= m_sampleRate & 0xffff;
+        header.m_numSamples = m_numSamples;
+        header.m_loopStartSample = m_loopStartSample;
+        header.m_loopLengthSamples = m_loopLengthSamples;
+        header.write(w);
     }
 }
 
@@ -445,7 +538,7 @@ void AudioGroupSampleDirectory::EntryData::patchMetadataWAV(SystemStringView wav
                                 WAVSampleChunk smpl;
                                 smpl.smplPeriod = 1000000000 / fmt.sampleRate;
                                 smpl.midiNote = m_pitch;
-                                if (m_loopLengthSamples != 0)
+                                if (isLooped())
                                 {
                                     smpl.numSampleLoops = 1;
                                     smpl.additionalDataSize = 0;
@@ -488,7 +581,7 @@ void AudioGroupSampleDirectory::EntryData::patchMetadataWAV(SystemStringView wav
                         WAVSampleChunk smpl;
                         smpl.smplPeriod = 1000000000 / fmt.sampleRate;
                         smpl.midiNote = m_pitch;
-                        if (m_loopLengthSamples != 0)
+                        if (isLooped())
                         {
                             smpl.numSampleLoops = 1;
                             smpl.additionalDataSize = 0;
@@ -530,9 +623,11 @@ void AudioGroupSampleDirectory::Entry::patchSampleMetadata(SystemStringView base
 {
     SystemString wavPath = SystemString(basePath) + _S(".wav");
     SystemString dspPath = SystemString(basePath) + _S(".dsp");
-    Sstat wavStat, dspStat;
+    SystemString vadpcmPath = SystemString(basePath) + _S(".vadpcm");
+    Sstat wavStat, dspStat, vadpcmStat;
     bool wavValid = !Stat(wavPath.c_str(), &wavStat) && S_ISREG(wavStat.st_mode);
     bool dspValid = !Stat(dspPath.c_str(), &dspStat) && S_ISREG(dspStat.st_mode);
+    bool vadpcmValid = !Stat(vadpcmPath.c_str(), &vadpcmStat) && S_ISREG(vadpcmStat.st_mode);
 
     EntryData& curData = *m_data;
 
@@ -540,6 +635,12 @@ void AudioGroupSampleDirectory::Entry::patchSampleMetadata(SystemStringView base
     {
         curData.patchMetadataWAV(wavPath);
         SetAudioFileTime(wavPath, wavStat);
+    }
+
+    if (vadpcmValid)
+    {
+        curData.patchMetadataVADPCM(vadpcmPath);
+        SetAudioFileTime(vadpcmPath, vadpcmStat);
     }
 
     if (dspValid)
@@ -559,9 +660,19 @@ AudioGroupSampleDirectory AudioGroupSampleDirectory::CreateAudioGroupSampleDirec
         if (ent.m_name.size() < 4)
             continue;
         SystemString baseName;
+        SystemString basePath;
         if (!CompareCaseInsensitive(ent.m_name.data() + ent.m_name.size() - 4, _S(".dsp")) ||
             !CompareCaseInsensitive(ent.m_name.data() + ent.m_name.size() - 4, _S(".wav")))
+        {
             baseName = SystemString(ent.m_name.begin(), ent.m_name.begin() + ent.m_name.size() - 4);
+            basePath = SystemString(ent.m_path.begin(), ent.m_path.begin() + ent.m_path.size() - 4);
+        }
+        else if (ent.m_name.size() > 7 &&
+                 !CompareCaseInsensitive(ent.m_name.data() + ent.m_name.size() - 7, _S(".vadpcm")))
+        {
+            baseName = SystemString(ent.m_name.begin(), ent.m_name.begin() + ent.m_name.size() - 7);
+            basePath = SystemString(ent.m_path.begin(), ent.m_path.begin() + ent.m_path.size() - 7);
+        }
         else
             continue;
 
@@ -574,7 +685,6 @@ AudioGroupSampleDirectory AudioGroupSampleDirectory::CreateAudioGroupSampleDirec
 
         auto& entry = ret.m_entries[sampleId];
         entry = MakeObj<Entry>();
-        SystemString basePath = SystemString(ent.m_path.begin(), ent.m_path.begin() + ent.m_path.size() - 4);
         entry->loadLooseData(basePath);
     }
 
@@ -598,7 +708,7 @@ void AudioGroupSampleDirectory::_extractWAV(SampleId id, const EntryData& ent,
 
     SampleFormat fmt = SampleFormat(ent.m_numSamples >> 24);
     uint32_t numSamples = ent.m_numSamples & 0xffffff;
-    if (ent.m_loopLengthSamples)
+    if (ent.isLooped())
     {
         WAVHeaderLoop header;
         header.fmtChunk.sampleRate = ent.m_sampleRate;
@@ -652,19 +762,19 @@ void AudioGroupSampleDirectory::_extractWAV(SampleId id, const EntryData& ent,
     else if (fmt == SampleFormat::N64)
     {
         uint32_t remSamples = numSamples;
-        uint32_t numFrames = (remSamples + 31) / 32;
+        uint32_t numFrames = (remSamples + 63) / 64;
         const unsigned char* cur = samp + sizeof(ADPCMParms::VADPCMParms);
         for (uint32_t i = 0; i < numFrames; ++i)
         {
-            int16_t decomp[32] = {};
-            unsigned thisSamples = std::min(remSamples, 32u);
+            int16_t decomp[64] = {};
+            unsigned thisSamples = std::min(remSamples, 64u);
             N64MusyXDecompressFrame(decomp, cur, ent.m_ADPCMParms.vadpcm.m_coefs, thisSamples);
             remSamples -= thisSamples;
-            cur += 16;
+            cur += 40;
             w.writeBytes(decomp, thisSamples * 2);
         }
 
-        dataLen = sizeof(ADPCMParms::VADPCMParms) + (numSamples + 31) / 32 * 16;
+        dataLen = sizeof(ADPCMParms::VADPCMParms) + (numSamples + 63) / 64 * 40;
     }
     else if (fmt == SampleFormat::PCM)
     {
@@ -732,7 +842,7 @@ void AudioGroupSampleDirectory::_extractCompressed(SampleId id, const EntryData&
         header.x0_num_samples = numSamples;
         header.x4_num_nibbles = DSPSampleToNibble(numSamples);
         header.x8_sample_rate = ent.m_sampleRate;
-        header.xc_loop_flag = atUint16(ent.m_loopLengthSamples != 0);
+        header.xc_loop_flag = atUint16(ent.isLooped());
         if (header.xc_loop_flag)
         {
             header.x10_loop_start_nibble = DSPSampleToNibble(ent.getLoopStartSample());
@@ -757,7 +867,14 @@ void AudioGroupSampleDirectory::_extractCompressed(SampleId id, const EntryData&
     {
         path += _S(".vadpcm");
         athena::io::FileWriter w(path);
-        dataLen = sizeof(ADPCMParms::VADPCMParms) + (numSamples + 31) / 32 * 16;
+        VADPCMHeader header;
+        header.m_pitchSampleRate = ent.m_pitch << 24;
+        header.m_pitchSampleRate |= ent.m_sampleRate & 0xffff;
+        header.m_numSamples = ent.m_numSamples;
+        header.m_loopStartSample = ent.m_loopStartSample;
+        header.m_loopLengthSamples = ent.m_loopLengthSamples;
+        header.write(w);
+        dataLen = 256 + (numSamples + 63) / 64 * 40;
         w.writeUBytes(samp, dataLen);
     }
     else if (fmt == SampleFormat::PCM_PC || fmt == SampleFormat::PCM)
@@ -779,7 +896,7 @@ void AudioGroupSampleDirectory::_extractCompressed(SampleId id, const EntryData&
         header.x0_num_samples = numSamples;
         header.x4_num_nibbles = DSPSampleToNibble(numSamples);
         header.x8_sample_rate = ent.m_sampleRate;
-        header.xc_loop_flag = atUint16(ent.m_loopLengthSamples != 0);
+        header.xc_loop_flag = atUint16(ent.isLooped());
         header.m_pitch = ent.m_pitch;
         if (header.xc_loop_flag)
         {
@@ -864,9 +981,19 @@ void AudioGroupSampleDirectory::reloadSampleData(SystemStringView groupPath)
         if (ent.m_name.size() < 4)
             continue;
         SystemString baseName;
+        SystemString basePath;
         if (!CompareCaseInsensitive(ent.m_name.data() + ent.m_name.size() - 4, _S(".dsp")) ||
             !CompareCaseInsensitive(ent.m_name.data() + ent.m_name.size() - 4, _S(".wav")))
+        {
             baseName = SystemString(ent.m_name.begin(), ent.m_name.begin() + ent.m_name.size() - 4);
+            basePath = SystemString(ent.m_path.begin(), ent.m_path.begin() + ent.m_path.size() - 4);
+        }
+        else if (ent.m_name.size() > 7 &&
+                 !CompareCaseInsensitive(ent.m_name.data() + ent.m_name.size() - 7, _S(".vadpcm")))
+        {
+            baseName = SystemString(ent.m_name.begin(), ent.m_name.begin() + ent.m_name.size() - 7);
+            basePath = SystemString(ent.m_path.begin(), ent.m_path.begin() + ent.m_path.size() - 7);
+        }
         else
             continue;
 
@@ -883,7 +1010,6 @@ void AudioGroupSampleDirectory::reloadSampleData(SystemStringView groupPath)
 
             auto& entry = m_entries[sampleId];
             entry = MakeObj<Entry>();
-            SystemString basePath = SystemString(ent.m_path.begin(), ent.m_path.begin() + ent.m_path.size() - 4);
             entry->loadLooseData(basePath);
         }
     }

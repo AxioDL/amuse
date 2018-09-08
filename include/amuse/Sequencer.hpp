@@ -34,7 +34,6 @@ class Sequencer : public Entity
 
     const unsigned char* m_arrData = nullptr;             /**< Current playing arrangement data */
     SongState m_songState;                                /**< State of current arrangement playback */
-    double m_ticksPerSec = 1000.0;                        /**< Current ticks per second (tempo) for arrangement data */
     SequencerState m_state = SequencerState::Interactive; /**< Current high-level state of sequencer */
     bool m_dieOnEnd = false; /**< Sequencer will be killed when current arrangement completes */
 
@@ -68,6 +67,7 @@ class Sequencer : public Entity
         float m_curVol = 1.f;        /**< Current volume of channel */
         float m_curPan = 0.f;        /**< Current panning of channel */
         uint16_t m_rpn = 0;          /**< Current RPN (only pitch-range 0x0000 supported) */
+        double m_ticksPerSec = 1000.0; /**< Current ticks per second (tempo) for channel */
 
         void _bringOutYourDead();
         size_t getVoiceCount() const;
@@ -137,10 +137,11 @@ public:
     void sendMacroMessage(ObjectId macroId, int32_t val);
 
     /** Set tempo of sequencer and all voices in ticks per second */
+    void setTempo(uint8_t chan, double ticksPerSec);
     void setTempo(double ticksPerSec);
 
     /** Play MIDI arrangement */
-    void playSong(const unsigned char* arrData, bool dieOnEnd = true);
+    void playSong(const unsigned char* arrData, bool loop = true, bool dieOnEnd = true);
 
     /** Stop current MIDI arrangement */
     void stopSong(float fadeTime = 0.f, bool now = false);

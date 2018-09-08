@@ -33,6 +33,15 @@ struct DSPADPCMHeader : BigDNA
     Seek<21, athena::Current> pad;
 };
 
+struct VADPCMHeader : BigDNA
+{
+    AT_DECL_DNA
+    Value<uint32_t> m_pitchSampleRate;
+    Value<uint32_t> m_numSamples;
+    Value<uint32_t> m_loopStartSample;
+    Value<uint32_t> m_loopLengthSamples;
+};
+
 struct WAVFormatChunk : LittleDNA
 {
     AT_DECL_DNA
@@ -236,6 +245,8 @@ public:
             return fmt == SampleFormat::DSP || fmt == SampleFormat::DSP_DRUM;
         }
 
+        bool isLooped() const { return m_loopLengthSamples != 0 && m_loopStartSample != 0xffffffff; }
+
         void _setLoopStartSample(atUint32 sample)
         {
             m_loopLengthSamples += m_loopStartSample - sample;
@@ -295,9 +306,11 @@ public:
         }
 
         void loadLooseDSP(SystemStringView dspPath);
+        void loadLooseVADPCM(SystemStringView vadpcmPath);
         void loadLooseWAV(SystemStringView wavPath);
 
         void patchMetadataDSP(SystemStringView dspPath);
+        void patchMetadataVADPCM(SystemStringView vadpcmPath);
         void patchMetadataWAV(SystemStringView wavPath);
     };
     /* This double-wrapper allows Voices to keep a strong reference on

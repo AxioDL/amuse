@@ -253,7 +253,7 @@ void SampleView::paintEvent(QPaintEvent* ev)
 
     if (m_sample)
     {
-        if (m_sample->m_loopLengthSamples != 0)
+        if (m_sample->isLooped())
         {
             int loopStart = m_sample->m_loopStartSample;
             int loopEnd = loopStart + m_sample->m_loopLengthSamples - 1;
@@ -320,7 +320,7 @@ void SampleView::showEvent(QShowEvent* ev)
 
 void SampleView::mousePressEvent(QMouseEvent* ev)
 {
-    if (m_sample && m_sample->m_loopLengthSamples != 0)
+    if (m_sample && m_sample->isLooped())
     {
         int loopStart = m_sample->m_loopStartSample;
         int startPos = int(loopStart / m_samplesPerPx);
@@ -697,11 +697,11 @@ void SampleControls::updateFileState()
     }
 
     amuse::SampleEntryData* data = editor->m_sampleView->entryData();
-    m_loopCheck->setChecked(data->m_loopLengthSamples != 0);
+    m_loopCheck->setChecked(data->isLooped());
     int loopStart = 0;
     int loopEnd = 0;
     int loopMax = data->getNumSamples() - 1;
-    if (data->m_loopLengthSamples != 0)
+    if (data->isLooped())
     {
         loopStart = data->m_loopStartSample;
         loopEnd = loopStart + data->m_loopLengthSamples - 1;
@@ -712,8 +712,8 @@ void SampleControls::updateFileState()
     m_loopStart->setValue(loopStart);
     m_loopEnd->setValue(loopEnd);
     m_basePitch->setValue(data->m_pitch);
-    m_loopStart->setEnabled(data->m_loopLengthSamples != 0);
-    m_loopEnd->setEnabled(data->m_loopLengthSamples != 0);
+    m_loopStart->setEnabled(data->isLooped());
+    m_loopEnd->setEnabled(data->isLooped());
 
     if (!path.empty())
     {

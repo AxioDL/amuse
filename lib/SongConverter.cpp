@@ -83,17 +83,28 @@ struct Event
 class MIDIDecoder
 {
     int m_tick = 0;
-    std::vector<std::pair<int, std::multimap<int, Event>>> m_results[16];
+    std::vector<std::multimap<int, Event>> m_results[16];
     std::multimap<int, int> m_tempos;
     std::array<std::multimap<int, Event>::iterator, 128> m_notes[16];
+    int m_minLoopStart[16];
+    int m_minLoopEnd[16];
 
-    void _addProgramChange(int chan, int prog)
+    bool isEmptyIterator(int chan, std::multimap<int, Event>::iterator it) const
+    {
+        for (const auto& res : m_results[chan])
+            if (res.end() == it)
+                return true;
+        return false;
+    }
+
+    void _addRegionChange(int chan)
     {
         auto& results = m_results[chan];
+        results.reserve(2);
         results.emplace_back();
-        results.back().first = prog;
-        for (size_t i = 0; i < 128; ++i)
-            m_notes[chan][i] = results.back().second.end();
+        if (results.size() == 1)
+            for (size_t i = 0; i < 128; ++i)
+                m_notes[chan][i] = results.back().end();
     }
 
     uint8_t m_status = 0;
@@ -125,8 +136,15 @@ class MIDIDecoder
     }
 
 public:
+    MIDIDecoder()
+    {
+        std::fill(std::begin(m_minLoopStart), std::end(m_minLoopStart), INT_MAX);
+        std::fill(std::begin(m_minLoopEnd), std::end(m_minLoopEnd), INT_MAX);
+    }
+
     std::vector<uint8_t>::const_iterator receiveBytes(std::vector<uint8_t>::const_iterator begin,
-                                                      std::vector<uint8_t>::const_iterator end)
+                                                      std::vector<uint8_t>::const_iterator end,
+                                                      int loopStart[16] = nullptr, int loopEnd[16] = nullptr)
     {
         std::vector<uint8_t>::const_iterator it = begin;
         while (it != end)
@@ -146,7 +164,7 @@ public:
             {
                 /* Meta events */
                 if (it == end)
-                    return begin;
+                    break;
                 a = *it++;
 
                 uint32_t length;
@@ -168,25 +186,36 @@ public:
                 uint8_t chan = m_status & 0xf;
                 auto& results = m_results[chan];
 
-                /* Not actually used as such for now */
-                if (results.empty())
-                    _addProgramChange(chan, 0);
-                std::multimap<int, Event>& res = results.back().second;
+                if (loopEnd && loopEnd[chan] != INT_MAX && m_tick >= loopEnd[chan])
+                    break;
+
+                /* Split region at loop start point */
+                if (loopStart && loopStart[chan] != INT_MAX && m_tick >= loopStart[chan])
+                {
+                    _addRegionChange(chan);
+                    loopStart[chan] = INT_MAX;
+                }
+                else if (results.empty())
+                {
+                    _addRegionChange(chan);
+                }
+
+                std::multimap<int, Event>& res = results.back();
 
                 switch (Status(m_status & 0xf0))
                 {
                 case Status::NoteOff:
                 {
                     if (it == end)
-                        return begin;
+                        break;
                     a = *it++;
                     if (it == end)
-                        return begin;
+                        break;
                     b = *it++;
 
                     uint8_t notenum = clamp7(a);
                     std::multimap<int, Event>::iterator note = m_notes[chan][notenum];
-                    if (note != res.end())
+                    if (!isEmptyIterator(chan, note))
                     {
                         note->second.length = m_tick - note->first;
                         m_notes[chan][notenum] = res.end();
@@ -196,16 +225,16 @@ public:
                 case Status::NoteOn:
                 {
                     if (it == end)
-                        return begin;
+                        break;
                     a = *it++;
                     if (it == end)
-                        return begin;
+                        break;
                     b = *it++;
 
                     uint8_t notenum = clamp7(a);
                     uint8_t vel = clamp7(b);
                     std::multimap<int, Event>::iterator note = m_notes[chan][notenum];
-                    if (note != res.end())
+                    if (!isEmptyIterator(chan, note))
                         note->second.length = m_tick - note->first;
 
                     if (vel != 0)
@@ -218,28 +247,33 @@ public:
                 case Status::NotePressure:
                 {
                     if (it == end)
-                        return begin;
+                        break;
                     a = *it++;
                     if (it == end)
-                        return begin;
+                        break;
                     b = *it++;
                     break;
                 }
                 case Status::ControlChange:
                 {
                     if (it == end)
-                        return begin;
+                        break;
                     a = *it++;
                     if (it == end)
-                        return begin;
+                        break;
                     b = *it++;
-                    res.emplace(m_tick, Event{CtrlEvent{}, chan, clamp7(a), clamp7(b), 0});
+                    if (a == 0x66)
+                        m_minLoopStart[chan] = std::min(m_tick, m_minLoopStart[chan]);
+                    else if (a == 0x67)
+                        m_minLoopEnd[chan] = std::min(m_tick, m_minLoopEnd[chan]);
+                    else
+                        res.emplace(m_tick, Event{CtrlEvent{}, chan, clamp7(a), clamp7(b), 0});
                     break;
                 }
                 case Status::ProgramChange:
                 {
                     if (it == end)
-                        return begin;
+                        break;
                     a = *it++;
                     res.emplace(m_tick, Event{ProgEvent{}, chan, a});
                     break;
@@ -247,17 +281,17 @@ public:
                 case Status::ChannelPressure:
                 {
                     if (it == end)
-                        return begin;
+                        break;
                     a = *it++;
                     break;
                 }
                 case Status::PitchBend:
                 {
                     if (it == end)
-                        return begin;
+                        break;
                     a = *it++;
                     if (it == end)
-                        return begin;
+                        break;
                     b = *it++;
                     res.emplace(m_tick, Event{PitchEvent{}, chan, clamp7(b) * 128 + clamp7(a)});
                     break;
@@ -270,30 +304,30 @@ public:
                     {
                         uint32_t len;
                         if (!_readContinuedValue(it, end, len) || end - it < len)
-                            return begin;
+                            break;
                         break;
                     }
                     case Status::TimecodeQuarterFrame:
                     {
                         if (it == end)
-                            return begin;
+                            break;
                         a = *it++;
                         break;
                     }
                     case Status::SongPositionPointer:
                     {
                         if (it == end)
-                            return begin;
+                            break;
                         a = *it++;
                         if (it == end)
-                            return begin;
+                            break;
                         b = *it++;
                         break;
                     }
                     case Status::SongSelect:
                     {
                         if (it == end)
-                            return begin;
+                            break;
                         a = *it++;
                         break;
                     }
@@ -315,11 +349,14 @@ public:
                 }
             }
         }
+
         return it;
     }
 
-    std::vector<std::pair<int, std::multimap<int, Event>>>& getResults(int chan) { return m_results[chan]; }
+    std::vector<std::multimap<int, Event>>& getResults(int chan) { return m_results[chan]; }
     std::multimap<int, int>& getTempos() { return m_tempos; }
+    int getMinLoopStart(int chan) const { return m_minLoopStart[chan]; }
+    int getMinLoopEnd(int chan) const { return m_minLoopEnd[chan]; }
 };
 
 class MIDIEncoder
@@ -653,7 +690,7 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
     ret.push_back(1);
 
     SongState song;
-    if (!song.initialize(data))
+    if (!song.initialize(data, false))
         return {};
     versionOut = song.m_sngVersion;
     isBig = song.m_bigEndian;
@@ -681,15 +718,18 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
         encoder.getResult().push_back(0x51);
         encoder.getResult().push_back(3);
 
-        uint32_t tempo24 = SBig(60000000 / song.m_tempo);
+        uint32_t tempo24 = SBig(60000000 / (song.m_header.m_initialTempo & 0x7fffffff));
         for (int i = 1; i < 4; ++i)
             encoder.getResult().push_back(reinterpret_cast<uint8_t*>(&tempo24)[i]);
 
         /* Write out tempo changes */
         int lastTick = 0;
-        while (song.m_tempoPtr && song.m_tempoPtr->m_tick != 0xffffffff)
+        const SongState::TempoChange* tempoPtr = nullptr;
+        if (song.m_header.m_tempoTableOff)
+            tempoPtr = reinterpret_cast<const SongState::TempoChange*>(song.m_songData + song.m_header.m_tempoTableOff);
+        while (tempoPtr && tempoPtr->m_tick != 0xffffffff)
         {
-            SongState::TempoChange change = *song.m_tempoPtr;
+            SongState::TempoChange change = *tempoPtr;
             if (song.m_bigEndian)
                 change.swapBig();
 
@@ -703,7 +743,7 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
             for (int i = 1; i < 4; ++i)
                 encoder.getResult().push_back(reinterpret_cast<uint8_t*>(&tempo24)[i]);
 
-            ++song.m_tempoPtr;
+            ++tempoPtr;
         }
 
         encoder.getResult().push_back(0);
@@ -721,6 +761,8 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
         ret.insert(ret.cend(), encoder.getResult().begin(), encoder.getResult().end());
     }
 
+    bool loopsAdded = false;
+
     /* Iterate each SNG track into type-1 MIDI track */
     for (SongState::Track& trk : song.m_tracks)
     {
@@ -733,7 +775,7 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
             while (trk.m_nextRegion->indexValid(song.m_bigEndian))
             {
                 std::multimap<int, Event> events;
-                trk.advanceRegion(nullptr);
+                trk.advanceRegion();
                 uint32_t regStart =
                     song.m_bigEndian ? SBig(trk.m_curRegion->m_startTick) : trk.m_curRegion->m_startTick;
 
@@ -900,6 +942,17 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
                 }
             }
 
+            /* Add loop events */
+            if (!loopsAdded && trk.m_nextRegion->indexLoop(song.m_bigEndian) != -1)
+            {
+                uint32_t loopEnd =
+                    song.m_bigEndian ? SBig(trk.m_nextRegion->m_startTick) : trk.m_nextRegion->m_startTick;
+                allEvents.emplace(trk.m_loopStartTick, Event{CtrlEvent{}, trk.m_midiChan, 0x66, 0, 0});
+                allEvents.emplace(loopEnd, Event{CtrlEvent{}, trk.m_midiChan, 0x67, 0, 0});
+                if (!(song.m_header.m_initialTempo & 0x80000000))
+                    loopsAdded = true;
+            }
+
             /* Emit MIDI events */
             int lastTime = 0;
             for (auto& pair : allEvents)
@@ -1021,6 +1074,55 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
     std::vector<Region> regions;
     int curRegionOff = 0;
 
+    /* Pre-iterate to extract loop events */
+    int loopStart[16];
+    int loopEnd[16];
+    int loopChanCount = 0;
+    {
+        int loopChanIdx = -1;
+        for (int c = 0; c < 16; ++c)
+        {
+            loopStart[c] = INT_MAX;
+            loopEnd[c] = INT_MAX;
+            std::vector<uint8_t>::const_iterator tmpIt = it;
+            for (int i = 0; i < header.count; ++i)
+            {
+                if (memcmp(&*tmpIt, "MTrk", 4))
+                    return {};
+                tmpIt += 4;
+                uint32_t length = SBig(*reinterpret_cast<const uint32_t*>(&*tmpIt));
+                tmpIt += 4;
+
+                std::vector<uint8_t>::const_iterator begin = tmpIt;
+                std::vector<uint8_t>::const_iterator end = tmpIt + length;
+                tmpIt = end;
+
+                MIDIDecoder dec;
+                dec.receiveBytes(begin, end);
+                loopStart[c] = std::min(dec.getMinLoopStart(c), loopStart[c]);
+                loopEnd[c] = std::min(dec.getMinLoopEnd(c), loopEnd[c]);
+            }
+            if (loopStart[c] == INT_MAX || loopEnd[c] == INT_MAX)
+            {
+                loopStart[c] = INT_MAX;
+                loopEnd[c] = INT_MAX;
+            }
+            else
+            {
+                ++loopChanCount;
+                loopChanIdx = c;
+            }
+        }
+        if (loopChanCount == 1)
+        {
+            for (int c = 0; c < 16; ++c)
+            {
+                loopStart[c] = loopStart[loopChanIdx];
+                loopEnd[c] = loopEnd[loopChanIdx];
+            }
+        }
+    }
+
     for (int i = 0; i < header.count; ++i)
     {
         if (memcmp(&*it, "MTrk", 4))
@@ -1069,25 +1171,29 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
         it = end;
 
         MIDIDecoder dec;
-        dec.receiveBytes(begin, end);
+        int tmpLoopStart[16];
+        int tmpLoopEnd[16];
+        std::copy(std::begin(loopStart), std::end(loopStart), std::begin(tmpLoopStart));
+        std::copy(std::begin(loopEnd), std::end(loopEnd), std::begin(tmpLoopEnd));
+        dec.receiveBytes(begin, end, tmpLoopStart, tmpLoopEnd);
 
         for (int c = 0; c < 16; ++c)
         {
-            std::vector<std::pair<int, std::multimap<int, Event>>>& results = dec.getResults(c);
-            int lastTrackStartTick = 0;
+            std::vector<std::multimap<int, Event>>& results = dec.getResults(c);
             bool didChanInit = false;
-            for (auto& prog : results)
+            int lastEventTick = 0;
+            for (auto& chanRegion : results)
             {
                 bool didInit = false;
                 int startTick = 0;
-                int lastEventTick = 0;
+                lastEventTick = 0;
                 int lastPitchTick = 0;
                 int lastPitchVal = 0;
                 int lastModTick = 0;
                 int lastModVal = 0;
                 Region region;
 
-                for (auto& event : prog.second)
+                for (auto& event : chanRegion)
                 {
                     uint32_t eventTick = event.first * 384 / header.div;
 
@@ -1097,7 +1203,6 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
                         {
                             didInit = true;
                             startTick = eventTick;
-                            lastTrackStartTick = startTick;
                             lastEventTick = startTick;
                             lastPitchTick = startTick;
                             lastPitchVal = 0;
@@ -1322,7 +1427,7 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
                         reg.m_unk1 = 0xff;
                         reg.m_unk2 = 0;
                         reg.m_regionIndex = SBig(uint16_t(regIdx));
-                        reg.m_unk3 = 0;
+                        reg.m_loopToRegion = 0;
                     }
                     else
                     {
@@ -1331,7 +1436,7 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
                         reg.m_unk1 = 0xff;
                         reg.m_unk2 = 0;
                         reg.m_regionIndex = uint16_t(regIdx);
-                        reg.m_unk3 = 0;
+                        reg.m_loopToRegion = 0;
                     }
                 }
             }
@@ -1341,23 +1446,37 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
                 /* Terminating region header */
                 regionBuf.emplace_back();
                 SongState::TrackRegion& reg = regionBuf.back();
+
+                uint32_t termStartTick = 0;
+                int16_t termRegionIdx = -1;
+                int16_t termLoopToRegion = 0;
+                if (loopEnd[c] != INT_MAX)
+                {
+                    termStartTick = loopEnd[c];
+                    if (lastEventTick >= loopStart[c])
+                    {
+                        termRegionIdx = -2;
+                        termLoopToRegion = results.size() - 1;
+                    }
+                }
+
                 if (big)
                 {
-                    reg.m_startTick = SBig(uint32_t(lastTrackStartTick));
+                    reg.m_startTick = SBig(termStartTick);
                     reg.m_progNum = 0xff;
                     reg.m_unk1 = 0xff;
                     reg.m_unk2 = 0;
-                    reg.m_regionIndex = -1;
-                    reg.m_unk3 = 0;
+                    reg.m_regionIndex = SBig(termRegionIdx);
+                    reg.m_loopToRegion = SBig(termLoopToRegion);
                 }
                 else
                 {
-                    reg.m_startTick = uint32_t(lastTrackStartTick);
+                    reg.m_startTick = termStartTick;
                     reg.m_progNum = 0xff;
                     reg.m_unk1 = 0xff;
                     reg.m_unk2 = 0;
-                    reg.m_regionIndex = -1;
-                    reg.m_unk3 = 0;
+                    reg.m_regionIndex = termRegionIdx;
+                    reg.m_loopToRegion = termLoopToRegion;
                 }
             }
         }
@@ -1366,17 +1485,29 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
     if (version == 1)
     {
         SongState::Header head;
-        head.m_trackIdxOff = 0x18;
-        head.m_regionIdxOff = 0x18 + 4 * 64 + regionBuf.size() * 12;
+        head.m_initialTempo = initTempo;
+        head.m_loopStartTicks[0] = 0;
+        if (loopChanCount == 1)
+        {
+            head.m_loopStartTicks[0] = loopStart[0] == INT_MAX ? 0 : loopStart[0];
+        }
+        else if (loopChanCount > 1)
+        {
+            for (int i = 0; i < 16; ++i)
+                head.m_loopStartTicks[i] = loopStart[i] == INT_MAX ? 0 : loopStart[i];
+            head.m_initialTempo |= 0x80000000;
+        }
+        size_t headSz = (head.m_initialTempo & 0x80000000) ? 0x58 : 0x18;
+        head.m_trackIdxOff = headSz;
+        head.m_regionIdxOff = headSz + 4 * 64 + regionBuf.size() * 12;
         head.m_chanMapOff = head.m_regionIdxOff + 4 * regionDataIdxArr.size() + curRegionOff;
         head.m_tempoTableOff = tempoBuf.size() ? head.m_chanMapOff + 64 : 0;
-        head.m_initialTempo = initTempo;
-        head.m_unkOff = 0;
+        head.m_chanMapOff2 = head.m_chanMapOff;
 
         uint32_t regIdxOff = head.m_regionIdxOff;
         if (big)
-            head.swapBig();
-        *reinterpret_cast<SongState::Header*>(&*ret.insert(ret.cend(), 0x18, 0)) = head;
+            head.swapToBig();
+        *reinterpret_cast<SongState::Header*>(&*ret.insert(ret.cend(), headSz, 0)) = head;
 
         for (int i = 0; i < 64; ++i)
         {
@@ -1388,7 +1519,7 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
 
             uint32_t idx = trackRegionIdxArr[i];
             *reinterpret_cast<uint32_t*>(&*ret.insert(ret.cend(), 4, 0)) =
-                big ? SBig(uint32_t(0x18 + 4 * 64 + idx * 12)) : uint32_t(0x18 + 4 * 64 + idx * 12);
+                big ? SBig(uint32_t(headSz + 4 * 64 + idx * 12)) : uint32_t(headSz + 4 * 64 + idx * 12);
         }
 
         for (SongState::TrackRegion& reg : regionBuf)
@@ -1442,17 +1573,29 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
     else
     {
         SongState::Header head;
-        head.m_trackIdxOff = 0x18 + regionBuf.size() * 12;
+        head.m_initialTempo = initTempo;
+        head.m_loopStartTicks[0] = 0;
+        if (loopChanCount == 1)
+        {
+            head.m_loopStartTicks[0] = loopStart[0] == INT_MAX ? 0 : loopStart[0];
+        }
+        else if (loopChanCount > 1)
+        {
+            for (int i = 0; i < 16; ++i)
+                head.m_loopStartTicks[i] = loopStart[i] == INT_MAX ? 0 : loopStart[i];
+            head.m_initialTempo |= 0x80000000;
+        }
+        size_t headSz = (head.m_initialTempo & 0x80000000) ? 0x58 : 0x18;
+        head.m_trackIdxOff = headSz + regionBuf.size() * 12;
         head.m_regionIdxOff = head.m_trackIdxOff + 4 * 64 + 64 + curRegionOff;
         head.m_chanMapOff = head.m_trackIdxOff + 4 * 64;
         head.m_tempoTableOff = tempoBuf.size() ? head.m_regionIdxOff + 4 * regionDataIdxArr.size() : 0;
-        head.m_initialTempo = initTempo;
-        head.m_unkOff = 0;
+        head.m_chanMapOff2 = head.m_chanMapOff;
 
         uint32_t chanMapOff = head.m_chanMapOff;
         if (big)
-            head.swapBig();
-        *reinterpret_cast<SongState::Header*>(&*ret.insert(ret.cend(), 0x18, 0)) = head;
+            head.swapToBig();
+        *reinterpret_cast<SongState::Header*>(&*ret.insert(ret.cend(), headSz, 0)) = head;
 
         for (SongState::TrackRegion& reg : regionBuf)
             *reinterpret_cast<SongState::TrackRegion*>(&*ret.insert(ret.cend(), 12, 0)) = reg;
@@ -1467,7 +1610,7 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
 
             uint32_t idx = trackRegionIdxArr[i];
             *reinterpret_cast<uint32_t*>(&*ret.insert(ret.cend(), 4, 0)) =
-                big ? SBig(uint32_t(0x18 + 4 * 64 + idx * 12)) : uint32_t(0x18 + 4 * 64 + idx * 12);
+                big ? SBig(uint32_t(headSz + 4 * 64 + idx * 12)) : uint32_t(headSz + 4 * 64 + idx * 12);
         }
 
         memmove(&*ret.insert(ret.cend(), 64, 0), chanMap.data(), 64);

@@ -30,9 +30,14 @@ class SongState
         uint32_t m_regionIdxOff;
         uint32_t m_chanMapOff;
         uint32_t m_tempoTableOff;
-        uint32_t m_initialTempo;
-        uint32_t m_unkOff;
-        void swapBig();
+        uint32_t m_initialTempo; /* Top bit indicates per-channel looping */
+        uint32_t m_loopStartTicks[16];
+        uint32_t m_chanMapOff2;
+        void swapToBig();
+        void swapFromBig();
+        Header& operator=(const Header& other);
+        Header(const Header& other) { *this = other; }
+        Header() = default;
     } m_header;
 
     /** Track region ('clip' in an NLA representation) */
@@ -42,9 +47,11 @@ class SongState
         uint8_t m_progNum;
         uint8_t m_unk1;
         uint16_t m_unk2;
-        int16_t m_regionIndex;
-        int16_t m_unk3;
+        int16_t m_regionIndex; /* -1 to terminate song, -2 to loop to previous region */
+        int16_t m_loopToRegion;
+        bool indexDone(bool bigEndian, bool loop) const;
         bool indexValid(bool bigEndian) const;
+        int indexLoop(bool bigEndian) const;
     };
 
     /** Tempo change entry */
@@ -71,9 +78,17 @@ class SongState
         };
 
         SongState* m_parent = nullptr;
-        uint8_t m_midiChan;              /**< MIDI channel number of song channel */
-        const TrackRegion* m_curRegion;  /**< Pointer to currently-playing track region */
-        const TrackRegion* m_nextRegion; /**< Pointer to next-queued track region */
+        uint8_t m_midiChan = 0xff;       /**< MIDI channel number of song channel */
+        const TrackRegion* m_initRegion = nullptr; /**< Pointer to first track region */
+        const TrackRegion* m_curRegion = nullptr;  /**< Pointer to currently-playing track region */
+        const TrackRegion* m_nextRegion = nullptr; /**< Pointer to next-queued track region */
+
+        double m_remDt = 0.0;         /**< Remaining dt for keeping remainder between cycles */
+        uint32_t m_curTick = 0;       /**< Current playback position for this track */
+        uint32_t m_loopStartTick = 0; /**< Tick to loop back to */
+        /** Current pointer to tempo control, iterated over playback */
+        const TempoChange* m_tempoPtr;
+        uint32_t m_tempo; /**< Current tempo (beats per minute) */
 
         const unsigned char* m_data = nullptr;           /**< Pointer to upcoming command data */
         const unsigned char* m_pitchWheelData = nullptr; /**< Pointer to upcoming pitch data */
@@ -91,22 +106,18 @@ class SongState
             0; /**< Last command time on this channel (for computing delta times from absolute times in N64 songs) */
 
         Track() = default;
-        Track(SongState& parent, uint8_t midiChan, const TrackRegion* regions);
+        Track(SongState& parent, uint8_t midiChan, uint32_t loopStart, const TrackRegion* regions, uint32_t tempo);
         operator bool() const { return m_parent != nullptr; }
-        void setRegion(Sequencer* seq, const TrackRegion* region);
-        void advanceRegion(Sequencer* seq);
-        bool advance(Sequencer& seq, int32_t ticks);
+        void setRegion(const TrackRegion* region);
+        void advanceRegion();
+        bool advance(Sequencer& seq, double dt);
+        void resetTempo();
     };
     std::array<Track, 64> m_tracks;
     const uint32_t* m_regionIdx; /**< Table of offsets to song-region data */
 
-    /** Current pointer to tempo control, iterated over playback */
-    const TempoChange* m_tempoPtr = nullptr;
-    uint32_t m_tempo = 120; /**< Current tempo (beats per minute) */
-
-    uint32_t m_curTick = 0;                             /**< Current playback position for all channels */
     SongPlayState m_songState = SongPlayState::Playing; /**< High-level state of Song playback */
-    double m_curDt = 0.f;                               /**< Cumulative dt value for time-remainder tracking */
+    bool m_loop = true;                                 /**< Enable looping */
 
 public:
     /** Determine SNG version
@@ -115,15 +126,14 @@ public:
     static int DetectVersion(const unsigned char* ptr, bool& isBig);
 
     /** initialize state for Song data at `ptr` */
-    bool initialize(const unsigned char* ptr);
+    bool initialize(const unsigned char* ptr, bool loop);
+
+    uint32_t getInitialTempo() const { return m_header.m_initialTempo & 0x7fffffff; }
 
     /** advances `dt` seconds worth of commands in the Song
      *  @return `true` if END reached
      */
     bool advance(Sequencer& seq, double dt);
-
-    /** Get current song tempo in BPM */
-    uint32_t getTempo() const { return m_tempo; }
 };
 }
 

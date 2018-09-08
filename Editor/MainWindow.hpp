@@ -117,7 +117,9 @@ class MainWindow : public QMainWindow
     LayersEditor* m_layersEditor = nullptr;
     SampleEditor* m_sampleEditor = nullptr;
     StudioSetupWidget* m_studioSetup = nullptr;
-    QFileDialog m_fileDialog;
+    QFileDialog m_openDirectoryDialog;
+    QFileDialog m_openFileDialog;
+    QFileDialog m_newFileDialog;
 
     std::unique_ptr<boo::IAudioVoiceEngine> m_voxEngine;
     std::unique_ptr<VoiceAllocator> m_voxAllocator;
@@ -189,7 +191,6 @@ public:
     amuse::ObjToken<amuse::Sequencer> startSong(amuse::GroupId groupId, amuse::SongId songId,
                                                 const unsigned char* arrData);
     void pushUndoCommand(EditorUndoCommand* cmd);
-    QFileDialog& fileDialog() { return m_fileDialog; }
     void updateFocus();
     void aboutToDeleteNode(ProjectModel::INode* node);
     bool askAboutSave();

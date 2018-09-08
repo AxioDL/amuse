@@ -913,16 +913,29 @@ QVariant SetupListModel::data(const QModelIndex& index, int role) const
 
     auto entry = m_sorted[index.row()];
 
-    if (role == Qt::DisplayRole || role == Qt::EditRole)
+    if (role == Qt::DisplayRole || role == Qt::EditRole || role == Qt::TextColorRole)
     {
         if (index.column() == 0)
         {
+            if (role == Qt::TextColorRole)
+                return QVariant();
             g_MainWindow->projectModel()->setIdDatabases(m_node.get());
             return amuse::SongId::CurNameDB->resolveNameFromId(entry->first.id).data();
         }
         else if (index.column() == 1)
         {
-            return g_MainWindow->projectModel()->getMIDIPathOfSong(entry.m_it->first);
+            QString songPath = g_MainWindow->projectModel()->getMIDIPathOfSong(entry.m_it->first);
+            if (songPath.isEmpty())
+            {
+                if (role == Qt::TextColorRole)
+                    return g_MainWindow->palette().color(QPalette::Disabled, QPalette::Text);
+                else if (role == Qt::EditRole)
+                    return QVariant();
+                return tr("Double-click to select file");
+            }
+            if (role == Qt::TextColorRole)
+                return QVariant();
+            return songPath;
         }
     }
 
@@ -978,6 +991,8 @@ QVariant SetupListModel::headerData(int section, Qt::Orientation orientation, in
 
 Qt::ItemFlags SetupListModel::flags(const QModelIndex& index) const
 {
+    if (!m_node)
+        return Qt::NoItemFlags;
     if (index.row() == m_sorted.size())
         return Qt::NoItemFlags;
     return Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsEditable;
@@ -1389,15 +1404,53 @@ ColoredTabWidget::ColoredTabWidget(QWidget* parent)
     setTabBar(&m_tabBar);
 }
 
+static std::vector<uint8_t> LoadSongFile(QString path)
+{
+    QFileInfo fi(path);
+    if (!fi.isFile())
+        return {};
+
+    std::vector<uint8_t> data;
+    {
+        QFile f(path);
+        if (!f.open(QFile::ReadOnly))
+            return {};
+        auto d = f.readAll();
+        data.resize(d.size());
+        memcpy(&data[0], d.data(), d.size());
+    }
+
+    if (!memcmp(data.data(), "MThd", 4))
+    {
+        data = amuse::SongConverter::MIDIToSong(data, 1, true);
+    }
+    else
+    {
+        bool isBig;
+        if (amuse::SongState::DetectVersion(data.data(), isBig) < 0)
+            return {};
+    }
+
+    return data;
+}
+
 void MIDIPlayerWidget::clicked()
 {
     if (!m_seq)
     {
-        m_seq = g_MainWindow->startSong(m_groupId, m_songId, m_arrData.data());
-        if (m_seq)
+        m_arrData = LoadSongFile(m_path);
+        if (!m_arrData.empty())
         {
-            m_playAction.setText(tr("Stop"));
-            m_playAction.setIcon(QIcon(QStringLiteral(":/icons/IconStop.svg")));
+            m_seq = g_MainWindow->startSong(m_groupId, m_songId, m_arrData.data());
+            if (m_seq)
+            {
+                m_playAction.setText(tr("Stop"));
+                m_playAction.setIcon(QIcon(QStringLiteral(":/icons/IconStop.svg")));
+            }
+        }
+        else
+        {
+            g_MainWindow->uiMessenger().critical(tr("Bad Song Data"), tr("Unable to load song data at %1").arg(m_path));
         }
     }
     else
@@ -1444,9 +1497,9 @@ MIDIPlayerWidget::~MIDIPlayerWidget()
 }
 
 MIDIPlayerWidget::MIDIPlayerWidget(QModelIndex index, amuse::GroupId gid, amuse::SongId id,
-                                   std::vector<uint8_t>&& arrData, QWidget* parent)
+                                   const QString& path, QWidget* parent)
 : QWidget(parent), m_button(this), m_playAction(tr("Play")), m_index(index),
-  m_groupId(gid), m_songId(id), m_arrData(std::move(arrData))
+  m_groupId(gid), m_songId(id), m_path(path)
 {
     m_playAction.setIcon(QIcon(QStringLiteral(":/icons/IconSoundMacro.svg")));
     m_button.setDefaultAction(&m_playAction);
@@ -1619,36 +1672,6 @@ void SongGroupEditor::setupModelAboutToBeReset()
     m_setup.unloadData();
 }
 
-static std::vector<uint8_t> LoadSongFile(QString path)
-{
-    QFileInfo fi(path);
-    if (!fi.isFile())
-        return {};
-
-    std::vector<uint8_t> data;
-    {
-        QFile f(path);
-        if (!f.open(QFile::ReadOnly))
-            return {};
-        auto d = f.readAll();
-        data.resize(d.size());
-        memcpy(&data[0], d.data(), d.size());
-    }
-
-    if (!memcmp(data.data(), "MThd", 4))
-    {
-        data = amuse::SongConverter::MIDIToSong(data, 1, true);
-    }
-    else
-    {
-        bool isBig;
-        if (amuse::SongState::DetectVersion(data.data(), isBig) < 0)
-            return {};
-    }
-
-    return data;
-}
-
 void SongGroupEditor::setupDataChanged()
 {
     int idx = 0;
@@ -1670,17 +1693,10 @@ void SongGroupEditor::setupDataChanged()
             MIDIPlayerWidget* w = qobject_cast<MIDIPlayerWidget*>(m_setupTable->m_listView->indexWidget(index));
             if (!w || w->songId() != p.m_it->first)
             {
-                std::vector<uint8_t> arrData = LoadSongFile(g_MainWindow->projectModel()->dir().absoluteFilePath(path));
-                if (!arrData.empty())
-                {
-                    MIDIPlayerWidget* newW = new MIDIPlayerWidget(index, m_setupList.m_node->m_id, p.m_it->first,
-                        std::move(arrData), m_setupTable->m_listView->viewport());
-                    m_setupTable->m_listView->setIndexWidget(index, newW);
-                }
-                else
-                {
-                    m_setupTable->m_listView->setIndexWidget(index, nullptr);
-                }
+                QString pathStr = g_MainWindow->projectModel()->dir().absoluteFilePath(path);
+                MIDIPlayerWidget* newW = new MIDIPlayerWidget(index, m_setupList.m_node->m_id, p.m_it->first,
+                    pathStr, m_setupTable->m_listView->viewport());
+                m_setupTable->m_listView->setIndexWidget(index, newW);
             }
         }
         ++idx;

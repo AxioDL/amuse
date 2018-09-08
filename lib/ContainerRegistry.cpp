@@ -1960,8 +1960,11 @@ std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> ContainerRegistry:
     {
         std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> ret;
 
-        const SystemChar* sep = std::max(StrRChr(path, _S('/')), StrRChr(path, _S('\\')));
-        SystemString baseName(sep + 1, dot - sep - 1);
+        SystemString baseName;
+        if (const SystemChar* sep = std::max(StrRChr(path, _S('/')), StrRChr(path, _S('\\'))))
+            baseName = SystemString(sep + 1, dot - sep - 1);
+        else
+            baseName = SystemString(path, dot - path);
 
         /* Project */
         SystemChar projPath[1024];

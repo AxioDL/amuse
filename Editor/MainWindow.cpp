@@ -25,11 +25,25 @@ MainWindow::MainWindow(QWidget* parent)
   m_navIt(m_navList.begin()),
   m_treeDelegate(*this, this),
   m_mainMessenger(this),
-  m_fileDialog(this),
+  m_openDirectoryDialog(this),
+  m_openFileDialog(this),
+  m_newFileDialog(this),
   m_undoStack(new QUndoStack(this)),
   m_backgroundThread(this)
 {
     m_backgroundThread.start();
+
+    m_newFileDialog.setAcceptMode(QFileDialog::AcceptSave);
+    m_newFileDialog.setFileMode(QFileDialog::AnyFile);
+    m_newFileDialog.setOption(QFileDialog::ShowDirsOnly, false);
+
+    m_openDirectoryDialog.setAcceptMode(QFileDialog::AcceptOpen);
+    m_openDirectoryDialog.setFileMode(QFileDialog::Directory);
+    m_openDirectoryDialog.setOption(QFileDialog::ShowDirsOnly, true);
+
+    m_openFileDialog.setAcceptMode(QFileDialog::AcceptOpen);
+    m_openFileDialog.setFileMode(QFileDialog::ExistingFile);
+    m_openFileDialog.setOption(QFileDialog::ShowDirsOnly, false);
 
     m_ui.setupUi(this);
     m_ui.splitter->setCollapsible(1, false);
@@ -303,7 +317,9 @@ bool MainWindow::setProjectPath(const QString& path)
     connect(m_ui.projectOutline->selectionModel(),
             SIGNAL(selectionChanged(const QItemSelection&, const QItemSelection&)),
             this, SLOT(onOutlineSelectionChanged(const QItemSelection&, const QItemSelection&)));
-    m_fileDialog.setDirectory(path);
+    m_openDirectoryDialog.setDirectory(path);
+    m_openFileDialog.setDirectory(path);
+    m_newFileDialog.setDirectory(path);
     m_ui.actionSave_Project->setEnabled(true);
     m_ui.actionRevert_Project->setEnabled(true);
     m_ui.actionReload_Sample_Data->setEnabled(true);
@@ -801,16 +817,13 @@ void MainWindow::newAction()
     if (!askAboutSave())
         return;
 
-    m_fileDialog.setWindowTitle(tr("New Project"));
-    m_fileDialog.setAcceptMode(QFileDialog::AcceptSave);
-    m_fileDialog.setFileMode(QFileDialog::AnyFile);
-    m_fileDialog.setOption(QFileDialog::ShowDirsOnly, false);
-    m_fileDialog.open(this, SLOT(_newAction(const QString&)));
+    m_newFileDialog.setWindowTitle(tr("New Project"));
+    m_newFileDialog.open(this, SLOT(_newAction(const QString&)));
 }
 
 void MainWindow::_newAction(const QString& path)
 {
-    m_fileDialog.close();
+    m_newFileDialog.close();
     if (path.isEmpty())
         return;
     if (!MkPath(path, m_mainMessenger))
@@ -881,16 +894,13 @@ void MainWindow::openAction()
     if (!askAboutSave())
         return;
 
-    m_fileDialog.setWindowTitle(tr("Open Project"));
-    m_fileDialog.setAcceptMode(QFileDialog::AcceptOpen);
-    m_fileDialog.setFileMode(QFileDialog::Directory);
-    m_fileDialog.setOption(QFileDialog::ShowDirsOnly, true);
-    m_fileDialog.open(this, SLOT(_openAction(const QString&)));
+    m_openDirectoryDialog.setWindowTitle(tr("Open Project"));
+    m_openDirectoryDialog.open(this, SLOT(_openAction(const QString&)));
 }
 
 void MainWindow::_openAction(const QString& path)
 {
-    m_fileDialog.close();
+    m_openDirectoryDialog.close();
     if (path.isEmpty())
         return;
     openProject(path);
@@ -989,16 +999,13 @@ void MainWindow::reloadSampleDataAction()
 
 void MainWindow::importAction()
 {
-    m_fileDialog.setWindowTitle(tr("Import Project"));
-    m_fileDialog.setAcceptMode(QFileDialog::AcceptOpen);
-    m_fileDialog.setFileMode(QFileDialog::ExistingFile);
-    m_fileDialog.setOption(QFileDialog::ShowDirsOnly, false);
-    m_fileDialog.open(this, SLOT(_importAction(const QString&)));
+    m_openFileDialog.setWindowTitle(tr("Import Project"));
+    m_openFileDialog.open(this, SLOT(_importAction(const QString&)));
 }
 
 void MainWindow::_importAction(const QString& path)
 {
-    m_fileDialog.close();
+    m_openFileDialog.close();
     if (path.isEmpty())
         return;
 
@@ -1131,16 +1138,13 @@ void MainWindow::importSongsAction()
     if (!m_projectModel)
         return;
 
-    m_fileDialog.setWindowTitle(tr("Import Songs"));
-    m_fileDialog.setAcceptMode(QFileDialog::AcceptOpen);
-    m_fileDialog.setFileMode(QFileDialog::ExistingFile);
-    m_fileDialog.setOption(QFileDialog::ShowDirsOnly, false);
-    m_fileDialog.open(this, SLOT(_importSongsAction(const QString&)));
+    m_openFileDialog.setWindowTitle(tr("Import Songs"));
+    m_openFileDialog.open(this, SLOT(_importSongsAction(const QString&)));
 }
 
 void MainWindow::_importSongsAction(const QString& path)
 {
-    m_fileDialog.close();
+    m_openFileDialog.close();
     if (path.isEmpty())
         return;
 
@@ -1198,16 +1202,13 @@ void MainWindow::importHeadersAction()
     if (confirm == QMessageBox::No)
         return;
 
-    m_fileDialog.setWindowTitle(tr("Import C Headers"));
-    m_fileDialog.setAcceptMode(QFileDialog::AcceptOpen);
-    m_fileDialog.setFileMode(QFileDialog::Directory);
-    m_fileDialog.setOption(QFileDialog::ShowDirsOnly, true);
-    m_fileDialog.open(this, SLOT(_importHeadersAction(const QString&)));
+    m_openDirectoryDialog.setWindowTitle(tr("Import C Headers"));
+    m_openDirectoryDialog.open(this, SLOT(_importHeadersAction(const QString&)));
 }
 
 void MainWindow::_importHeadersAction(const QString& path)
 {
-    m_fileDialog.close();
+    m_openDirectoryDialog.close();
     if (path.isEmpty())
         return;
 
@@ -1226,16 +1227,13 @@ void MainWindow::exportHeadersAction()
     if (!m_projectModel)
         return;
 
-    m_fileDialog.setWindowTitle(tr("Export C Headers"));
-    m_fileDialog.setAcceptMode(QFileDialog::AcceptOpen);
-    m_fileDialog.setFileMode(QFileDialog::Directory);
-    m_fileDialog.setOption(QFileDialog::ShowDirsOnly, true);
-    m_fileDialog.open(this, SLOT(_exportHeadersAction(const QString&)));
+    m_openDirectoryDialog.setWindowTitle(tr("Export C Headers"));
+    m_openDirectoryDialog.open(this, SLOT(_exportHeadersAction(const QString&)));
 }
 
 void MainWindow::_exportHeadersAction(const QString& path)
 {
-    m_fileDialog.close();
+    m_openDirectoryDialog.close();
     if (path.isEmpty())
         return;
 

@@ -119,6 +119,9 @@ AudioGroupPool AudioGroupPool::_AudioGroupPool(athena::io::IStreamReader& r)
             ObjectHeader<DNAE> objHead;
             atInt64 startPos = r.position();
             objHead.read(r);
+            if (SoundMacroId::CurNameDB)
+                SoundMacroId::CurNameDB->registerPair(
+                NameDB::generateName(objHead.objectId, NameDB::Type::SoundMacro), objHead.objectId);
             auto& macro = ret.m_soundMacros[objHead.objectId.id];
             macro = MakeObj<SoundMacro>();
             macro->template readCmds<DNAE>(r, objHead.size - 8);
@@ -134,6 +137,9 @@ AudioGroupPool AudioGroupPool::_AudioGroupPool(athena::io::IStreamReader& r)
             ObjectHeader<DNAE> objHead;
             atInt64 startPos = r.position();
             objHead.read(r);
+            if (TableId::CurNameDB)
+                TableId::CurNameDB->registerPair(
+                NameDB::generateName(objHead.objectId, NameDB::Type::Table), objHead.objectId);
             auto& ptr = ret.m_tables[objHead.objectId.id];
             switch (objHead.size)
             {
@@ -163,6 +169,9 @@ AudioGroupPool AudioGroupPool::_AudioGroupPool(athena::io::IStreamReader& r)
             ObjectHeader<DNAE> objHead;
             atInt64 startPos = r.position();
             objHead.read(r);
+            if (KeymapId::CurNameDB)
+                KeymapId::CurNameDB->registerPair(
+                NameDB::generateName(objHead.objectId, NameDB::Type::Keymap), objHead.objectId);
             auto& km = ret.m_keymaps[objHead.objectId.id];
             km = MakeObj<std::array<Keymap, 128>>();
             for (int i = 0; i < 128; ++i)
@@ -183,6 +192,9 @@ AudioGroupPool AudioGroupPool::_AudioGroupPool(athena::io::IStreamReader& r)
             ObjectHeader<DNAE> objHead;
             atInt64 startPos = r.position();
             objHead.read(r);
+            if (LayersId::CurNameDB)
+                LayersId::CurNameDB->registerPair(
+                NameDB::generateName(objHead.objectId, NameDB::Type::Layer), objHead.objectId);
             auto& lm = ret.m_layers[objHead.objectId.id];
             lm = MakeObj<std::vector<LayerMapping>>();
             uint32_t count;

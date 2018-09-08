@@ -2219,7 +2219,7 @@ void ProjectModel::del(const QModelIndex& index)
             tr("<p>The subproject %1 will be permanently deleted from the project. "
                "Sample files will be permanently removed from the file system.</p>"
                "<p><strong>This action cannot be undone!</strong></p><p>Continue?</p>").arg(n->name()),
-               QMessageBox::Yes, QMessageBox::No);
+               QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
         if (result == QMessageBox::No)
             return;
         NameUndoRegistry nameReg;
@@ -2254,7 +2254,7 @@ void ProjectModel::del(const QModelIndex& index)
         int result = g_MainWindow->uiMessenger().warning(tr("Delete Sample"),
             tr("<p>The sample %1 will be permanently deleted from the file system. "
                "<p><strong>This action cannot be undone!</strong></p><p>Continue?</p>").arg(n->name()),
-               QMessageBox::Yes, QMessageBox::No);
+               QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
         if (result == QMessageBox::No)
             return;
         NameUndoRegistry nameReg;

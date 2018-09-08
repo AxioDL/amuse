@@ -103,6 +103,7 @@ AudioGroupProject::AudioGroupProject(athena::io::IStreamReader& r, GCNDataTag)
         if (GroupId::CurNameDB)
             GroupId::CurNameDB->registerPair(NameDB::generateName(header.groupId, NameDB::Type::Group), header.groupId);
 
+#if 0
         /* Sound Macros */
         r.seek(header.soundMacroIdsOff, athena::Begin);
         while (!AtEnd16(r))
@@ -127,6 +128,7 @@ AudioGroupProject::AudioGroupProject(athena::io::IStreamReader& r, GCNDataTag)
         r.seek(header.layerIdsOff, athena::Begin);
         while (!AtEnd16(r))
             ReadRangedObjectIds<athena::Big>(LayersId::CurNameDB, r, NameDB::Type::Layer);
+#endif
 
         if (header.type == GroupType::Song)
         {
@@ -203,6 +205,7 @@ AudioGroupProject AudioGroupProject::_AudioGroupProject(athena::io::IStreamReade
 
         GroupId::CurNameDB->registerPair(NameDB::generateName(header.groupId, NameDB::Type::Group), header.groupId);
 
+#if 0
         /* Sound Macros */
         r.seek(subDataOff + header.soundMacroIdsOff, athena::Begin);
         while (!AtEnd16(r))
@@ -227,6 +230,7 @@ AudioGroupProject AudioGroupProject::_AudioGroupProject(athena::io::IStreamReade
         r.seek(subDataOff + header.layerIdsOff, athena::Begin);
         while (!AtEnd16(r))
             ReadRangedObjectIds<DNAE>(LayersId::CurNameDB, r, NameDB::Type::Layer);
+#endif
 
         if (header.type == GroupType::Song)
         {
@@ -288,7 +292,7 @@ AudioGroupProject AudioGroupProject::_AudioGroupProject(athena::io::IStreamReade
 
                 /* MIDI setups */
                 r.seek(subDataOff + header.midiSetupsOff, athena::Begin);
-                while (r.position() < groupBegin + header.groupEndOff)
+                while (r.position() + 4 < groupBegin + header.groupEndOff)
                 {
                     uint16_t songId;
                     athena::io::Read<athena::io::PropType::None>::Do<decltype(songId), DNAE>({}, songId, r);

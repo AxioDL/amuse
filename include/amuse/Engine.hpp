@@ -148,17 +148,17 @@ public:
     void removeListener(Listener* listener);
 
     /** Start song playing from loaded audio groups */
-    ObjToken<Sequencer> seqPlay(GroupId groupId, SongId songId, const unsigned char* arrData, ObjToken<Studio> smx);
-    ObjToken<Sequencer> seqPlay(GroupId groupId, SongId songId, const unsigned char* arrData)
+    ObjToken<Sequencer> seqPlay(GroupId groupId, SongId songId, const unsigned char* arrData, bool loop, ObjToken<Studio> smx);
+    ObjToken<Sequencer> seqPlay(GroupId groupId, SongId songId, const unsigned char* arrData, bool loop = true)
     {
-        return seqPlay(groupId, songId, arrData, m_defaultStudio);
+        return seqPlay(groupId, songId, arrData, loop, m_defaultStudio);
     }
 
     /** Start song playing from explicit group data (for editor use) */
-    ObjToken<Sequencer> seqPlay(const AudioGroup* group, GroupId groupId, SongId songId, const unsigned char* arrData, ObjToken<Studio> smx);
-    ObjToken<Sequencer> seqPlay(const AudioGroup* group, GroupId groupId, SongId songId, const unsigned char* arrData)
+    ObjToken<Sequencer> seqPlay(const AudioGroup* group, GroupId groupId, SongId songId, const unsigned char* arrData, bool loop, ObjToken<Studio> smx);
+    ObjToken<Sequencer> seqPlay(const AudioGroup* group, GroupId groupId, SongId songId, const unsigned char* arrData, bool loop = true)
     {
-        return seqPlay(group, groupId, songId, arrData, m_defaultStudio);
+        return seqPlay(group, groupId, songId, arrData, loop, m_defaultStudio);
     }
 
     /** Set total volume of engine */
