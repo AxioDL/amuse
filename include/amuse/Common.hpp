@@ -25,6 +25,12 @@
 #include <Windows.h>
 #endif
 
+#if __SWITCH__
+#undef _S
+
+#include "switch_math.hpp"
+#endif
+
 #undef min
 #undef max
 

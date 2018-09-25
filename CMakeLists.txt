@@ -82,6 +82,9 @@ set(HEADERS
     include/amuse/DSPCodec.hpp
     include/amuse/N64MusyXCodec.hpp
     include/amuse/VolumeTable.hpp)
+if(NX)
+  list(APPEND HEADERS include/switch_math.hpp)
+endif()
 
 unset(EXTRAS)
 if(TARGET boo)
