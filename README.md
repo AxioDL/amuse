@@ -41,6 +41,51 @@ other audio applications to route their MIDI messages to. This enables
 tracker, drum machine, and DAW applications to produce sampled audio 
 using Amuse directly.
 
+### Converter Usage
+
+`amuseconv <in-path> <out-path> [gcn|n64|pc]`
+
+**Note:** `amuseconv` currently only supports SNG-to-MIDI conversion and vice-versa. To batch-extract MIDIs from one of the game files listed below, run `amuseconv <data-file> <destination-dir>`
+
+### Player Usage
+
+`amuseplay <data-file> [<songs-file>]`
+— _or_ —
+Drag-n-drop data file on amuseplay executable _(Windows and many freedesktop file managers support this)_
+
+### Song Renderer Usage
+
+`amuserender <data-file> [<songs-file>] [-r <sample-rate-out>] [-v <volume 0.0-1.0>]`
+— _or_ —
+Drag-n-drop data file on amuseplay executable _(Windows and many freedesktop file managers support this)_
+
+**Note:** .wav file will be emitted at `<group-name>-<song-name>.wav`. If `-r` option is not specified, rate will default to 32KHz
+
+### Currently Supported Game Containers
+- _Indiana Jones and the Infernal Machine_ (N64) `N64 ROM file`
+- _Metroid Prime_ (GCN) `AudioGrp.pak` `MidiData.pak`
+  - _Pass `AudioGrp.pak MidiData.pak` for listening to SongGroup 53 (sequenced ship sounds)_
+  - _Pass `AudioGrp.pak` for listening to any SFXGroup_
+- _Metroid Prime 2: Echoes_ (GCN) `AudioGrp.pak`
+- _Paper Mario: The Thousand Year Door_ (GCN) `pmario.proj` `pmario.slib`
+  - _Pass `pmario.proj pmario.slib` for listening to SongGroups (sequenced SFX events)_
+  - _Pass `pmario.proj` for listening to any SFXGroup_
+- _Star Fox Adventures_ (GCN) `starfoxm.pro` `starfoxs.pro` `midi.wad`
+  - _Pass `starfoxm.pro midi.wad` for listening to SongGroup 0 songs only (music)_
+  - _Pass `starfoxs.pro midi.wad` for listening to other SongGroups (sequenced ambience)_
+  - _Pass `starfoxs.pro` for listening to any SFXGroup_
+- _Star Wars Episode I: Battle for Naboo_ (N64) `N64 ROM file`
+- _Star Wars: Rogue Squadron_ (N64) `N64 ROM file` (PC) `data.dat`
+- _Star Wars Rogue Squadron II: Rogue Leader_ (GCN) `data.dat`
+- _Star Wars Rogue Squadron III: Rebel Strike_ (GCN) `data.dat`
+- Any other game with raw `.proj` `.pool` `.sdir` `.samp` files
+  - _Pass any one of them to Amuse, all in the same directory_
+
+### Windows 7 Compatibility
+
+Installing the MSVC++ 2015 runtime may be required if you haven't already installed/updated it:
+https://www.microsoft.com/en-us/download/details.aspx?id=48145
+
 #### Library
 
 The Amuse API exposes full interactivity between a client application
