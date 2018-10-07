@@ -2,6 +2,7 @@
 #define _DSPCODEC_h
 
 #include <cstdint>
+#include <cfloat>
 
 static inline int16_t DSPSampClamp(int32_t val)
 {

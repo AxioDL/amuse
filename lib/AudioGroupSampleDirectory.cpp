@@ -612,6 +612,8 @@ static void SetAudioFileTime(const SystemString& path, const Sstat& stat)
 #else
 #if __APPLE__
     struct timespec times[] = { stat.st_atimespec, stat.st_mtimespec };
+#elif __SWITCH__
+    struct timespec times[] = { stat.st_atime, stat.st_mtime };
 #else
     struct timespec times[] = { stat.st_atim, stat.st_mtim };
 #endif

@@ -32,6 +32,8 @@ bool Copy(const SystemChar* from, const SystemChar* to)
         return true;
 #if __APPLE__
     struct timespec times[] = { theStat.st_atimespec, theStat.st_mtimespec };
+#elif __SWITCH__
+    struct timespec times[] = { theStat.st_atime, theStat.st_mtime };
 #else
     struct timespec times[] = { theStat.st_atim, theStat.st_mtim };
 #endif

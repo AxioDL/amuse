@@ -1,5 +1,10 @@
 #include "amuse/DSPCodec.hpp"
 #include <algorithm>
+#include <memory.h>
+
+#if __SWITCH__
+#include "switch_math.hpp"
+#endif
 
 #undef min
 #undef max
