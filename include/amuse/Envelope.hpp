@@ -1,5 +1,4 @@
-#ifndef __AMUSE_ENVELOPE_HPP__
-#define __AMUSE_ENVELOPE_HPP__
+#pragma once
 
 #include "AudioGroupPool.hpp"
 
@@ -42,4 +41,3 @@ public:
 };
 }
 
-#endif // __AMUSE_ENVELOPE_HPP__

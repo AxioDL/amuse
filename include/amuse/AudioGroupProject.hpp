@@ -1,5 +1,4 @@
-#ifndef __AMUSE_AUDIOGROUPPROJECT_HPP__
-#define __AMUSE_AUDIOGROUPPROJECT_HPP__
+#pragma once
 
 #include "Entity.hpp"
 #include "Common.hpp"
@@ -226,4 +225,3 @@ public:
 };
 }
 
-#endif // __AMUSE_AUDIOGROUPPROJECT_HPP__

@@ -1,5 +1,4 @@
-#ifndef __AMUSE_DIRECTORY_ENUMERATOR__
-#define __AMUSE_DIRECTORY_ENUMERATOR__
+#pragma once
 
 #include "Common.hpp"
 #include <vector>
@@ -65,4 +64,3 @@ public:
 };
 }
 
-#endif // __AMUSE_DIRECTORY_ENUMERATOR__

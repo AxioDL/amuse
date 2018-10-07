@@ -1,5 +1,4 @@
-#ifndef _DSPCODEC_h
-#define _DSPCODEC_h
+#pragma once
 
 #include <cstdint>
 #include <cfloat>
@@ -37,4 +36,3 @@ void DSPCorrelateCoefs(const short* source, int samples, short coefsOut[8][2]);
 
 void DSPEncodeFrame(short pcmInOut[16], int sampleCount, unsigned char adpcmOut[8], const short coefsIn[8][2]);
 
-#endif // _DSPCODEC_h

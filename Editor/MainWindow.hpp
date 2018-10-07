@@ -1,5 +1,4 @@
-#ifndef AMUSE_MAINWINDOW_HPP
-#define AMUSE_MAINWINDOW_HPP
+#pragma once
 
 #include <QMainWindow>
 #include <QUndoStack>
@@ -306,4 +305,3 @@ public slots:
 };
 
 
-#endif //AMUSE_MAINWINDOW_HPP

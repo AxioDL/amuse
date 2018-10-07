@@ -1,5 +1,4 @@
-#ifndef AMUSE_MIDI_READER_HPP
-#define AMUSE_MIDI_READER_HPP
+#pragma once
 
 #include "amuse/Voice.hpp"
 #include "amuse/BooBackend.hpp"
@@ -49,4 +48,3 @@ public:
     std::unique_ptr<amuse::IMIDIReader> allocateMIDIReader(amuse::Engine& engine);
 };
 
-#endif // AMUSE_MIDI_READER_HPP

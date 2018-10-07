@@ -1,5 +1,4 @@
-#ifndef AMUSE_COMMON_HPP
-#define AMUSE_COMMON_HPP
+#pragma once
 
 #include "boo/System.hpp"
 #include <QString>
@@ -65,4 +64,3 @@ template<> struct hash<QString>
 };
 }
 
-#endif //AMUSE_COMMON_HPP

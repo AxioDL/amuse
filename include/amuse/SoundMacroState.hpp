@@ -1,5 +1,4 @@
-#ifndef __AMUSE_SOUNDMACROSTATE_HPP__
-#define __AMUSE_SOUNDMACROSTATE_HPP__
+#pragma once
 
 #include <cstdint>
 #include <vector>
@@ -143,4 +142,3 @@ public:
 };
 }
 
-#endif // __AMUSE_SOUNDMACROSTATE_HPP__

@@ -1,5 +1,4 @@
-#ifndef AMUSE_SAMPLE_EDITOR_HPP
-#define AMUSE_SAMPLE_EDITOR_HPP
+#pragma once
 
 #include "EditorWidget.hpp"
 #include "ProjectModel.hpp"
@@ -113,4 +112,3 @@ public:
 };
 
 
-#endif //AMUSE_SAMPLE_EDITOR_HPP

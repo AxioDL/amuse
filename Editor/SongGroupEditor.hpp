@@ -1,5 +1,4 @@
-#ifndef AMUSE_SONG_GROUP_EDITOR_HPP
-#define AMUSE_SONG_GROUP_EDITOR_HPP
+#pragma once
 
 #include "EditorWidget.hpp"
 #include <QTabWidget>
@@ -298,4 +297,3 @@ private slots:
     void itemDeleteAction();
 };
 
-#endif //AMUSE_SONG_GROUP_EDITOR_HPP

@@ -1,5 +1,4 @@
-#ifndef SWITCH_MATH_HPP
-#define SWITCH_MATH_HPP
+#pragma once
 
 /* Properly forward math defines to std:: */
 #ifdef __SWITCH__
@@ -19,4 +18,3 @@ namespace std
 }
 #endif
 
-#endif //TEST_SWITCH_MATH_HPP

@@ -1,5 +1,4 @@
-#ifndef __AMUSE_AUDIOGROUPDATA_HPP__
-#define __AMUSE_AUDIOGROUPDATA_HPP__
+#pragma once
 
 #include "Common.hpp"
 
@@ -123,4 +122,3 @@ public:
 };
 }
 
-#endif // __AMUSE_AUDIOGROUPDATA_HPP__

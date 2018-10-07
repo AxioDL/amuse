@@ -1,5 +1,4 @@
-#ifndef __AMUSE_EMITTER_HPP__
-#define __AMUSE_EMITTER_HPP__
+#pragma once
 
 #include "Entity.hpp"
 #include "Common.hpp"
@@ -64,4 +63,3 @@ public:
 };
 }
 
-#endif // __AMUSE_EMITTER_HPP__

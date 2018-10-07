@@ -1,5 +1,4 @@
-#ifndef AMUSE_PROJECT_MODEL_HPP
-#define AMUSE_PROJECT_MODEL_HPP
+#pragma once
 
 #include <QAbstractItemModel>
 #include <QIdentityProxyModel>
@@ -513,4 +512,3 @@ public:
 };
 
 
-#endif //AMUSE_PROJECT_MODEL_HPP

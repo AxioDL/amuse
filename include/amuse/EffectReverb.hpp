@@ -1,5 +1,4 @@
-#ifndef __AMUSE_EFFECTREVERB_HPP__
-#define __AMUSE_EFFECTREVERB_HPP__
+#pragma once
 
 #include "EffectBase.hpp"
 #include "amuse/Common.hpp"
@@ -220,4 +219,3 @@ public:
 };
 }
 
-#endif // __AMUSE_EFFECTREVERB_HPP__

@@ -1,5 +1,4 @@
-#ifndef AMUSE_KEYBOARD_WIDGET_HPP
-#define AMUSE_KEYBOARD_WIDGET_HPP
+#pragma once
 
 #include <QWidget>
 #include <QSvgWidget>
@@ -103,4 +102,3 @@ public:
     void wheelEvent(QWheelEvent* ev) { ev->ignore(); }
 };
 
-#endif //AMUSE_KEYBOARD_WIDGET_HPP

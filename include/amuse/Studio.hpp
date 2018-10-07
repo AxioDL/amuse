@@ -1,5 +1,4 @@
-#ifndef __AMUSE_STUDIO_HPP__
-#define __AMUSE_STUDIO_HPP__
+#pragma once
 
 #include <memory>
 #include <list>
@@ -54,4 +53,3 @@ struct StudioSend
 
 }
 
-#endif // __AMUSE_STUDIO_HPP__

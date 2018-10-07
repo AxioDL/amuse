@@ -1,5 +1,4 @@
-#ifndef __AMUSE_EFFECTCHORUS_HPP__
-#define __AMUSE_EFFECTCHORUS_HPP__
+#pragma once
 
 #include "EffectBase.hpp"
 #include "Common.hpp"
@@ -123,4 +122,3 @@ public:
 };
 }
 
-#endif // __AMUSE_EFFECTCHORUS_HPP__

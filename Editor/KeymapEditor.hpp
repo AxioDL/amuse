@@ -1,5 +1,4 @@
-#ifndef AMUSE_KEYMAP_EDITOR_HPP
-#define AMUSE_KEYMAP_EDITOR_HPP
+#pragma once
 
 #include "EditorWidget.hpp"
 #include <QFrame>
@@ -106,4 +105,3 @@ public:
     void keyPressEvent(QKeyEvent* event);
 };
 
-#endif //AMUSE_KEYMAP_EDITOR_HPP

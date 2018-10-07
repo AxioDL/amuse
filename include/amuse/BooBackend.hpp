@@ -1,5 +1,4 @@
-#ifndef __AMUSE_BOO_BACKEND_HPP__
-#define __AMUSE_BOO_BACKEND_HPP__
+#pragma once
 
 #include <boo/audiodev/IAudioVoiceEngine.hpp>
 #include <boo/audiodev/IAudioSubmix.hpp>
@@ -144,4 +143,3 @@ public:
 };
 }
 
-#endif // __AMUSE_BOO_BACKEND_HPP__

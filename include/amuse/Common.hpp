@@ -1,5 +1,4 @@
-#ifndef __AMUSE_COMMON_HPP__
-#define __AMUSE_COMMON_HPP__
+#pragma once
 
 #include <algorithm>
 #include <limits>
@@ -676,4 +675,3 @@ struct NameDB
 };
 }
 
-#endif // __AMUSE_COMMON_HPP__

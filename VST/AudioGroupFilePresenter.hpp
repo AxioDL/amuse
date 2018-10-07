@@ -1,5 +1,4 @@
-#ifndef __AMUSE_AUDIOGROUPFILEPRESENTER_HPP__
-#define __AMUSE_AUDIOGROUPFILEPRESENTER_HPP__
+#pragma once
 
 #include <map>
 #include <memory>
@@ -113,4 +112,3 @@ public:
 };
 }
 
-#endif // __AMUSE_AUDIOGROUPFILEPRESENTER_HPP__

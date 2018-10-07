@@ -1,5 +1,4 @@
-#ifndef __AMUSE_AUDIOUNIT_CONTAININGAPP_HPP__
-#define __AMUSE_AUDIOUNIT_CONTAININGAPP_HPP__
+#pragma once
 
 #import <AppKit/AppKit.h>
 #import "AudioGroupFilePresenter.hpp"
@@ -58,4 +57,3 @@
 - (void)startSample:(int)sampId;
 @end
 
-#endif // __AMUSE_AUDIOUNIT_CONTAININGAPP_HPP__

@@ -1,5 +1,4 @@
-#ifndef AMUSE_STATUSBAR_WIDGET_HPP
-#define AMUSE_STATUSBAR_WIDGET_HPP
+#pragma once
 
 #include <QStatusBar>
 #include <QLabel>
@@ -74,4 +73,3 @@ public:
     void exit();
 };
 
-#endif //AMUSE_STATUSBAR_WIDGET_HPP

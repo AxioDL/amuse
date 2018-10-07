@@ -1,5 +1,4 @@
-#ifndef AMUSE_ADSR_EDITOR_HPP
-#define AMUSE_ADSR_EDITOR_HPP
+#pragma once
 
 #include "EditorWidget.hpp"
 #include <QFrame>
@@ -81,4 +80,3 @@ public:
 };
 
 
-#endif //AMUSE_ADSR_EDITOR_HPP

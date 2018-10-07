@@ -1,5 +1,4 @@
-#ifndef __AMUSE_VOICE_HPP__
-#define __AMUSE_VOICE_HPP__
+#pragma once
 
 #include <cstdint>
 #include <cstdlib>
@@ -393,4 +392,3 @@ public:
 };
 }
 
-#endif // __AMUSE_VOICE_HPP__

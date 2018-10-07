@@ -1,5 +1,4 @@
-#ifndef __AMUSE_EFFECTBASE_HPP__
-#define __AMUSE_EFFECTBASE_HPP__
+#pragma once
 
 #include <cstdint>
 #include <cstdlib>
@@ -34,4 +33,3 @@ public:
 };
 }
 
-#endif // __AMUSE_EFFECTBASE_HPP__

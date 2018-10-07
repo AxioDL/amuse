@@ -1,5 +1,4 @@
-#ifndef __AMUSE_AMUSE_HPP__
-#define __AMUSE_AMUSE_HPP__
+#pragma once
 
 
 #include "AudioGroup.hpp"
@@ -22,4 +21,3 @@
 #include "Submix.hpp"
 #include "Voice.hpp"
 
-#endif // __AMUSE_AMUSE_HPP__

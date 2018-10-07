@@ -1,5 +1,4 @@
-#ifndef __AMUSE_VSTEDITOR_HPP__
-#define __AMUSE_VSTEDITOR_HPP__
+#pragma once
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -61,4 +60,3 @@ public:
 };
 }
 
-#endif // __AMUSE_VSTEDITOR_HPP__

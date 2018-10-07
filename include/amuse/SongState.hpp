@@ -1,5 +1,4 @@
-#ifndef __AMUSE_SONGSTATE_HPP__
-#define __AMUSE_SONGSTATE_HPP__
+#pragma once
 
 #include <cstdint>
 #include <vector>
@@ -137,4 +136,3 @@ public:
 };
 }
 
-#endif // __AMUSE_SONGSTATE_HPP__

@@ -1,5 +1,4 @@
-#ifndef AMUSE_LAYERS_EDITOR_HPP
-#define AMUSE_LAYERS_EDITOR_HPP
+#pragma once
 
 #include "EditorWidget.hpp"
 #include <QAbstractTableModel>
@@ -89,4 +88,3 @@ private slots:
     void itemDeleteAction();
 };
 
-#endif //AMUSE_LAYERS_EDITOR_HPP

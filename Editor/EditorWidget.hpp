@@ -1,5 +1,4 @@
-#ifndef AMUSE_EDITOR_WIDGET_HPP
-#define AMUSE_EDITOR_WIDGET_HPP
+#pragma once
 
 #include <QWidget>
 #include <QUndoCommand>
@@ -251,4 +250,3 @@ private slots:
     void doFindUsages();
 };
 
-#endif //AMUSE_EDITOR_WIDGET_HPP

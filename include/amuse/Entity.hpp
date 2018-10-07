@@ -1,5 +1,4 @@
-#ifndef __AMUSE_ENTITY_HPP__
-#define __AMUSE_ENTITY_HPP__
+#pragma once
 
 #include <cstdint>
 #include <functional>
@@ -50,4 +49,3 @@ public:
 
 }
 
-#endif // __AMUSE_ENTITY_HPP__

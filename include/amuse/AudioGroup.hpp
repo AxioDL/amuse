@@ -1,5 +1,4 @@
-#ifndef __AMUSE_AUDIOGROUP_HPP__
-#define __AMUSE_AUDIOGROUP_HPP__
+#pragma once
 
 #include "AudioGroupPool.hpp"
 #include "AudioGroupProject.hpp"
@@ -116,4 +115,3 @@ public:
 };
 }
 
-#endif // __AMUSE_AUDIOGROUP_HPP__

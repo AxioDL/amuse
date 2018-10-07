@@ -1,5 +1,4 @@
-#ifndef __AMUSE_SEQUENCER_HPP__
-#define __AMUSE_SEQUENCER_HPP__
+#pragma once
 
 #include "Entity.hpp"
 #include "AudioGroupProject.hpp"
@@ -166,4 +165,3 @@ public:
 };
 }
 
-#endif // __AMUSE_SEQUENCER_HPP__

@@ -1,5 +1,4 @@
-#ifndef AMUSE_CURVE_EDITOR_HPP
-#define AMUSE_CURVE_EDITOR_HPP
+#pragma once
 
 #include "EditorWidget.hpp"
 #include <QFrame>
@@ -63,4 +62,3 @@ public:
     ProjectModel::INode* currentNode() const;
 };
 
-#endif //AMUSE_CURVE_EDITOR_HPP

@@ -1,5 +1,4 @@
-#ifndef AMUSE_SOUND_MACRO_EDITOR_HPP
-#define AMUSE_SOUND_MACRO_EDITOR_HPP
+#pragma once
 
 #include "EditorWidget.hpp"
 #include <QStaticText>
@@ -187,4 +186,3 @@ public slots:
 };
 
 
-#endif //AMUSE_SOUND_MACRO_EDITOR_HPP

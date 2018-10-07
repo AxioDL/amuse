@@ -1,5 +1,4 @@
-#ifndef _N64MUSYXCODEC_h
-#define _N64MUSYXCODEC_h
+#pragma once
 
 #include <cstdint>
 
@@ -18,4 +17,3 @@ unsigned N64MusyXDecompressFrameRanged(int16_t* out, const uint8_t* in,
                                        const int16_t coefs[8][2][8],
                                        unsigned firstSample, unsigned lastSample);
 
-#endif // _N64MUSYXCODEC_h

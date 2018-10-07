@@ -1,5 +1,4 @@
-#ifndef __AMUSE_AUDIOUNIT_AUDIOGROUPFILEPRESENTER_HPP__
-#define __AMUSE_AUDIOUNIT_AUDIOGROUPFILEPRESENTER_HPP__
+#pragma once
 
 #import <Foundation/Foundation.h>
 #import <AppKit/AppKit.h>
@@ -166,4 +165,3 @@ initWithName:(NSAttributedString*)name
 - (void)removeSelectedItem;
 @end
 
-#endif // __AMUSE_AUDIOUNIT_AUDIOGROUPFILEPRESENTER_HPP__

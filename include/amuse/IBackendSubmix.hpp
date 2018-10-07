@@ -1,5 +1,4 @@
-#ifndef __AMUSE_IBACKENDSUBMIX_HPP__
-#define __AMUSE_IBACKENDSUBMIX_HPP__
+#pragma once
 
 #include <memory>
 
@@ -32,4 +31,3 @@ public:
 };
 }
 
-#endif // __AMUSE_IBACKENDSUBMIX_HPP__

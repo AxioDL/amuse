@@ -1,5 +1,4 @@
-#ifndef __AMUSE_EFFECTDELAY_HPP__
-#define __AMUSE_EFFECTDELAY_HPP__
+#pragma once
 
 #include "EffectBase.hpp"
 #include "IBackendVoice.hpp"
@@ -142,4 +141,3 @@ public:
 };
 }
 
-#endif // __AMUSE_EFFECTDELAY_HPP__

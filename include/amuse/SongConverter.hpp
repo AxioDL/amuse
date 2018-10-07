@@ -1,5 +1,4 @@
-#ifndef __AMUSE_SONGCONVERTER_HPP__
-#define __AMUSE_SONGCONVERTER_HPP__
+#pragma once
 
 #include <vector>
 #include <cstdint>
@@ -15,4 +14,3 @@ public:
 };
 }
 
-#endif // __AMUSE_SONGCONVERTER_HPP__

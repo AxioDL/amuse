@@ -1,5 +1,4 @@
-#ifndef __AMUSE_AUDIOGROUPSAMPLEDIR_HPP__
-#define __AMUSE_AUDIOGROUPSAMPLEDIR_HPP__
+#pragma once
 
 #include <unordered_map>
 #include <cstdint>
@@ -383,4 +382,3 @@ using SampleEntry = AudioGroupSampleDirectory::Entry;
 using SampleEntryData = AudioGroupSampleDirectory::EntryData;
 }
 
-#endif // __AMUSE_AUDIOGROUPSAMPLEDIR_HPP__

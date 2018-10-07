@@ -1,5 +1,4 @@
-#ifndef __AMUSE_AUDIOUNIT_VIEWCONTROLLER_HPP__
-#define __AMUSE_AUDIOUNIT_VIEWCONTROLLER_HPP__
+#pragma once
 
 #import <CoreAudioKit/CoreAudioKit.h>
 #import "AudioGroupFilePresenter.hpp"
@@ -22,4 +21,3 @@
 }
 @end
 
-#endif // __AMUSE_AUDIOUNIT_VIEWCONTROLLER_HPP__

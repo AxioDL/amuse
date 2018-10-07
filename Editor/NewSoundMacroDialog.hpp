@@ -1,5 +1,4 @@
-#ifndef AMUSE_NEW_SOUND_MACRO_DIALOG_HPP
-#define AMUSE_NEW_SOUND_MACRO_DIALOG_HPP
+#pragma once
 
 #include <QDialog>
 #include <QLineEdit>
@@ -25,4 +24,3 @@ public:
     const SoundMacroTemplateEntry* getSelectedTemplate() const;
 };
 
-#endif // AMUSE_NEW_SOUND_MACRO_DIALOG_HPP

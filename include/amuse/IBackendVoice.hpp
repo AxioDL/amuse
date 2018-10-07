@@ -1,5 +1,4 @@
-#ifndef __AMUSE_IBACKENDVOICE_HPP__
-#define __AMUSE_IBACKENDVOICE_HPP__
+#pragma once
 
 namespace amuse
 {
@@ -52,4 +51,3 @@ public:
 };
 }
 
-#endif // __AMUSE_IBACKENDVOICE_HPP__

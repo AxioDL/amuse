@@ -1,5 +1,4 @@
-#ifndef __AMUSE_AUDIOGROUPPOOL_HPP__
-#define __AMUSE_AUDIOGROUPPOOL_HPP__
+#pragma once
 
 #include <cstdint>
 #include <vector>
@@ -1459,4 +1458,3 @@ public:
 };
 }
 
-#endif // __AMUSE_AUDIOGROUPPOOL_HPP__

@@ -1,5 +1,4 @@
-#ifndef __AMUSE_LISTENER_HPP__
-#define __AMUSE_LISTENER_HPP__
+#pragma once
 
 #include "amuse/Emitter.hpp"
 
@@ -27,4 +26,3 @@ public:
 };
 }
 
-#endif // __AMUSE_LISTENER_HPP__

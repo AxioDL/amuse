@@ -1,5 +1,4 @@
-#ifndef __AMUSE_AUDIOUNIT_BACKEND_HPP__
-#define __AMUSE_AUDIOUNIT_BACKEND_HPP__
+#pragma once
 #ifdef __APPLE__
 
 #include <Availability.h>
@@ -52,4 +51,3 @@ void RegisterAudioUnit();
 
 #endif
 #endif
-#endif // __AMUSE_AUDIOUNIT_BACKEND_HPP__

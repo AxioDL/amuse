@@ -1,5 +1,4 @@
-#ifndef __AMUSE_IBACKENDVOICEALLOCATOR_HPP__
-#define __AMUSE_IBACKENDVOICEALLOCATOR_HPP__
+#pragma once
 
 #include <memory>
 #include <functional>
@@ -60,4 +59,3 @@ public:
 };
 }
 
-#endif // __AMUSE_IBACKENDVOICEALLOCATOR_HPP__

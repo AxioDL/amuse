@@ -1,5 +1,4 @@
-#ifndef __AMUSE_VSTBACKEND_HPP__
-#define __AMUSE_VSTBACKEND_HPP__
+#pragma once
 
 #include "audioeffectx.h"
 #include "VSTEditor.hpp"
@@ -74,4 +73,3 @@ public:
 };
 }
 
-#endif // __AMUSE_VSTBACKEND_HPP__

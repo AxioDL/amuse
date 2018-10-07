@@ -1,5 +1,4 @@
-#ifndef __AMUSE_ENGINE_HPP__
-#define __AMUSE_ENGINE_HPP__
+#pragma once
 
 #include <memory>
 #include <list>
@@ -195,4 +194,3 @@ public:
 };
 }
 
-#endif // __AMUSE_ENGINE_HPP__

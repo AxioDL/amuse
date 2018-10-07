@@ -1,5 +1,4 @@
-#ifndef AMUSE_SOUND_GROUP_EDITOR_HPP
-#define AMUSE_SOUND_GROUP_EDITOR_HPP
+#pragma once
 
 #include "EditorWidget.hpp"
 #include <QStyledItemDelegate>
@@ -130,4 +129,3 @@ private slots:
     void itemDeleteAction();
 };
 
-#endif //AMUSE_SOUND_GROUP_EDITOR_HPP

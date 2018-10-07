@@ -1,5 +1,4 @@
-#ifndef AMUSE_STUDIO_SETUP_WIDGET_HPP
-#define AMUSE_STUDIO_SETUP_WIDGET_HPP
+#pragma once
 
 #include "EditorWidget.hpp"
 #include <QWidget>
@@ -202,4 +201,3 @@ signals:
     void shown();
 };
 
-#endif // AMUSE_STUDIO_SETUP_WIDGET_HPP

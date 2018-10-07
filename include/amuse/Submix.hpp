@@ -1,5 +1,4 @@
-#ifndef __AMUSE_SUBMIX_HPP__
-#define __AMUSE_SUBMIX_HPP__
+#pragma once
 
 #include <memory>
 #include "SoundMacroState.hpp"
@@ -111,4 +110,3 @@ public:
 };
 }
 
-#endif // __AMUSE_SUBMIX_HPP__

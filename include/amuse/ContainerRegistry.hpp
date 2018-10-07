@@ -1,5 +1,4 @@
-#ifndef __AMUSE_CONTAINERREGISTRY_HPP__
-#define __AMUSE_CONTAINERREGISTRY_HPP__
+#pragma once
 
 #include "AudioGroupData.hpp"
 #include "Common.hpp"
@@ -45,4 +44,3 @@ public:
 };
 }
 
-#endif // __AMUSE_CONTAINERREGISTRY_HPP__
