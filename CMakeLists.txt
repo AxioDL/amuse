@@ -105,7 +105,7 @@ if(COMMAND cotire)
   cotire(amuse)
 endif()
 
-if(TARGET boo AND NOT WINDOWS_STORE)
+if(TARGET boo AND NOT WINDOWS_STORE AND NOT NX)
   # AudioUnit Target (OS X only)
   add_subdirectory(AudioUnit)
 
