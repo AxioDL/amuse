@@ -186,7 +186,7 @@ int main(int argc, const boo::SystemChar** argv)
         Log.report(logvisor::Error, "invalid/no data at path argument");
         return 1;
     }
-    Log.report(logvisor::Info, _S("Found '%s' Audio Group data"), amuse::ContainerRegistry::TypeToName(cType));
+    Log.report(logvisor::Info, _SYS_STR("Found '%s' Audio Group data"), amuse::ContainerRegistry::TypeToName(cType));
 
     std::vector<std::pair<amuse::SystemString, amuse::IntrusiveAudioGroupData>> data =
         amuse::ContainerRegistry::LoadContainer(m_args[0].c_str());
@@ -290,7 +290,7 @@ int main(int argc, const boo::SystemChar** argv)
                                 break;
                         }
                     }
-                    amuse::Printf(_S("    %d %s (Group %d, Setup %d)\n"), idx++, pair.first.c_str(), grpId, setupId);
+                    amuse::Printf(_SYS_STR("    %d %s (Group %d, Setup %d)\n"), idx++, pair.first.c_str(), grpId, setupId);
                 }
 
                 int userSel = 0;
@@ -370,12 +370,12 @@ int main(int argc, const boo::SystemChar** argv)
         printf("Multiple Audio Groups discovered:\n");
         for (const auto& pair : allSFXGroups)
         {
-            amuse::Printf(_S("    %d %s (SFXGroup)  %" PRISize " sfx-entries\n"), pair.first,
+            amuse::Printf(_SYS_STR("    %d %s (SFXGroup)  %" PRISize " sfx-entries\n"), pair.first,
                           pair.second.first->first.c_str(), pair.second.second->m_sfxEntries.size());
         }
         for (const auto& pair : allSongGroups)
         {
-            amuse::Printf(_S("    %d %s (SongGroup)  %" PRISize " normal-pages, %" PRISize " drum-pages, %" PRISize
+            amuse::Printf(_SYS_STR("    %d %s (SongGroup)  %" PRISize " normal-pages, %" PRISize " drum-pages, %" PRISize
                              " MIDI-setups\n"),
                           pair.first, pair.second.first->first.c_str(), pair.second.second->m_normPages.size(),
                           pair.second.second->m_drumPages.size(), pair.second.second->m_midiSetups.size());
@@ -490,8 +490,8 @@ int main(int argc, const boo::SystemChar** argv)
 
     /* WAV out path */
     amuse::SystemChar pathOut[1024];
-    SNPrintf(pathOut, 1024, _S("%s-%s.wav"), m_groupName->c_str(), m_songName->c_str());
-    Log.report(logvisor::Info, _S("Writing to %s"), pathOut);
+    SNPrintf(pathOut, 1024, _SYS_STR("%s-%s.wav"), m_groupName->c_str(), m_songName->c_str());
+    Log.report(logvisor::Info, _SYS_STR("Writing to %s"), pathOut);
 
     /* Build voice engine */
     std::unique_ptr<boo::IAudioVoiceEngine> voxEngine = boo::NewWAVAudioVoiceEngine(pathOut, rate, chCount);

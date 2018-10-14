@@ -624,7 +624,7 @@ struct AppCallback : boo::IApplicationCallback
     int appMain(boo::IApplication* app)
     {
         /* Event window */
-        m_win = app->newWindow(_S("amuseplay"));
+        m_win = app->newWindow(_SYS_STR("amuseplay"));
         m_win->setCallback(&m_events);
         m_win->setWindowFrame(100, 100, 100, 100);
         m_win->setStyle(~boo::EWindowStyle::Resize);
@@ -653,7 +653,7 @@ struct AppCallback : boo::IApplicationCallback
             Log.report(logvisor::Error, "invalid/no data at path argument");
             return 1;
         }
-        Log.report(logvisor::Info, _S("Found '%s' Audio Group data"), amuse::ContainerRegistry::TypeToName(cType));
+        Log.report(logvisor::Info, _SYS_STR("Found '%s' Audio Group data"), amuse::ContainerRegistry::TypeToName(cType));
 
         std::vector<std::pair<amuse::SystemString, amuse::IntrusiveAudioGroupData>> data =
             amuse::ContainerRegistry::LoadContainer(m_argv[1]);
@@ -755,7 +755,7 @@ struct AppCallback : boo::IApplicationCallback
                                         break;
                                 }
                             }
-                            amuse::Printf(_S("    %d %s (Group %d, Setup %d)\n"), idx++, pair.first.c_str(), grpId,
+                            amuse::Printf(_SYS_STR("    %d %s (Group %d, Setup %d)\n"), idx++, pair.first.c_str(), grpId,
                                           setupId);
                         }
 
@@ -825,12 +825,12 @@ struct AppCallback : boo::IApplicationCallback
                 printf("Multiple Audio Groups discovered:\n");
                 for (const auto& pair : allSFXGroups)
                 {
-                    amuse::Printf(_S("    %d %s (SFXGroup)  %" PRISize " sfx-entries\n"), pair.first.id,
+                    amuse::Printf(_SYS_STR("    %d %s (SFXGroup)  %" PRISize " sfx-entries\n"), pair.first.id,
                                   pair.second.first->first.c_str(), pair.second.second->m_sfxEntries.size());
                 }
                 for (const auto& pair : allSongGroups)
                 {
-                    amuse::Printf(_S("    %d %s (SongGroup)  %" PRISize " normal-pages, %" PRISize
+                    amuse::Printf(_SYS_STR("    %d %s (SongGroup)  %" PRISize " normal-pages, %" PRISize
                                      " drum-pages, %" PRISize " MIDI-setups\n"),
                                   pair.first.id, pair.second.first->first.c_str(), pair.second.second->m_normPages.size(),
                                   pair.second.second->m_drumPages.size(), pair.second.second->m_midiSetups.size());
@@ -1034,7 +1034,7 @@ int main(int argc, const boo::SystemChar** argv)
     logvisor::RegisterStandardExceptions();
     AppCallback app(argc, argv);
     int ret = boo::ApplicationRun(boo::IApplication::EPlatformType::Auto, app,
-                                  _S("amuseplay"), _S("Amuse Player"),
+                                  _SYS_STR("amuseplay"), _SYS_STR("Amuse Player"),
                                   argc, argv, {}, 1, 1, false);
     printf("IM DYING!!\n");
     return ret;

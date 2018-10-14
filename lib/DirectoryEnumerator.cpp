@@ -30,7 +30,7 @@ DirectoryEnumerator::DirectoryEnumerator(SystemStringView path, Mode mode, bool 
 
 #if _WIN32
     SystemString wc(path);
-    wc += _S("/*");
+    wc += _SYS_STR("/*");
     WIN32_FIND_DATAW d;
     HANDLE dir = FindFirstFileW(wc.c_str(), &d);
     if (dir == INVALID_HANDLE_VALUE)
@@ -40,12 +40,12 @@ DirectoryEnumerator::DirectoryEnumerator(SystemStringView path, Mode mode, bool 
     case Mode::Native:
         do
         {
-            if (!wcscmp(d.cFileName, _S(".")) || !wcscmp(d.cFileName, _S("..")))
+            if (!wcscmp(d.cFileName, _SYS_STR(".")) || !wcscmp(d.cFileName, _SYS_STR("..")))
                 continue;
             if (noHidden && (d.cFileName[0] == L'.' || (d.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) != 0))
                 continue;
             SystemString fp(path);
-            fp += _S('/');
+            fp += _SYS_STR('/');
             fp += d.cFileName;
             Sstat st;
             if (Stat(fp.c_str(), &st))
@@ -69,12 +69,12 @@ DirectoryEnumerator::DirectoryEnumerator(SystemStringView path, Mode mode, bool 
         std::map<SystemString, Entry, CaseInsensitiveCompare> sort;
         do
         {
-            if (!wcscmp(d.cFileName, _S(".")) || !wcscmp(d.cFileName, _S("..")))
+            if (!wcscmp(d.cFileName, _SYS_STR(".")) || !wcscmp(d.cFileName, _SYS_STR("..")))
                 continue;
             if (noHidden && (d.cFileName[0] == L'.' || (d.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) != 0))
                 continue;
             SystemString fp(path);
-            fp += _S('/');
+            fp += _SYS_STR('/');
             fp += d.cFileName;
             Sstat st;
             if (Stat(fp.c_str(), &st) || !S_ISDIR(st.st_mode))
@@ -105,12 +105,12 @@ DirectoryEnumerator::DirectoryEnumerator(SystemStringView path, Mode mode, bool 
             std::multimap<size_t, Entry> sort;
             do
             {
-                if (!wcscmp(d.cFileName, _S(".")) || !wcscmp(d.cFileName, _S("..")))
+                if (!wcscmp(d.cFileName, _SYS_STR(".")) || !wcscmp(d.cFileName, _SYS_STR("..")))
                     continue;
                 if (noHidden && (d.cFileName[0] == L'.' || (d.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) != 0))
                     continue;
                 SystemString fp(path);
-                fp += _S('/');
+                fp += _SYS_STR('/');
                 fp += d.cFileName;
                 Sstat st;
                 if (Stat(fp.c_str(), &st) || !S_ISREG(st.st_mode))
@@ -131,12 +131,12 @@ DirectoryEnumerator::DirectoryEnumerator(SystemStringView path, Mode mode, bool 
             std::map<SystemString, Entry, CaseInsensitiveCompare> sort;
             do
             {
-                if (!wcscmp(d.cFileName, _S(".")) || !wcscmp(d.cFileName, _S("..")))
+                if (!wcscmp(d.cFileName, _SYS_STR(".")) || !wcscmp(d.cFileName, _SYS_STR("..")))
                     continue;
                 if (noHidden && (d.cFileName[0] == L'.' || (d.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) != 0))
                     continue;
                 SystemString fp(path);
-                fp += _S('/');
+                fp += _SYS_STR('/');
                 fp += d.cFileName;
                 Sstat st;
                 if (Stat(fp.c_str(), &st) || !S_ISREG(st.st_mode))

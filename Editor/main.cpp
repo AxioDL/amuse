@@ -45,9 +45,9 @@ public:
     EPlatformType getPlatformType() const { return EPlatformType::Qt; }
 
     int run() { return 0; }
-    boo::SystemStringView getUniqueName() const { return _S("amuse-gui"sv); }
-    boo::SystemStringView getFriendlyName() const { return _S("Amuse"sv); }
-    boo::SystemStringView getProcessName() const { return _S("amuse-gui"sv); }
+    boo::SystemStringView getUniqueName() const { return _SYS_STR("amuse-gui"sv); }
+    boo::SystemStringView getFriendlyName() const { return _SYS_STR("Amuse"sv); }
+    boo::SystemStringView getProcessName() const { return _SYS_STR("amuse-gui"sv); }
     const std::vector<boo::SystemString>& getArgs() const { return m_args; }
 
     /* Constructors/initializers for sub-objects */

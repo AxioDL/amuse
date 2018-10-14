@@ -269,8 +269,8 @@ inline typename std::enable_if_t<!std::is_base_of_v<IObj, Tp>, ObjToken<Tp>> Mak
 using SystemString = std::wstring;
 using SystemStringView = std::wstring_view;
 using SystemChar = wchar_t;
-#ifndef _S
-#define _S(val) L##val
+#ifndef _SYS_STR
+#define _SYS_STR(val) L##val
 #endif
 typedef struct _stat Sstat;
 static inline int Mkdir(const wchar_t* path, int) { return _wmkdir(path); }
@@ -279,8 +279,8 @@ static inline int Stat(const wchar_t* path, Sstat* statout) { return _wstat(path
 using SystemString = std::string;
 using SystemStringView = std::string_view;
 using SystemChar = char;
-#ifndef _S
-#define _S(val) val
+#ifndef _SYS_STR
+#define _SYS_STR(val) val
 #endif
 typedef struct stat Sstat;
 static inline int Mkdir(const char* path, mode_t mode) { return mkdir(path, mode); }

@@ -45,10 +45,10 @@ const SampleEntry* AudioGroup::getSample(SampleId sfxId) const
 SystemString AudioGroup::getSampleBasePath(SampleId sfxId) const
 {
 #if _WIN32
-    return m_groupPath + _S('/') +
+    return m_groupPath + _SYS_STR('/') +
     athena::utility::utf8ToWide(SampleId::CurNameDB->resolveNameFromId(sfxId));
 #else
-    return m_groupPath + _S('/') +
+    return m_groupPath + _SYS_STR('/') +
     SampleId::CurNameDB->resolveNameFromId(sfxId).data();
 #endif
 }
@@ -112,24 +112,24 @@ void AudioGroupDatabase::renameSample(SampleId id, std::string_view str)
     SystemString oldBasePath = getSampleBasePath(id);
     SampleId::CurNameDB->rename(id, str);
     SystemString newBasePath = getSampleBasePath(id);
-    Rename((oldBasePath + _S(".wav")).c_str(), (newBasePath + _S(".wav")).c_str());
-    Rename((oldBasePath + _S(".dsp")).c_str(), (newBasePath + _S(".dsp")).c_str());
-    Rename((oldBasePath + _S(".vadpcm")).c_str(), (newBasePath + _S(".vadpcm")).c_str());
+    Rename((oldBasePath + _SYS_STR(".wav")).c_str(), (newBasePath + _SYS_STR(".wav")).c_str());
+    Rename((oldBasePath + _SYS_STR(".dsp")).c_str(), (newBasePath + _SYS_STR(".dsp")).c_str());
+    Rename((oldBasePath + _SYS_STR(".vadpcm")).c_str(), (newBasePath + _SYS_STR(".vadpcm")).c_str());
 }
 
 void AudioGroupDatabase::deleteSample(SampleId id)
 {
     SystemString basePath = getSampleBasePath(id);
-    Unlink((basePath + _S(".wav")).c_str());
-    Unlink((basePath + _S(".dsp")).c_str());
-    Unlink((basePath + _S(".vadpcm")).c_str());
+    Unlink((basePath + _SYS_STR(".wav")).c_str());
+    Unlink((basePath + _SYS_STR(".dsp")).c_str());
+    Unlink((basePath + _SYS_STR(".vadpcm")).c_str());
 }
 
 void AudioGroupDatabase::copySampleInto(const SystemString& basePath, const SystemString& newBasePath)
 {
-    Copy((basePath + _S(".wav")).c_str(), (newBasePath + _S(".wav")).c_str());
-    Copy((basePath + _S(".dsp")).c_str(), (newBasePath + _S(".dsp")).c_str());
-    Copy((basePath + _S(".vadpcm")).c_str(), (newBasePath + _S(".vadpcm")).c_str());
+    Copy((basePath + _SYS_STR(".wav")).c_str(), (newBasePath + _SYS_STR(".wav")).c_str());
+    Copy((basePath + _SYS_STR(".dsp")).c_str(), (newBasePath + _SYS_STR(".dsp")).c_str());
+    Copy((basePath + _SYS_STR(".vadpcm")).c_str(), (newBasePath + _SYS_STR(".vadpcm")).c_str());
 }
 
 void AudioGroupDatabase::_recursiveRenameMacro(SoundMacroId id, std::string_view str, int& macroIdx,

@@ -233,7 +233,7 @@ AudioGroupPool AudioGroupPool::CreateAudioGroupPool(SystemStringView groupPath)
 {
     AudioGroupPool ret;
     SystemString poolPath(groupPath);
-    poolPath += _S("/!pool.yaml");
+    poolPath += _SYS_STR("/!pool.yaml");
     athena::io::FileReader fi(poolPath, 32 * 1024, false);
 
     if (!fi.hasError())

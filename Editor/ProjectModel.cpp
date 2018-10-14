@@ -655,7 +655,7 @@ void ProjectModel::importSongsData(const QString& path)
             amuse::SongConverter::SongToMIDI(song.second.m_data.get(), version, isBig);
         if (!midiData.empty())
         {
-            QFileInfo fi(m_dir, SysStringToQString(song.first + _S(".mid")));
+            QFileInfo fi(m_dir, SysStringToQString(song.first + _SYS_STR(".mid")));
             QFile f(fi.filePath());
             if (f.open(QFile::WriteOnly))
             {

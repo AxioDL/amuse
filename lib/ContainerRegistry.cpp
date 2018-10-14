@@ -120,21 +120,21 @@ const SystemChar* ContainerRegistry::TypeToName(Type tp)
     default:
         return nullptr;
     case Type::Raw4:
-        return _S("4 RAW Chunks");
+        return _SYS_STR("4 RAW Chunks");
     case Type::MetroidPrime:
-        return _S("Metroid Prime (GCN)");
+        return _SYS_STR("Metroid Prime (GCN)");
     case Type::MetroidPrime2:
-        return _S("Metroid Prime 2 (GCN)");
+        return _SYS_STR("Metroid Prime 2 (GCN)");
     case Type::RogueSquadronPC:
-        return _S("Star Wars - Rogue Squadron (PC)");
+        return _SYS_STR("Star Wars - Rogue Squadron (PC)");
     case Type::RogueSquadronN64:
-        return _S("Star Wars - Rogue Squadron (N64)");
+        return _SYS_STR("Star Wars - Rogue Squadron (N64)");
     case Type::Factor5N64Rev:
-        return _S("Factor5 Revision ROM (N64)");
+        return _SYS_STR("Factor5 Revision ROM (N64)");
     case Type::RogueSquadron2:
-        return _S("Star Wars - Rogue Squadron 2 (GCN)");
+        return _SYS_STR("Star Wars - Rogue Squadron 2 (GCN)");
     case Type::RogueSquadron3:
-        return _S("Star Wars - Rogue Squadron 3 (GCN)");
+        return _SYS_STR("Star Wars - Rogue Squadron 3 (GCN)");
     }
 }
 
@@ -157,13 +157,13 @@ static SystemString ReadString(FILE* fp)
 
 static bool IsChunkExtension(const SystemChar* path, const SystemChar*& dotOut)
 {
-    const SystemChar* ext = StrRChr(path, _S('.'));
+    const SystemChar* ext = StrRChr(path, _SYS_STR('.'));
     if (ext)
     {
-        if (!CompareCaseInsensitive(ext, _S(".poo")) || !CompareCaseInsensitive(ext, _S(".pool")) ||
-            !CompareCaseInsensitive(ext, _S(".pro")) || !CompareCaseInsensitive(ext, _S(".proj")) ||
-            !CompareCaseInsensitive(ext, _S(".sdi")) || !CompareCaseInsensitive(ext, _S(".sdir")) ||
-            !CompareCaseInsensitive(ext, _S(".sam")) || !CompareCaseInsensitive(ext, _S(".samp")))
+        if (!CompareCaseInsensitive(ext, _SYS_STR(".poo")) || !CompareCaseInsensitive(ext, _SYS_STR(".pool")) ||
+            !CompareCaseInsensitive(ext, _SYS_STR(".pro")) || !CompareCaseInsensitive(ext, _SYS_STR(".proj")) ||
+            !CompareCaseInsensitive(ext, _SYS_STR(".sdi")) || !CompareCaseInsensitive(ext, _SYS_STR(".sdir")) ||
+            !CompareCaseInsensitive(ext, _SYS_STR(".sam")) || !CompareCaseInsensitive(ext, _SYS_STR(".samp")))
         {
             dotOut = ext;
             return true;
@@ -174,11 +174,11 @@ static bool IsChunkExtension(const SystemChar* path, const SystemChar*& dotOut)
 
 static bool IsSongExtension(const SystemChar* path, const SystemChar*& dotOut)
 {
-    const SystemChar* ext = StrRChr(path, _S('.'));
+    const SystemChar* ext = StrRChr(path, _SYS_STR('.'));
     if (ext)
     {
-        if (!CompareCaseInsensitive(ext, _S(".son")) || !CompareCaseInsensitive(ext, _S(".sng")) ||
-            !CompareCaseInsensitive(ext, _S(".song")))
+        if (!CompareCaseInsensitive(ext, _SYS_STR(".son")) || !CompareCaseInsensitive(ext, _SYS_STR(".sng")) ||
+            !CompareCaseInsensitive(ext, _SYS_STR(".song")))
         {
             dotOut = ext;
             return true;
@@ -466,7 +466,7 @@ static std::vector<std::pair<SystemString, ContainerRegistry::SongData>> LoadMP1
                 else
                 {
                     SystemChar name[128];
-                    SNPrintf(name, 128, _S("%08X"), id);
+                    SNPrintf(name, 128, _SYS_STR("%08X"), id);
                     ret.emplace_back(name, ContainerRegistry::SongData(std::move(song), sonLength, groupId, midiSetup));
                 }
 
@@ -618,7 +618,7 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadMP2(FIL
                         rem -= dsz;
                     }
 
-                    fp = FOpen(_S("amuse_tmp.dat"), _S("rw"));
+                    fp = FOpen(_SYS_STR("amuse_tmp.dat"), _SYS_STR("rw"));
                     rewind(fp);
                     fwrite(buf, 1, decompSz, fp);
                     rewind(fp);
@@ -671,7 +671,7 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadMP2(FIL
                 if (compressed)
                 {
                     fclose(fp);
-                    Unlink(_S("amuse_tmp.dat"));
+                    Unlink(_SYS_STR("amuse_tmp.dat"));
                 }
                 fp = old_fp;
                 FSeek(fp, origPos, SEEK_SET);
@@ -926,7 +926,7 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadRS1PC(F
                 }
             }
 
-            ret.emplace_back(_S("Group"),
+            ret.emplace_back(_SYS_STR("Group"),
                              IntrusiveAudioGroupData{proj.release(), projSz, pool.release(), poolSz, sdir.release(),
                                                      sdirSz, samp.release(), sampSz, false, PCDataTag{}});
         }
@@ -1128,7 +1128,7 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadRS1N64(
             }
         }
 
-        ret.emplace_back(_S("Group"),
+        ret.emplace_back(_SYS_STR("Group"),
                          IntrusiveAudioGroupData{proj.release(), projSz, pool.release(), poolSz, sdir.release(), sdirSz,
                                                  samp.release(), sampSz, false, N64DataTag{}});
     }
@@ -1349,7 +1349,7 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadFactor5
             }
         }
 
-        ret.emplace_back(_S("Group"),
+        ret.emplace_back(_SYS_STR("Group"),
                          IntrusiveAudioGroupData{proj.release(), projSz, pool.release(), poolSz, sdir.release(), sdirSz,
                                                  samp.release(), sampSz, true, N64DataTag{}});
     }
@@ -1566,7 +1566,7 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadRS2(FIL
                 if (head.projLen && head.poolLen && head.sdirLen && head.sampLen)
                 {
                     SystemChar name[128];
-                    SNPrintf(name, 128, _S("GroupFile%02u"), j);
+                    SNPrintf(name, 128, _SYS_STR("GroupFile%02u"), j);
                     ret.emplace_back(name, IntrusiveAudioGroupData{proj.release(), head.projLen, pool.release(),
                                                                    head.poolLen, sdir.release(), head.sdirLen,
                                                                    samp.release(), head.sampLen, GCNDataTag{}});
@@ -1627,7 +1627,7 @@ static std::vector<std::pair<SystemString, ContainerRegistry::SongData>> LoadRS2
                     sonHead.swapBig();
 
                     SystemChar name[128];
-                    SNPrintf(name, 128, _S("GroupFile%02u-%u"), j, s);
+                    SNPrintf(name, 128, _SYS_STR("GroupFile%02u-%u"), j, s);
                     std::unique_ptr<uint8_t[]> song(new uint8_t[sonHead.length]);
                     memmove(song.get(), audData.get() + sonHead.offset, sonHead.length);
                     ret.emplace_back(name, ContainerRegistry::SongData(std::move(song), sonHead.length, sonHead.groupId,
@@ -1740,7 +1740,7 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadRS3(FIL
                 if (head.projLen && head.poolLen && head.sdirLen && head.sampLen)
                 {
                     SystemChar name[128];
-                    SNPrintf(name, 128, _S("GroupFile%02u"), j);
+                    SNPrintf(name, 128, _SYS_STR("GroupFile%02u"), j);
                     ret.emplace_back(name, IntrusiveAudioGroupData{proj.release(), head.projLen, pool.release(),
                                                                    head.poolLen, sdir.release(), head.sdirLen,
                                                                    samp.release(), head.sampLen, GCNDataTag{}});
@@ -1808,7 +1808,7 @@ static std::vector<std::pair<SystemString, ContainerRegistry::SongData>> LoadSta
             break;
 
         SystemChar name[128];
-        SNPrintf(name, 128, _S("Song%u"), i);
+        SNPrintf(name, 128, _SYS_STR("Song%u"), i);
         std::unique_ptr<uint8_t[]> song(new uint8_t[len]);
         memmove(song.get(), data.get() + cur, len);
         ret.emplace_back(name, ContainerRegistry::SongData(std::move(song), len, -1, i));
@@ -1898,48 +1898,48 @@ ContainerRegistry::Type ContainerRegistry::DetectContainerType(const SystemChar*
         SystemChar newpath[1024];
 
         /* Project */
-        SNPrintf(newpath, 1024, _S("%.*s.pro"), int(dot - path), path);
-        fp = FOpen(newpath, _S("rb"));
+        SNPrintf(newpath, 1024, _SYS_STR("%.*s.pro"), int(dot - path), path);
+        fp = FOpen(newpath, _SYS_STR("rb"));
         if (!fp)
         {
-            SNPrintf(newpath, 1024, _S("%.*s.proj"), int(dot - path), path);
-            fp = FOpen(newpath, _S("rb"));
+            SNPrintf(newpath, 1024, _SYS_STR("%.*s.proj"), int(dot - path), path);
+            fp = FOpen(newpath, _SYS_STR("rb"));
             if (!fp)
                 return Type::Invalid;
         }
         fclose(fp);
 
         /* Pool */
-        SNPrintf(newpath, 1024, _S("%.*s.poo"), int(dot - path), path);
-        fp = FOpen(newpath, _S("rb"));
+        SNPrintf(newpath, 1024, _SYS_STR("%.*s.poo"), int(dot - path), path);
+        fp = FOpen(newpath, _SYS_STR("rb"));
         if (!fp)
         {
-            SNPrintf(newpath, 1024, _S("%.*s.pool"), int(dot - path), path);
-            fp = FOpen(newpath, _S("rb"));
+            SNPrintf(newpath, 1024, _SYS_STR("%.*s.pool"), int(dot - path), path);
+            fp = FOpen(newpath, _SYS_STR("rb"));
             if (!fp)
                 return Type::Invalid;
         }
         fclose(fp);
 
         /* Sample Directory */
-        SNPrintf(newpath, 1024, _S("%.*s.sdi"), int(dot - path), path);
-        fp = FOpen(newpath, _S("rb"));
+        SNPrintf(newpath, 1024, _SYS_STR("%.*s.sdi"), int(dot - path), path);
+        fp = FOpen(newpath, _SYS_STR("rb"));
         if (!fp)
         {
-            SNPrintf(newpath, 1024, _S("%.*s.sdir"), int(dot - path), path);
-            fp = FOpen(newpath, _S("rb"));
+            SNPrintf(newpath, 1024, _SYS_STR("%.*s.sdir"), int(dot - path), path);
+            fp = FOpen(newpath, _SYS_STR("rb"));
             if (!fp)
                 return Type::Invalid;
         }
         fclose(fp);
 
         /* Sample */
-        SNPrintf(newpath, 1024, _S("%.*s.sam"), int(dot - path), path);
-        fp = FOpen(newpath, _S("rb"));
+        SNPrintf(newpath, 1024, _SYS_STR("%.*s.sam"), int(dot - path), path);
+        fp = FOpen(newpath, _SYS_STR("rb"));
         if (!fp)
         {
-            SNPrintf(newpath, 1024, _S("%.*s.samp"), int(dot - path), path);
-            fp = FOpen(newpath, _S("rb"));
+            SNPrintf(newpath, 1024, _SYS_STR("%.*s.samp"), int(dot - path), path);
+            fp = FOpen(newpath, _SYS_STR("rb"));
             if (!fp)
                 return Type::Invalid;
         }
@@ -1949,7 +1949,7 @@ ContainerRegistry::Type ContainerRegistry::DetectContainerType(const SystemChar*
     }
 
     /* Now attempt single-file case */
-    fp = FOpen(path, _S("rb"));
+    fp = FOpen(path, _SYS_STR("rb"));
     if (fp)
     {
         if (ValidateMP1(fp))
@@ -2019,19 +2019,19 @@ std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> ContainerRegistry:
         std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> ret;
 
         SystemString baseName;
-        if (const SystemChar* sep = std::max(StrRChr(path, _S('/')), StrRChr(path, _S('\\'))))
+        if (const SystemChar* sep = std::max(StrRChr(path, _SYS_STR('/')), StrRChr(path, _SYS_STR('\\'))))
             baseName = SystemString(sep + 1, dot - sep - 1);
         else
             baseName = SystemString(path, dot - path);
 
         /* Project */
         SystemChar projPath[1024];
-        SNPrintf(projPath, 1024, _S("%.*s.pro"), int(dot - path), path);
-        fp = FOpen(projPath, _S("rb"));
+        SNPrintf(projPath, 1024, _SYS_STR("%.*s.pro"), int(dot - path), path);
+        fp = FOpen(projPath, _SYS_STR("rb"));
         if (!fp)
         {
-            SNPrintf(projPath, 1024, _S("%.*s.proj"), int(dot - path), path);
-            fp = FOpen(projPath, _S("rb"));
+            SNPrintf(projPath, 1024, _SYS_STR("%.*s.proj"), int(dot - path), path);
+            fp = FOpen(projPath, _SYS_STR("rb"));
             if (!fp)
                 return ret;
         }
@@ -2039,12 +2039,12 @@ std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> ContainerRegistry:
 
         /* Pool */
         SystemChar poolPath[1024];
-        SNPrintf(poolPath, 1024, _S("%.*s.poo"), int(dot - path), path);
-        fp = FOpen(poolPath, _S("rb"));
+        SNPrintf(poolPath, 1024, _SYS_STR("%.*s.poo"), int(dot - path), path);
+        fp = FOpen(poolPath, _SYS_STR("rb"));
         if (!fp)
         {
-            SNPrintf(poolPath, 1024, _S("%.*s.pool"), int(dot - path), path);
-            fp = FOpen(poolPath, _S("rb"));
+            SNPrintf(poolPath, 1024, _SYS_STR("%.*s.pool"), int(dot - path), path);
+            fp = FOpen(poolPath, _SYS_STR("rb"));
             if (!fp)
                 return ret;
         }
@@ -2052,12 +2052,12 @@ std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> ContainerRegistry:
 
         /* Sample Directory */
         SystemChar sdirPath[1024];
-        SNPrintf(sdirPath, 1024, _S("%.*s.sdi"), int(dot - path), path);
-        fp = FOpen(sdirPath, _S("rb"));
+        SNPrintf(sdirPath, 1024, _SYS_STR("%.*s.sdi"), int(dot - path), path);
+        fp = FOpen(sdirPath, _SYS_STR("rb"));
         if (!fp)
         {
-            SNPrintf(sdirPath, 1024, _S("%.*s.sdir"), int(dot - path), path);
-            fp = FOpen(sdirPath, _S("rb"));
+            SNPrintf(sdirPath, 1024, _SYS_STR("%.*s.sdir"), int(dot - path), path);
+            fp = FOpen(sdirPath, _SYS_STR("rb"));
             if (!fp)
                 return ret;
         }
@@ -2065,39 +2065,39 @@ std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> ContainerRegistry:
 
         /* Sample */
         SystemChar sampPath[1024];
-        SNPrintf(sampPath, 1024, _S("%.*s.sam"), int(dot - path), path);
-        fp = FOpen(sampPath, _S("rb"));
+        SNPrintf(sampPath, 1024, _SYS_STR("%.*s.sam"), int(dot - path), path);
+        fp = FOpen(sampPath, _SYS_STR("rb"));
         if (!fp)
         {
-            SNPrintf(sampPath, 1024, _S("%.*s.samp"), int(dot - path), path);
-            fp = FOpen(sampPath, _S("rb"));
+            SNPrintf(sampPath, 1024, _SYS_STR("%.*s.samp"), int(dot - path), path);
+            fp = FOpen(sampPath, _SYS_STR("rb"));
             if (!fp)
                 return ret;
         }
         fclose(fp);
 
-        fp = FOpen(projPath, _S("rb"));
+        fp = FOpen(projPath, _SYS_STR("rb"));
         size_t projLen = FileLength(fp);
         if (!projLen)
             return ret;
         std::unique_ptr<uint8_t[]> proj(new uint8_t[projLen]);
         fread(proj.get(), 1, projLen, fp);
 
-        fp = FOpen(poolPath, _S("rb"));
+        fp = FOpen(poolPath, _SYS_STR("rb"));
         size_t poolLen = FileLength(fp);
         if (!poolLen)
             return ret;
         std::unique_ptr<uint8_t[]> pool(new uint8_t[poolLen]);
         fread(pool.get(), 1, poolLen, fp);
 
-        fp = FOpen(sdirPath, _S("rb"));
+        fp = FOpen(sdirPath, _SYS_STR("rb"));
         size_t sdirLen = FileLength(fp);
         if (!sdirLen)
             return ret;
         std::unique_ptr<uint8_t[]> sdir(new uint8_t[sdirLen]);
         fread(sdir.get(), 1, sdirLen, fp);
 
-        fp = FOpen(sampPath, _S("rb"));
+        fp = FOpen(sampPath, _SYS_STR("rb"));
         size_t sampLen = FileLength(fp);
         if (!sampLen)
             return ret;
@@ -2125,7 +2125,7 @@ std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> ContainerRegistry:
     }
 
     /* Now attempt single-file case */
-    fp = FOpen(path, _S("rb"));
+    fp = FOpen(path, _SYS_STR("rb"));
     if (fp)
     {
         if (ValidateMP1(fp))
@@ -2198,7 +2198,7 @@ std::vector<std::pair<SystemString, ContainerRegistry::SongData>> ContainerRegis
     const SystemChar* dot = nullptr;
     if (IsSongExtension(path, dot))
     {
-        fp = FOpen(path, _S("rb"));
+        fp = FOpen(path, _SYS_STR("rb"));
         size_t fLen = FileLength(fp);
         if (!fLen)
         {
@@ -2210,12 +2210,12 @@ std::vector<std::pair<SystemString, ContainerRegistry::SongData>> ContainerRegis
         fclose(fp);
 
         std::vector<std::pair<SystemString, SongData>> ret;
-        ret.emplace_back(_S("Song"), SongData(std::move(song), fLen, -1, -1));
+        ret.emplace_back(_SYS_STR("Song"), SongData(std::move(song), fLen, -1, -1));
         return ret;
     }
 
     /* Now attempt archive-file case */
-    fp = FOpen(path, _S("rb"));
+    fp = FOpen(path, _SYS_STR("rb"));
     if (fp)
     {
         if (ValidateMP1Songs(fp))
@@ -2264,9 +2264,9 @@ std::vector<std::pair<SystemString, ContainerRegistry::SongData>> ContainerRegis
         {
             /* Song Description */
             SystemChar newpath[1024];
-            dot = StrRChr(path, _S('.'));
-            SNPrintf(newpath, 1024, _S("%.*s.stbl"), int(dot - path), path);
-            FILE* descFp = FOpen(newpath, _S("rb"));
+            dot = StrRChr(path, _SYS_STR('.'));
+            SNPrintf(newpath, 1024, _SYS_STR("%.*s.stbl"), int(dot - path), path);
+            FILE* descFp = FOpen(newpath, _SYS_STR("rb"));
             if (descFp)
             {
                 auto ret = LoadPaperMarioTTYDSongs(fp, descFp);
