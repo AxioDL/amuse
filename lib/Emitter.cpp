@@ -33,21 +33,14 @@ float Emitter::_attenuationCurve(float dist) const
     if (dist > m_maxDist)
         return 0.f;
     float t = dist / m_maxDist;
-    if (m_falloff < 0.f)
+    if (m_falloff >= 0.f)
     {
-        float tmp = t * 10.f + 1.f;
-        tmp = 1.f / (tmp * tmp);
-        return (1.f + m_falloff) * (-t + 1.f) + -m_falloff * tmp;
-    }
-    else if (m_falloff > 0.f)
-    {
-        float tmp = (t - 1.f) * 10.f - 1.f;
-        tmp = -1.f / (tmp * tmp) + 1.f;
-        return (1.f - m_falloff) * (-t + 1.f) + m_falloff * tmp;
+        return 1.f - (m_falloff * t * t + (1.f - m_falloff) * t);
     }
     else
     {
-        return -t + 1.f;
+        float omt = 1.f - t;
+        return 1.f - ((1.f + m_falloff) * t - (1.f - omt * omt) * m_falloff);
     }
 }
 
@@ -86,10 +79,10 @@ void Emitter::_update()
 
         /* Calculate attenuation */
         float att = _attenuationCurve(dist);
+        att = (m_maxVol - m_minVol) * att + m_minVol;
+        att = m_attCache.getVolume(att, false);
         if (att > FLT_EPSILON)
         {
-            att = (1.f - att) * m_minVol + att * m_maxVol;
-
             /* Apply pan law */
             float thisCoefs[8] = {};
             m_vox->_panLaw(thisCoefs, frontPan, backPan, span);

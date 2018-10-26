@@ -45,6 +45,7 @@ class Emitter : public Entity
     float m_falloff;
     bool m_doppler;
     bool m_dirty = true;
+    Voice::VolumeCache m_attCache;
 
     friend class Engine;
     void _destroy();
