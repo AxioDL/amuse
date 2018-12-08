@@ -19,29 +19,26 @@
 
 @class AudioUnitViewController;
 
-namespace amuse
-{
+namespace amuse {
 
 /** Backend voice allocator implementation for AudioUnit mixer */
-class AudioUnitBackendVoiceAllocator : public BooBackendVoiceAllocator
-{
+class AudioUnitBackendVoiceAllocator : public BooBackendVoiceAllocator {
 public:
-    AudioUnitBackendVoiceAllocator(boo::IAudioVoiceEngine& booEngine) : BooBackendVoiceAllocator(booEngine) {}
+  AudioUnitBackendVoiceAllocator(boo::IAudioVoiceEngine& booEngine) : BooBackendVoiceAllocator(booEngine) {}
 };
 
 void RegisterAudioUnit();
-}
+} // namespace amuse
 
-@interface AmuseAudioUnit : AUAudioUnit <AudioGroupClient>
-{
+@interface AmuseAudioUnit : AUAudioUnit <AudioGroupClient> {
 @public
-    AudioUnitViewController* m_viewController;
-    std::unique_ptr<boo::IAudioVoiceEngine> m_booBackend;
-    std::experimental::optional<amuse::AudioUnitBackendVoiceAllocator> m_voxAlloc;
-    std::experimental::optional<amuse::Engine> m_engine;
-    AudioGroupFilePresenter* m_filePresenter;
-    AUAudioUnitBus* m_outBus;
-    AUAudioUnitBusArray* m_outs;
+  AudioUnitViewController* m_viewController;
+  std::unique_ptr<boo::IAudioVoiceEngine> m_booBackend;
+  std::experimental::optional<amuse::AudioUnitBackendVoiceAllocator> m_voxAlloc;
+  std::experimental::optional<amuse::Engine> m_engine;
+  AudioGroupFilePresenter* m_filePresenter;
+  AUAudioUnitBus* m_outBus;
+  AUAudioUnitBusArray* m_outs;
 }
 - (nullable id)initWithComponentDescription:(AudioComponentDescription)componentDescription
                                       error:(NSError* __nullable* __nonnull)outError

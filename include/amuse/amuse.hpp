@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include "AudioGroup.hpp"
 #include "AudioGroupData.hpp"
 #include "AudioGroupPool.hpp"
@@ -20,4 +19,3 @@
 #include "SongState.hpp"
 #include "Submix.hpp"
 #include "Voice.hpp"
-

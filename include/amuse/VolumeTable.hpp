@@ -1,8 +1,6 @@
 #pragma once
 
-namespace amuse
-{
+namespace amuse {
 float LookupVolume(float vol);
 float LookupDLSVolume(float vol);
-}
-
+} // namespace amuse

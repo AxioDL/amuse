@@ -10,11 +10,9 @@
 #undef log2
 #undef fabs
 
-namespace std
-{
-    using ::exp2;
-    using ::log2;
-    using ::fabs;
-}
+namespace std {
+using ::exp2;
+using ::fabs;
+using ::log2;
+} // namespace std
 #endif
-

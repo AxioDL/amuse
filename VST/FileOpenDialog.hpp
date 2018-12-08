@@ -3,4 +3,3 @@
 #include <string>
 
 std::wstring openDB();
-

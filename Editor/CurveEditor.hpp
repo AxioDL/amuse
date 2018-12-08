@@ -10,55 +10,54 @@
 
 class CurveEditor;
 
-class CurveView : public QWidget
-{
-Q_OBJECT
-    friend class CurveControls;
-    amuse::ObjToken<ProjectModel::CurveNode> m_node;
-    QFont m_gridFont;
-    QStaticText m_percentTexts[11];
-    QStaticText m_percentTextsCenter[11];
-    CurveEditor* getEditor() const;
-public:
-    explicit CurveView(QWidget* parent = Q_NULLPTR);
-    void loadData(ProjectModel::CurveNode* node);
-    void unloadData();
-    ProjectModel::INode* currentNode() const;
+class CurveView : public QWidget {
+  Q_OBJECT
+  friend class CurveControls;
+  amuse::ObjToken<ProjectModel::CurveNode> m_node;
+  QFont m_gridFont;
+  QStaticText m_percentTexts[11];
+  QStaticText m_percentTextsCenter[11];
+  CurveEditor* getEditor() const;
 
-    void paintEvent(QPaintEvent* ev);
-    void mousePressEvent(QMouseEvent* ev);
-    void mouseMoveEvent(QMouseEvent* ev);
+public:
+  explicit CurveView(QWidget* parent = Q_NULLPTR);
+  void loadData(ProjectModel::CurveNode* node);
+  void unloadData();
+  ProjectModel::INode* currentNode() const;
+
+  void paintEvent(QPaintEvent* ev);
+  void mousePressEvent(QMouseEvent* ev);
+  void mouseMoveEvent(QMouseEvent* ev);
 };
 
-class CurveControls : public QFrame
-{
-Q_OBJECT
-    friend class CurveView;
-    QLineEdit* m_lineEdit;
-    QLabel* m_errLabel;
-    QPushButton* m_setExpr;
-    QJSEngine m_engine;
-    CurveEditor* getEditor() const;
+class CurveControls : public QFrame {
+  Q_OBJECT
+  friend class CurveView;
+  QLineEdit* m_lineEdit;
+  QLabel* m_errLabel;
+  QPushButton* m_setExpr;
+  QJSEngine m_engine;
+  CurveEditor* getEditor() const;
+
 public:
-    explicit CurveControls(QWidget* parent = Q_NULLPTR);
-    void loadData();
-    void unloadData();
-    void resizeEvent(QResizeEvent* ev);
+  explicit CurveControls(QWidget* parent = Q_NULLPTR);
+  void loadData();
+  void unloadData();
+  void resizeEvent(QResizeEvent* ev);
 public slots:
-    void exprCommit();
+  void exprCommit();
 };
 
-class CurveEditor : public EditorWidget
-{
-Q_OBJECT
-    friend class CurveView;
-    friend class CurveControls;
-    CurveView* m_curveView;
-    CurveControls* m_controls;
+class CurveEditor : public EditorWidget {
+  Q_OBJECT
+  friend class CurveView;
+  friend class CurveControls;
+  CurveView* m_curveView;
+  CurveControls* m_controls;
+
 public:
-    explicit CurveEditor(QWidget* parent = Q_NULLPTR);
-    bool loadData(ProjectModel::CurveNode* node);
-    void unloadData();
-    ProjectModel::INode* currentNode() const;
+  explicit CurveEditor(QWidget* parent = Q_NULLPTR);
+  bool loadData(ProjectModel::CurveNode* node);
+  void unloadData();
+  ProjectModel::INode* currentNode() const;
 };
-
