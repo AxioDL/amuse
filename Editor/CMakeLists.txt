@@ -84,4 +84,4 @@ target_link_libraries(amuse-gui ${PLAT_LIBS}
         ${Qt5Xml_LIBRARIES}
         ${Qt5Svg_LIBRARIES}
         ${Qt5Qml_LIBRARIES}
-        amuse boo ${BOO_SYS_LIBS} logvisor athena-core athena-libyaml xxhash ${ZLIB_LIBRARIES} ${LZO_LIB})
+        amuse boo ${BOO_SYS_LIBS} logvisor athena-core athena-libyaml xxhash ${ZLIB_LIBRARIES} lzokay)

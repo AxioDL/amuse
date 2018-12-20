@@ -7,7 +7,7 @@
 #include <memory>
 #include <unordered_map>
 #include <zlib.h>
-#include <lzo/lzo1x.h>
+#include <lzokay.hpp>
 
 #if __SWITCH__
 /*-
@@ -486,8 +486,8 @@ static bool ValidateMP2(FILE* fp) {
           uint8_t compBuf[0x8000];
           uint8_t destBuf[0x8000 * 2];
           fread(compBuf, 1, chunkSz, fp);
-          lzo_uint dsz = 0x8000 * 2;
-          lzo1x_decompress(compBuf, chunkSz, destBuf, &dsz, nullptr);
+          size_t dsz = 0x8000 * 2;
+          lzokay::decompress(compBuf, chunkSz, destBuf, dsz);
           memcpy(testBuf, destBuf, 4);
         }
         if (amuse::SBig(*reinterpret_cast<uint32_t*>(testBuf)) == 0x1)
@@ -557,8 +557,8 @@ static std::vector<std::pair<SystemString, IntrusiveAudioGroupData>> LoadMP2(FIL
             fread(&chunkSz, 1, 2, fp);
             chunkSz = SBig(chunkSz);
             fread(compBuf, 1, chunkSz, fp);
-            lzo_uint dsz = rem;
-            lzo1x_decompress(compBuf, chunkSz, bufCur, &dsz, nullptr);
+            size_t dsz = rem;
+            lzokay::decompress(compBuf, chunkSz, bufCur, dsz);
             bufCur += dsz;
             rem -= dsz;
           }

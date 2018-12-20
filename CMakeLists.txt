@@ -89,7 +89,7 @@ endif()
 unset(EXTRAS)
 if(TARGET boo)
   include_directories(${BOO_INCLUDE_DIR} ${BOO_INCLUDE_DIR}/../lib ${BOO_INCLUDE_DIR}/../soxr/src
-                      ${LOGVISOR_INCLUDE_DIR} ${ATHENA_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR} ${LZO_INCLUDE_DIR})
+                      ${LOGVISOR_INCLUDE_DIR} ${ATHENA_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR} ${LZOKAY_INCLUDE_DIR})
   list(APPEND EXTRAS lib/BooBackend.cpp include/amuse/BooBackend.hpp)
 endif()
 
@@ -119,15 +119,15 @@ if(TARGET boo AND NOT WINDOWS_STORE AND NOT NX)
 
   # Player
   add_executable(amuseplay WIN32 driver/amuseplay.cpp)
-  target_link_libraries(amuseplay amuse boo ${BOO_SYS_LIBS} logvisor athena-core athena-libyaml ${ZLIB_LIBRARIES} ${LZO_LIB})
+  target_link_libraries(amuseplay amuse boo ${BOO_SYS_LIBS} logvisor athena-core athena-libyaml ${ZLIB_LIBRARIES} lzokay)
 
   # Converter
   add_executable(amuseconv driver/amuseconv.cpp)
-  target_link_libraries(amuseconv amuse boo ${BOO_SYS_LIBS} logvisor athena-core athena-libyaml ${ZLIB_LIBRARIES} ${LZO_LIB})
+  target_link_libraries(amuseconv amuse boo ${BOO_SYS_LIBS} logvisor athena-core athena-libyaml ${ZLIB_LIBRARIES} lzokay)
 
   # Renderer
   add_executable(amuserender driver/amuserender.cpp)
-  target_link_libraries(amuserender amuse boo ${BOO_SYS_LIBS} logvisor athena-core athena-libyaml ${ZLIB_LIBRARIES} ${LZO_LIB})
+  target_link_libraries(amuserender amuse boo ${BOO_SYS_LIBS} logvisor athena-core athena-libyaml ${ZLIB_LIBRARIES} lzokay)
 
   if(COMMAND add_sanitizers)
     add_sanitizers(amuseplay)
