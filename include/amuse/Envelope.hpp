@@ -27,7 +27,7 @@ public:
   void keyOff();
   float advance(double dt, const Voice& vox);
   float advance(double dt);
-  bool isComplete() const { return m_phase == State::Complete; }
+  bool isComplete(const Voice& vox) const;
   bool isAdsrSet() const { return m_adsrSet; }
 };
 } // namespace amuse

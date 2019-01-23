@@ -51,6 +51,9 @@ void Envelope::keyOff() {
 }
 
 float Envelope::advance(double dt, const Voice& vox) {
+  if (!m_adsrSet && !vox.m_state.m_useAdsrControllers)
+    return 1.f;
+
   double thisTime = m_curTime;
   m_curTime += dt;
 
@@ -131,6 +134,9 @@ float Envelope::advance(double dt, const Voice& vox) {
 }
 
 float Envelope::advance(double dt) {
+  if (!m_adsrSet)
+    return 1.f;
+
   double thisTime = m_curTime;
   m_curTime += dt;
 
@@ -195,5 +201,9 @@ float Envelope::advance(double dt) {
   default:
     return 0.f;
   }
+}
+
+bool Envelope::isComplete(const Voice& vox) const {
+  return (m_adsrSet || vox.m_state.m_useAdsrControllers) && m_phase == State::Complete;
 }
 } // namespace amuse

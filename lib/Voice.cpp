@@ -87,7 +87,7 @@ bool Voice::_checkSamplePos(bool& looped) {
   }
 
   /* Looped samples issue sample end when ADSR envelope complete */
-  if (m_volAdsr.isComplete()) {
+  if (m_volAdsr.isComplete(*this)) {
     _macroSampleEnd();
     m_curSample = nullptr;
     return true;
@@ -456,7 +456,7 @@ void Voice::preSupplyAudio(double dt) {
   }
 
   if (dead && (!m_curSample || m_voxState == VoiceState::KeyOff) && m_sampleEndTrap.macroId == 0xffff &&
-      m_messageTrap.macroId == 0xffff && (!m_curSample || (m_curSample && m_volAdsr.isComplete()))) {
+      m_messageTrap.macroId == 0xffff && (!m_curSample || (m_curSample && m_volAdsr.isComplete(*this)))) {
     m_voxState = VoiceState::Dead;
     m_backendVoice->stop();
   }
