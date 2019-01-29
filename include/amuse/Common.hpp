@@ -71,7 +71,7 @@ struct AT_SPECIALIZE_PARMS(athena::Endian::Big, athena::Endian::Little) ObjectId
   struct type : ObjectId {                                                                                             \
     using ObjectId::ObjectId;                                                                                          \
     type() = default;                                                                                                  \
-    type(const ObjectId& id) : ObjectId(id) {}                                                                         \
+    type(const ObjectId& idIn) : ObjectId(idIn) {}                                                                     \
     static thread_local NameDB* CurNameDB;                                                                             \
   };                                                                                                                   \
   template <athena::Endian DNAEn>                                                                                      \
