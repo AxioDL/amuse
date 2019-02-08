@@ -221,9 +221,9 @@ void Voice::_procSamplePre(int16_t& samp) {
     float t = clamp(0.f, float(m_envelopeTime / m_envelopeDur), 1.f);
     if (m_envelopeCurve && m_envelopeCurve->data.size() >= 128)
       t = m_envelopeCurve->data[t * 127.f] / 127.f;
-    m_curVol = clamp(0.f, (start * (1.0f - t)) + (end * t), 1.f);
+    m_envelopeVol = clamp(0.f, (start * (1.0f - t)) + (end * t), 1.f);
 
-    // printf("%d %f\n", m_vid, m_curVol);
+    // printf("%d %f\n", m_vid, m_envelopeVol);
 
     /* Done with envelope */
     if (m_envelopeTime > m_envelopeDur)
@@ -256,7 +256,7 @@ void Voice::_procSamplePre(int16_t& samp) {
   /* Factor in ADSR envelope state */
   float adsr = m_volAdsr.advance(dt, *this);
   m_lastLevel = m_nextLevel;
-  m_nextLevel = m_curUserVol * m_curVol * adsr * (m_state.m_curVel / 127.f);
+  m_nextLevel = m_curUserVol * m_curVol * m_envelopeVol * adsr * (m_state.m_curVel / 127.f);
 
   /* Apply tremolo */
   if (m_state.m_tremoloSel && (m_tremoloScale || m_tremoloModScale)) {
@@ -1060,7 +1060,7 @@ void Voice::setChannelCoefs(const float coefs[8]) {
 void Voice::startEnvelope(double dur, float vol, const Curve* envCurve) {
   m_envelopeTime = 0.f;
   m_envelopeDur = dur;
-  m_envelopeStart = clamp(0.f, m_curVol, 1.f);
+  m_envelopeStart = clamp(0.f, m_envelopeVol, 1.f);
   m_envelopeEnd = clamp(0.f, vol, 1.f);
   m_envelopeCurve = envCurve;
 }

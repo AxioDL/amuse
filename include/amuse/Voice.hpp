@@ -96,6 +96,7 @@ class Voice : public Entity {
   float m_targetUserVol = 1.f;    /**< Target user volume of voice (slewed to prevent audible aliasing) */
   float m_curUserVol = 1.f;       /**< Current user volume of voice */
   float m_curVol = 1.f;           /**< Current volume of voice */
+  float m_envelopeVol = 1.f;      /**< Current envelope volume of voice */
   float m_curReverbVol = 0.f;     /**< Current reverb volume of voice */
   float m_curAuxBVol = 0.f;       /**< Current AuxB volume of voice */
   float m_curPan = 0.f;           /**< Current pan of voice */
