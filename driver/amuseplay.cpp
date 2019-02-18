@@ -398,6 +398,7 @@ struct AppCallback : boo::IApplicationCallback {
 #endif
         }
         m_updateDisp = true;
+        break;
       default:
         break;
       }
@@ -870,6 +871,7 @@ void EventCallback::specialKeyDown(boo::ESpecialKey key, boo::EModifierKey mods,
     break;
   case boo::ESpecialKey::Esc:
     m_app.m_breakout = true;
+    break;
   default:
     break;
   }

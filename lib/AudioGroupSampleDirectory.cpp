@@ -893,6 +893,7 @@ AudioGroupSampleDirectory::toGCNData(const AudioGroupDatabase& group) const {
     case SampleFileState::WAVRecent:
     case SampleFileState::WAVNoCompressed:
       group.makeCompressedVersion(ent.first, ent.second.get().get());
+      break;
     default:
       break;
     }

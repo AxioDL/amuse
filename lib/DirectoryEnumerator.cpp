@@ -206,6 +206,7 @@ DirectoryEnumerator::DirectoryEnumerator(SystemStringView path, Mode mode, bool 
     if (mode == Mode::DirsSorted)
       break;
     rewinddir(dir);
+    [[fallthrough]];
   }
   case Mode::FilesSorted: {
     if (mode == Mode::FilesSorted)

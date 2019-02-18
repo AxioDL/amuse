@@ -291,19 +291,24 @@ void Sequencer::ChannelState::setCtrlValue(uint8_t ctrl, int8_t val) {
     // RPN LSB
     m_rpn &= ~0x7f;
     m_rpn |= val;
+    break;
   case 99:
     // RPN MSB
     m_rpn &= ~0x3f80;
     m_rpn |= val << 7;
+    break;
   case 6:
     if (m_rpn == 0)
       m_pitchWheelRange = val;
+    break;
   case 96:
     if (m_rpn == 0)
       m_pitchWheelRange += 1;
+    break;
   case 97:
     if (m_rpn == 0)
       m_pitchWheelRange -= 1;
+    break;
   default:
     break;
   }

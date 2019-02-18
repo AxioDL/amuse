@@ -144,6 +144,7 @@ public:
           uint32_t tempo = 0;
           memcpy(&reinterpret_cast<uint8_t*>(&tempo)[1], &*it, 3);
           m_tempos.emplace(m_tick, 60000000 / SBig(tempo));
+          [[fallthrough]];
         }
         default:
           it += length;
