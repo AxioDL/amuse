@@ -48,7 +48,6 @@ SystemString AudioGroup::getSampleBasePath(SampleId sfxId) const {
 std::pair<ObjToken<SampleEntryData>, const unsigned char*> AudioGroup::getSampleData(SampleId sfxId,
                                                                                      const SampleEntry* sample) const {
   if (sample->m_data->m_looseData) {
-    setIdDatabases();
     SystemString basePath = getSampleBasePath(sfxId);
     const_cast<SampleEntry*>(sample)->loadLooseData(basePath);
     return {sample->m_data, sample->m_data->m_looseData.get()};
@@ -58,7 +57,6 @@ std::pair<ObjToken<SampleEntryData>, const unsigned char*> AudioGroup::getSample
 
 SampleFileState AudioGroup::getSampleFileState(SampleId sfxId, const SampleEntry* sample, SystemString* pathOut) const {
   if (sample->m_data->m_looseData) {
-    setIdDatabases();
     SystemString basePath = getSampleBasePath(sfxId);
     return sample->getFileState(basePath, pathOut);
   }
@@ -69,7 +67,6 @@ SampleFileState AudioGroup::getSampleFileState(SampleId sfxId, const SampleEntry
 
 void AudioGroup::patchSampleMetadata(SampleId sfxId, const SampleEntry* sample) const {
   if (sample->m_data->m_looseData) {
-    setIdDatabases();
     SystemString basePath = getSampleBasePath(sfxId);
     sample->patchSampleMetadata(basePath);
   }
@@ -77,14 +74,12 @@ void AudioGroup::patchSampleMetadata(SampleId sfxId, const SampleEntry* sample) 
 
 void AudioGroup::makeWAVVersion(SampleId sfxId, const SampleEntry* sample) const {
   if (sample->m_data->m_looseData) {
-    setIdDatabases();
     m_sdir._extractWAV(sfxId, *sample->m_data, m_groupPath, sample->m_data->m_looseData.get());
   }
 }
 
 void AudioGroup::makeCompressedVersion(SampleId sfxId, const SampleEntry* sample) const {
   if (sample->m_data->m_looseData) {
-    setIdDatabases();
     m_sdir._extractCompressed(sfxId, *sample->m_data, m_groupPath, sample->m_data->m_looseData.get(), true);
   }
 }
@@ -187,7 +182,6 @@ static const std::regex DefineSNGEntry(R"(#define\s+SNG(\S+)\s+(\S+))", std::reg
 static const std::regex DefineSFXEntry(R"(#define\s+SFX(\S+)\s+(\S+))", std::regex::ECMAScript | std::regex::optimize);
 
 void AudioGroupDatabase::importCHeader(std::string_view header) {
-  setIdDatabases();
   std::match_results<std::string_view::const_iterator> dirMatch;
   auto begin = header.cbegin();
   auto end = header.cend();
@@ -254,7 +248,6 @@ static void WriteDefineLine(std::string& ret, std::string_view typeStr, std::str
 }
 
 std::string AudioGroupDatabase::exportCHeader(std::string_view projectName, std::string_view groupName) const {
-  setIdDatabases();
   std::string ret;
   ret +=
       "/* Auto-generated Amuse Defines\n"

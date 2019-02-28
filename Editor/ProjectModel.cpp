@@ -580,10 +580,8 @@ bool ProjectModel::reloadSampleData(const QString& groupName, UIMessenger&) {
   m_projectDatabase.setIdDatabases();
   QString path = QFileInfo(m_dir, groupName).filePath();
   auto search = m_groups.find(groupName);
-  if (search != m_groups.end()) {
-    search->second->setIdDatabases();
+  if (search != m_groups.end())
     search->second->getSdir().reloadSampleData(QStringToSysString(path));
-  }
 
   m_needsReset = true;
   return true;
@@ -663,9 +661,6 @@ bool ProjectModel::saveToFile(UIMessenger& messenger) {
     QDir dir(QFileInfo(m_dir, g.first).filePath());
     if (!MkPath(dir.path(), messenger))
       return false;
-
-    g.second->setIdDatabases();
-
     {
       auto proj = g.second->getProj().toYAML();
       athena::io::FileWriter fo(QStringToSysString(QFileInfo(dir, QStringLiteral("!project.yaml")).filePath()));
@@ -708,7 +703,6 @@ bool ProjectModel::exportGroup(const QString& path, const QString& groupName, UI
   const amuse::AudioGroupDatabase& group = *search->second;
   m_projectDatabase.setIdDatabases();
   QString basePath = QFileInfo(QDir(path), groupName).filePath();
-  group.setIdDatabases();
   {
     auto proj = group.getProj().toGCNData(group.getPool(), group.getSdir());
     athena::io::FileWriter fo(QStringToSysString(basePath + QStringLiteral(".proj")));
@@ -917,7 +911,6 @@ void ProjectModel::_resetModelData() {
   m_root = amuse::MakeObj<RootNode>();
   m_root->reserve(m_groups.size());
   for (auto it = m_groups.begin(); it != m_groups.end(); ++it) {
-    it->second->setIdDatabases();
     GroupNode& gn = m_root->makeChild<GroupNode>(it);
     _buildGroupNode(gn, *gn.m_it->second);
   }
@@ -2088,6 +2081,4 @@ amuse::SongId ProjectModel::exchangeSongId(amuse::SongId oldId, std::string_view
 
 void ProjectModel::setIdDatabases(INode* context) const {
   m_projectDatabase.setIdDatabases();
-  if (ProjectModel::GroupNode* group = getGroupNode(context))
-    group->getAudioGroup()->setIdDatabases();
 }

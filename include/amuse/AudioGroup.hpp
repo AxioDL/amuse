@@ -47,41 +47,22 @@ public:
   AudioGroupProject& getProj() { return m_proj; }
   AudioGroupPool& getPool() { return m_pool; }
   AudioGroupSampleDirectory& getSdir() { return m_sdir; }
-
-  virtual void setIdDatabases() const {}
 };
 
 class AudioGroupDatabase final : public AudioGroup {
-  NameDB m_soundMacroDb;
-  NameDB m_sampleDb;
-  NameDB m_tableDb;
-  NameDB m_keymapDb;
-  NameDB m_layersDb;
-
   void _recursiveRenameMacro(SoundMacroId id, std::string_view str, int& macroIdx,
                              std::unordered_set<SoundMacroId>& renamedIds);
 
 public:
   AudioGroupDatabase() = default;
   explicit AudioGroupDatabase(const AudioGroupData& data) {
-    setIdDatabases();
     assign(data);
   }
   explicit AudioGroupDatabase(SystemStringView groupPath) {
-    setIdDatabases();
     assign(groupPath);
   }
   explicit AudioGroupDatabase(const AudioGroupDatabase& data, SystemStringView groupPath) {
-    setIdDatabases();
     assign(data, groupPath);
-  }
-
-  void setIdDatabases() const {
-    SoundMacroId::CurNameDB = const_cast<NameDB*>(&m_soundMacroDb);
-    SampleId::CurNameDB = const_cast<NameDB*>(&m_sampleDb);
-    TableId::CurNameDB = const_cast<NameDB*>(&m_tableDb);
-    KeymapId::CurNameDB = const_cast<NameDB*>(&m_keymapDb);
-    LayersId::CurNameDB = const_cast<NameDB*>(&m_layersDb);
   }
 
   void renameSample(SampleId id, std::string_view str);
@@ -96,12 +77,22 @@ class ProjectDatabase {
   NameDB m_songDb;
   NameDB m_sfxDb;
   NameDB m_groupDb;
+  NameDB m_soundMacroDb;
+  NameDB m_sampleDb;
+  NameDB m_tableDb;
+  NameDB m_keymapDb;
+  NameDB m_layersDb;
 
 public:
   void setIdDatabases() const {
     SongId::CurNameDB = const_cast<NameDB*>(&m_songDb);
     SFXId::CurNameDB = const_cast<NameDB*>(&m_sfxDb);
     GroupId::CurNameDB = const_cast<NameDB*>(&m_groupDb);
+    SoundMacroId::CurNameDB = const_cast<NameDB*>(&m_soundMacroDb);
+    SampleId::CurNameDB = const_cast<NameDB*>(&m_sampleDb);
+    TableId::CurNameDB = const_cast<NameDB*>(&m_tableDb);
+    KeymapId::CurNameDB = const_cast<NameDB*>(&m_keymapDb);
+    LayersId::CurNameDB = const_cast<NameDB*>(&m_layersDb);
   }
 };
 } // namespace amuse

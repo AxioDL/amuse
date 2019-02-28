@@ -874,7 +874,6 @@ void AudioGroupSampleDirectory::reloadSampleData(SystemStringView groupPath) {
 std::pair<std::vector<uint8_t>, std::vector<uint8_t>>
 AudioGroupSampleDirectory::toGCNData(const AudioGroupDatabase& group) const {
   constexpr athena::Endian DNAE = athena::Big;
-  group.setIdDatabases();
 
   athena::io::VectorWriter fo;
   athena::io::VectorWriter sfo;
