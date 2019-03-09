@@ -839,6 +839,7 @@ void Voice::startSample(SampleId sampId, int32_t offset) {
   if (const SampleEntry* sample = m_audioGroup.getSample(sampId)) {
     std::tie(m_curSample, m_curSampleData) = m_audioGroup.getSampleData(sampId, sample);
 
+    m_state.m_sampleEnd = false;
     m_sampleRate = m_curSample->m_sampleRate;
     m_curPitch = m_curSample->getPitch();
     m_pitchDirty = true;
