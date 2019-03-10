@@ -340,7 +340,12 @@ bool SampleView::loadData(ProjectModel::SampleNode* node) {
   amuse::SoundMacro::CmdStartSample* startSample = static_cast<amuse::SoundMacro::CmdStartSample*>(
       m_playbackMacro->insertNewCmd(0, amuse::SoundMacro::CmdOp::StartSample));
   startSample->sample.id = m_node->id();
-  m_playbackMacro->insertNewCmd(1, amuse::SoundMacro::CmdOp::End);
+  amuse::SoundMacro::CmdWaitMs* waitMillisec = static_cast<amuse::SoundMacro::CmdWaitMs*>(
+      m_playbackMacro->insertNewCmd(1, amuse::SoundMacro::CmdOp::WaitMs));
+  waitMillisec->keyOff = true;
+  waitMillisec->ms = 65535;
+  m_playbackMacro->insertNewCmd(2, amuse::SoundMacro::CmdOp::StopSample);
+  m_playbackMacro->insertNewCmd(3, amuse::SoundMacro::CmdOp::End);
 
   update();
 

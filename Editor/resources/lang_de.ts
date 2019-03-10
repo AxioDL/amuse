@@ -1687,70 +1687,70 @@
 <context>
     <name>SampleControls</name>
     <message>
-        <location filename="../SampleEditor.cpp" line="400"/>
+        <location filename="../SampleEditor.cpp" line="405"/>
         <source>Change %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SampleEditor.cpp" line="442"/>
-        <location filename="../SampleEditor.cpp" line="454"/>
-        <location filename="../SampleEditor.cpp" line="681"/>
+        <location filename="../SampleEditor.cpp" line="447"/>
+        <location filename="../SampleEditor.cpp" line="459"/>
+        <location filename="../SampleEditor.cpp" line="686"/>
         <source>Loop</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SampleEditor.cpp" line="471"/>
+        <location filename="../SampleEditor.cpp" line="476"/>
         <source>Loop Start</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SampleEditor.cpp" line="488"/>
+        <location filename="../SampleEditor.cpp" line="493"/>
         <source>Loop End</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SampleEditor.cpp" line="505"/>
+        <location filename="../SampleEditor.cpp" line="510"/>
         <source>Change Base Pitch</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SampleEditor.cpp" line="577"/>
+        <location filename="../SampleEditor.cpp" line="582"/>
         <source>Make WAV Version</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SampleEditor.cpp" line="584"/>
+        <location filename="../SampleEditor.cpp" line="589"/>
         <source>Make Compressed Version</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SampleEditor.cpp" line="589"/>
+        <location filename="../SampleEditor.cpp" line="594"/>
         <source>Up To Date</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SampleEditor.cpp" line="654"/>
-        <location filename="../SampleEditor.cpp" line="722"/>
+        <location filename="../SampleEditor.cpp" line="659"/>
+        <location filename="../SampleEditor.cpp" line="727"/>
         <source>Nothing Loaded</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SampleEditor.cpp" line="674"/>
+        <location filename="../SampleEditor.cpp" line="679"/>
         <source>Zoom</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SampleEditor.cpp" line="688"/>
+        <location filename="../SampleEditor.cpp" line="693"/>
         <source>Start</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SampleEditor.cpp" line="695"/>
+        <location filename="../SampleEditor.cpp" line="700"/>
         <source>End</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SampleEditor.cpp" line="702"/>
+        <location filename="../SampleEditor.cpp" line="707"/>
         <source>Base Pitch</source>
         <translation type="unfinished"></translation>
     </message>

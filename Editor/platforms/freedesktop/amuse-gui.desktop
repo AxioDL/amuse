@@ -1,9 +1,10 @@
+#!/usr/bin/env xdg-open
 [Desktop Entry]
 Name=Amuse
 GenericName=MusyX Game Audio Editor
 Comment=Edit Audio Data of MusyX Sound Groups
 Exec=amuse-gui
-Icon=amuse
+Icon=amuse-gui
 Terminal=false
 Type=Application
 Categories=Audio
