@@ -40,8 +40,6 @@ bool MkPath(const QDir& dir, const QString& file, UIMessenger& messenger);
 void ShowInGraphicalShell(QWidget* parent, const QString& pathIn);
 QString ShowInGraphicalShellString();
 
-static QLatin1String StringViewToQString(std::string_view sv) { return QLatin1String(sv.data(), int(sv.size())); }
-
 /* Used for generating transform matrices to map SVG coordinate space */
 QTransform RectToRect(const QRectF& from, const QRectF& to);
 

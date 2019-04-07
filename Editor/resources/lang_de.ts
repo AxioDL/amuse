@@ -443,7 +443,7 @@
     </message>
     <message>
         <location filename="../SongGroupEditor.cpp" line="1324"/>
-        <location filename="../SongGroupEditor.cpp" line="1356"/>
+        <location filename="../SongGroupEditor.cpp" line="1355"/>
         <source>Play</source>
         <translation type="unfinished"></translation>
     </message>

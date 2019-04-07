@@ -1352,8 +1352,8 @@ MIDIPlayerWidget::~MIDIPlayerWidget() {
 MIDIPlayerWidget::MIDIPlayerWidget(QModelIndex index, amuse::GroupId gid, amuse::SongId id, const QString& path,
                                    QWidget* parent)
 : QWidget(parent)
-, m_button(this)
 , m_playAction(tr("Play"))
+, m_button(this)
 , m_index(index)
 , m_groupId(gid)
 , m_songId(id)

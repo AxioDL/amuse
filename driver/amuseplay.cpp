@@ -8,21 +8,6 @@
 
 static logvisor::Module Log("amuseplay");
 
-#if __GNUC__
-__attribute__((__format__(__printf__, 3, 4)))
-#endif
-static inline void
-SNPrintf(boo::SystemChar* str, size_t maxlen, const boo::SystemChar* format, ...) {
-  va_list va;
-  va_start(va, format);
-#if _WIN32
-  _vsnwprintf(str, maxlen, format, va);
-#else
-  vsnprintf(str, maxlen, format, va);
-#endif
-  va_end(va);
-}
-
 struct AppCallback;
 
 struct EventCallback : boo::IWindowCallback {

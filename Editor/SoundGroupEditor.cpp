@@ -551,7 +551,7 @@ SFXPlayerWidget::~SFXPlayerWidget() {
 }
 
 SFXPlayerWidget::SFXPlayerWidget(QModelIndex index, amuse::GroupId gid, amuse::SFXId id, QWidget* parent)
-: QWidget(parent), m_button(this), m_playAction(tr("Play")), m_index(index), m_groupId(gid), m_sfxId(id) {
+: QWidget(parent), m_playAction(tr("Play")), m_button(this), m_index(index), m_groupId(gid), m_sfxId(id) {
   m_playAction.setIcon(QIcon(QStringLiteral(":/icons/IconSoundMacro.svg")));
   m_button.setDefaultAction(&m_playAction);
   connect(&m_playAction, SIGNAL(triggered()), this, SLOT(clicked()));

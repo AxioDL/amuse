@@ -199,7 +199,7 @@ CommandWidget::CommandWidget(QWidget* parent, amuse::SoundMacro::ICmd* cmd, amus
         case amuse::SoundMacro::CmdIntrospection::Field::Type::SoundMacroId:
         case amuse::SoundMacro::CmdIntrospection::Field::Type::TableId:
         case amuse::SoundMacro::CmdIntrospection::Field::Type::SampleId: {
-          ProjectModel::INode::Type collectionType;
+          ProjectModel::INode::Type collectionType = ProjectModel::INode::Type::Null;
           if (field.m_tp == amuse::SoundMacro::CmdIntrospection::Field::Type::SoundMacroId) {
             collectionType = ProjectModel::INode::Type::SoundMacro;
           } else if (field.m_tp == amuse::SoundMacro::CmdIntrospection::Field::Type::TableId) {
