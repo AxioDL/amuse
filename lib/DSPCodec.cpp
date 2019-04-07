@@ -1,5 +1,6 @@
 #include "amuse/DSPCodec.hpp"
 #include <algorithm>
+#include <cmath>
 #include <memory.h>
 
 #if __SWITCH__
@@ -185,7 +186,7 @@ static bool AnalyzeRanges(tvec mtx[3], int* vecIdxsOut) {
 
   /* Get greatest distance from zero */
   for (int x = 1; x <= 2; x++) {
-    val = std::max(fabs(mtx[x][1]), fabs(mtx[x][2]));
+    val = std::max(std::fabs(mtx[x][1]), std::fabs(mtx[x][2]));
     if (val < DBL_EPSILON)
       return true;
 

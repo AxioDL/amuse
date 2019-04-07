@@ -9,6 +9,7 @@
 #include "IBackendVoiceAllocator.hpp"
 #include <mutex>
 #include <list>
+#include <unordered_map>
 
 namespace amuse {
 
