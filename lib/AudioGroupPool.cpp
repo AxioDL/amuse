@@ -285,7 +285,7 @@ AudioGroupPool AudioGroupPool::CreateAudioGroupPool(SystemStringView groupPath) 
           if (auto __v = r.enterSubVector(k.first.c_str(), mappingCount)) {
             auto& kmOut = ret.m_keymaps[KeymapId::CurNameDB->resolveIdFromName(k.first)];
             kmOut = MakeObj<std::array<Keymap, 128>>();
-            for (int i = 0; i < mappingCount && i < 128; ++i)
+            for (size_t i = 0; i < mappingCount && i < 128; ++i)
               if (auto __r2 = r.enterSubRecord(nullptr))
                 (*kmOut)[i].read(r);
           }
@@ -300,7 +300,7 @@ AudioGroupPool AudioGroupPool::CreateAudioGroupPool(SystemStringView groupPath) 
             auto& layOut = ret.m_layers[LayersId::CurNameDB->resolveIdFromName(l.first)];
             layOut = MakeObj<std::vector<LayerMapping>>();
             layOut->reserve(mappingCount);
-            for (int lm = 0; lm < mappingCount; ++lm) {
+            for (size_t lm = 0; lm < mappingCount; ++lm) {
               if (auto __r2 = r.enterSubRecord(nullptr)) {
                 layOut->emplace_back();
                 layOut->back().read(r);
@@ -316,9 +316,9 @@ AudioGroupPool AudioGroupPool::CreateAudioGroupPool(SystemStringView groupPath) 
 }
 
 int SoundMacro::assertPC(int pc) const {
-  if (pc == -1)
+  if (pc < 0)
     return -1;
-  if (pc >= m_cmds.size()) {
+  if (size_t(pc) >= m_cmds.size()) {
     fprintf(stderr, "SoundMacro PC bounds exceeded [%d/%d]\n", pc, int(m_cmds.size()));
     abort();
   }
@@ -329,7 +329,7 @@ template <athena::Endian DNAE>
 void SoundMacro::readCmds(athena::io::IStreamReader& r, uint32_t size) {
   uint32_t numCmds = size / 8;
   m_cmds.reserve(numCmds);
-  for (int i = 0; i < numCmds; ++i) {
+  for (uint32_t i = 0; i < numCmds; ++i) {
     uint32_t data[2];
     athena::io::Read<athena::io::PropType::None>::Do<decltype(data), DNAE>({}, data, r);
     athena::io::MemoryReader r(data, 8);
@@ -370,7 +370,7 @@ void SoundMacro::toYAML(athena::io::YAMLDocWriter& w) const {
 
 void SoundMacro::fromYAML(athena::io::YAMLDocReader& r, size_t cmdCount) {
   m_cmds.reserve(cmdCount);
-  for (int c = 0; c < cmdCount; ++c)
+  for (size_t c = 0; c < cmdCount; ++c)
     if (auto __r2 = r.enterSubRecord(nullptr))
       m_cmds.push_back(SoundMacro::CmdDo<MakeCmdOp, std::unique_ptr<SoundMacro::ICmd>>(r));
 }

@@ -665,7 +665,7 @@ void AudioGroupSampleDirectory::_extractWAV(SampleId id, const EntryData& ent, a
   } else if (fmt == SampleFormat::PCM) {
     dataLen = numSamples * 2;
     const int16_t* cur = reinterpret_cast<const int16_t*>(samp);
-    for (int i = 0; i < numSamples; ++i)
+    for (uint32_t i = 0; i < numSamples; ++i)
       w.writeInt16Big(cur[i]);
   } else // PCM_PC
   {
@@ -794,11 +794,11 @@ void AudioGroupSampleDirectory::_extractCompressed(SampleId id, const EntryData&
       if (curSample == 0)
         header.x3e_ps = adpcmOut[0];
       if (header.xc_loop_flag) {
-        if (loopStartSample >= curSample && loopStartSample < curSample + 14)
+        if (loopStartSample >= int32_t(curSample) && loopStartSample < int32_t(curSample) + 14)
           header.x44_loop_ps = adpcmOut[0];
-        if (loopStartSample - 1 >= curSample && loopStartSample - 1 < curSample + 14)
+        if (loopStartSample - 1 >= int32_t(curSample) && loopStartSample - 1 < int32_t(curSample) + 14)
           header.x46_loop_hist1 = convSamps[2 + (loopStartSample - 1 - curSample)];
-        if (loopStartSample - 2 >= curSample && loopStartSample - 2 < curSample + 14)
+        if (loopStartSample - 2 >= int32_t(curSample) && loopStartSample - 2 < int32_t(curSample) + 14)
           header.x48_loop_hist2 = convSamps[2 + (loopStartSample - 2 - curSample)];
       }
       remSamples -= sampleCount;

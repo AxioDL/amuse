@@ -8,7 +8,7 @@
 
 #include <AudioUnit/AudioUnit.h>
 
-#include "optional.hpp"
+#include <optional>
 
 #include "amuse/BooBackend.hpp"
 #include "amuse/Engine.hpp"
@@ -34,8 +34,8 @@ void RegisterAudioUnit();
 @public
   AudioUnitViewController* m_viewController;
   std::unique_ptr<boo::IAudioVoiceEngine> m_booBackend;
-  std::experimental::optional<amuse::AudioUnitBackendVoiceAllocator> m_voxAlloc;
-  std::experimental::optional<amuse::Engine> m_engine;
+  std::optional<amuse::AudioUnitBackendVoiceAllocator> m_voxAlloc;
+  std::optional<amuse::Engine> m_engine;
   AudioGroupFilePresenter* m_filePresenter;
   AUAudioUnitBus* m_outBus;
   AUAudioUnitBusArray* m_outs;

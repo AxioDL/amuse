@@ -1185,7 +1185,7 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
           }
 
           /* See if there's a matching region buffer already present */
-          int regIdx = 0;
+          size_t regIdx = 0;
           for (Region& reg : regions) {
             if (reg == region)
               break;
@@ -1279,7 +1279,7 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
       head.swapToBig();
     *reinterpret_cast<SongState::Header*>(&*ret.insert(ret.cend(), headSz, 0)) = head;
 
-    for (int i = 0; i < 64; ++i) {
+    for (size_t i = 0; i < 64; ++i) {
       if (i >= trackRegionIdxArr.size()) {
         ret.insert(ret.cend(), 4, 0);
         continue;
@@ -1361,7 +1361,7 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
     for (SongState::TrackRegion& reg : regionBuf)
       *reinterpret_cast<SongState::TrackRegion*>(&*ret.insert(ret.cend(), 12, 0)) = reg;
 
-    for (int i = 0; i < 64; ++i) {
+    for (size_t i = 0; i < 64; ++i) {
       if (i >= trackRegionIdxArr.size()) {
         ret.insert(ret.cend(), 4, 0);
         continue;

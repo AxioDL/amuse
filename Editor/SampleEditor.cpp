@@ -80,7 +80,7 @@ std::pair<std::pair<qreal, qreal>, std::pair<qreal, qreal>> SampleView::iterateS
       }
       DSPDecompressFrameRanged(sampleBlock, m_sampleData + 8 * startBlock, m_sample->m_ADPCMParms.dsp.m_coefs, &m_prev1,
                                &m_prev2, startRem, end);
-      for (int s = 0; s < end - startRem; ++s)
+      for (uint32_t s = 0; s < end - startRem; ++s)
         accumulate(sampleBlock[s]);
       if (end == 14)
         ++startBlock;
@@ -88,14 +88,14 @@ std::pair<std::pair<qreal, qreal>, std::pair<qreal, qreal>> SampleView::iterateS
 
     for (uint32_t b = startBlock; b < endBlock; ++b) {
       DSPDecompressFrame(sampleBlock, m_sampleData + 8 * b, m_sample->m_ADPCMParms.dsp.m_coefs, &m_prev1, &m_prev2, 14);
-      for (int s = 0; s < 14; ++s)
+      for (uint32_t s = 0; s < 14; ++s)
         accumulate(sampleBlock[s]);
     }
 
     if (endRem) {
       DSPDecompressFrame(sampleBlock, m_sampleData + 8 * endBlock, m_sample->m_ADPCMParms.dsp.m_coefs, &m_prev1,
                          &m_prev2, endRem);
-      for (int s = 0; s < endRem; ++s)
+      for (uint32_t s = 0; s < endRem; ++s)
         accumulate(sampleBlock[s]);
     }
   } else if (m_sample->getSampleFormat() == amuse::SampleFormat::PCM_PC) {

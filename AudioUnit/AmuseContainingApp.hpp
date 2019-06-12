@@ -42,8 +42,8 @@
 
 @public
   std::unique_ptr<boo::IAudioVoiceEngine> booEngine;
-  std::experimental::optional<amuse::BooBackendVoiceAllocator> amuseAllocator;
-  std::experimental::optional<amuse::Engine> amuseEngine;
+  std::optional<amuse::BooBackendVoiceAllocator> amuseAllocator;
+  std::optional<amuse::Engine> amuseEngine;
   std::shared_ptr<amuse::Voice> activeSFXVox;
 }
 - (BOOL)importURL:(NSURL*)url;

@@ -1,5 +1,6 @@
 #include "amuse/VolumeTable.hpp"
 #include "amuse/Common.hpp"
+#include <cmath>
 
 namespace amuse {
 

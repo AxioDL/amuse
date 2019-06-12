@@ -2,7 +2,7 @@
 
 #include <map>
 #include <memory>
-#include "optional.hpp"
+#include <optional>
 #include <amuse/amuse.hpp>
 #include <athena/FileReader.hpp>
 
@@ -33,9 +33,9 @@ struct AudioGroupDataCollection {
     MetaData(athena::io::FileReader& r)
     : fmt(amuse::DataFormat(r.readUint32Little())), absOffs(r.readUint32Little()), active(r.readUint32Little()) {}
   };
-  std::experimental::optional<MetaData> m_metaData;
+  std::optional<MetaData> m_metaData;
 
-  std::experimental::optional<amuse::AudioGroupData> m_loadedData;
+  std::optional<amuse::AudioGroupData> m_loadedData;
   const amuse::AudioGroup* m_loadedGroup;
   struct GroupToken {
     int m_groupId;

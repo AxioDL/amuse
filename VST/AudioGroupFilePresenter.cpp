@@ -206,7 +206,7 @@ bool AudioGroupDataCollection::loadMeta() {
   athena::io::FileReader r(path, 1024 * 32, false);
   if (r.hasError())
     return false;
-  std::experimental::optional<MetaData>& ret = m_metaData;
+  std::optional<MetaData>& ret = m_metaData;
   ret.emplace(r);
   return ret.operator bool();
 }

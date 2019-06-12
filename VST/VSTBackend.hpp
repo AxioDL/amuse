@@ -3,7 +3,7 @@
 #include "audioeffectx.h"
 #include "VSTEditor.hpp"
 #include <memory>
-#include "optional.hpp"
+#include <optional>
 
 #include "amuse/BooBackend.hpp"
 #include "amuse/Engine.hpp"
@@ -25,8 +25,8 @@ public:
 class VSTBackend : public AudioEffectX {
   std::mutex m_lock;
   std::unique_ptr<boo::IAudioVoiceEngine> m_booBackend;
-  std::experimental::optional<amuse::VSTBackendVoiceAllocator> m_voxAlloc;
-  std::experimental::optional<amuse::Engine> m_engine;
+  std::optional<amuse::VSTBackendVoiceAllocator> m_voxAlloc;
+  std::optional<amuse::Engine> m_engine;
   std::shared_ptr<amuse::Sequencer> m_curSeq;
   int m_reqGroup = -1;
   int m_curGroup = -1;

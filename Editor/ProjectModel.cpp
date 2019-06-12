@@ -1296,7 +1296,7 @@ ProjectModel::SoundGroupNode* ProjectModel::newSoundGroup(GroupNode* group, cons
     return nullptr;
   }
   auto node = amuse::MakeObj<SoundGroupNode>(name, amuse::MakeObj<amuse::SFXGroupIndex>());
-  g_MainWindow->pushUndoCommand(new NodeAddUndoCommand(tr("Add Sound Group %1"), node.get(), group));
+  g_MainWindow->pushUndoCommand(new NodeAddUndoCommand<SoundGroupNode>(tr("Add Sound Group %1"), node.get(), group));
   return node.get();
 }
 
@@ -1316,7 +1316,7 @@ ProjectModel::SongGroupNode* ProjectModel::newSongGroup(GroupNode* group, const 
     return nullptr;
   }
   auto node = amuse::MakeObj<SongGroupNode>(name, amuse::MakeObj<amuse::SongGroupIndex>());
-  g_MainWindow->pushUndoCommand(new NodeAddUndoCommand(tr("Add Song Group %1"), node.get(), group));
+  g_MainWindow->pushUndoCommand(new NodeAddUndoCommand<SongGroupNode>(tr("Add Song Group %1"), node.get(), group));
   return node.get();
 }
 
@@ -1428,7 +1428,7 @@ ProjectModel::SoundMacroNode* ProjectModel::newSoundMacro(GroupNode* group, cons
     dataNode->readCmds<athena::utility::NotSystemEndian>(r, templ->m_length);
   }
   auto node = amuse::MakeObj<SoundMacroNode>(name, dataNode);
-  g_MainWindow->pushUndoCommand(new NodeAddUndoCommand(tr("Add Sound Macro %1"), node.get(), group));
+  g_MainWindow->pushUndoCommand(new NodeAddUndoCommand<SoundMacroNode>(tr("Add Sound Macro %1"), node.get(), group));
   return node.get();
 }
 
@@ -1450,7 +1450,7 @@ ProjectModel::ADSRNode* ProjectModel::newADSR(GroupNode* group, const QString& n
   auto dataNode = amuse::MakeObj<std::unique_ptr<amuse::ITable>>();
   *dataNode = std::make_unique<amuse::ADSR>();
   auto node = amuse::MakeObj<ADSRNode>(name, dataNode);
-  g_MainWindow->pushUndoCommand(new NodeAddUndoCommand(tr("Add ADSR %1"), node.get(), group));
+  g_MainWindow->pushUndoCommand(new NodeAddUndoCommand<ADSRNode>(tr("Add ADSR %1"), node.get(), group));
   return node.get();
 }
 
@@ -1472,7 +1472,7 @@ ProjectModel::CurveNode* ProjectModel::newCurve(GroupNode* group, const QString&
   auto dataNode = amuse::MakeObj<std::unique_ptr<amuse::ITable>>();
   *dataNode = std::make_unique<amuse::Curve>();
   auto node = amuse::MakeObj<CurveNode>(name, dataNode);
-  g_MainWindow->pushUndoCommand(new NodeAddUndoCommand(tr("Add Curve %1"), node.get(), group));
+  g_MainWindow->pushUndoCommand(new NodeAddUndoCommand<CurveNode>(tr("Add Curve %1"), node.get(), group));
   return node.get();
 }
 
@@ -1493,7 +1493,7 @@ ProjectModel::KeymapNode* ProjectModel::newKeymap(GroupNode* group, const QStrin
   }
   auto dataNode = amuse::MakeObj<std::array<amuse::Keymap, 128>>();
   auto node = amuse::MakeObj<KeymapNode>(name, dataNode);
-  g_MainWindow->pushUndoCommand(new NodeAddUndoCommand(tr("Add Keymap %1"), node.get(), group));
+  g_MainWindow->pushUndoCommand(new NodeAddUndoCommand<KeymapNode>(tr("Add Keymap %1"), node.get(), group));
   return node.get();
 }
 
@@ -1514,7 +1514,7 @@ ProjectModel::LayersNode* ProjectModel::newLayers(GroupNode* group, const QStrin
   }
   auto dataNode = amuse::MakeObj<std::vector<amuse::LayerMapping>>();
   auto node = amuse::MakeObj<LayersNode>(name, dataNode);
-  g_MainWindow->pushUndoCommand(new NodeAddUndoCommand(tr("Add Layers %1"), node.get(), group));
+  g_MainWindow->pushUndoCommand(new NodeAddUndoCommand<LayersNode>(tr("Add Layers %1"), node.get(), group));
   return node.get();
 }
 
@@ -1590,14 +1590,16 @@ static void WriteMimeYAML(athena::io::YAMLDocWriter& w, ProjectModel::LayersNode
 }
 
 template <class NT>
-EditorUndoCommand* ProjectModel::readMimeYAML(athena::io::YAMLDocReader& r, const QString& name, GroupNode* gn) {}
+EditorUndoCommand* ProjectModel::readMimeYAML(athena::io::YAMLDocReader& r, const QString& name, GroupNode* gn) {
+  return nullptr;
+}
 template <>
 EditorUndoCommand* ProjectModel::readMimeYAML<ProjectModel::SongGroupNode>(athena::io::YAMLDocReader& r,
                                                                            const QString& name, GroupNode* gn) {
   auto dataNode = amuse::MakeObj<amuse::SongGroupIndex>();
   dataNode->fromYAML(r);
   auto node = amuse::MakeObj<SongGroupNode>(name, dataNode);
-  return new NodeAddUndoCommand(ProjectModel::tr("Add Song Group %1"), node.get(), gn);
+  return new NodeAddUndoCommand<SongGroupNode>(ProjectModel::tr("Add Song Group %1"), node.get(), gn);
 }
 template <>
 EditorUndoCommand* ProjectModel::readMimeYAML<ProjectModel::SoundGroupNode>(athena::io::YAMLDocReader& r,
@@ -1605,7 +1607,7 @@ EditorUndoCommand* ProjectModel::readMimeYAML<ProjectModel::SoundGroupNode>(athe
   auto dataNode = amuse::MakeObj<amuse::SFXGroupIndex>();
   dataNode->fromYAML(r);
   auto node = amuse::MakeObj<SoundGroupNode>(name, dataNode);
-  return new NodeAddUndoCommand(ProjectModel::tr("Add Sound Group %1"), node.get(), gn);
+  return new NodeAddUndoCommand<SoundGroupNode>(ProjectModel::tr("Add Sound Group %1"), node.get(), gn);
 }
 template <>
 EditorUndoCommand* ProjectModel::readMimeYAML<ProjectModel::SoundMacroNode>(athena::io::YAMLDocReader& r,
@@ -1615,7 +1617,7 @@ EditorUndoCommand* ProjectModel::readMimeYAML<ProjectModel::SoundMacroNode>(athe
   if (auto __v = r.enterSubVector("cmds", cmdCount))
     dataNode->fromYAML(r, cmdCount);
   auto node = amuse::MakeObj<SoundMacroNode>(name, dataNode);
-  return new NodeAddUndoCommand(ProjectModel::tr("Add SoundMacro %1"), node.get(), gn);
+  return new NodeAddUndoCommand<SoundMacroNode>(ProjectModel::tr("Add SoundMacro %1"), node.get(), gn);
 }
 template <>
 EditorUndoCommand* ProjectModel::readMimeYAML<ProjectModel::ADSRNode>(athena::io::YAMLDocReader& r, const QString& name,
@@ -1630,7 +1632,7 @@ EditorUndoCommand* ProjectModel::readMimeYAML<ProjectModel::ADSRNode>(athena::io
     static_cast<amuse::ADSR&>(**dataNode).read(r);
   }
   auto node = amuse::MakeObj<ADSRNode>(name, dataNode);
-  return new NodeAddUndoCommand(ProjectModel::tr("Add ADSR %1"), node.get(), gn);
+  return new NodeAddUndoCommand<ADSRNode>(ProjectModel::tr("Add ADSR %1"), node.get(), gn);
 }
 template <>
 EditorUndoCommand* ProjectModel::readMimeYAML<ProjectModel::CurveNode>(athena::io::YAMLDocReader& r,
@@ -1638,7 +1640,7 @@ EditorUndoCommand* ProjectModel::readMimeYAML<ProjectModel::CurveNode>(athena::i
   auto dataNode = amuse::MakeObj<std::unique_ptr<amuse::ITable>>(std::make_unique<amuse::Curve>());
   static_cast<amuse::Curve&>(**dataNode).read(r);
   auto node = amuse::MakeObj<CurveNode>(name, dataNode);
-  return new NodeAddUndoCommand(ProjectModel::tr("Add Curve %1"), node.get(), gn);
+  return new NodeAddUndoCommand<CurveNode>(ProjectModel::tr("Add Curve %1"), node.get(), gn);
 }
 template <>
 EditorUndoCommand* ProjectModel::readMimeYAML<ProjectModel::KeymapNode>(athena::io::YAMLDocReader& r,
@@ -1653,7 +1655,7 @@ EditorUndoCommand* ProjectModel::readMimeYAML<ProjectModel::KeymapNode>(athena::
     }
   }
   auto node = amuse::MakeObj<KeymapNode>(name, dataNode);
-  return new NodeAddUndoCommand(ProjectModel::tr("Add Keymap %1"), node.get(), gn);
+  return new NodeAddUndoCommand<KeymapNode>(ProjectModel::tr("Add Keymap %1"), node.get(), gn);
 }
 template <>
 EditorUndoCommand* ProjectModel::readMimeYAML<ProjectModel::LayersNode>(athena::io::YAMLDocReader& r,
@@ -1669,7 +1671,7 @@ EditorUndoCommand* ProjectModel::readMimeYAML<ProjectModel::LayersNode>(athena::
     }
   }
   auto node = amuse::MakeObj<LayersNode>(name, dataNode);
-  return new NodeAddUndoCommand(ProjectModel::tr("Add Layers %1"), node.get(), gn);
+  return new NodeAddUndoCommand<LayersNode>(ProjectModel::tr("Add Layers %1"), node.get(), gn);
 }
 
 template <class NT>
@@ -1801,25 +1803,25 @@ void ProjectModel::cut(const QModelIndex& index) {
     EditorUndoCommand* cmd = nullptr;
     switch (n->type()) {
     case INode::Type::SongGroup:
-      cmd = new NodeDelUndoCommand(tr("Cut SongGroup %1"), static_cast<SongGroupNode*>(n));
+      cmd = new NodeDelUndoCommand<SongGroupNode>(tr("Cut SongGroup %1"), static_cast<SongGroupNode*>(n));
       break;
     case INode::Type::SoundGroup:
-      cmd = new NodeDelUndoCommand(tr("Cut SFXGroup %1"), static_cast<SoundGroupNode*>(n));
+      cmd = new NodeDelUndoCommand<SoundGroupNode>(tr("Cut SFXGroup %1"), static_cast<SoundGroupNode*>(n));
       break;
     case INode::Type::SoundMacro:
-      cmd = new NodeDelUndoCommand(tr("Cut SoundMacro %1"), static_cast<SoundMacroNode*>(n));
+      cmd = new NodeDelUndoCommand<SoundMacroNode>(tr("Cut SoundMacro %1"), static_cast<SoundMacroNode*>(n));
       break;
     case INode::Type::ADSR:
-      cmd = new NodeDelUndoCommand(tr("Cut ADSR %1"), static_cast<ADSRNode*>(n));
+      cmd = new NodeDelUndoCommand<ADSRNode>(tr("Cut ADSR %1"), static_cast<ADSRNode*>(n));
       break;
     case INode::Type::Curve:
-      cmd = new NodeDelUndoCommand(tr("Cut Curve %1"), static_cast<CurveNode*>(n));
+      cmd = new NodeDelUndoCommand<CurveNode>(tr("Cut Curve %1"), static_cast<CurveNode*>(n));
       break;
     case INode::Type::Keymap:
-      cmd = new NodeDelUndoCommand(tr("Cut Keymap %1"), static_cast<KeymapNode*>(n));
+      cmd = new NodeDelUndoCommand<KeymapNode>(tr("Cut Keymap %1"), static_cast<KeymapNode*>(n));
       break;
     case INode::Type::Layer:
-      cmd = new NodeDelUndoCommand(tr("Cut Layers %1"), static_cast<LayersNode*>(n));
+      cmd = new NodeDelUndoCommand<LayersNode>(tr("Cut Layers %1"), static_cast<LayersNode*>(n));
       break;
     default:
       break;
@@ -1878,14 +1880,14 @@ QModelIndex ProjectModel::duplicate(const QModelIndex& index) {
   case INode::Type::SoundGroup: {
     SoundGroupNode* cn = static_cast<SoundGroupNode*>(n);
     auto node = amuse::MakeObj<SoundGroupNode>(newName, amuse::MakeObj<amuse::SFXGroupIndex>(*cn->m_index));
-    cmd = new NodeAddUndoCommand(tr("Add Sound Group %1"), node.get(), gn);
+    cmd = new NodeAddUndoCommand<SoundGroupNode>(tr("Add Sound Group %1"), node.get(), gn);
     ret = ProjectModel::index(node.get());
     break;
   }
   case INode::Type::SongGroup: {
     SongGroupNode* cn = static_cast<SongGroupNode*>(n);
     auto node = amuse::MakeObj<SongGroupNode>(newName, amuse::MakeObj<amuse::SongGroupIndex>(*cn->m_index));
-    cmd = new NodeAddUndoCommand(tr("Add Song Group %1"), node.get(), gn);
+    cmd = new NodeAddUndoCommand<SongGroupNode>(tr("Add Song Group %1"), node.get(), gn);
     ret = ProjectModel::index(node.get());
     break;
   }
@@ -1894,35 +1896,35 @@ QModelIndex ProjectModel::duplicate(const QModelIndex& index) {
     auto dataNode = amuse::MakeObj<amuse::SoundMacro>();
     dataNode->buildFromPrototype(*cn->m_obj);
     auto node = amuse::MakeObj<SoundMacroNode>(newName, dataNode);
-    cmd = new NodeAddUndoCommand(tr("Add Sound Macro %1"), node.get(), gn);
+    cmd = new NodeAddUndoCommand<SoundMacroNode>(tr("Add Sound Macro %1"), node.get(), gn);
     ret = ProjectModel::index(node.get());
     break;
   }
   case INode::Type::ADSR: {
     ADSRNode* cn = static_cast<ADSRNode*>(n);
     auto node = amuse::MakeObj<ADSRNode>(newName, DuplicateTable(cn->m_obj->get()));
-    cmd = new NodeAddUndoCommand(tr("Add ADSR %1"), node.get(), gn);
+    cmd = new NodeAddUndoCommand<ADSRNode>(tr("Add ADSR %1"), node.get(), gn);
     ret = ProjectModel::index(node.get());
     break;
   }
   case INode::Type::Curve: {
     CurveNode* cn = static_cast<CurveNode*>(n);
     auto node = amuse::MakeObj<CurveNode>(newName, DuplicateTable(cn->m_obj->get()));
-    cmd = new NodeAddUndoCommand(tr("Add Curve %1"), node.get(), gn);
+    cmd = new NodeAddUndoCommand<CurveNode>(tr("Add Curve %1"), node.get(), gn);
     ret = ProjectModel::index(node.get());
     break;
   }
   case INode::Type::Keymap: {
     KeymapNode* cn = static_cast<KeymapNode*>(n);
     auto node = amuse::MakeObj<KeymapNode>(newName, amuse::MakeObj<std::array<amuse::Keymap, 128>>(*cn->m_obj));
-    cmd = new NodeAddUndoCommand(tr("Add Keymap %1"), node.get(), gn);
+    cmd = new NodeAddUndoCommand<KeymapNode>(tr("Add Keymap %1"), node.get(), gn);
     ret = ProjectModel::index(node.get());
     break;
   }
   case INode::Type::Layer: {
     LayersNode* cn = static_cast<LayersNode*>(n);
     auto node = amuse::MakeObj<LayersNode>(newName, amuse::MakeObj<std::vector<amuse::LayerMapping>>(*cn->m_obj));
-    cmd = new NodeAddUndoCommand(tr("Add Layers %1"), node.get(), gn);
+    cmd = new NodeAddUndoCommand<LayersNode>(tr("Add Layers %1"), node.get(), gn);
     ret = ProjectModel::index(node.get());
     break;
   }
@@ -1958,25 +1960,25 @@ void ProjectModel::del(const QModelIndex& index) {
     break;
   }
   case INode::Type::SongGroup:
-    cmd = new NodeDelUndoCommand(tr("Delete SongGroup %1"), static_cast<SongGroupNode*>(n));
+    cmd = new NodeDelUndoCommand<SongGroupNode>(tr("Delete SongGroup %1"), static_cast<SongGroupNode*>(n));
     break;
   case INode::Type::SoundGroup:
-    cmd = new NodeDelUndoCommand(tr("Delete SFXGroup %1"), static_cast<SoundGroupNode*>(n));
+    cmd = new NodeDelUndoCommand<SoundGroupNode>(tr("Delete SFXGroup %1"), static_cast<SoundGroupNode*>(n));
     break;
   case INode::Type::SoundMacro:
-    cmd = new NodeDelUndoCommand(tr("Delete SoundMacro %1"), static_cast<SoundMacroNode*>(n));
+    cmd = new NodeDelUndoCommand<SoundMacroNode>(tr("Delete SoundMacro %1"), static_cast<SoundMacroNode*>(n));
     break;
   case INode::Type::ADSR:
-    cmd = new NodeDelUndoCommand(tr("Delete ADSR %1"), static_cast<ADSRNode*>(n));
+    cmd = new NodeDelUndoCommand<ADSRNode>(tr("Delete ADSR %1"), static_cast<ADSRNode*>(n));
     break;
   case INode::Type::Curve:
-    cmd = new NodeDelUndoCommand(tr("Delete Curve %1"), static_cast<CurveNode*>(n));
+    cmd = new NodeDelUndoCommand<CurveNode>(tr("Delete Curve %1"), static_cast<CurveNode*>(n));
     break;
   case INode::Type::Keymap:
-    cmd = new NodeDelUndoCommand(tr("Delete Keymap %1"), static_cast<KeymapNode*>(n));
+    cmd = new NodeDelUndoCommand<KeymapNode>(tr("Delete Keymap %1"), static_cast<KeymapNode*>(n));
     break;
   case INode::Type::Layer:
-    cmd = new NodeDelUndoCommand(tr("Delete Layers %1"), static_cast<LayersNode*>(n));
+    cmd = new NodeDelUndoCommand<LayersNode>(tr("Delete Layers %1"), static_cast<LayersNode*>(n));
     break;
   case INode::Type::Sample: {
     int result =

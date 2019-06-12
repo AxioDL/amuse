@@ -256,7 +256,7 @@ AudioGroupProject AudioGroupProject::_AudioGroupProject(athena::io::IStreamReade
 
         /* MIDI setups */
         r.seek(subDataOff + header.midiSetupsOff, athena::Begin);
-        while (r.position() + 4 < groupBegin + header.groupEndOff) {
+        while (atInt64(r.position() + 4) < groupBegin + header.groupEndOff) {
           uint16_t songId;
           athena::io::Read<athena::io::PropType::None>::Do<decltype(songId), DNAE>({}, songId, r);
           r.seek(2, athena::Current);
@@ -345,7 +345,7 @@ void SongGroupIndex::fromYAML(athena::io::YAMLDocReader& r) {
         SongId::CurNameDB->registerPair(songName, songId);
 
         std::array<SongGroupIndex::MIDISetup, 16>& setup = m_midiSetups[songId];
-        for (int i = 0; i < 16 && i < chanCount; ++i)
+        for (size_t i = 0; i < 16 && i < chanCount; ++i)
           if (auto __r2 = r.enterSubRecord(nullptr))
             setup[i].read(r);
       }
@@ -548,7 +548,7 @@ void AudioGroupProject::BootstrapObjectIDs(athena::io::IStreamReader& r, bool ab
         }
       } else {
         r.seek(subDataOff + header.midiSetupsOff, athena::Begin);
-        while (r.position() < groupBegin + header.groupEndOff) {
+        while (atInt64(r.position()) < groupBegin + header.groupEndOff) {
           uint16_t id;
           athena::io::Read<athena::io::PropType::None>::Do<decltype(id), DNAE>({}, id, r);
           SongId::CurNameDB->registerPair(NameDB::generateName(id, NameDB::Type::Song), id);

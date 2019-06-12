@@ -1554,7 +1554,7 @@ static std::vector<std::pair<SystemString, ContainerRegistry::SongData>> LoadSta
   fread(data.get(), 1, endPos, midifp);
 
   const uint32_t* lengths = reinterpret_cast<const uint32_t*>(data.get());
-  int i = 0;
+  size_t i = 0;
   for (; i < 128; ++i) {
     uint32_t len = SBig(lengths[i]);
     if (len == 0)
@@ -1569,7 +1569,7 @@ static std::vector<std::pair<SystemString, ContainerRegistry::SongData>> LoadSta
       break;
 
     SystemChar name[128];
-    SNPrintf(name, 128, _SYS_STR("Song%u"), i);
+    SNPrintf(name, 128, _SYS_STR("Song%u"), unsigned(i));
     std::unique_ptr<uint8_t[]> song(new uint8_t[len]);
     memmove(song.get(), data.get() + cur, len);
     ret.emplace_back(name, ContainerRegistry::SongData(std::move(song), len, -1, i));

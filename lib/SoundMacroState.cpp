@@ -292,11 +292,11 @@ bool SoundMacro::CmdLoop::Do(SoundMacroState& st, Voice& vox) const {
     return false;
   }
 
-  uint32_t useTimes = times;
+  uint16_t useTimes = times;
   if (random)
     useTimes = vox.getEngine().nextRandom() % times;
 
-  if (st.m_loopCountdown == -1 && useTimes != -1)
+  if (st.m_loopCountdown == -1 && useTimes != 65535)
     st.m_loopCountdown = useTimes;
 
   if (st.m_loopCountdown > 0) {

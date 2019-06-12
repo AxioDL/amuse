@@ -435,7 +435,7 @@ bool SongState::Track::advance(Sequencer& seq, double dt) {
     if (m_pitchWheelData) {
       int32_t pitchTick = m_curTick;
       int32_t remPitchTicks = ticks;
-      while (pitchTick < endTick) {
+      while (pitchTick < int32_t(endTick)) {
         /* See if there's an upcoming pitch change in this interval */
         int32_t nextTick = m_nextPitchTick;
         if (pitchTick + remPitchTicks > nextTick) {
@@ -459,7 +459,7 @@ bool SongState::Track::advance(Sequencer& seq, double dt) {
     if (m_modWheelData) {
       int32_t modTick = m_curTick;
       int32_t remModTicks = ticks;
-      while (modTick < endTick) {
+      while (modTick < int32_t(endTick)) {
         /* See if there's an upcoming modulation change in this interval */
         int32_t nextTick = m_nextModTick;
         if (modTick + remModTicks > nextTick) {

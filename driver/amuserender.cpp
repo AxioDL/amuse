@@ -4,7 +4,7 @@
 #include "boo/boo.hpp"
 #include "boo/audiodev/IAudioVoiceEngine.hpp"
 #include "logvisor/logvisor.hpp"
-#include "optional.hpp"
+#include <optional>
 #include <cstdio>
 #include <cstring>
 #include <signal.h>

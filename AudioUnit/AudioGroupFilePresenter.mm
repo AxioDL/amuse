@@ -486,7 +486,7 @@ bool AudioGroupDataCollection::loadMeta(AudioGroupFilePresenter* presenter)
     if (!coord)
         return false;
     NSError* err;
-    __block std::experimental::optional<MetaData>& ret = m_metaData;
+    __block std::optional<MetaData>& ret = m_metaData;
     [coord coordinateReadingItemAtURL:m_meta
                               options:NSFileCoordinatorReadingResolvesSymbolicLink error:&err
                            byAccessor:^(NSURL* newUrl)
