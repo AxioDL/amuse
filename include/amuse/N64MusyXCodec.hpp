@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-static inline int16_t N64MusyXSampClamp(int32_t val) {
+constexpr int16_t N64MusyXSampClamp(int32_t val) {
   if (val < -32768)
     val = -32768;
   else if (val > 32767)

@@ -47,7 +47,7 @@ MainWindow::MainWindow(QWidget* parent)
   m_ui.setupUi(this);
   m_ui.splitter->setCollapsible(1, false);
   QPalette palette = m_ui.projectOutlineFilter->palette();
-  palette.setColor(QPalette::Base, palette.color(QPalette::Background));
+  palette.setColor(QPalette::Base, palette.color(QPalette::Window));
   m_ui.projectOutlineFilter->setPalette(palette);
   m_ui.projectOutline->setItemDelegate(&m_treeDelegate);
   connect(m_ui.projectOutline, SIGNAL(activated(const QModelIndex&)), this,
@@ -190,7 +190,7 @@ MainWindow::MainWindow(QWidget* parent)
 MainWindow::~MainWindow() {
   m_backgroundThread.quit();
   m_backgroundThread.wait();
-  printf("IM DYING\n");
+  fmt::print(fmt("IM DYING\n"));
 }
 
 void MainWindow::connectMessenger(UIMessenger* messenger, Qt::ConnectionType type) {

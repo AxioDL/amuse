@@ -6,7 +6,7 @@
 
 namespace amuse {
 
-static inline uint8_t clamp7(uint8_t val) { return std::max(0, std::min(127, int(val))); }
+constexpr uint8_t clamp7(uint8_t val) { return std::max(0, std::min(127, int(val))); }
 
 enum class Status {
   NoteOff = 0x80,

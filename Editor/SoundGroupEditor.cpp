@@ -49,7 +49,7 @@ public:
 
     switch (m_column) {
     case 1:
-      m_undoVal = entry.objId.id;
+      m_undoVal = entry.objId.id.id;
       entry.objId.id = m_redoVal;
       break;
     case 2:

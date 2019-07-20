@@ -12,15 +12,15 @@ class Listener;
 
 using Vector3f = float[3];
 
-static inline float Dot(const Vector3f& a, const Vector3f& b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
+inline float Dot(const Vector3f& a, const Vector3f& b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
 
-static inline float Length(const Vector3f& a) {
+inline float Length(const Vector3f& a) {
   if (std::fabs(a[0]) <= FLT_EPSILON && std::fabs(a[1]) <= FLT_EPSILON && std::fabs(a[2]) <= FLT_EPSILON)
     return 0.f;
   return std::sqrt(Dot(a, a));
 }
 
-static inline float Normalize(Vector3f& out) {
+inline float Normalize(Vector3f& out) {
   float dist = Length(out);
   if (dist == 0.f)
     return 0.f;

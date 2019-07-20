@@ -2,6 +2,8 @@
 #include "amuse/AudioGroupData.hpp"
 #include <regex>
 #include <athena/FileReader.hpp>
+#include <fmt/ostream.h>
+#include <sstream>
 
 using namespace std::literals;
 
@@ -113,11 +115,8 @@ void AudioGroupDatabase::_recursiveRenameMacro(SoundMacroId id, std::string_view
   if (const SoundMacro* macro = getPool().soundMacro(id)) {
     if (!strncmp(SoundMacroId::CurNameDB->resolveNameFromId(id).data(), "macro", 5)) {
       std::string macroName("macro"sv);
-      if (macroIdx) {
-        char num[16];
-        snprintf(num, 16, "%d", macroIdx);
-        macroName += num;
-      }
+      if (macroIdx)
+        macroName += fmt::format(fmt("{}"), macroIdx);
       macroName += '_';
       macroName += str;
       ++macroIdx;
@@ -130,11 +129,8 @@ void AudioGroupDatabase::_recursiveRenameMacro(SoundMacroId id, std::string_view
           SoundMacro::CmdStartSample* ss = static_cast<SoundMacro::CmdStartSample*>(cmd.get());
           if (!strncmp(SampleId::CurNameDB->resolveNameFromId(ss->sample.id).data(), "sample", 6)) {
             std::string sampleName("sample"sv);
-            if (sampleIdx) {
-              char num[16];
-              snprintf(num, 16, "%d", sampleIdx);
-              sampleName += num;
-            }
+            if (sampleIdx)
+              sampleName += fmt::format(fmt("{}"), sampleIdx);
             sampleName += '_';
             sampleName += macroName;
             ++sampleIdx;
@@ -236,29 +232,22 @@ void AudioGroupDatabase::importCHeader(std::string_view header) {
   }
 }
 
-static void WriteDefineLine(std::string& ret, std::string_view typeStr, std::string_view name, ObjectId id) {
-  ret += "#define "sv;
-  ret += typeStr;
-  ret += name;
-  ret += ' ';
-  char idStr[16];
-  snprintf(idStr, 16, "%d", id.id);
-  ret += idStr;
-  ret += '\n';
+static void WriteDefineLine(std::stringstream& ret, std::string_view typeStr, std::string_view name, ObjectId id) {
+  fmt::print(ret, fmt("#define {}{} {}\n"), typeStr, name, id);
 }
 
 std::string AudioGroupDatabase::exportCHeader(std::string_view projectName, std::string_view groupName) const {
-  std::string ret;
-  ret +=
+  std::stringstream ret;
+  ret <<
       "/* Auto-generated Amuse Defines\n"
       " *\n"
       " * Project: "sv;
-  ret += projectName;
-  ret +=
+  ret << projectName;
+  ret <<
       "\n"
       " * Subproject: "sv;
-  ret += groupName;
-  ret +=
+  ret << groupName;
+  ret <<
       "\n"
       " * Date: "sv;
   time_t curTime = time(nullptr);
@@ -275,8 +264,8 @@ std::string AudioGroupDatabase::exportCHeader(std::string_view projectName, std:
 #endif
   if (char* ch = strchr(curTmStr, '\n'))
     *ch = '\0';
-  ret += curTmStr;
-  ret +=
+  ret << curTmStr;
+  ret <<
       "\n"
       " */\n\n\n"sv;
 
@@ -293,7 +282,7 @@ std::string AudioGroupDatabase::exportCHeader(std::string_view projectName, std:
   }
 
   if (addLF)
-    ret += "\n\n"sv;
+    ret << "\n\n"sv;
   addLF = false;
 
   std::unordered_set<amuse::SongId> songIds;
@@ -307,7 +296,7 @@ std::string AudioGroupDatabase::exportCHeader(std::string_view projectName, std:
   }
 
   if (addLF)
-    ret += "\n\n"sv;
+    ret << "\n\n"sv;
   addLF = false;
 
   for (const auto& sg : SortUnorderedMap(getProj().sfxGroups())) {
@@ -319,8 +308,8 @@ std::string AudioGroupDatabase::exportCHeader(std::string_view projectName, std:
   }
 
   if (addLF)
-    ret += "\n\n"sv;
+    ret << "\n\n"sv;
 
-  return ret;
+  return ret.str();
 }
 } // namespace amuse

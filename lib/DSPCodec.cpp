@@ -163,7 +163,7 @@ unsigned DSPDecompressFrameRangedStateOnly(const uint8_t* in, const int16_t coef
  */
 typedef double tvec[3];
 
-static inline void InnerProductMerge(tvec vecOut, short pcmBuf[14]) {
+inline void InnerProductMerge(tvec vecOut, short pcmBuf[14]) {
   for (int i = 0; i <= 2; i++) {
     vecOut[i] = 0.0f;
     for (int x = 0; x < 14; x++)
@@ -171,7 +171,7 @@ static inline void InnerProductMerge(tvec vecOut, short pcmBuf[14]) {
   }
 }
 
-static inline void OuterProductMerge(tvec mtxOut[3], short pcmBuf[14]) {
+inline void OuterProductMerge(tvec mtxOut[3], short pcmBuf[14]) {
   for (int x = 1; x <= 2; x++)
     for (int y = 1; y <= 2; y++) {
       mtxOut[x][y] = 0.0;

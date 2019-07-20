@@ -17,21 +17,6 @@
 
 static logvisor::Module Log("amuserender");
 
-#if __GNUC__
-__attribute__((__format__(__printf__, 3, 4)))
-#endif
-static inline void
-SNPrintf(boo::SystemChar* str, size_t maxlen, const boo::SystemChar* format, ...) {
-  va_list va;
-  va_start(va, format);
-#if _WIN32
-  _vsnwprintf(str, maxlen, format, va);
-#else
-  vsnprintf(str, maxlen, format, va);
-#endif
-  va_end(va);
-}
-
 #if _WIN32
 #include <DbgHelp.h>
 #pragma comment(lib, "Dbghelp.lib")
@@ -151,22 +136,22 @@ int main(int argc, const boo::SystemChar** argv)
   /* Load data */
   if (m_args.size() < 1) {
     Log.report(logvisor::Error,
-               "Usage: amuserender <group-file> [<songs-file>] [-r <sample-rate>] [-c <channel-count>] [-v <volume "
-               "0.0-1.0>]");
+               fmt("Usage: amuserender <group-file> [<songs-file>] [-r <sample-rate>] [-c <channel-count>] [-v <volume "
+                   "0.0-1.0>]"));
     return 1;
   }
 
   amuse::ContainerRegistry::Type cType = amuse::ContainerRegistry::DetectContainerType(m_args[0].c_str());
   if (cType == amuse::ContainerRegistry::Type::Invalid) {
-    Log.report(logvisor::Error, "invalid/no data at path argument");
+    Log.report(logvisor::Error, fmt("invalid/no data at path argument"));
     return 1;
   }
-  Log.report(logvisor::Info, _SYS_STR("Found '%s' Audio Group data"), amuse::ContainerRegistry::TypeToName(cType));
+  Log.report(logvisor::Info, fmt(_SYS_STR("Found '{}' Audio Group data")), amuse::ContainerRegistry::TypeToName(cType));
 
   std::vector<std::pair<amuse::SystemString, amuse::IntrusiveAudioGroupData>> data =
       amuse::ContainerRegistry::LoadContainer(m_args[0].c_str());
   if (data.empty()) {
-    Log.report(logvisor::Error, "invalid/no data at path argument");
+    Log.report(logvisor::Error, fmt("invalid/no data at path argument"));
     return 1;
   }
 
@@ -178,11 +163,11 @@ int main(int argc, const boo::SystemChar** argv)
   bool m_sfxGroup = false;
 
   std::list<amuse::AudioGroupProject> m_projs;
-  std::map<int, std::pair<std::pair<amuse::SystemString, amuse::IntrusiveAudioGroupData>*,
-                          amuse::ObjToken<amuse::SongGroupIndex>>>
+  std::map<amuse::GroupId, std::pair<std::pair<amuse::SystemString, amuse::IntrusiveAudioGroupData>*,
+                           amuse::ObjToken<amuse::SongGroupIndex>>>
       allSongGroups;
-  std::map<int, std::pair<std::pair<amuse::SystemString, amuse::IntrusiveAudioGroupData>*,
-                          amuse::ObjToken<amuse::SFXGroupIndex>>>
+  std::map<amuse::GroupId, std::pair<std::pair<amuse::SystemString, amuse::IntrusiveAudioGroupData>*,
+                           amuse::ObjToken<amuse::SFXGroupIndex>>>
       allSFXGroups;
   size_t totalGroups = 0;
 
@@ -212,7 +197,7 @@ int main(int argc, const boo::SystemChar** argv)
       bool prompt = true;
       while (true) {
         if (prompt) {
-          printf("Render Song? (Y/N): ");
+          fmt::print(fmt("Render Song? (Y/N): "));
           prompt = false;
         }
         char userSel;
@@ -233,7 +218,7 @@ int main(int argc, const boo::SystemChar** argv)
       /* Get song selection from user */
       if (songs.size() > 1) {
         /* Ask user to specify which song */
-        printf("Multiple Songs discovered:\n");
+        fmt::print(fmt("Multiple Songs discovered:\n"));
         int idx = 0;
         for (const auto& pair : songs) {
           const amuse::ContainerRegistry::SongData& sngData = pair.second;
@@ -243,7 +228,7 @@ int main(int argc, const boo::SystemChar** argv)
             for (const auto& pair : allSongGroups) {
               for (const auto& setup : pair.second.second->m_midiSetups) {
                 if (setup.first == sngData.m_setupId) {
-                  grpId = pair.first;
+                  grpId = pair.first.id;
                   break;
                 }
               }
@@ -251,13 +236,13 @@ int main(int argc, const boo::SystemChar** argv)
                 break;
             }
           }
-          amuse::Printf(_SYS_STR("    %d %s (Group %d, Setup %d)\n"), idx++, pair.first.c_str(), grpId, setupId);
+          fmt::print(fmt(_SYS_STR("    {} {} (Group {}, Setup {})\n")), idx++, pair.first, grpId, setupId);
         }
 
         int userSel = 0;
-        printf("Enter Song Number: ");
+        fmt::print(fmt("Enter Song Number: "));
         if (scanf("%d", &userSel) <= 0) {
-          Log.report(logvisor::Error, "unable to parse prompt");
+          Log.report(logvisor::Error, fmt("unable to parse prompt"));
           return 1;
         }
 
@@ -267,7 +252,7 @@ int main(int argc, const boo::SystemChar** argv)
           m_setupId = m_arrData->m_setupId;
           m_songName = &songs[userSel].first;
         } else {
-          Log.report(logvisor::Error, "unable to find Song %d", userSel);
+          Log.report(logvisor::Error, fmt("unable to find Song {}"), userSel);
           return 1;
         }
       } else if (songs.size() == 1) {
@@ -284,7 +269,7 @@ int main(int argc, const boo::SystemChar** argv)
     for (const auto& pair : allSongGroups) {
       for (const auto& setup : pair.second.second->m_midiSetups) {
         if (setup.first == m_setupId) {
-          m_groupId = pair.first;
+          m_groupId = pair.first.id;
           m_groupName = &pair.second.first->first;
           break;
         }
@@ -305,27 +290,26 @@ int main(int argc, const boo::SystemChar** argv)
       m_sfxGroup = true;
       m_groupName = &sfxSearch->second.first->first;
     } else {
-      Log.report(logvisor::Error, "unable to find Group %d", m_groupId);
+      Log.report(logvisor::Error, fmt("unable to find Group {}"), m_groupId);
       return 1;
     }
   } else if (totalGroups > 1) {
     /* Ask user to specify which group in project */
-    printf("Multiple Audio Groups discovered:\n");
+    fmt::print(fmt("Multiple Audio Groups discovered:\n"));
     for (const auto& pair : allSFXGroups) {
-      amuse::Printf(_SYS_STR("    %d %s (SFXGroup)  %" PRISize " sfx-entries\n"), pair.first,
-                    pair.second.first->first.c_str(), pair.second.second->m_sfxEntries.size());
+      fmt::print(fmt(_SYS_STR("    {} {} (SFXGroup)  {} sfx-entries\n")), pair.first,
+                 pair.second.first->first, pair.second.second->m_sfxEntries.size());
     }
     for (const auto& pair : allSongGroups) {
-      amuse::Printf(_SYS_STR("    %d %s (SongGroup)  %" PRISize " normal-pages, %" PRISize " drum-pages, %" PRISize
-                             " MIDI-setups\n"),
-                    pair.first, pair.second.first->first.c_str(), pair.second.second->m_normPages.size(),
-                    pair.second.second->m_drumPages.size(), pair.second.second->m_midiSetups.size());
+      fmt::print(fmt(_SYS_STR("    {} {} (SongGroup)  {} normal-pages, {} drum-pages, {} MIDI-setups\n")),
+                 pair.first, pair.second.first->first, pair.second.second->m_normPages.size(),
+                 pair.second.second->m_drumPages.size(), pair.second.second->m_midiSetups.size());
     }
 
     int userSel = 0;
-    printf("Enter Group Number: ");
+    fmt::print(fmt("Enter Group Number: "));
     if (scanf("%d", &userSel) <= 0) {
-      Log.report(logvisor::Error, "unable to parse prompt");
+      Log.report(logvisor::Error, fmt("unable to parse prompt"));
       return 1;
     }
 
@@ -340,24 +324,24 @@ int main(int argc, const boo::SystemChar** argv)
       m_groupName = &sfxSearch->second.first->first;
       m_sfxGroup = true;
     } else {
-      Log.report(logvisor::Error, "unable to find Group %d", userSel);
+      Log.report(logvisor::Error, fmt("unable to find Group {}"), userSel);
       return 1;
     }
   } else if (totalGroups == 1) {
     /* Load one and only group */
     if (allSongGroups.size()) {
       const auto& pair = *allSongGroups.cbegin();
-      m_groupId = pair.first;
+      m_groupId = pair.first.id;
       m_groupName = &pair.second.first->first;
       m_sfxGroup = false;
     } else {
       const auto& pair = *allSFXGroups.cbegin();
-      m_groupId = pair.first;
+      m_groupId = pair.first.id;
       m_groupName = &pair.second.first->first;
       m_sfxGroup = true;
     }
   } else {
-    Log.report(logvisor::Error, "empty project");
+    Log.report(logvisor::Error, fmt("empty project"));
     return 1;
   }
 
@@ -369,24 +353,24 @@ int main(int argc, const boo::SystemChar** argv)
   if (songSearch != allSongGroups.end()) {
     selData = &songSearch->second.first->second;
     songIndex = songSearch->second.second;
-    std::set<int> sortSetups;
+    std::set<amuse::SongId> sortSetups;
     for (auto& pair : songIndex->m_midiSetups)
       sortSetups.insert(pair.first);
     if (m_setupId == -1) {
       /* Ask user to specify which group in project */
-      printf("Multiple MIDI Setups:\n");
-      for (int setup : sortSetups)
-        printf("    %d\n", setup);
+      fmt::print(fmt("Multiple MIDI Setups:\n"));
+      for (auto setup : sortSetups)
+        fmt::print(fmt("    {}\n"), setup);
       int userSel = 0;
-      printf("Enter Setup Number: ");
+      fmt::print(fmt("Enter Setup Number: "));
       if (scanf("%d", &userSel) <= 0) {
-        Log.report(logvisor::Error, "unable to parse prompt");
+        Log.report(logvisor::Error, fmt("unable to parse prompt"));
         return 1;
       }
       m_setupId = userSel;
     }
     if (sortSetups.find(m_setupId) == sortSetups.cend()) {
-      Log.report(logvisor::Error, "unable to find setup %d", m_setupId);
+      Log.report(logvisor::Error, fmt("unable to find setup {}"), m_setupId);
       return 1;
     }
   } else {
@@ -398,22 +382,21 @@ int main(int argc, const boo::SystemChar** argv)
   }
 
   if (!selData) {
-    Log.report(logvisor::Error, "unable to select audio group data");
+    Log.report(logvisor::Error, fmt("unable to select audio group data"));
     return 1;
   }
 
   if (m_sfxGroup) {
-    Log.report(logvisor::Error, "amuserender is currently only able to render SongGroups");
+    Log.report(logvisor::Error, fmt("amuserender is currently only able to render SongGroups"));
     return 1;
   }
 
   /* WAV out path */
-  amuse::SystemChar pathOut[1024];
-  SNPrintf(pathOut, 1024, _SYS_STR("%s-%s.wav"), m_groupName->c_str(), m_songName->c_str());
-  Log.report(logvisor::Info, _SYS_STR("Writing to %s"), pathOut);
+  amuse::SystemString pathOut = fmt::format(fmt("{}-{}.wav"), *m_groupName, *m_songName);
+  Log.report(logvisor::Info, fmt(_SYS_STR("Writing to {}")), pathOut);
 
   /* Build voice engine */
-  std::unique_ptr<boo::IAudioVoiceEngine> voxEngine = boo::NewWAVAudioVoiceEngine(pathOut, rate, chCount);
+  std::unique_ptr<boo::IAudioVoiceEngine> voxEngine = boo::NewWAVAudioVoiceEngine(pathOut.c_str(), rate, chCount);
   amuse::BooBackendVoiceAllocator booBackend(*voxEngine);
   amuse::Engine engine(booBackend, amuse::AmplitudeMode::PerSample);
   engine.setVolume(float(amuse::clamp(0.0, volume, 1.0)));
@@ -421,7 +404,7 @@ int main(int argc, const boo::SystemChar** argv)
   /* Load group into engine */
   const amuse::AudioGroup* group = engine.addAudioGroup(*selData);
   if (!group) {
-    Log.report(logvisor::Error, "unable to add audio group");
+    Log.report(logvisor::Error, fmt("unable to add audio group"));
     return 1;
   }
 
@@ -432,11 +415,11 @@ int main(int argc, const boo::SystemChar** argv)
   do {
     voxEngine->pumpAndMixVoices();
     wroteFrames += voxEngine->get5MsFrames();
-    printf("\rFrame %" PRISize, wroteFrames);
+    fmt::print(fmt("\rFrame {}"), wroteFrames);
     fflush(stdout);
   } while (!g_BreakLoop && (seq->state() == amuse::SequencerState::Playing || seq->getVoiceCount() != 0));
 
-  printf("\n");
+  fmt::print(fmt("\n"));
   return 0;
 }
 

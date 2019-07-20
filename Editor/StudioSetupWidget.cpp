@@ -208,7 +208,7 @@ EffectWidget::EffectWidget(QWidget* parent, amuse::EffectBaseTypeless* effect, a
   QFont titleFont = m_titleLabel.font();
   titleFont.setWeight(QFont::Bold);
   m_titleLabel.setFont(titleFont);
-  m_titleLabel.setForegroundRole(QPalette::Background);
+  m_titleLabel.setForegroundRole(QPalette::Window);
   m_titleLabel.setContentsMargins(46, 0, 0, 0);
   m_titleLabel.setFixedHeight(20);
   m_numberText.setTextOption(QTextOption(Qt::AlignRight));
@@ -298,7 +298,7 @@ void EffectWidget::paintEvent(QPaintEvent* event) {
   QPoint points[] = {
       {1, 20}, {1, 99}, {width() - 1, 99}, {width() - 1, 1}, {20, 1}, {1, 20},
   };
-  painter.setBrush(palette().brush(QPalette::Background));
+  painter.setBrush(palette().brush(QPalette::Window));
   painter.drawPolygon(points, 6);
   painter.setPen(QPen(QColor(127, 127, 127), 2.0));
   painter.drawPolyline(points, 6);
@@ -313,7 +313,7 @@ void EffectWidget::paintEvent(QPaintEvent* event) {
   rotate.rotate(-45.0).translate(-15, 8);
   painter.setTransform(rotate);
   painter.setFont(m_numberFont);
-  painter.setPen(palette().color(QPalette::Background));
+  painter.setPen(palette().color(QPalette::Window));
   painter.drawStaticText(0, 0, m_numberText);
 }
 

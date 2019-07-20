@@ -194,8 +194,8 @@ class Voice : public Entity {
 
 public:
   ~Voice();
-  Voice(Engine& engine, const AudioGroup& group, int groupId, int vid, bool emitter, ObjToken<Studio> studio);
-  Voice(Engine& engine, const AudioGroup& group, int groupId, ObjectId oid, int vid, bool emitter,
+  Voice(Engine& engine, const AudioGroup& group, GroupId groupId, int vid, bool emitter, ObjToken<Studio> studio);
+  Voice(Engine& engine, const AudioGroup& group, GroupId groupId, ObjectId oid, int vid, bool emitter,
         ObjToken<Studio> studio);
 
   /** Called before each supplyAudio invocation to prepare voice

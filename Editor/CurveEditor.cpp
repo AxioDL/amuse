@@ -204,7 +204,7 @@ CurveControls::CurveControls(QWidget* parent) : QFrame(parent) {
   m_lineEdit = new QLineEdit;
   m_lineEdit->setDisabled(true);
   QPalette palette = m_lineEdit->palette();
-  palette.setColor(QPalette::Base, palette.color(QPalette::Background));
+  palette.setColor(QPalette::Base, palette.color(QPalette::Window));
   m_lineEdit->setPalette(palette);
   connect(m_lineEdit, SIGNAL(returnPressed()), this, SLOT(exprCommit()));
   leftLayout->addWidget(m_lineEdit, 1, 0);

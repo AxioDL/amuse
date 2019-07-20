@@ -640,11 +640,8 @@ void ProjectModel::saveSongsIndex() {
   if (!m_midiFiles.empty()) {
     QFileInfo songsFile(m_dir, QStringLiteral("!songs.yaml"));
     athena::io::YAMLDocWriter dw("amuse::Songs");
-    for (auto& p : amuse::SortUnorderedMap(m_midiFiles)) {
-      char id[16];
-      snprintf(id, 16, "%04X", p.first.id);
-      dw.writeString(id, p.second.get().m_path.toUtf8().data());
-    }
+    for (auto& p : amuse::SortUnorderedMap(m_midiFiles))
+      dw.writeString(fmt::format(fmt("{}"), p.first).c_str(), p.second.get().m_path.toUtf8().data());
     athena::io::FileWriter w(QStringToSysString(songsFile.filePath()));
     if (!w.hasError())
       dw.finish(&w);
@@ -1320,33 +1317,33 @@ ProjectModel::SongGroupNode* ProjectModel::newSongGroup(GroupNode* group, const 
   return node.get();
 }
 
-static constexpr ProjectModel::INode::Type GetINodeType(ProjectModel::SoundMacroNode*) {
+constexpr ProjectModel::INode::Type GetINodeType(ProjectModel::SoundMacroNode*) {
   return ProjectModel::INode::Type::SoundMacro;
 }
-static constexpr ProjectModel::INode::Type GetINodeType(ProjectModel::ADSRNode*) {
+constexpr ProjectModel::INode::Type GetINodeType(ProjectModel::ADSRNode*) {
   return ProjectModel::INode::Type::ADSR;
 }
-static constexpr ProjectModel::INode::Type GetINodeType(ProjectModel::CurveNode*) {
+constexpr ProjectModel::INode::Type GetINodeType(ProjectModel::CurveNode*) {
   return ProjectModel::INode::Type::Curve;
 }
-static constexpr ProjectModel::INode::Type GetINodeType(ProjectModel::KeymapNode*) {
+constexpr ProjectModel::INode::Type GetINodeType(ProjectModel::KeymapNode*) {
   return ProjectModel::INode::Type::Keymap;
 }
-static constexpr ProjectModel::INode::Type GetINodeType(ProjectModel::LayersNode*) {
+constexpr ProjectModel::INode::Type GetINodeType(ProjectModel::LayersNode*) {
   return ProjectModel::INode::Type::Layer;
 }
-static constexpr ProjectModel::INode::Type GetINodeType(ProjectModel::SampleNode*) {
+constexpr ProjectModel::INode::Type GetINodeType(ProjectModel::SampleNode*) {
   return ProjectModel::INode::Type::Sample;
 }
 
-static constexpr amuse::NameDB::Type GetNameDBType(ProjectModel::SoundMacroNode*) {
+constexpr amuse::NameDB::Type GetNameDBType(ProjectModel::SoundMacroNode*) {
   return amuse::NameDB::Type::SoundMacro;
 }
-static constexpr amuse::NameDB::Type GetNameDBType(ProjectModel::ADSRNode*) { return amuse::NameDB::Type::Table; }
-static constexpr amuse::NameDB::Type GetNameDBType(ProjectModel::CurveNode*) { return amuse::NameDB::Type::Table; }
-static constexpr amuse::NameDB::Type GetNameDBType(ProjectModel::KeymapNode*) { return amuse::NameDB::Type::Keymap; }
-static constexpr amuse::NameDB::Type GetNameDBType(ProjectModel::LayersNode*) { return amuse::NameDB::Type::Layer; }
-static constexpr amuse::NameDB::Type GetNameDBType(ProjectModel::SampleNode*) { return amuse::NameDB::Type::Sample; }
+constexpr amuse::NameDB::Type GetNameDBType(ProjectModel::ADSRNode*) { return amuse::NameDB::Type::Table; }
+constexpr amuse::NameDB::Type GetNameDBType(ProjectModel::CurveNode*) { return amuse::NameDB::Type::Table; }
+constexpr amuse::NameDB::Type GetNameDBType(ProjectModel::KeymapNode*) { return amuse::NameDB::Type::Keymap; }
+constexpr amuse::NameDB::Type GetNameDBType(ProjectModel::LayersNode*) { return amuse::NameDB::Type::Layer; }
+constexpr amuse::NameDB::Type GetNameDBType(ProjectModel::SampleNode*) { return amuse::NameDB::Type::Sample; }
 
 template <class NT>
 inline amuse::NameDB* GetNameDB() {

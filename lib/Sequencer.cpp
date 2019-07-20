@@ -61,7 +61,7 @@ Sequencer::Sequencer(Engine& engine, const AudioGroup& group, GroupId groupId, c
 Sequencer::Sequencer(Engine& engine, const AudioGroup& group, GroupId groupId, const SFXGroupIndex* sfxGroup,
                      ObjToken<Studio> studio)
 : Entity(engine, group, groupId), m_sfxGroup(sfxGroup), m_studio(studio) {
-  std::map<uint16_t, const SFXGroupIndex::SFXEntry*> sortSFX;
+  std::map<ObjectId, const SFXGroupIndex::SFXEntry*> sortSFX;
   for (const auto& sfx : sfxGroup->m_sfxEntries)
     sortSFX[sfx.first] = &sfx.second;
 
@@ -354,9 +354,9 @@ void Sequencer::setCtrlValue(uint8_t chan, uint8_t ctrl, int8_t val) {
     return;
 
   if (ctrl == 0x66) {
-    printf("Loop Start\n");
+    fmt::print(fmt("Loop Start\n"));
   } else if (ctrl == 0x67) {
-    printf("Loop End\n");
+    fmt::print(fmt("Loop End\n"));
   }
 
   if (!m_chanStates[chan])

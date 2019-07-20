@@ -53,7 +53,7 @@ public:
 
     switch (m_index.column()) {
     case 0:
-      m_undoVal = layer.macro.id;
+      m_undoVal = layer.macro.id.id;
       layer.macro.id = m_redoVal;
       break;
     case 1:

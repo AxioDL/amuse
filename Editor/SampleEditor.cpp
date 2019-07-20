@@ -670,7 +670,7 @@ SampleControls::SampleControls(QWidget* parent) : QFrame(parent) {
   setAutoFillBackground(true);
 
   QPalette palette = QWidget::palette();
-  palette.setColor(QPalette::Base, palette.color(QPalette::Background));
+  palette.setColor(QPalette::Base, palette.color(QPalette::Window));
 
   QHBoxLayout* mainLayout = new QHBoxLayout;
 

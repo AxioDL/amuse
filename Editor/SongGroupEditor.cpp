@@ -73,7 +73,7 @@ public:
       break;
     }
     case 1:
-      m_undoVal = entry.objId.id;
+      m_undoVal = entry.objId.id.id;
       entry.objId.id = m_redoVal;
       break;
     case 2:
@@ -834,22 +834,22 @@ QVariant SetupListModel::data(const QModelIndex& index, int role) const {
 
   auto entry = m_sorted[index.row()];
 
-  if (role == Qt::DisplayRole || role == Qt::EditRole || role == Qt::TextColorRole) {
+  if (role == Qt::DisplayRole || role == Qt::EditRole || role == Qt::ForegroundRole) {
     if (index.column() == 0) {
-      if (role == Qt::TextColorRole)
+      if (role == Qt::ForegroundRole)
         return QVariant();
       g_MainWindow->projectModel()->setIdDatabases(m_node.get());
       return amuse::SongId::CurNameDB->resolveNameFromId(entry->first.id).data();
     } else if (index.column() == 1) {
       QString songPath = g_MainWindow->projectModel()->getMIDIPathOfSong(entry.m_it->first);
       if (songPath.isEmpty()) {
-        if (role == Qt::TextColorRole)
+        if (role == Qt::ForegroundRole)
           return g_MainWindow->palette().color(QPalette::Disabled, QPalette::Text);
         else if (role == Qt::EditRole)
           return QVariant();
         return tr("Double-click to select file");
       }
-      if (role == Qt::TextColorRole)
+      if (role == Qt::ForegroundRole)
         return QVariant();
       return songPath;
     }
@@ -1139,7 +1139,7 @@ QVariant SetupModel::headerData(int section, Qt::Orientation orientation, int ro
     } else {
       return section + 1;
     }
-  } else if (role == Qt::BackgroundColorRole && orientation == Qt::Vertical) {
+  } else if (role == Qt::BackgroundRole && orientation == Qt::Vertical) {
     if (section == 9)
       return QColor(64, 0, 0);
     return QColor(0, 64, 0);

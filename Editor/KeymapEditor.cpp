@@ -142,11 +142,11 @@ KeymapEditor* KeymapControls::getEditor() const { return qobject_cast<KeymapEdit
 void KeymapControls::setPaintIdx(int idx) {
   QPalette palette = m_paintButton->palette();
   if (idx < 0) {
-    palette.setColor(QPalette::Background, QWidget::palette().color(QPalette::Background));
+    palette.setColor(QPalette::Window, QWidget::palette().color(QPalette::Window));
     palette.setColor(QPalette::Button, QWidget::palette().color(QPalette::Button));
   } else {
     const QColor* keyPalette = getEditor()->m_paintPalette;
-    palette.setColor(QPalette::Background, keyPalette[idx]);
+    palette.setColor(QPalette::Window, keyPalette[idx]);
     palette.setColor(QPalette::Button, keyPalette[idx].darker(300));
   }
   m_paintButton->setPalette(palette);
@@ -241,7 +241,7 @@ KeymapControls::KeymapControls(QWidget* parent) : QFrame(parent) {
   setAutoFillBackground(true);
 
   QPalette palette = QWidget::palette();
-  palette.setColor(QPalette::Base, palette.color(QPalette::Background));
+  palette.setColor(QPalette::Base, palette.color(QPalette::Window));
 
   QHBoxLayout* mainLayout = new QHBoxLayout;
 

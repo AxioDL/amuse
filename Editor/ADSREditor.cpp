@@ -815,7 +815,7 @@ ADSRControls::ADSRControls(QWidget* parent) : QFrame(parent) {
   QGridLayout* leftLayout = new QGridLayout;
 
   QPalette palette = QWidget::palette();
-  palette.setColor(QPalette::Base, palette.color(QPalette::Background));
+  palette.setColor(QPalette::Base, palette.color(QPalette::Window));
 
   palette.setColor(QPalette::Text, Red);
   QLabel* lab = new QLabel(tr("Attack"));

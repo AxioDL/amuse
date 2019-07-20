@@ -192,8 +192,8 @@ public:
   static AudioGroupProject CreateAudioGroupProject(const AudioGroupProject& oldProj);
   static void BootstrapObjectIDs(const AudioGroupData& data);
 
-  const SongGroupIndex* getSongGroupIndex(int groupId) const;
-  const SFXGroupIndex* getSFXGroupIndex(int groupId) const;
+  const SongGroupIndex* getSongGroupIndex(GroupId groupId) const;
+  const SFXGroupIndex* getSFXGroupIndex(GroupId groupId) const;
 
   const std::unordered_map<GroupId, ObjToken<SongGroupIndex>>& songGroups() const { return m_songGroups; }
   const std::unordered_map<GroupId, ObjToken<SFXGroupIndex>>& sfxGroups() const { return m_sfxGroups; }

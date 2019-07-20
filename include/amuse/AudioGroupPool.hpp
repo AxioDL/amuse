@@ -1051,19 +1051,19 @@ struct SoundMacro {
 };
 
 template <typename T>
-static inline T& AccessField(SoundMacro::ICmd* cmd, const SoundMacro::CmdIntrospection::Field& field) {
+inline T& AccessField(SoundMacro::ICmd* cmd, const SoundMacro::CmdIntrospection::Field& field) {
   return *reinterpret_cast<T*>(reinterpret_cast<uintptr_t>(std::addressof(*cmd)) + field.m_offset);
 }
 
 /** Converts time-cents representation to seconds */
-static inline double TimeCentsToSeconds(int32_t tc) {
+inline double TimeCentsToSeconds(int32_t tc) {
   if (uint32_t(tc) == 0x80000000)
     return 0.0;
   return std::exp2(tc / (1200.0 * 65536.0));
 }
 
 /** Converts seconds representation to time-cents */
-static inline int32_t SecondsToTimeCents(double sec) {
+inline int32_t SecondsToTimeCents(double sec) {
   if (sec == 0.0)
     return 0x80000000;
   return int32_t(std::log2(sec) * (1200.0 * 65536.0));
@@ -1205,7 +1205,7 @@ struct Keymap : BigDNA {
   }
 
   uint64_t configKey() const {
-    return uint64_t(macro.id) | (uint64_t(transpose) << 16) | (uint64_t(pan) << 24) | (uint64_t(prioOffset) << 32);
+    return uint64_t(macro.id.id) | (uint64_t(transpose) << 16) | (uint64_t(pan) << 24) | (uint64_t(prioOffset) << 32);
   }
 };
 

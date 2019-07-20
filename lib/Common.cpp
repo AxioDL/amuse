@@ -49,7 +49,7 @@ bool Copy(const SystemChar* from, const SystemChar* to) {
   template <>                                                                                                          \
   template <>                                                                                                          \
   void type##DNA<athena::Little>::Enumerate<BigDNA::Write>(athena::io::IStreamWriter & writer) {                       \
-    writer.writeUint16Little(id);                                                                                      \
+    writer.writeUint16Little(id.id);                                                                                   \
   }                                                                                                                    \
   template <>                                                                                                          \
   template <>                                                                                                          \
@@ -74,7 +74,7 @@ bool Copy(const SystemChar* from, const SystemChar* to) {
   template <>                                                                                                          \
   template <>                                                                                                          \
   void type##DNA<athena::Big>::Enumerate<BigDNA::Write>(athena::io::IStreamWriter & writer) {                          \
-    writer.writeUint16Big(id);                                                                                         \
+    writer.writeUint16Big(id.id);                                                                                      \
   }                                                                                                                    \
   template <>                                                                                                          \
   template <>                                                                                                          \
@@ -95,7 +95,7 @@ bool Copy(const SystemChar* from, const SystemChar* to) {
   void type##DNA<DNAE>::_read(athena::io::YAMLDocReader& r) {                                                          \
     std::string name = r.readString(nullptr);                                                                          \
     if (!type::CurNameDB)                                                                                              \
-      Log.report(logvisor::Fatal, "Unable to resolve " typeName " name %s, no database present", name.c_str());        \
+      Log.report(logvisor::Fatal, fmt("Unable to resolve " typeName " name {}, no database present"), name);           \
     if (name.empty()) {                                                                                                \
       id.id = 0xffff;                                                                                                  \
       return;                                                                                                          \
@@ -105,7 +105,7 @@ bool Copy(const SystemChar* from, const SystemChar* to) {
   template <athena::Endian DNAE>                                                                                       \
   void type##DNA<DNAE>::_write(athena::io::YAMLDocWriter& w) {                                                         \
     if (!type::CurNameDB)                                                                                              \
-      Log.report(logvisor::Fatal, "Unable to resolve " typeName " ID %d, no database present", id.id);                 \
+      Log.report(logvisor::Fatal, fmt("Unable to resolve " typeName " ID {}, no database present"), id);               \
     if (id.id == 0xffff)                                                                                               \
       return;                                                                                                          \
     std::string_view name = type::CurNameDB->resolveNameFromId(id);                                                    \
@@ -137,7 +137,7 @@ void PageObjectIdDNA<athena::Little>::Enumerate<BigDNA::Read>(athena::io::IStrea
 template <>
 template <>
 void PageObjectIdDNA<athena::Little>::Enumerate<BigDNA::Write>(athena::io::IStreamWriter& writer) {
-  writer.writeUint16Little(id);
+  writer.writeUint16Little(id.id);
 }
 template <>
 template <>
@@ -162,7 +162,7 @@ void PageObjectIdDNA<athena::Big>::Enumerate<BigDNA::Read>(athena::io::IStreamRe
 template <>
 template <>
 void PageObjectIdDNA<athena::Big>::Enumerate<BigDNA::Write>(athena::io::IStreamWriter& writer) {
-  writer.writeUint16Big(id);
+  writer.writeUint16Big(id.id);
 }
 template <>
 template <>
@@ -183,7 +183,7 @@ template <athena::Endian DNAE>
 void PageObjectIdDNA<DNAE>::_read(athena::io::YAMLDocReader& r) {
   std::string name = r.readString(nullptr);
   if (!KeymapId::CurNameDB || !LayersId::CurNameDB)
-    Log.report(logvisor::Fatal, "Unable to resolve keymap or layers name %s, no database present", name.c_str());
+    Log.report(logvisor::Fatal, fmt("Unable to resolve keymap or layers name {}, no database present"), name);
   if (name.empty()) {
     id.id = 0xffff;
     return;
@@ -194,7 +194,7 @@ void PageObjectIdDNA<DNAE>::_read(athena::io::YAMLDocReader& r) {
     if (search == LayersId::CurNameDB->m_stringToId.cend()) {
       search = SoundMacroId::CurNameDB->m_stringToId.find(name);
       if (search == SoundMacroId::CurNameDB->m_stringToId.cend()) {
-        Log.report(logvisor::Error, "Unable to resolve name %s", name.c_str());
+        Log.report(logvisor::Error, fmt("Unable to resolve name {}"), name);
         id.id = 0xffff;
         return;
       }
@@ -205,7 +205,7 @@ void PageObjectIdDNA<DNAE>::_read(athena::io::YAMLDocReader& r) {
 template <athena::Endian DNAE>
 void PageObjectIdDNA<DNAE>::_write(athena::io::YAMLDocWriter& w) {
   if (!KeymapId::CurNameDB || !LayersId::CurNameDB)
-    Log.report(logvisor::Fatal, "Unable to resolve keymap or layers ID %d, no database present", id.id);
+    Log.report(logvisor::Fatal, fmt("Unable to resolve keymap or layers ID {}, no database present"), id);
   if (id.id == 0xffff)
     return;
   if (id.id & 0x8000) {
@@ -293,43 +293,32 @@ ObjectId NameDB::generateId(Type tp) const {
   else if (tp == Type::Keymap)
     maxMatch = 0x4000;
   for (const auto& p : m_idToString)
-    if (p.first >= maxMatch)
-      maxMatch = p.first + 1;
+    if (p.first.id >= maxMatch)
+      maxMatch = p.first.id + 1;
   return maxMatch;
 }
 
 std::string NameDB::generateName(ObjectId id, Type tp) {
-  char name[32];
   switch (tp) {
   case Type::SoundMacro:
-    snprintf(name, 32, "macro%04X", id.id);
-    break;
+    return fmt::format(fmt("macro{}"), id);
   case Type::Table:
-    snprintf(name, 32, "table%04X", id.id);
-    break;
+    return fmt::format(fmt("table{}"), id);
   case Type::Keymap:
-    snprintf(name, 32, "keymap%04X", id.id);
-    break;
+    return fmt::format(fmt("keymap{}"), id);
   case Type::Layer:
-    snprintf(name, 32, "layers%04X", id.id);
-    break;
+    return fmt::format(fmt("layers{}"), id);
   case Type::Song:
-    snprintf(name, 32, "song%04X", id.id);
-    break;
+    return fmt::format(fmt("song{}"), id);
   case Type::SFX:
-    snprintf(name, 32, "sfx%04X", id.id);
-    break;
+    return fmt::format(fmt("sfx{}"), id);
   case Type::Group:
-    snprintf(name, 32, "group%04X", id.id);
-    break;
+    return fmt::format(fmt("group{}"), id);
   case Type::Sample:
-    snprintf(name, 32, "sample%04X", id.id);
-    break;
+    return fmt::format(fmt("sample{}"), id);
   default:
-    snprintf(name, 32, "obj%04X", id.id);
-    break;
+    return fmt::format(fmt("obj{}"), id);
   }
-  return name;
 }
 
 std::string NameDB::generateDefaultName(Type tp) const { return generateName(generateId(tp), tp); }
@@ -342,7 +331,7 @@ std::string_view NameDB::registerPair(std::string_view str, ObjectId id) {
 std::string_view NameDB::resolveNameFromId(ObjectId id) const {
   auto search = m_idToString.find(id);
   if (search == m_idToString.cend()) {
-    Log.report(logvisor::Error, "Unable to resolve ID 0x%04X", id.id);
+    Log.report(logvisor::Error, fmt("Unable to resolve ID {}"), id);
     return ""sv;
   }
   return search->second;
@@ -351,7 +340,7 @@ std::string_view NameDB::resolveNameFromId(ObjectId id) const {
 ObjectId NameDB::resolveIdFromName(std::string_view str) const {
   auto search = m_stringToId.find(std::string(str));
   if (search == m_stringToId.cend()) {
-    Log.report(logvisor::Error, "Unable to resolve name %s", str.data());
+    Log.report(logvisor::Error, fmt("Unable to resolve name {}"), str);
     return {};
   }
   return search->second;

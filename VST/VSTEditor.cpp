@@ -265,9 +265,8 @@ void VSTEditor::addAction() {
     std::vector<std::pair<std::wstring, amuse::IntrusiveAudioGroupData>> data =
         amuse::ContainerRegistry::LoadContainer(path.c_str(), containerType);
     if (data.empty()) {
-      wchar_t msg[512];
-      SNPrintf(msg, 512, L"Unable to load Audio Groups from %s", path.c_str());
-      MessageBoxW(nullptr, msg, L"Invalid Data File", MB_OK | MB_ICONERROR);
+      std::wstring msg = fmt::format(L"Unable to load Audio Groups from {}", path);
+      MessageBoxW(nullptr, msg.c_str(), L"Invalid Data File", MB_OK | MB_ICONERROR);
       return;
     }
 

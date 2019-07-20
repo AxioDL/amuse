@@ -1231,341 +1231,341 @@
 <context>
     <name>ProjectModel</name>
     <message>
-        <location filename="../ProjectModel.cpp" line="700"/>
-        <location filename="../ProjectModel.cpp" line="710"/>
-        <location filename="../ProjectModel.cpp" line="719"/>
-        <location filename="../ProjectModel.cpp" line="729"/>
-        <location filename="../ProjectModel.cpp" line="737"/>
-        <location filename="../ProjectModel.cpp" line="775"/>
+        <location filename="../ProjectModel.cpp" line="697"/>
+        <location filename="../ProjectModel.cpp" line="707"/>
+        <location filename="../ProjectModel.cpp" line="716"/>
+        <location filename="../ProjectModel.cpp" line="726"/>
+        <location filename="../ProjectModel.cpp" line="734"/>
+        <location filename="../ProjectModel.cpp" line="772"/>
         <source>Export Error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="700"/>
-        <location filename="../ProjectModel.cpp" line="750"/>
-        <location filename="../ProjectModel.cpp" line="775"/>
+        <location filename="../ProjectModel.cpp" line="697"/>
+        <location filename="../ProjectModel.cpp" line="747"/>
+        <location filename="../ProjectModel.cpp" line="772"/>
         <source>Unable to find group %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="710"/>
+        <location filename="../ProjectModel.cpp" line="707"/>
         <source>Unable to export %1.proj</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="719"/>
+        <location filename="../ProjectModel.cpp" line="716"/>
         <source>Unable to export %1.pool</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="729"/>
+        <location filename="../ProjectModel.cpp" line="726"/>
         <source>Unable to export %1.sdir</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="737"/>
+        <location filename="../ProjectModel.cpp" line="734"/>
         <source>Unable to export %1.samp</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="750"/>
+        <location filename="../ProjectModel.cpp" line="747"/>
         <source>Import Error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="760"/>
+        <location filename="../ProjectModel.cpp" line="757"/>
         <source>Export Header Error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="760"/>
+        <location filename="../ProjectModel.cpp" line="757"/>
         <source>Unable to open %1 for reading</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="781"/>
+        <location filename="../ProjectModel.cpp" line="778"/>
         <source>File Exists</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="781"/>
+        <location filename="../ProjectModel.cpp" line="778"/>
         <source>%1 already exists. Overwrite?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="830"/>
+        <location filename="../ProjectModel.cpp" line="827"/>
         <source>Sound Macros</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="831"/>
+        <location filename="../ProjectModel.cpp" line="828"/>
         <source>ADSRs</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="832"/>
+        <location filename="../ProjectModel.cpp" line="829"/>
         <source>Curves</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="833"/>
+        <location filename="../ProjectModel.cpp" line="830"/>
         <source>Keymaps</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="834"/>
+        <location filename="../ProjectModel.cpp" line="831"/>
         <source>Layers</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="835"/>
+        <location filename="../ProjectModel.cpp" line="832"/>
         <source>Samples</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1082"/>
+        <location filename="../ProjectModel.cpp" line="1079"/>
         <source>Naming Conflict</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1083"/>
+        <location filename="../ProjectModel.cpp" line="1080"/>
         <source>%1 already exists in this context</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1087"/>
+        <location filename="../ProjectModel.cpp" line="1084"/>
         <source>Rename %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1206"/>
+        <location filename="../ProjectModel.cpp" line="1203"/>
         <source>Subproject Conflict</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1207"/>
+        <location filename="../ProjectModel.cpp" line="1204"/>
         <source>The subproject %1 is already defined</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1214"/>
-        <location filename="../ProjectModel.cpp" line="1753"/>
-        <location filename="../ProjectModel.cpp" line="1876"/>
+        <location filename="../ProjectModel.cpp" line="1211"/>
+        <location filename="../ProjectModel.cpp" line="1750"/>
+        <location filename="../ProjectModel.cpp" line="1873"/>
         <source>Add Subproject %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1295"/>
+        <location filename="../ProjectModel.cpp" line="1292"/>
         <source>Sound Group Conflict</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1295"/>
-        <location filename="../ProjectModel.cpp" line="1315"/>
+        <location filename="../ProjectModel.cpp" line="1292"/>
+        <location filename="../ProjectModel.cpp" line="1312"/>
         <source>The group %1 is already defined</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1299"/>
-        <location filename="../ProjectModel.cpp" line="1610"/>
-        <location filename="../ProjectModel.cpp" line="1883"/>
+        <location filename="../ProjectModel.cpp" line="1296"/>
+        <location filename="../ProjectModel.cpp" line="1607"/>
+        <location filename="../ProjectModel.cpp" line="1880"/>
         <source>Add Sound Group %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1315"/>
+        <location filename="../ProjectModel.cpp" line="1312"/>
         <source>Song Group Conflict</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1319"/>
-        <location filename="../ProjectModel.cpp" line="1602"/>
-        <location filename="../ProjectModel.cpp" line="1890"/>
+        <location filename="../ProjectModel.cpp" line="1316"/>
+        <location filename="../ProjectModel.cpp" line="1599"/>
+        <location filename="../ProjectModel.cpp" line="1887"/>
         <source>Add Song Group %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1422"/>
+        <location filename="../ProjectModel.cpp" line="1419"/>
         <source>Sound Macro Conflict</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1422"/>
+        <location filename="../ProjectModel.cpp" line="1419"/>
         <source>The macro %1 is already defined</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1431"/>
-        <location filename="../ProjectModel.cpp" line="1899"/>
+        <location filename="../ProjectModel.cpp" line="1428"/>
+        <location filename="../ProjectModel.cpp" line="1896"/>
         <source>Add Sound Macro %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1447"/>
+        <location filename="../ProjectModel.cpp" line="1444"/>
         <source>ADSR Conflict</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1447"/>
+        <location filename="../ProjectModel.cpp" line="1444"/>
         <source>The ADSR %1 is already defined</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1453"/>
-        <location filename="../ProjectModel.cpp" line="1635"/>
-        <location filename="../ProjectModel.cpp" line="1906"/>
+        <location filename="../ProjectModel.cpp" line="1450"/>
+        <location filename="../ProjectModel.cpp" line="1632"/>
+        <location filename="../ProjectModel.cpp" line="1903"/>
         <source>Add ADSR %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1469"/>
+        <location filename="../ProjectModel.cpp" line="1466"/>
         <source>Curve Conflict</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1469"/>
+        <location filename="../ProjectModel.cpp" line="1466"/>
         <source>The Curve %1 is already defined</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1475"/>
-        <location filename="../ProjectModel.cpp" line="1643"/>
-        <location filename="../ProjectModel.cpp" line="1913"/>
+        <location filename="../ProjectModel.cpp" line="1472"/>
+        <location filename="../ProjectModel.cpp" line="1640"/>
+        <location filename="../ProjectModel.cpp" line="1910"/>
         <source>Add Curve %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1491"/>
+        <location filename="../ProjectModel.cpp" line="1488"/>
         <source>Keymap Conflict</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1491"/>
+        <location filename="../ProjectModel.cpp" line="1488"/>
         <source>The Keymap %1 is already defined</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1496"/>
-        <location filename="../ProjectModel.cpp" line="1658"/>
-        <location filename="../ProjectModel.cpp" line="1920"/>
+        <location filename="../ProjectModel.cpp" line="1493"/>
+        <location filename="../ProjectModel.cpp" line="1655"/>
+        <location filename="../ProjectModel.cpp" line="1917"/>
         <source>Add Keymap %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1512"/>
+        <location filename="../ProjectModel.cpp" line="1509"/>
         <source>Layers Conflict</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1512"/>
+        <location filename="../ProjectModel.cpp" line="1509"/>
         <source>Layers %1 is already defined</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1517"/>
-        <location filename="../ProjectModel.cpp" line="1674"/>
-        <location filename="../ProjectModel.cpp" line="1927"/>
+        <location filename="../ProjectModel.cpp" line="1514"/>
+        <location filename="../ProjectModel.cpp" line="1671"/>
+        <location filename="../ProjectModel.cpp" line="1924"/>
         <source>Add Layers %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1522"/>
-        <location filename="../ProjectModel.cpp" line="1531"/>
+        <location filename="../ProjectModel.cpp" line="1519"/>
+        <location filename="../ProjectModel.cpp" line="1528"/>
         <source>-copy</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1620"/>
+        <location filename="../ProjectModel.cpp" line="1617"/>
         <source>Add SoundMacro %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1806"/>
+        <location filename="../ProjectModel.cpp" line="1803"/>
         <source>Cut SongGroup %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1809"/>
+        <location filename="../ProjectModel.cpp" line="1806"/>
         <source>Cut SFXGroup %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1812"/>
+        <location filename="../ProjectModel.cpp" line="1809"/>
         <source>Cut SoundMacro %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1815"/>
+        <location filename="../ProjectModel.cpp" line="1812"/>
         <source>Cut ADSR %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1818"/>
+        <location filename="../ProjectModel.cpp" line="1815"/>
         <source>Cut Curve %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1821"/>
+        <location filename="../ProjectModel.cpp" line="1818"/>
         <source>Cut Keymap %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1824"/>
+        <location filename="../ProjectModel.cpp" line="1821"/>
         <source>Cut Layers %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1948"/>
+        <location filename="../ProjectModel.cpp" line="1945"/>
         <source>Delete Subproject</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1949"/>
+        <location filename="../ProjectModel.cpp" line="1946"/>
         <source>&lt;p&gt;The subproject %1 will be permanently deleted from the project. Sample files will be permanently removed from the file system.&lt;/p&gt;&lt;p&gt;&lt;strong&gt;This action cannot be undone!&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;Continue?&lt;/p&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1963"/>
+        <location filename="../ProjectModel.cpp" line="1960"/>
         <source>Delete SongGroup %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1966"/>
+        <location filename="../ProjectModel.cpp" line="1963"/>
         <source>Delete SFXGroup %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1969"/>
+        <location filename="../ProjectModel.cpp" line="1966"/>
         <source>Delete SoundMacro %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1972"/>
+        <location filename="../ProjectModel.cpp" line="1969"/>
         <source>Delete ADSR %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1975"/>
+        <location filename="../ProjectModel.cpp" line="1972"/>
         <source>Delete Curve %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1978"/>
+        <location filename="../ProjectModel.cpp" line="1975"/>
         <source>Delete Keymap %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1981"/>
+        <location filename="../ProjectModel.cpp" line="1978"/>
         <source>Delete Layers %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1985"/>
+        <location filename="../ProjectModel.cpp" line="1982"/>
         <source>Delete Sample</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ProjectModel.cpp" line="1986"/>
+        <location filename="../ProjectModel.cpp" line="1983"/>
         <source>&lt;p&gt;The sample %1 will be permanently deleted from the file system. &lt;p&gt;&lt;strong&gt;This action cannot be undone!&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;Continue?&lt;/p&gt;</source>
         <translation type="unfinished"></translation>
     </message>

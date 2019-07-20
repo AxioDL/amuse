@@ -41,12 +41,12 @@ Voice::~Voice() {
   // fprintf(stderr, "DEALLOC %d\n", m_vid);
 }
 
-Voice::Voice(Engine& engine, const AudioGroup& group, int groupId, int vid, bool emitter, ObjToken<Studio> studio)
+Voice::Voice(Engine& engine, const AudioGroup& group, GroupId groupId, int vid, bool emitter, ObjToken<Studio> studio)
 : Entity(engine, group, groupId), m_vid(vid), m_emitter(emitter), m_studio(studio) {
   // fprintf(stderr, "ALLOC %d\n", m_vid);
 }
 
-Voice::Voice(Engine& engine, const AudioGroup& group, int groupId, ObjectId oid, int vid, bool emitter,
+Voice::Voice(Engine& engine, const AudioGroup& group, GroupId groupId, ObjectId oid, int vid, bool emitter,
              ObjToken<Studio> studio)
 : Entity(engine, group, groupId, oid), m_vid(vid), m_emitter(emitter), m_studio(studio) {
   // fprintf(stderr, "ALLOC %d\n", m_vid);

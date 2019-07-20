@@ -58,9 +58,9 @@ static void WriteRangedObjectIds(athena::io::IStreamWriter& w, const T& list) {
   if (list.cbegin() == list.cend())
     return;
   bool inRange = false;
-  uint16_t lastId = list.cbegin()->first & 0x3fff;
+  uint16_t lastId = list.cbegin()->first.id & 0x3fff;
   for (auto it = list.cbegin() + 1; it != list.cend(); ++it) {
-    uint16_t thisId = it->first & 0x3fff;
+    uint16_t thisId = it->first.id & 0x3fff;
     if (thisId == lastId + 1) {
       if (!inRange) {
         inRange = true;
@@ -417,11 +417,8 @@ static ObjectId RegisterDedupedName(ObjectId origId, amuse::NameDB* db, NameDB::
   std::string dupeName = std::string(db->resolveNameFromId(origId)) + "-copy";
   std::string useName = dupeName;
   int dupeIdx = 1;
-  while (db->m_stringToId.find(useName) != db->m_stringToId.cend()) {
-    char num[16];
-    snprintf(num, 16, "%d", dupeIdx++);
-    useName = dupeName + num;
-  }
+  while (db->m_stringToId.find(useName) != db->m_stringToId.cend())
+    useName = fmt::format(fmt("{}{}"), dupeName, dupeIdx++);
   ObjectId ret = db->generateId(tp);
   db->registerPair(useName, ret);
   return ret;
@@ -592,14 +589,14 @@ void AudioGroupProject::BootstrapObjectIDs(const AudioGroupData& data) {
   }
 }
 
-const SongGroupIndex* AudioGroupProject::getSongGroupIndex(int groupId) const {
+const SongGroupIndex* AudioGroupProject::getSongGroupIndex(GroupId groupId) const {
   auto search = m_songGroups.find(groupId);
   if (search != m_songGroups.cend())
     return search->second.get();
   return nullptr;
 }
 
-const SFXGroupIndex* AudioGroupProject::getSFXGroupIndex(int groupId) const {
+const SFXGroupIndex* AudioGroupProject::getSFXGroupIndex(GroupId groupId) const {
   auto search = m_sfxGroups.find(groupId);
   if (search != m_sfxGroups.cend())
     return search->second.get();
@@ -610,9 +607,7 @@ void SongGroupIndex::toYAML(athena::io::YAMLDocWriter& w) const {
   if (!m_normPages.empty()) {
     if (auto __v2 = w.enterSubRecord("normPages")) {
       for (const auto& pg : SortUnorderedMap(m_normPages)) {
-        char name[16];
-        snprintf(name, 16, "%d", pg.first);
-        if (auto __r2 = w.enterSubRecord(name)) {
+        if (auto __r2 = w.enterSubRecord(fmt::format(fmt("{}"), pg.first).c_str())) {
           w.setStyle(athena::io::YAMLNodeStyle::Flow);
           pg.second.get().write(w);
         }
@@ -622,9 +617,7 @@ void SongGroupIndex::toYAML(athena::io::YAMLDocWriter& w) const {
   if (!m_drumPages.empty()) {
     if (auto __v2 = w.enterSubRecord("drumPages")) {
       for (const auto& pg : SortUnorderedMap(m_drumPages)) {
-        char name[16];
-        snprintf(name, 16, "%d", pg.first);
-        if (auto __r2 = w.enterSubRecord(name)) {
+        if (auto __r2 = w.enterSubRecord(fmt::format(fmt("{}"), pg.first).c_str())) {
           w.setStyle(athena::io::YAMLNodeStyle::Flow);
           pg.second.get().write(w);
         }
@@ -634,10 +627,9 @@ void SongGroupIndex::toYAML(athena::io::YAMLDocWriter& w) const {
   if (!m_midiSetups.empty()) {
     if (auto __v2 = w.enterSubRecord("songs")) {
       for (const auto& song : SortUnorderedMap(m_midiSetups)) {
-        char songString[64];
-        snprintf(songString, 64, "%s/0x%04X", SongId::CurNameDB->resolveNameFromId(song.first).data(),
-                 int(song.first.id));
-        if (auto __v3 = w.enterSubVector(songString))
+        std::string songString = fmt::format(fmt("{}/0x{}"),
+            SongId::CurNameDB->resolveNameFromId(song.first), song.first);
+        if (auto __v3 = w.enterSubVector(songString.c_str()))
           for (int i = 0; i < 16; ++i)
             if (auto __r2 = w.enterSubRecord(nullptr)) {
               w.setStyle(athena::io::YAMLNodeStyle::Flow);
@@ -650,9 +642,9 @@ void SongGroupIndex::toYAML(athena::io::YAMLDocWriter& w) const {
 
 void SFXGroupIndex::toYAML(athena::io::YAMLDocWriter& w) const {
   for (const auto& sfx : SortUnorderedMap(m_sfxEntries)) {
-    char sfxString[64];
-    snprintf(sfxString, 64, "%s/0x%04X", SFXId::CurNameDB->resolveNameFromId(sfx.first).data(), int(sfx.first.id));
-    if (auto __r2 = w.enterSubRecord(sfxString)) {
+    std::string sfxString = fmt::format(fmt("{}/0x{}"),
+        SFXId::CurNameDB->resolveNameFromId(sfx.first), sfx.first);
+    if (auto __r2 = w.enterSubRecord(sfxString.c_str())) {
       w.setStyle(athena::io::YAMLNodeStyle::Flow);
       sfx.second.get().write(w);
     }
@@ -665,9 +657,9 @@ std::vector<uint8_t> AudioGroupProject::toYAML() const {
   if (!m_songGroups.empty()) {
     if (auto __v = w.enterSubRecord("songGroups")) {
       for (const auto& p : SortUnorderedMap(m_songGroups)) {
-        char groupString[64];
-        snprintf(groupString, 64, "%s/0x%04X", GroupId::CurNameDB->resolveNameFromId(p.first).data(), int(p.first.id));
-        if (auto __r = w.enterSubRecord(groupString)) {
+        std::string groupString = fmt::format(fmt("{}/0x{}"),
+            GroupId::CurNameDB->resolveNameFromId(p.first), p.first);
+        if (auto __r = w.enterSubRecord(groupString.c_str())) {
           p.second.get()->toYAML(w);
         }
       }
@@ -677,9 +669,9 @@ std::vector<uint8_t> AudioGroupProject::toYAML() const {
   if (!m_sfxGroups.empty()) {
     if (auto __v = w.enterSubRecord("sfxGroups")) {
       for (const auto& p : SortUnorderedMap(m_sfxGroups)) {
-        char groupString[64];
-        snprintf(groupString, 64, "%s/0x%04X", GroupId::CurNameDB->resolveNameFromId(p.first).data(), int(p.first.id));
-        if (auto __r = w.enterSubRecord(groupString)) {
+        std::string groupString = fmt::format(fmt("{}/0x{}"),
+            GroupId::CurNameDB->resolveNameFromId(p.first), p.first);
+        if (auto __r = w.enterSubRecord(groupString.c_str())) {
           p.second.get()->toYAML(w);
         }
       }
