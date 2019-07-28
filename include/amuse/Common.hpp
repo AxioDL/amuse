@@ -639,12 +639,12 @@ struct NameDB {
 };
 } // namespace amuse
 
-FMT_CUSTOM_FORMATTER(amuse::ObjectId, fmt("{:04X}"), obj.id)
-FMT_CUSTOM_FORMATTER(amuse::SoundMacroId, fmt("{:04X}"), obj.id)
-FMT_CUSTOM_FORMATTER(amuse::SampleId, fmt("{:04X}"), obj.id)
-FMT_CUSTOM_FORMATTER(amuse::TableId, fmt("{:04X}"), obj.id)
-FMT_CUSTOM_FORMATTER(amuse::KeymapId, fmt("{:04X}"), obj.id)
-FMT_CUSTOM_FORMATTER(amuse::LayersId, fmt("{:04X}"), obj.id)
-FMT_CUSTOM_FORMATTER(amuse::SongId, fmt("{:04X}"), obj.id)
-FMT_CUSTOM_FORMATTER(amuse::SFXId, fmt("{:04X}"), obj.id)
-FMT_CUSTOM_FORMATTER(amuse::GroupId, fmt("{:04X}"), obj.id)
+FMT_CUSTOM_FORMATTER(amuse::ObjectId, "{:04X}", obj.id)
+FMT_CUSTOM_FORMATTER(amuse::SoundMacroId, "{:04X}", obj.id)
+FMT_CUSTOM_FORMATTER(amuse::SampleId, "{:04X}", obj.id)
+FMT_CUSTOM_FORMATTER(amuse::TableId, "{:04X}", obj.id)
+FMT_CUSTOM_FORMATTER(amuse::KeymapId, "{:04X}", obj.id)
+FMT_CUSTOM_FORMATTER(amuse::LayersId, "{:04X}", obj.id)
+FMT_CUSTOM_FORMATTER(amuse::SongId, "{:04X}", obj.id)
+FMT_CUSTOM_FORMATTER(amuse::SFXId, "{:04X}", obj.id)
+FMT_CUSTOM_FORMATTER(amuse::GroupId, "{:04X}", obj.id)

@@ -392,7 +392,7 @@ int main(int argc, const boo::SystemChar** argv)
   }
 
   /* WAV out path */
-  amuse::SystemString pathOut = fmt::format(fmt("{}-{}.wav"), *m_groupName, *m_songName);
+  amuse::SystemString pathOut = fmt::format(fmt(_SYS_STR("{}-{}.wav")), *m_groupName, *m_songName);
   Log.report(logvisor::Info, fmt(_SYS_STR("Writing to {}")), pathOut);
 
   /* Build voice engine */
