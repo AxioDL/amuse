@@ -27,45 +27,71 @@ QT5_ADD_RESOURCES(qrc_translation_res.cpp ${CMAKE_CURRENT_BINARY_DIR}/translatio
 QT5_WRAP_UI(MAIN_WINDOW_UI MainWindow.ui)
 
 QT5_WRAP_CPP(AMUSE_MOC
-        Common.hpp
-        MainWindow.hpp
-        KeyboardWidget.hpp
-        StatusBarWidget.hpp
-        ProjectModel.hpp
-        EditorWidget.hpp
-        SoundMacroEditor.hpp
-        ADSREditor.hpp
-        CurveEditor.hpp
-        KeymapEditor.hpp
-        LayersEditor.hpp
-        SampleEditor.hpp
-        SoundGroupEditor.hpp
-        SongGroupEditor.hpp
-        NewSoundMacroDialog.hpp
-        StudioSetupWidget.hpp)
+  ADSREditor.hpp
+  Common.hpp
+  CurveEditor.hpp
+  EditorWidget.hpp
+  LayersEditor.hpp
+  MainWindow.hpp
+  NewSoundMacroDialog.hpp
+  KeyboardWidget.hpp
+  KeymapEditor.hpp
+  ProjectModel.hpp
+  SampleEditor.hpp
+  SongGroupEditor.hpp
+  SoundGroupEditor.hpp
+  SoundMacroEditor.hpp
+  StatusBarWidget.hpp
+  StudioSetupWidget.hpp
+)
 
 add_executable(amuse-gui WIN32 MACOSX_BUNDLE
-        Common.hpp Common.cpp
-        MainWindow.ui ${MAIN_WINDOW_UI} MainWindow.hpp MainWindow.cpp
-        KeyboardWidget.hpp KeyboardWidget.cpp
-        StatusBarWidget.hpp StatusBarWidget.cpp
-        ProjectModel.hpp ProjectModel.cpp
-        EditorWidget.hpp EditorWidget.cpp
-        SoundMacroEditor.hpp SoundMacroEditor.cpp
-        ADSREditor.hpp ADSREditor.cpp
-        CurveEditor.hpp CurveEditor.cpp
-        KeymapEditor.hpp KeymapEditor.cpp
-        LayersEditor.hpp LayersEditor.cpp
-        SampleEditor.hpp SampleEditor.cpp
-        SoundGroupEditor.hpp SoundGroupEditor.cpp
-        SongGroupEditor.hpp SongGroupEditor.cpp
-        NewSoundMacroDialog.hpp NewSoundMacroDialog.cpp
-        StudioSetupWidget.hpp StudioSetupWidget.cpp
-        MIDIReader.hpp MIDIReader.cpp
-        resources/resources.qrc qrc_resources.cpp
-        ${QM_FILES} qrc_translation_res.cpp
-        ${AMUSE_MOC} ${PLAT_SRCS}
-        main.cpp)
+  ADSREditor.cpp
+  ADSREditor.hpp
+  Common.cpp
+  Common.hpp
+  CurveEditor.cpp
+  CurveEditor.hpp
+  EditorWidget.cpp
+  EditorWidget.hpp
+  KeyboardWidget.cpp
+  KeyboardWidget.hpp
+  KeymapEditor.cpp
+  KeymapEditor.hpp
+  LayersEditor.cpp
+  LayersEditor.hpp
+  MainWindow.cpp
+  MainWindow.hpp
+  MainWindow.ui
+  MIDIReader.cpp
+  MIDIReader.hpp
+  NewSoundMacroDialog.cpp
+  NewSoundMacroDialog.hpp
+  ProjectModel.cpp
+  ProjectModel.hpp
+  SampleEditor.cpp
+  SampleEditor.hpp
+  SongGroupEditor.cpp
+  SongGroupEditor.hpp
+  SoundGroupEditor.cpp
+  SoundGroupEditor.hpp
+  SoundMacroEditor.cpp
+  SoundMacroEditor.hpp
+  StatusBarWidget.cpp
+  StatusBarWidget.hpp
+  StudioSetupWidget.cpp
+  StudioSetupWidget.hpp
+
+  main.cpp
+  qrc_resources.cpp
+  qrc_translation_res.cpp
+  resources/resources.qrc
+
+  ${AMUSE_MOC}
+  ${MAIN_WINDOW_UI}
+  ${PLAT_SRCS}
+  ${QM_FILES}
+)
 if(COMMAND add_sanitizers)
   add_sanitizers(amuse-gui)
 endif()
