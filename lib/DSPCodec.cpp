@@ -4,6 +4,7 @@
 #include <cfloat>
 #include <cmath>
 #include <cstdlib>
+#include <cstring>
 
 #if __SWITCH__
 #include "switch_math.hpp"
@@ -250,10 +251,7 @@ static bool AnalyzeRanges(tvec mtx[3], int* vecIdxsOut) {
       max = tmp;
   }
 
-  if (min / max < 1.0e-10)
-    return true;
-
-  return false;
+  return (min / max < 1.0e-10);
 }
 
 static void BidirectionalFilter(tvec mtx[3], int* vecIdxs, tvec vecOut) {
@@ -439,7 +437,7 @@ void DSPCorrelateCoefs(const short* source, int samples, short coefsOut[8][2]) {
     }
 
     /* Copy (potentially non-frame-aligned PCM samples into aligned buffer) */
-    memcpy(blockBuffer, source, frameSamples * sizeof(short));
+    std::memcpy(blockBuffer, source, frameSamples * sizeof(short));
     source += frameSamples;
 
     for (int i = 0; i < frameSamples;) {
