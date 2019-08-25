@@ -5,6 +5,9 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 # Automatically handle invoking moc
 set(CMAKE_AUTOMOC ON)
 
+# Automatically handle invoking uic
+set(CMAKE_AUTOUIC ON)
+
 find_package(Qt5 COMPONENTS LinguistTools Network Qml Svg Widgets Xml REQUIRED)
 
 configure_file(resources/translation_res.qrc translation_res.qrc @ONLY)
@@ -15,8 +18,6 @@ QT5_CREATE_TRANSLATION(QM_FILES ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOUR
 
 QT5_ADD_RESOURCES(qrc_resources.cpp resources/resources.qrc)
 QT5_ADD_RESOURCES(qrc_translation_res.cpp ${CMAKE_CURRENT_BINARY_DIR}/translation_res.qrc OPTIONS -no-compress)
-
-QT5_WRAP_UI(MAIN_WINDOW_UI MainWindow.ui)
 
 add_executable(amuse-gui WIN32 MACOSX_BUNDLE
   ADSREditor.cpp
@@ -56,11 +57,11 @@ add_executable(amuse-gui WIN32 MACOSX_BUNDLE
   StudioSetupWidget.hpp
 
   main.cpp
+
   qrc_resources.cpp
   qrc_translation_res.cpp
   resources/resources.qrc
 
-  ${MAIN_WINDOW_UI}
   ${QM_FILES}
 )
 
