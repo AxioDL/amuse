@@ -4,9 +4,9 @@
 #include <QPainter>
 #include <QMouseEvent>
 
-static QColor Red = QColor(255, 127, 127);
-static QColor Green = QColor(127, 255, 127);
-static QColor Blue = QColor(150, 150, 255);
+const QColor Red = QColor(255, 127, 127);
+const QColor Green = QColor(127, 255, 127);
+const QColor Blue = QColor(150, 150, 255);
 
 ADSREditor* ADSRView::getEditor() const { return qobject_cast<ADSREditor*>(parentWidget()); }
 
