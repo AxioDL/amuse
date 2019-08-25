@@ -49,7 +49,7 @@ class Emitter : public Entity {
   void _update();
 
 public:
-  ~Emitter();
+  ~Emitter() override;
   Emitter(Engine& engine, const AudioGroup& group, ObjToken<Voice> vox, float maxDist, float minVol, float falloff,
           bool doppler);
 

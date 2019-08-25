@@ -162,10 +162,10 @@ public:
   EffectReverbStdImp(const EffectReverbStdInfo& info, double sampleRate)
   : EffectReverbStdImp(info.coloration, info.mix, info.time, info.damping, info.preDelay, sampleRate) {}
 
-  void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap);
-  void resetOutputSampleRate(double sampleRate) { _setup(sampleRate); }
+  void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap) override;
+  void resetOutputSampleRate(double sampleRate) override { _setup(sampleRate); }
 
-  EffectType Isa() const { return EffectType::ReverbStd; }
+  EffectType Isa() const override { return EffectType::ReverbStd; }
 };
 
 /** High-quality 3-stage reverb with per-channel low-pass and crosstalk */
@@ -196,9 +196,9 @@ public:
   EffectReverbHiImp(const EffectReverbHiInfo& info, double sampleRate)
   : EffectReverbHiImp(info.coloration, info.mix, info.time, info.damping, info.preDelay, info.crosstalk, sampleRate) {}
 
-  void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap);
-  void resetOutputSampleRate(double sampleRate) { _setup(sampleRate); }
+  void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap) override;
+  void resetOutputSampleRate(double sampleRate) override { _setup(sampleRate); }
 
-  EffectType Isa() const { return EffectType::ReverbHi; }
+  EffectType Isa() const override { return EffectType::ReverbHi; }
 };
 } // namespace amuse

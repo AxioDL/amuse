@@ -271,7 +271,7 @@ class ADSRAttackUndoCommand : public EditorUndoCommand {
 public:
   ADSRAttackUndoCommand(double redoVal, amuse::ObjToken<ProjectModel::ADSRNode> node)
   : EditorUndoCommand(node.get(), ADSRControls::tr("Change Attack")), m_redoVal(redoVal) {}
-  void undo() {
+  void undo() override {
     m_undid = true;
     amuse::ITable& table = **m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
@@ -283,7 +283,7 @@ public:
     }
     EditorUndoCommand::undo();
   }
-  void redo() {
+  void redo() override {
     amuse::ITable& table = **m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
       amuse::ADSRDLS& adsr = static_cast<amuse::ADSRDLS&>(table);
@@ -297,14 +297,14 @@ public:
     if (m_undid)
       EditorUndoCommand::redo();
   }
-  bool mergeWith(const QUndoCommand* other) {
+  bool mergeWith(const QUndoCommand* other) override {
     if (other->id() == id()) {
       m_redoVal = static_cast<const ADSRAttackUndoCommand*>(other)->m_redoVal;
       return true;
     }
     return false;
   }
-  int id() const { return int(Id::ADSRAttack); }
+  int id() const override { return int(Id::ADSRAttack); }
 };
 
 void ADSRControls::attackChanged(double val) {
@@ -322,7 +322,7 @@ class ADSRDecayUndoCommand : public EditorUndoCommand {
 public:
   ADSRDecayUndoCommand(double redoVal, amuse::ObjToken<ProjectModel::ADSRNode> node)
   : EditorUndoCommand(node.get(), ADSRControls::tr("Change Decay")), m_redoVal(redoVal) {}
-  void undo() {
+  void undo() override {
     m_undid = true;
     amuse::ITable& table = **m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
@@ -334,7 +334,7 @@ public:
     }
     EditorUndoCommand::undo();
   }
-  void redo() {
+  void redo() override {
     amuse::ITable& table = **m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
       amuse::ADSRDLS& adsr = static_cast<amuse::ADSRDLS&>(table);
@@ -348,14 +348,14 @@ public:
     if (m_undid)
       EditorUndoCommand::redo();
   }
-  bool mergeWith(const QUndoCommand* other) {
+  bool mergeWith(const QUndoCommand* other) override {
     if (other->id() == id()) {
       m_redoVal = static_cast<const ADSRDecayUndoCommand*>(other)->m_redoVal;
       return true;
     }
     return false;
   }
-  int id() const { return int(Id::ADSRDecay); }
+  int id() const override { return int(Id::ADSRDecay); }
 };
 
 void ADSRControls::decayChanged(double val) {
@@ -373,7 +373,7 @@ class ADSRSustainUndoCommand : public EditorUndoCommand {
 public:
   ADSRSustainUndoCommand(double redoVal, amuse::ObjToken<ProjectModel::ADSRNode> node)
   : EditorUndoCommand(node.get(), ADSRControls::tr("Change Sustain")), m_redoVal(redoVal) {}
-  void undo() {
+  void undo() override {
     m_undid = true;
     amuse::ITable& table = **m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
@@ -385,7 +385,7 @@ public:
     }
     EditorUndoCommand::undo();
   }
-  void redo() {
+  void redo() override {
     amuse::ITable& table = **m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
       amuse::ADSRDLS& adsr = static_cast<amuse::ADSRDLS&>(table);
@@ -399,14 +399,14 @@ public:
     if (m_undid)
       EditorUndoCommand::redo();
   }
-  bool mergeWith(const QUndoCommand* other) {
+  bool mergeWith(const QUndoCommand* other) override {
     if (other->id() == id()) {
       m_redoVal = static_cast<const ADSRSustainUndoCommand*>(other)->m_redoVal;
       return true;
     }
     return false;
   }
-  int id() const { return int(Id::ADSRSustain); }
+  int id() const override { return int(Id::ADSRSustain); }
 };
 
 void ADSRControls::sustainChanged(double val) {
@@ -430,7 +430,7 @@ public:
   , m_redoAttack(redoAttack)
   , m_redoDecay(redoDecay)
   , m_cycleCount(cycleCount) {}
-  void undo() {
+  void undo() override {
     m_undid = true;
     amuse::ITable& table = **m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
@@ -444,7 +444,7 @@ public:
     }
     EditorUndoCommand::undo();
   }
-  void redo() {
+  void redo() override {
     amuse::ITable& table = **m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
       amuse::ADSRDLS& adsr = static_cast<amuse::ADSRDLS&>(table);
@@ -462,7 +462,7 @@ public:
     if (m_undid)
       EditorUndoCommand::redo();
   }
-  bool mergeWith(const QUndoCommand* other) {
+  bool mergeWith(const QUndoCommand* other) override {
     if (other->id() == id() && m_cycleCount == static_cast<const ADSRAttackAndDecayUndoCommand*>(other)->m_cycleCount) {
       m_redoAttack = static_cast<const ADSRAttackAndDecayUndoCommand*>(other)->m_redoAttack;
       m_redoDecay = static_cast<const ADSRAttackAndDecayUndoCommand*>(other)->m_redoDecay;
@@ -470,7 +470,7 @@ public:
     }
     return false;
   }
-  int id() const { return int(Id::ADSRAttackAndDecay); }
+  int id() const override { return int(Id::ADSRAttackAndDecay); }
 };
 
 void ADSRControls::setAttackAndDecay(double attack, double decay, uint64_t cycleCount) {
@@ -498,7 +498,7 @@ public:
   , m_redoDecay(redoDecay)
   , m_redoSustain(redoSustain)
   , m_cycleCount(cycleCount) {}
-  void undo() {
+  void undo() override {
     m_undid = true;
     amuse::ITable& table = **m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
@@ -512,7 +512,7 @@ public:
     }
     EditorUndoCommand::undo();
   }
-  void redo() {
+  void redo() override {
     amuse::ITable& table = **m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
       amuse::ADSRDLS& adsr = static_cast<amuse::ADSRDLS&>(table);
@@ -530,7 +530,7 @@ public:
     if (m_undid)
       EditorUndoCommand::redo();
   }
-  bool mergeWith(const QUndoCommand* other) {
+  bool mergeWith(const QUndoCommand* other) override {
     if (other->id() == id() &&
         m_cycleCount == static_cast<const ADSRDecayAndSustainUndoCommand*>(other)->m_cycleCount) {
       m_redoDecay = static_cast<const ADSRDecayAndSustainUndoCommand*>(other)->m_redoDecay;
@@ -539,7 +539,7 @@ public:
     }
     return false;
   }
-  int id() const { return int(Id::ADSRDecayAndSustain); }
+  int id() const override { return int(Id::ADSRDecayAndSustain); }
 };
 
 void ADSRControls::setDecayAndSustain(double decay, double sustain, uint64_t cycleCount) {
@@ -562,7 +562,7 @@ class ADSRReleaseUndoCommand : public EditorUndoCommand {
 public:
   ADSRReleaseUndoCommand(double redoVal, uint64_t cycleCount, amuse::ObjToken<ProjectModel::ADSRNode> node)
   : EditorUndoCommand(node.get(), ADSRControls::tr("Change Release")), m_redoVal(redoVal), m_cycleCount(cycleCount) {}
-  void undo() {
+  void undo() override {
     m_undid = true;
     amuse::ITable& table = **m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
@@ -574,7 +574,7 @@ public:
     }
     EditorUndoCommand::undo();
   }
-  void redo() {
+  void redo() override {
     amuse::ITable& table = **m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
       amuse::ADSRDLS& adsr = static_cast<amuse::ADSRDLS&>(table);
@@ -588,14 +588,14 @@ public:
     if (m_undid)
       EditorUndoCommand::redo();
   }
-  bool mergeWith(const QUndoCommand* other) {
+  bool mergeWith(const QUndoCommand* other) override {
     if (other->id() == id() && m_cycleCount == static_cast<const ADSRReleaseUndoCommand*>(other)->m_cycleCount) {
       m_redoVal = static_cast<const ADSRReleaseUndoCommand*>(other)->m_redoVal;
       return true;
     }
     return false;
   }
-  int id() const { return int(Id::ADSRRelease); }
+  int id() const override { return int(Id::ADSRRelease); }
 };
 
 void ADSRControls::setRelease(double release, uint64_t cycleCount) {
@@ -648,7 +648,7 @@ public:
   , m_redoVal(redoVal)
   , m_redoVelToAttack(redoVelToAttack)
   , m_redoKeyToDecay(redoKeyToDecay) {}
-  void undo() {
+  void undo() override {
     m_undid = true;
     std::unique_ptr<amuse::ITable>& table = *m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if ((table->Isa() == amuse::ITable::Type::ADSRDLS && !m_redoVal) ||
@@ -666,7 +666,7 @@ public:
 
     EditorUndoCommand::undo();
   }
-  void redo() {
+  void redo() override {
     std::unique_ptr<amuse::ITable>& table = *m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if ((table->Isa() == amuse::ITable::Type::ADSRDLS && m_redoVal) ||
         (table->Isa() == amuse::ITable::Type::ADSR && !m_redoVal))
@@ -688,7 +688,7 @@ public:
     if (m_undid)
       EditorUndoCommand::redo();
   }
-  bool mergeWith(const QUndoCommand* other) {
+  bool mergeWith(const QUndoCommand* other) override {
     if (other->id() == id()) {
       m_redoVal = static_cast<const ADSRDLSUndoCommand*>(other)->m_redoVal;
       m_redoVelToAttack = static_cast<const ADSRDLSUndoCommand*>(other)->m_redoVelToAttack;
@@ -697,7 +697,7 @@ public:
     }
     return false;
   }
-  int id() const { return int(Id::ADSRDLS); }
+  int id() const override { return int(Id::ADSRDLS); }
 };
 
 void ADSRControls::dlsStateChanged(int state) {
@@ -721,7 +721,7 @@ class ADSRVelToAttackUndoCommand : public EditorUndoCommand {
 public:
   ADSRVelToAttackUndoCommand(double redoVal, amuse::ObjToken<ProjectModel::ADSRNode> node)
   : EditorUndoCommand(node.get(), ADSRControls::tr("Change Vel To Attack")), m_redoVal(redoVal) {}
-  void undo() {
+  void undo() override {
     m_undid = true;
     amuse::ITable& table = **m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
@@ -730,7 +730,7 @@ public:
     }
     EditorUndoCommand::undo();
   }
-  void redo() {
+  void redo() override {
     amuse::ITable& table = **m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
       amuse::ADSRDLS& adsr = static_cast<amuse::ADSRDLS&>(table);
@@ -740,14 +740,14 @@ public:
     if (m_undid)
       EditorUndoCommand::redo();
   }
-  bool mergeWith(const QUndoCommand* other) {
+  bool mergeWith(const QUndoCommand* other) override {
     if (other->id() == id()) {
       m_redoVal = static_cast<const ADSRVelToAttackUndoCommand*>(other)->m_redoVal;
       return true;
     }
     return false;
   }
-  int id() const { return int(Id::ADSRVelToAttack); }
+  int id() const override { return int(Id::ADSRVelToAttack); }
 };
 
 void ADSRControls::velToAttackChanged(double val) {
@@ -765,7 +765,7 @@ class ADSRKeyToDecayUndoCommand : public EditorUndoCommand {
 public:
   ADSRKeyToDecayUndoCommand(double redoVal, amuse::ObjToken<ProjectModel::ADSRNode> node)
   : EditorUndoCommand(node.get(), ADSRControls::tr("Change Key To Decay")), m_redoVal(redoVal) {}
-  void undo() {
+  void undo() override {
     m_undid = true;
     amuse::ITable& table = **m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
@@ -774,7 +774,7 @@ public:
     }
     EditorUndoCommand::undo();
   }
-  void redo() {
+  void redo() override {
     amuse::ITable& table = **m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
       amuse::ADSRDLS& adsr = static_cast<amuse::ADSRDLS&>(table);
@@ -784,14 +784,14 @@ public:
     if (m_undid)
       EditorUndoCommand::redo();
   }
-  bool mergeWith(const QUndoCommand* other) {
+  bool mergeWith(const QUndoCommand* other) override {
     if (other->id() == id()) {
       m_redoVal = static_cast<const ADSRKeyToDecayUndoCommand*>(other)->m_redoVal;
       return true;
     }
     return false;
   }
-  int id() const { return int(Id::ADSRKeyToDecay); }
+  int id() const override { return int(Id::ADSRKeyToDecay); }
 };
 
 void ADSRControls::keyToDecayChanged(double val) {

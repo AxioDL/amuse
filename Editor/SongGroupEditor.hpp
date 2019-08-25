@@ -19,13 +19,13 @@ class SetupTableView;
 class PageObjectDelegate : public BaseObjectDelegate {
   Q_OBJECT
 protected:
-  ProjectModel::INode* getNode(const QAbstractItemModel* model, const QModelIndex& index) const;
+  ProjectModel::INode* getNode(const QAbstractItemModel* model, const QModelIndex& index) const override;
 
 public:
   explicit PageObjectDelegate(QObject* parent = Q_NULLPTR);
-  QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const;
-  void setEditorData(QWidget* editor, const QModelIndex& index) const;
-  void setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const;
+  QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const override;
+  void setEditorData(QWidget* editor, const QModelIndex& index) const override;
+  void setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const override;
 private slots:
   void objIndexChanged();
 };
@@ -54,12 +54,12 @@ class MIDIFileDelegate : public QStyledItemDelegate {
 
 public:
   explicit MIDIFileDelegate(SetupTableView* parent = Q_NULLPTR);
-  QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const;
-  void destroyEditor(QWidget* editor, const QModelIndex& index) const;
-  void setEditorData(QWidget* editor, const QModelIndex& index) const;
-  void setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const;
+  QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const override;
+  void destroyEditor(QWidget* editor, const QModelIndex& index) const override;
+  void setEditorData(QWidget* editor, const QModelIndex& index) const override;
+  void setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const override;
   bool editorEvent(QEvent* event, QAbstractItemModel* model, const QStyleOptionViewItem& option,
-                   const QModelIndex& index);
+                   const QModelIndex& index) override;
 private slots:
   void doExportMIDI();
   void _doExportMIDI(const QString& path);
@@ -95,12 +95,12 @@ public:
   void loadData(ProjectModel::SongGroupNode* node);
   void unloadData();
 
-  int rowCount(const QModelIndex& parent = QModelIndex()) const;
-  int columnCount(const QModelIndex& parent = QModelIndex()) const;
-  QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const;
-  bool setData(const QModelIndex& index, const QVariant& value, int role = Qt::EditRole);
-  QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
-  Qt::ItemFlags flags(const QModelIndex& index) const;
+  int rowCount(const QModelIndex& parent = QModelIndex()) const override;
+  int columnCount(const QModelIndex& parent = QModelIndex()) const override;
+  QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
+  bool setData(const QModelIndex& index, const QVariant& value, int role = Qt::EditRole) override;
+  QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
+  Qt::ItemFlags flags(const QModelIndex& index) const override;
 
   int _insertRow(const std::pair<uint8_t, amuse::SongGroupIndex::PageEntry>& data);
   std::pair<uint8_t, amuse::SongGroupIndex::PageEntry> _removeRow(uint8_t prog);
@@ -141,12 +141,12 @@ public:
   void loadData(ProjectModel::SongGroupNode* node);
   void unloadData();
 
-  int rowCount(const QModelIndex& parent = QModelIndex()) const;
-  int columnCount(const QModelIndex& parent = QModelIndex()) const;
-  QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const;
-  bool setData(const QModelIndex& index, const QVariant& value, int role = Qt::EditRole);
-  QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
-  Qt::ItemFlags flags(const QModelIndex& index) const;
+  int rowCount(const QModelIndex& parent = QModelIndex()) const override;
+  int columnCount(const QModelIndex& parent = QModelIndex()) const override;
+  QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
+  bool setData(const QModelIndex& index, const QVariant& value, int role = Qt::EditRole) override;
+  QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
+  Qt::ItemFlags flags(const QModelIndex& index) const override;
 
   int _insertRow(std::tuple<amuse::SongId, std::string, std::array<amuse::SongGroupIndex::MIDISetup, 16>>& data);
   std::tuple<amuse::SongId, std::string, std::array<amuse::SongGroupIndex::MIDISetup, 16>> _removeRow(amuse::SongId id);
@@ -162,12 +162,12 @@ public:
   void loadData(std::pair<const amuse::SongId, std::array<amuse::SongGroupIndex::MIDISetup, 16>>* data);
   void unloadData();
 
-  int rowCount(const QModelIndex& parent = QModelIndex()) const;
-  int columnCount(const QModelIndex& parent = QModelIndex()) const;
-  QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const;
-  bool setData(const QModelIndex& index, const QVariant& value, int role = Qt::EditRole);
-  QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
-  Qt::ItemFlags flags(const QModelIndex& index) const;
+  int rowCount(const QModelIndex& parent = QModelIndex()) const override;
+  int columnCount(const QModelIndex& parent = QModelIndex()) const override;
+  QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
+  bool setData(const QModelIndex& index, const QVariant& value, int role = Qt::EditRole) override;
+  QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
+  Qt::ItemFlags flags(const QModelIndex& index) const override;
 };
 
 class PageTableView : public QTableView {
@@ -180,7 +180,7 @@ class PageTableView : public QTableView {
 
 public:
   explicit PageTableView(QWidget* parent = Q_NULLPTR);
-  void setModel(QAbstractItemModel* model);
+  void setModel(QAbstractItemModel* model) override;
   void deleteSelection();
 };
 
@@ -199,14 +199,14 @@ public:
   explicit SetupTableView(QWidget* parent = Q_NULLPTR);
   void setModel(QAbstractItemModel* list, QAbstractItemModel* table);
   void deleteSelection();
-  void showEvent(QShowEvent* event);
+  void showEvent(QShowEvent* event) override;
 };
 
 class ColoredTabBarStyle : public QProxyStyle {
 public:
   using QProxyStyle::QProxyStyle;
   void drawControl(QStyle::ControlElement element, const QStyleOption* option, QPainter* painter,
-                   const QWidget* widget = nullptr) const;
+                   const QWidget* widget = nullptr) const override;
 };
 
 class ColoredTabBar : public QTabBar {
@@ -237,14 +237,14 @@ class MIDIPlayerWidget : public QWidget {
 public:
   explicit MIDIPlayerWidget(QModelIndex index, amuse::GroupId gid, amuse::SongId id, const QString& path,
                             QWidget* parent = Q_NULLPTR);
-  ~MIDIPlayerWidget();
+  ~MIDIPlayerWidget() override;
   amuse::SongId songId() const { return m_songId; }
   amuse::Sequencer* sequencer() const { return m_seq.get(); }
   void stopped();
-  void resizeEvent(QResizeEvent* event);
-  void mouseDoubleClickEvent(QMouseEvent* event);
-  void mousePressEvent(QMouseEvent* event);
-  void mouseReleaseEvent(QMouseEvent* event) { event->ignore(); }
+  void resizeEvent(QResizeEvent* event) override;
+  void mouseDoubleClickEvent(QMouseEvent* event) override;
+  void mousePressEvent(QMouseEvent* event) override;
+  void mouseReleaseEvent(QMouseEvent* event) override { event->ignore(); }
 public slots:
   void clicked();
 };
@@ -265,12 +265,12 @@ class SongGroupEditor : public EditorWidget {
 public:
   explicit SongGroupEditor(QWidget* parent = Q_NULLPTR);
   bool loadData(ProjectModel::SongGroupNode* node);
-  void unloadData();
-  ProjectModel::INode* currentNode() const;
-  void setEditorEnabled(bool en) {}
-  void resizeEvent(QResizeEvent* ev);
+  void unloadData() override;
+  ProjectModel::INode* currentNode() const override;
+  void setEditorEnabled(bool en) override {}
+  void resizeEvent(QResizeEvent* ev) override;
   QTableView* getSetupListView() const { return m_setupTable->m_listView; }
-  AmuseItemEditFlags itemEditFlags() const;
+  AmuseItemEditFlags itemEditFlags() const override;
 private slots:
   void doAdd();
   void doSelectionChanged();
@@ -285,5 +285,5 @@ private slots:
   void setupRowsAboutToBeRemoved(const QModelIndex& parent, int first, int last);
   void setupModelAboutToBeReset();
   void setupDataChanged();
-  void itemDeleteAction();
+  void itemDeleteAction() override;
 };

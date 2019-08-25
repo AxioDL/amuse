@@ -10,13 +10,13 @@
 class SoundMacroDelegate : public BaseObjectDelegate {
   Q_OBJECT
 protected:
-  ProjectModel::INode* getNode(const QAbstractItemModel* model, const QModelIndex& index) const;
+  ProjectModel::INode* getNode(const QAbstractItemModel* model, const QModelIndex& index) const override;
 
 public:
   explicit SoundMacroDelegate(QObject* parent = Q_NULLPTR);
-  QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const;
-  void setEditorData(QWidget* editor, const QModelIndex& index) const;
-  void setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const;
+  QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const override;
+  void setEditorData(QWidget* editor, const QModelIndex& index) const override;
+  void setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const override;
 private slots:
   void smIndexChanged();
 };
@@ -33,20 +33,21 @@ public:
   void loadData(ProjectModel::LayersNode* node);
   void unloadData();
 
-  int rowCount(const QModelIndex& parent = QModelIndex()) const;
-  int columnCount(const QModelIndex& parent = QModelIndex()) const;
-  QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const;
-  bool setData(const QModelIndex& index, const QVariant& value, int role = Qt::EditRole);
-  QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
-  Qt::ItemFlags flags(const QModelIndex& index) const;
-  Qt::DropActions supportedDropActions() const;
-  Qt::DropActions supportedDragActions() const;
-  bool dropMimeData(const QMimeData* data, Qt::DropAction action, int row, int column, const QModelIndex& parent);
+  int rowCount(const QModelIndex& parent = QModelIndex()) const override;
+  int columnCount(const QModelIndex& parent = QModelIndex()) const override;
+  QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
+  bool setData(const QModelIndex& index, const QVariant& value, int role = Qt::EditRole) override;
+  QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
+  Qt::ItemFlags flags(const QModelIndex& index) const override;
+  Qt::DropActions supportedDropActions() const override;
+  Qt::DropActions supportedDragActions() const override;
+  bool dropMimeData(const QMimeData* data, Qt::DropAction action, int row, int column,
+                    const QModelIndex& parent) override;
 
-  bool insertRows(int row, int count, const QModelIndex& parent = QModelIndex());
+  bool insertRows(int row, int count, const QModelIndex& parent = QModelIndex()) override;
   bool moveRows(const QModelIndex& sourceParent, int sourceRow, int count, const QModelIndex& destinationParent,
-                int destinationChild);
-  bool removeRows(int row, int count, const QModelIndex& parent = QModelIndex());
+                int destinationChild) override;
+  bool removeRows(int row, int count, const QModelIndex& parent = QModelIndex()) override;
 
   void _insertRow(int row, const amuse::LayerMapping& data);
   amuse::LayerMapping _removeRow(int row);
@@ -61,7 +62,7 @@ class LayersTableView : public QTableView {
 
 public:
   explicit LayersTableView(QWidget* parent = Q_NULLPTR);
-  void setModel(QAbstractItemModel* model);
+  void setModel(QAbstractItemModel* model) override;
   void deleteSelection();
 };
 
@@ -75,14 +76,14 @@ class LayersEditor : public EditorWidget {
 public:
   explicit LayersEditor(QWidget* parent = Q_NULLPTR);
   bool loadData(ProjectModel::LayersNode* node);
-  void unloadData();
-  ProjectModel::INode* currentNode() const;
-  void resizeEvent(QResizeEvent* ev);
-  AmuseItemEditFlags itemEditFlags() const;
+  void unloadData() override;
+  ProjectModel::INode* currentNode() const override;
+  void resizeEvent(QResizeEvent* ev) override;
+  AmuseItemEditFlags itemEditFlags() const override;
 private slots:
   void rowsInserted(const QModelIndex& parent, int first, int last);
   void rowsMoved(const QModelIndex& parent, int start, int end, const QModelIndex& destination, int row);
   void doAdd();
   void doSelectionChanged();
-  void itemDeleteAction();
+  void itemDeleteAction() override;
 };

@@ -11,7 +11,7 @@ public:
   explicit SFXDataChangeUndoCommand(ProjectModel::SoundGroupNode* node, const QString& text, amuse::SFXId sfx,
                                     int column, int redoVal)
   : EditorUndoCommand(node, text), m_sfx(sfx), m_column(column), m_redoVal(redoVal) {}
-  void undo() {
+  void undo() override {
     m_undid = true;
     amuse::SFXGroupIndex& index = *static_cast<ProjectModel::SoundGroupNode*>(m_node.get())->m_index;
     auto& map = index.m_sfxEntries;
@@ -42,7 +42,7 @@ public:
 
     EditorUndoCommand::undo();
   }
-  void redo() {
+  void redo() override {
     amuse::SFXGroupIndex& index = *static_cast<ProjectModel::SoundGroupNode*>(m_node.get())->m_index;
     auto& map = index.m_sfxEntries;
     amuse::SFXGroupIndex::SFXEntry& entry = map[m_sfx];
@@ -90,7 +90,7 @@ public:
   explicit SFXNameChangeUndoCommand(ProjectModel::SoundGroupNode* node, const QString& text, amuse::SFXId sfx,
                                     std::string_view redoVal)
   : EditorUndoCommand(node, text), m_sfx(sfx), m_redoVal(redoVal) {}
-  void undo() {
+  void undo() override {
     m_undid = true;
     g_MainWindow->projectModel()->setIdDatabases(m_node.get());
     amuse::SFXGroupIndex& index = *static_cast<ProjectModel::SoundGroupNode*>(m_node.get())->m_index;
@@ -100,7 +100,7 @@ public:
 
     EditorUndoCommand::undo();
   }
-  void redo() {
+  void redo() override {
     g_MainWindow->projectModel()->setIdDatabases(m_node.get());
     amuse::SFXGroupIndex& index = *static_cast<ProjectModel::SoundGroupNode*>(m_node.get())->m_index;
     auto& map = index.m_sfxEntries;
@@ -370,11 +370,11 @@ protected:
       *it = static_cast<SFXModel*>(m_view->model())->_removeRow(std::get<0>(*it));
     }
   }
-  void undo() {
+  void undo() override {
     m_undid = true;
     EditorUndoCommand::undo();
   }
-  void redo() {
+  void redo() override {
     if (m_undid)
       EditorUndoCommand::redo();
   }
@@ -393,11 +393,11 @@ public:
       ProjectModel::SoundGroupNode* node, const QString& text, SFXTableView* view,
       std::vector<std::tuple<amuse::SFXId, std::string, amuse::SFXGroupIndex::SFXEntry>>&& data)
   : SFXRowUndoCommand(node, text, view, std::move(data)) {}
-  void undo() {
+  void undo() override {
     base::undo();
     base::del();
   }
-  void redo() {
+  void redo() override {
     base::redo();
     base::add();
   }
@@ -411,11 +411,11 @@ public:
       ProjectModel::SoundGroupNode* node, const QString& text, SFXTableView* view,
       std::vector<std::tuple<amuse::SFXId, std::string, amuse::SFXGroupIndex::SFXEntry>>&& data)
   : SFXRowUndoCommand(node, text, view, std::move(data)) {}
-  void undo() {
+  void undo() override {
     base::undo();
     base::add();
   }
-  void redo() {
+  void redo() override {
     base::redo();
     base::del();
   }

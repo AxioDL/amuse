@@ -20,10 +20,10 @@ class TargetButton : public QPushButton {
   Q_OBJECT
 public:
   explicit TargetButton(QWidget* parent = Q_NULLPTR);
-  void mouseReleaseEvent(QMouseEvent* event) { event->ignore(); }
-  void mouseMoveEvent(QMouseEvent* event) { event->ignore(); }
-  void focusOutEvent(QFocusEvent* event) { event->ignore(); }
-  void keyPressEvent(QKeyEvent* event) { event->ignore(); }
+  void mouseReleaseEvent(QMouseEvent* event) override { event->ignore(); }
+  void mouseMoveEvent(QMouseEvent* event) override { event->ignore(); }
+  void focusOutEvent(QFocusEvent* event) override { event->ignore(); }
+  void keyPressEvent(QKeyEvent* event) override { event->ignore(); }
 };
 
 class FieldSoundMacroStep : public QWidget {
@@ -42,7 +42,7 @@ public slots:
 
 public:
   explicit FieldSoundMacroStep(FieldProjectNode* macroField = Q_NULLPTR, QWidget* parent = Q_NULLPTR);
-  ~FieldSoundMacroStep();
+  ~FieldSoundMacroStep() override;
   void setIndex(int index);
   void cancel();
 };
@@ -72,7 +72,7 @@ private:
 public:
   CommandWidget(QWidget* parent, amuse::SoundMacro::ICmd* cmd, SoundMacroListing* listing);
   CommandWidget(QWidget* parent, amuse::SoundMacro::CmdOp op, SoundMacroListing* listing);
-  void paintEvent(QPaintEvent* event);
+  void paintEvent(QPaintEvent* event) override;
   QString getText() const { return m_titleLabel.text(); }
 };
 
@@ -126,7 +126,7 @@ public:
   bool loadData(ProjectModel::SoundMacroNode* node);
   void unloadData();
   ProjectModel::INode* currentNode() const;
-  void timerEvent(QTimerEvent* event);
+  void timerEvent(QTimerEvent* event) override;
 };
 
 class CatalogueItem : public QWidget {
@@ -147,9 +147,9 @@ class SoundMacroCatalogue : public QTreeWidget {
   Q_OBJECT
 public:
   explicit SoundMacroCatalogue(QWidget* parent = Q_NULLPTR);
-  void mousePressEvent(QMouseEvent* event);
-  void mouseReleaseEvent(QMouseEvent* event);
-  void mouseMoveEvent(QMouseEvent* event);
+  void mousePressEvent(QMouseEvent* event) override;
+  void mouseReleaseEvent(QMouseEvent* event) override;
+  void mouseMoveEvent(QMouseEvent* event) override;
 };
 
 class SoundMacroEditor : public EditorWidget {
@@ -172,13 +172,13 @@ class SoundMacroEditor : public EditorWidget {
 public:
   explicit SoundMacroEditor(QWidget* parent = Q_NULLPTR);
   bool loadData(ProjectModel::SoundMacroNode* node);
-  void unloadData();
-  ProjectModel::INode* currentNode() const;
+  void unloadData() override;
+  ProjectModel::INode* currentNode() const override;
 
-  void mousePressEvent(QMouseEvent* event);
-  void mouseReleaseEvent(QMouseEvent* event);
-  void mouseMoveEvent(QMouseEvent* event);
-  void keyPressEvent(QKeyEvent* event);
+  void mousePressEvent(QMouseEvent* event) override;
+  void mouseReleaseEvent(QMouseEvent* event) override;
+  void mouseMoveEvent(QMouseEvent* event) override;
+  void keyPressEvent(QKeyEvent* event) override;
 
 public slots:
   void catalogueDoubleClicked(QTreeWidgetItem* item, int column);

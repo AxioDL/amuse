@@ -8,13 +8,13 @@
 class SFXObjectDelegate : public BaseObjectDelegate {
   Q_OBJECT
 protected:
-  ProjectModel::INode* getNode(const QAbstractItemModel* model, const QModelIndex& index) const;
+  ProjectModel::INode* getNode(const QAbstractItemModel* model, const QModelIndex& index) const override;
 
 public:
   explicit SFXObjectDelegate(QObject* parent = Q_NULLPTR);
-  QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const;
-  void setEditorData(QWidget* editor, const QModelIndex& index) const;
-  void setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const;
+  QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const override;
+  void setEditorData(QWidget* editor, const QModelIndex& index) const override;
+  void setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const override;
 private slots:
   void objIndexChanged();
 };
@@ -53,12 +53,12 @@ public:
   void loadData(ProjectModel::SoundGroupNode* node);
   void unloadData();
 
-  int rowCount(const QModelIndex& parent = QModelIndex()) const;
-  int columnCount(const QModelIndex& parent = QModelIndex()) const;
-  QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const;
-  bool setData(const QModelIndex& index, const QVariant& value, int role = Qt::EditRole);
-  QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
-  Qt::ItemFlags flags(const QModelIndex& index) const;
+  int rowCount(const QModelIndex& parent = QModelIndex()) const override;
+  int columnCount(const QModelIndex& parent = QModelIndex()) const override;
+  QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
+  bool setData(const QModelIndex& index, const QVariant& value, int role = Qt::EditRole) override;
+  QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
+  Qt::ItemFlags flags(const QModelIndex& index) const override;
 
   int _insertRow(const std::tuple<amuse::SFXId, std::string, amuse::SFXGroupIndex::SFXEntry>& data);
   std::tuple<amuse::SFXId, std::string, amuse::SFXGroupIndex::SFXEntry> _removeRow(amuse::SFXId sfx);
@@ -73,7 +73,7 @@ class SFXTableView : public QTableView {
 
 public:
   explicit SFXTableView(QWidget* parent = Q_NULLPTR);
-  void setModel(QAbstractItemModel* model);
+  void setModel(QAbstractItemModel* model) override;
   void deleteSelection();
 };
 
@@ -88,14 +88,14 @@ class SFXPlayerWidget : public QWidget {
 
 public:
   explicit SFXPlayerWidget(QModelIndex index, amuse::GroupId gid, amuse::SFXId id, QWidget* parent = Q_NULLPTR);
-  ~SFXPlayerWidget();
+  ~SFXPlayerWidget() override;
   amuse::SongId sfxId() const { return m_sfxId; }
   amuse::Voice* voice() const { return m_vox.get(); }
   void stopped();
-  void resizeEvent(QResizeEvent* event);
-  void mouseDoubleClickEvent(QMouseEvent* event);
-  void mousePressEvent(QMouseEvent* event);
-  void mouseReleaseEvent(QMouseEvent* event) { event->ignore(); }
+  void resizeEvent(QResizeEvent* event) override;
+  void mouseDoubleClickEvent(QMouseEvent* event) override;
+  void mousePressEvent(QMouseEvent* event) override;
+  void mouseReleaseEvent(QMouseEvent* event) override { event->ignore(); }
 public slots:
   void clicked();
 };
@@ -109,17 +109,17 @@ class SoundGroupEditor : public EditorWidget {
 public:
   explicit SoundGroupEditor(QWidget* parent = Q_NULLPTR);
   bool loadData(ProjectModel::SoundGroupNode* node);
-  void unloadData();
-  ProjectModel::INode* currentNode() const;
-  void setEditorEnabled(bool en) {}
-  void resizeEvent(QResizeEvent* ev);
+  void unloadData() override;
+  ProjectModel::INode* currentNode() const override;
+  void setEditorEnabled(bool en) override {}
+  void resizeEvent(QResizeEvent* ev) override;
   QTableView* getSFXListView() const { return m_sfxTable; }
-  AmuseItemEditFlags itemEditFlags() const;
+  AmuseItemEditFlags itemEditFlags() const override;
 private slots:
   void rowsInserted(const QModelIndex& parent, int first, int last);
   void rowsMoved(const QModelIndex& parent, int start, int end, const QModelIndex& destination, int row);
   void doAdd();
   void doSelectionChanged();
   void sfxDataChanged();
-  void itemDeleteAction();
+  void itemDeleteAction() override;
 };

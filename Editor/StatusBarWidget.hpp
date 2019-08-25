@@ -13,10 +13,10 @@ class FXButton : public QPushButton {
   Q_OBJECT
 public:
   explicit FXButton(QWidget* parent = Q_NULLPTR);
-  void mouseReleaseEvent(QMouseEvent* event) { event->ignore(); }
-  void mouseMoveEvent(QMouseEvent* event) { event->ignore(); }
-  void focusOutEvent(QFocusEvent* event) { event->ignore(); }
-  void keyPressEvent(QKeyEvent* event) { event->ignore(); }
+  void mouseReleaseEvent(QMouseEvent* event) override { event->ignore(); }
+  void mouseMoveEvent(QMouseEvent* event) override { event->ignore(); }
+  void focusOutEvent(QFocusEvent* event) override { event->ignore(); }
+  void keyPressEvent(QKeyEvent* event) override { event->ignore(); }
 };
 
 class StatusBarWidget : public QStatusBar {
@@ -73,7 +73,7 @@ class StatusBarFocus : public QObject {
 
 public:
   explicit StatusBarFocus(StatusBarWidget* statusWidget) : QObject(statusWidget) {}
-  ~StatusBarFocus() { exit(); }
+  ~StatusBarFocus() override { exit(); }
   void setMessage(const QString& message);
   void enter();
   void exit();

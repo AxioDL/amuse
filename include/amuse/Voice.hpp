@@ -193,7 +193,7 @@ class Voice : public Entity {
   void _notifyCtrlChange(uint8_t ctrl, int8_t val);
 
 public:
-  ~Voice();
+  ~Voice() override;
   Voice(Engine& engine, const AudioGroup& group, GroupId groupId, int vid, bool emitter, ObjToken<Studio> studio);
   Voice(Engine& engine, const AudioGroup& group, GroupId groupId, ObjectId oid, int vid, bool emitter,
         ObjToken<Studio> studio);

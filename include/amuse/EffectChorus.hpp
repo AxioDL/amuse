@@ -101,14 +101,14 @@ class EffectChorusImp : public EffectBase<T>, public EffectChorus {
   void _update();
 
 public:
-  ~EffectChorusImp();
+  ~EffectChorusImp() override;
   EffectChorusImp(uint32_t baseDelay, uint32_t variation, uint32_t period, double sampleRate);
   EffectChorusImp(const EffectChorusInfo& info, double sampleRate)
   : EffectChorusImp(info.baseDelay, info.variation, info.period, sampleRate) {}
 
-  void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap);
-  void resetOutputSampleRate(double sampleRate) { _setup(sampleRate); }
+  void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap) override;
+  void resetOutputSampleRate(double sampleRate) override { _setup(sampleRate); }
 
-  EffectType Isa() const { return EffectType::Chorus; }
+  EffectType Isa() const override { return EffectType::Chorus; }
 };
 } // namespace amuse

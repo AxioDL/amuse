@@ -13,7 +13,7 @@ public:
   explicit LayerDataChangeUndoCommand(ProjectModel::LayersNode* node, const QString& text, QModelIndex index,
                                       int redoVal)
   : EditorUndoCommand(node, text), m_index(index), m_redoVal(redoVal) {}
-  void undo() {
+  void undo() override {
     m_undid = true;
     amuse::LayerMapping& layer = (*static_cast<ProjectModel::LayersNode*>(m_node.get())->m_obj)[m_index.row()];
 
@@ -48,7 +48,7 @@ public:
 
     EditorUndoCommand::undo();
   }
-  void redo() {
+  void redo() override {
     amuse::LayerMapping& layer = (*static_cast<ProjectModel::LayersNode*>(m_node.get())->m_obj)[m_index.row()];
 
     switch (m_index.column()) {
@@ -301,7 +301,7 @@ public:
   explicit LayerRowMoveCommand(ProjectModel::LayersNode* node, const QString& text, LayersTableView* view, int undoPos,
                                int redoPos, int count)
   : EditorUndoCommand(node, text), m_view(view), m_undoPos(undoPos), m_redoPos(redoPos), m_count(count) {}
-  void undo() {
+  void undo() override {
     m_undid = true;
     EditorUndoCommand::undo();
     if (m_redoPos > m_undoPos)
@@ -309,7 +309,7 @@ public:
     else
       m_view->model()->moveRows(QModelIndex(), m_redoPos, m_count, QModelIndex(), m_undoPos + 1);
   }
-  void redo() {
+  void redo() override {
     if (m_undid)
       EditorUndoCommand::redo();
     m_view->model()->moveRows(QModelIndex(), m_undoPos, m_count, QModelIndex(), m_redoPos);
@@ -385,11 +385,11 @@ protected:
       it->first = static_cast<LayersModel*>(m_view->model())->_removeRow(it->second);
     }
   }
-  void undo() {
+  void undo() override {
     m_undid = true;
     EditorUndoCommand::undo();
   }
-  void redo() {
+  void redo() override {
     if (m_undid)
       EditorUndoCommand::redo();
   }
@@ -407,11 +407,11 @@ public:
   explicit LayerRowAddUndoCommand(ProjectModel::LayersNode* node, const QString& text, LayersTableView* view,
                                   std::vector<std::pair<amuse::LayerMapping, int>>&& data)
   : LayerRowUndoCommand(node, text, view, std::move(data)) {}
-  void undo() {
+  void undo() override {
     base::undo();
     base::del();
   }
-  void redo() {
+  void redo() override {
     base::redo();
     base::add();
   }
@@ -424,11 +424,11 @@ public:
   explicit LayerRowDelUndoCommand(ProjectModel::LayersNode* node, const QString& text, LayersTableView* view,
                                   std::vector<std::pair<amuse::LayerMapping, int>>&& data)
   : LayerRowUndoCommand(node, text, view, std::move(data)) {}
-  void undo() {
+  void undo() override {
     base::undo();
     base::add();
   }
-  void redo() {
+  void redo() override {
     base::redo();
     base::del();
   }

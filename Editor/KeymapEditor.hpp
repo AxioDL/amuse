@@ -17,10 +17,10 @@ class PaintButton : public QPushButton {
   Q_OBJECT
 public:
   explicit PaintButton(QWidget* parent = Q_NULLPTR);
-  void mouseReleaseEvent(QMouseEvent* event) { event->ignore(); }
-  void mouseMoveEvent(QMouseEvent* event) { event->ignore(); }
-  void focusOutEvent(QFocusEvent* event) { event->ignore(); }
-  void keyPressEvent(QKeyEvent* event) { event->ignore(); }
+  void mouseReleaseEvent(QMouseEvent* event) override { event->ignore(); }
+  void mouseMoveEvent(QMouseEvent* event) override { event->ignore(); }
+  void focusOutEvent(QFocusEvent* event) override { event->ignore(); }
+  void keyPressEvent(QKeyEvent* event) override { event->ignore(); }
 };
 
 class KeymapView : public QWidget {
@@ -47,10 +47,10 @@ public:
   void unloadData();
   ProjectModel::INode* currentNode() const;
 
-  void paintEvent(QPaintEvent* ev);
-  void mousePressEvent(QMouseEvent* ev);
-  void mouseMoveEvent(QMouseEvent* ev);
-  void wheelEvent(QWheelEvent* event);
+  void paintEvent(QPaintEvent* ev) override;
+  void mousePressEvent(QMouseEvent* ev) override;
+  void mouseMoveEvent(QMouseEvent* ev) override;
+  void wheelEvent(QWheelEvent* event) override;
 };
 
 class KeymapControls : public QFrame {
@@ -99,7 +99,7 @@ class KeymapEditor : public EditorWidget {
 public:
   explicit KeymapEditor(QWidget* parent = Q_NULLPTR);
   bool loadData(ProjectModel::KeymapNode* node);
-  void unloadData();
-  ProjectModel::INode* currentNode() const;
-  void keyPressEvent(QKeyEvent* event);
+  void unloadData() override;
+  ProjectModel::INode* currentNode() const override;
+  void keyPressEvent(QKeyEvent* event) override;
 };

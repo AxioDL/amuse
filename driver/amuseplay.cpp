@@ -2,7 +2,8 @@
 #include "amuse/BooBackend.hpp"
 #include "boo/boo.hpp"
 #include "logvisor/logvisor.hpp"
-#include <thread>
+
+#include <map>
 
 #define EMITTER_TEST 0
 
@@ -15,15 +16,15 @@ struct EventCallback : boo::IWindowCallback {
   bool m_tracking = false;
 
 public:
-  void charKeyDown(unsigned long charCode, boo::EModifierKey mods, bool isRepeat);
-  void charKeyUp(unsigned long charCode, boo::EModifierKey mods);
-  void specialKeyDown(boo::ESpecialKey key, boo::EModifierKey mods, bool isRepeat);
-  void specialKeyUp(boo::ESpecialKey key, boo::EModifierKey mods);
-  void resized(const boo::SWindowRect&, bool) {}
+  void charKeyDown(unsigned long charCode, boo::EModifierKey mods, bool isRepeat) override;
+  void charKeyUp(unsigned long charCode, boo::EModifierKey mods) override;
+  void specialKeyDown(boo::ESpecialKey key, boo::EModifierKey mods, bool isRepeat) override;
+  void specialKeyUp(boo::ESpecialKey key, boo::EModifierKey mods) override;
+  void resized(const boo::SWindowRect&, bool) override {}
 
-  void mouseDown(const boo::SWindowCoord&, boo::EMouseButton, boo::EModifierKey);
-  void mouseUp(const boo::SWindowCoord&, boo::EMouseButton, boo::EModifierKey);
-  void mouseMove(const boo::SWindowCoord& coord);
+  void mouseDown(const boo::SWindowCoord&, boo::EMouseButton, boo::EModifierKey) override;
+  void mouseUp(const boo::SWindowCoord&, boo::EMouseButton, boo::EModifierKey) override;
+  void mouseMove(const boo::SWindowCoord& coord) override;
 
   EventCallback(AppCallback& app) : m_app(app) {}
 };
@@ -557,7 +558,7 @@ struct AppCallback : boo::IApplicationCallback {
     }
   }
 
-  int appMain(boo::IApplication* app) {
+  int appMain(boo::IApplication* app) override {
     /* Event window */
     m_win = app->newWindow(_SYS_STR("amuseplay"));
     m_win->setCallback(&m_events);
@@ -818,7 +819,7 @@ struct AppCallback : boo::IApplicationCallback {
     return 0;
   }
 
-  void appQuitting(boo::IApplication*) { m_running = false; }
+  void appQuitting(boo::IApplication*) override { m_running = false; }
 
   AppCallback(int argc, const boo::SystemChar** argv)
   : m_argc(argc), m_argv(argv), m_eventRec(*this), m_events(m_eventRec) {}

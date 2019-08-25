@@ -37,19 +37,19 @@ static QIcon MakeAppIcon() {
 /* This is for adapting the get*Name methods */
 class BooInterface : public boo::IApplication {
   std::vector<boo::SystemString> m_args;
-  void _deletedWindow(boo::IWindow* window) {}
+  void _deletedWindow(boo::IWindow* window) override {}
 
 public:
-  EPlatformType getPlatformType() const { return EPlatformType::Qt; }
+  EPlatformType getPlatformType() const override { return EPlatformType::Qt; }
 
-  int run() { return 0; }
-  boo::SystemStringView getUniqueName() const { return _SYS_STR("amuse-gui"sv); }
-  boo::SystemStringView getFriendlyName() const { return _SYS_STR("Amuse"sv); }
-  boo::SystemStringView getProcessName() const { return _SYS_STR("amuse-gui"sv); }
-  const std::vector<boo::SystemString>& getArgs() const { return m_args; }
+  int run() override { return 0; }
+  boo::SystemStringView getUniqueName() const override { return _SYS_STR("amuse-gui"sv); }
+  boo::SystemStringView getFriendlyName() const override { return _SYS_STR("Amuse"sv); }
+  boo::SystemStringView getProcessName() const override { return _SYS_STR("amuse-gui"sv); }
+  const std::vector<boo::SystemString>& getArgs() const override { return m_args; }
 
   /* Constructors/initializers for sub-objects */
-  std::shared_ptr<boo::IWindow> newWindow(boo::SystemStringView title) { return {}; }
+  std::shared_ptr<boo::IWindow> newWindow(boo::SystemStringView title) override { return {}; }
 };
 
 MainWindow* g_MainWindow = nullptr;

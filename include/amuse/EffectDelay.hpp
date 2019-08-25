@@ -119,9 +119,9 @@ public:
   EffectDelayImp(uint32_t initDelay, uint32_t initFeedback, uint32_t initOutput, double sampleRate);
   EffectDelayImp(const EffectDelayInfo& info, double sampleRate);
 
-  void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap);
-  void resetOutputSampleRate(double sampleRate) { _setup(sampleRate); }
+  void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap) override;
+  void resetOutputSampleRate(double sampleRate) override { _setup(sampleRate); }
 
-  EffectType Isa() const { return EffectType::Delay; }
+  EffectType Isa() const override { return EffectType::Delay; }
 };
 } // namespace amuse

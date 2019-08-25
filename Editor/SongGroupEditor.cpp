@@ -13,7 +13,7 @@ public:
   explicit PageDataChangeUndoCommand(ProjectModel::SongGroupNode* node, const QString& text, bool drum, uint8_t prog,
                                      int column, int redoVal)
   : EditorUndoCommand(node, text), m_drum(drum), m_prog(prog), m_column(column), m_redoVal(redoVal) {}
-  void undo() {
+  void undo() override {
     m_undid = true;
     amuse::SongGroupIndex& index = *static_cast<ProjectModel::SongGroupNode*>(m_node.get())->m_index;
     auto& map = m_drum ? index.m_drumPages : index.m_normPages;
@@ -50,7 +50,7 @@ public:
 
     EditorUndoCommand::undo();
   }
-  void redo() {
+  void redo() override {
     amuse::SongGroupIndex& index = *static_cast<ProjectModel::SongGroupNode*>(m_node.get())->m_index;
     auto& map = m_drum ? index.m_drumPages : index.m_normPages;
     amuse::SongGroupIndex::PageEntry& entry = map[m_prog];
@@ -103,7 +103,7 @@ public:
   explicit SetupDataChangeUndoCommand(ProjectModel::SongGroupNode* node, const QString& text, amuse::SongId song,
                                       int row, int column, int redoVal)
   : EditorUndoCommand(node, text), m_song(song), m_row(row), m_column(column), m_redoVal(redoVal) {}
-  void undo() {
+  void undo() override {
     m_undid = true;
     amuse::SongGroupIndex& index = *static_cast<ProjectModel::SongGroupNode*>(m_node.get())->m_index;
     auto& map = index.m_midiSetups;
@@ -131,7 +131,7 @@ public:
 
     EditorUndoCommand::undo();
   }
-  void redo() {
+  void redo() override {
     amuse::SongGroupIndex& index = *static_cast<ProjectModel::SongGroupNode*>(m_node.get())->m_index;
     auto& map = index.m_midiSetups;
     std::array<amuse::SongGroupIndex::MIDISetup, 16>& entry = map[m_song];
@@ -175,7 +175,7 @@ public:
   explicit SongNameChangeUndoCommand(ProjectModel::SongGroupNode* node, const QString& text, amuse::SongId song,
                                      std::string_view redoVal)
   : EditorUndoCommand(node, text), m_song(song), m_redoVal(redoVal) {}
-  void undo() {
+  void undo() override {
     m_undid = true;
     g_MainWindow->projectModel()->setIdDatabases(m_node.get());
     amuse::SongGroupIndex& index = *static_cast<ProjectModel::SongGroupNode*>(m_node.get())->m_index;
@@ -198,7 +198,7 @@ public:
 
     EditorUndoCommand::undo();
   }
-  void redo() {
+  void redo() override {
     g_MainWindow->projectModel()->setIdDatabases(m_node.get());
     amuse::SongGroupIndex& index = *static_cast<ProjectModel::SongGroupNode*>(m_node.get())->m_index;
     auto& map = index.m_midiSetups;
@@ -233,12 +233,12 @@ public:
   explicit SongMIDIPathChangeUndoCommand(ProjectModel::SongGroupNode* node, const QString& text, amuse::SongId song,
                                          QString redoVal)
   : EditorUndoCommand(node, text), m_song(song), m_redoVal(redoVal) {}
-  void undo() {
+  void undo() override {
     m_undid = true;
     g_MainWindow->projectModel()->setMIDIPathOfSong(m_song, m_undoVal);
     EditorUndoCommand::undo();
   }
-  void redo() {
+  void redo() override {
     m_undoVal = g_MainWindow->projectModel()->getMIDIPathOfSong(m_song);
     g_MainWindow->projectModel()->setMIDIPathOfSong(m_song, m_redoVal);
     if (m_undid)
@@ -688,11 +688,11 @@ protected:
       *it = static_cast<PageModel*>(m_view->model())->_removeRow(it->first);
     }
   }
-  void undo() {
+  void undo() override {
     m_undid = true;
     EditorUndoCommand::undo();
   }
-  void redo() {
+  void redo() override {
     if (m_undid)
       EditorUndoCommand::redo();
   }
@@ -710,11 +710,11 @@ public:
   explicit PageRowAddUndoCommand(ProjectModel::SongGroupNode* node, const QString& text, PageTableView* view,
                                  std::vector<std::pair<uint8_t, amuse::SongGroupIndex::PageEntry>>&& data)
   : PageRowUndoCommand(node, text, view, std::move(data)) {}
-  void undo() {
+  void undo() override {
     base::undo();
     base::del();
   }
-  void redo() {
+  void redo() override {
     base::redo();
     base::add();
   }
@@ -727,11 +727,11 @@ public:
   explicit PageRowDelUndoCommand(ProjectModel::SongGroupNode* node, const QString& text, PageTableView* view,
                                  std::vector<std::pair<uint8_t, amuse::SongGroupIndex::PageEntry>>&& data)
   : PageRowUndoCommand(node, text, view, std::move(data)) {}
-  void undo() {
+  void undo() override {
     base::undo();
     base::add();
   }
-  void redo() {
+  void redo() override {
     base::redo();
     base::del();
   }
@@ -929,11 +929,11 @@ protected:
       *it = static_cast<SetupListModel*>(listView->model())->_removeRow(std::get<0>(*it));
     }
   }
-  void undo() {
+  void undo() override {
     m_undid = true;
     EditorUndoCommand::undo();
   }
-  void redo() {
+  void redo() override {
     if (m_undid)
       EditorUndoCommand::redo();
   }
@@ -953,11 +953,11 @@ public:
       ProjectModel::SongGroupNode* node, const QString& text, SetupTableView* view,
       std::vector<std::tuple<amuse::SongId, std::string, std::array<amuse::SongGroupIndex::MIDISetup, 16>>>&& data)
   : SetupRowUndoCommand(node, text, view, std::move(data)) {}
-  void undo() {
+  void undo() override {
     base::undo();
     base::del();
   }
-  void redo() {
+  void redo() override {
     base::redo();
     base::add();
   }
@@ -971,11 +971,11 @@ public:
       ProjectModel::SongGroupNode* node, const QString& text, SetupTableView* view,
       std::vector<std::tuple<amuse::SongId, std::string, std::array<amuse::SongGroupIndex::MIDISetup, 16>>>&& data)
   : SetupRowUndoCommand(node, text, view, std::move(data)) {}
-  void undo() {
+  void undo() override {
     base::undo();
     base::add();
   }
-  void redo() {
+  void redo() override {
     base::redo();
     base::del();
   }
