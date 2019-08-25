@@ -1,51 +1,64 @@
 #include "CurveEditor.hpp"
+
+#include <algorithm>
+#include <array>
+
 #include "MainWindow.hpp"
-#include <QHBoxLayout>
+
 #include <QGridLayout>
-#include <QPainter>
-#include <QMouseEvent>
+#include <QHBoxLayout>
 #include <QJSValueIterator>
+#include <QMouseEvent>
+#include <QPainter>
 
 class CurveEditUndoCommand : public EditorUndoCommand {
-  uint8_t m_redoData[128];
-  uint8_t m_undoData[128];
-  bool m_usedExpr;
-  bool m_undid = false;
-
 public:
-  CurveEditUndoCommand(const uint8_t* redoData, bool usedExpr, amuse::ObjToken<ProjectModel::CurveNode> node)
-  : EditorUndoCommand(node.get(), CurveControls::tr("Edit Curve")), m_usedExpr(usedExpr) {
-    std::memcpy(m_redoData, redoData, 128);
-  }
+  using RedoData = std::array<uint8_t, 128>;
+  using UndoData = std::array<uint8_t, 128>;
+
+  CurveEditUndoCommand(const RedoData& redoData, bool usedExpr, amuse::ObjToken<ProjectModel::CurveNode> node)
+  : EditorUndoCommand(node.get(), CurveControls::tr("Edit Curve")), m_redoData{redoData}, m_usedExpr(usedExpr) {}
+
   void undo() override {
     m_undid = true;
     amuse::ITable& table = **m_node.cast<ProjectModel::CurveNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::Curve) {
-      amuse::Curve& curve = static_cast<amuse::Curve&>(table);
-      curve.data.resize(128);
-      std::memcpy(curve.data.data(), m_undoData, 128);
+      auto& curve = static_cast<amuse::Curve&>(table);
+      curve.data.assign(m_undoData.cbegin(), m_undoData.cend());
     }
     EditorUndoCommand::undo();
   }
+
   void redo() override {
     amuse::ITable& table = **m_node.cast<ProjectModel::CurveNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::Curve) {
-      amuse::Curve& curve = static_cast<amuse::Curve&>(table);
+      auto& curve = static_cast<amuse::Curve&>(table);
       curve.data.resize(128);
-      std::memcpy(m_undoData, curve.data.data(), 128);
-      std::memcpy(curve.data.data(), m_redoData, 128);
+      std::copy(curve.data.cbegin(), curve.data.cend(), m_undoData.begin());
+      curve.data.assign(m_redoData.cbegin(), m_redoData.cend());
     }
-    if (m_undid)
+    if (m_undid) {
       EditorUndoCommand::redo();
+    }
   }
+
   bool mergeWith(const QUndoCommand* other) override {
-    if (other->id() == id() && !m_usedExpr && !static_cast<const CurveEditUndoCommand*>(other)->m_usedExpr) {
-      std::memcpy(m_redoData, static_cast<const CurveEditUndoCommand*>(other)->m_redoData, 128);
+    const auto* const command = static_cast<const CurveEditUndoCommand*>(other);
+
+    if (other->id() == id() && !m_usedExpr && !command->m_usedExpr) {
+      m_redoData = command->m_redoData;
       return true;
     }
+
     return false;
   }
   int id() const override { return int(Id::CurveEdit); }
+
+private:
+  RedoData m_redoData;
+  UndoData m_undoData;
+  bool m_usedExpr;
+  bool m_undid = false;
 };
 
 CurveEditor* CurveView::getEditor() const { return qobject_cast<CurveEditor*>(parentWidget()); }
@@ -57,51 +70,56 @@ void CurveView::unloadData() { m_node.reset(); }
 ProjectModel::INode* CurveView::currentNode() const { return m_node.get(); }
 
 void CurveView::paintEvent(QPaintEvent* ev) {
-  if (!m_node)
+  if (!m_node) {
     return;
+  }
+
   amuse::ITable& table = **m_node->m_obj;
-  if (table.Isa() != amuse::ITable::Type::Curve)
+  if (table.Isa() != amuse::ITable::Type::Curve) {
     return;
-  amuse::Curve& curve = static_cast<amuse::Curve&>(table);
+  }
+  auto& curve = static_cast<amuse::Curve&>(table);
 
   QPainter painter(this);
   painter.setRenderHint(QPainter::Antialiasing);
 
-  qreal deviceRatio = devicePixelRatioF();
-  qreal penWidth = std::max(std::floor(deviceRatio), 1.0) / deviceRatio;
+  const qreal deviceRatio = devicePixelRatioF();
+  const qreal penWidth = std::max(std::floor(deviceRatio), 1.0) / deviceRatio;
 
   painter.setPen(QPen(QColor(127, 127, 127), penWidth));
   painter.setFont(m_gridFont);
-  qreal yIncrement = (height() - 16.0) / 10.0;
-  for (int i = 0; i < 11; ++i) {
-    qreal thisY = i * yIncrement;
-    qreal textY = thisY - (i == 0 ? 2.0 : (i == 10 ? 16.0 : 8.0));
+  const qreal yIncrement = (height() - 16.0) / 10.0;
+  for (size_t i = 0; i < m_percentTexts.size(); ++i) {
+    const qreal thisY = i * yIncrement;
+    const qreal textY = thisY - (i == 0 ? 2.0 : (i == 10 ? 16.0 : 8.0));
     painter.drawStaticText(QPointF(0.0, textY), m_percentTexts[i]);
     painter.drawLine(QPointF(30.0, thisY), QPointF(width(), thisY));
   }
 
   qreal xIncrement = (width() - 30.0) / 10.0;
-  for (int i = 0; i < 11; ++i) {
-    qreal thisX = i * xIncrement + 30.0;
-    qreal textX = thisX - (i == 10 ? 30.0 : 15.0);
+  for (size_t i = 0; i < m_percentTextsCenter.size(); ++i) {
+    const qreal thisX = i * xIncrement + 30.0;
+    const qreal textX = thisX - (i == 10 ? 30.0 : 15.0);
     painter.drawStaticText(QPointF(textX, height() - 16.0), m_percentTextsCenter[i]);
     painter.drawLine(QPointF(thisX, 0.0), QPointF(thisX, height() - 16.0));
   }
 
-  int i;
+  size_t i;
   xIncrement = (width() - 30.0) / 127.0;
   QPointF lastPt;
   painter.setPen(QPen(Qt::white, penWidth * 3.0));
   for (i = 0; i < curve.data.size(); ++i) {
-    QPointF thisPt(i * xIncrement + 30.0, (height() - 16.0) - (height() - 16.0) * (curve.data[i] / 127.0));
-    if (i)
+    const QPointF thisPt(i * xIncrement + 30.0, (height() - 16.0) - (height() - 16.0) * (curve.data[i] / 127.0));
+    if (i != 0) {
       painter.drawLine(lastPt, thisPt);
+    }
     lastPt = thisPt;
   }
   for (; i < 128; ++i) {
-    QPointF thisPt(i * xIncrement + 30.0, height() - 16.0);
-    if (i)
+    const QPointF thisPt(i * xIncrement + 30.0, height() - 16.0);
+    if (i != 0) {
       painter.drawLine(lastPt, thisPt);
+    }
     lastPt = thisPt;
   }
 }
@@ -111,19 +129,22 @@ void CurveView::mousePressEvent(QMouseEvent* ev) { mouseMoveEvent(ev); }
 void CurveView::mouseMoveEvent(QMouseEvent* ev) {
   CurveView* view = getEditor()->m_curveView;
   amuse::ITable& table = **view->m_node->m_obj;
-  if (table.Isa() != amuse::ITable::Type::Curve)
+  if (table.Isa() != amuse::ITable::Type::Curve) {
     return;
-  amuse::Curve& curve = static_cast<amuse::Curve&>(table);
+  }
 
-  qreal xIncrement = (width() - 30.0) / 127.0;
-  int idx = int(std::round((ev->localPos().x() - 30.0) / xIncrement));
-  if (idx < 0 || idx > 127)
+  const qreal xIncrement = (width() - 30.0) / 127.0;
+  const int idx = int(std::round((ev->localPos().x() - 30.0) / xIncrement));
+  if (idx < 0 || idx > 127) {
     return;
-  int val = 127 - amuse::clamp(0, int(std::round(ev->localPos().y() / (height() - 16.0) * 127.0)), 127);
+  }
+  const int val = 127 - amuse::clamp(0, int(std::round(ev->localPos().y() / (height() - 16.0) * 127.0)), 127);
 
-  curve.data.resize(128);
-  uint8_t newData[128];
-  std::memcpy(newData, curve.data.data(), 128);
+  CurveEditUndoCommand::RedoData newData;
+  auto& curve = static_cast<amuse::Curve&>(table);
+  curve.data.resize(newData.size());
+
+  std::copy(curve.data.cbegin(), curve.data.cend(), newData.begin());
   newData[idx] = uint8_t(val);
 
   g_MainWindow->pushUndoCommand(new CurveEditUndoCommand(newData, false, m_node));
@@ -131,7 +152,7 @@ void CurveView::mouseMoveEvent(QMouseEvent* ev) {
 }
 
 CurveView::CurveView(QWidget* parent) : QWidget(parent) {
-  for (int i = 0; i < 11; ++i) {
+  for (size_t i = 0; i < m_percentTexts.size(); ++i) {
     m_percentTexts[i].setText(QStringLiteral("%1%").arg(100 - i * 10));
     m_percentTexts[i].setTextOption(QTextOption(Qt::AlignVCenter | Qt::AlignRight));
     m_percentTexts[i].setTextWidth(28.0);
@@ -157,16 +178,18 @@ void CurveControls::unloadData() {
 void CurveControls::exprCommit() {
   CurveView* view = getEditor()->m_curveView;
   amuse::ITable& table = **view->m_node->m_obj;
-  if (table.Isa() != amuse::ITable::Type::Curve)
+  if (table.Isa() != amuse::ITable::Type::Curve) {
     return;
-  amuse::Curve& curve = static_cast<amuse::Curve&>(table);
+  }
+  const QString progText = m_lineEdit->text();
 
-  QString progText = m_lineEdit->text();
-  curve.data.resize(128);
-  uint8_t newData[128];
-  std::memcpy(newData, curve.data.data(), 128);
+  CurveEditUndoCommand::RedoData newData;
+  auto& curve = static_cast<amuse::Curve&>(table);
+  curve.data.resize(newData.size());
+  std::copy(curve.data.cbegin(), curve.data.cend(), newData.begin());
+
   bool notANumber = false;
-  for (int i = 0; i < 128; ++i) {
+  for (size_t i = 0; i < newData.size(); ++i) {
     m_engine.globalObject().setProperty(QStringLiteral("x"), i / 127.0);
     QJSValue val = m_engine.evaluate(progText);
     if (val.isError()) {

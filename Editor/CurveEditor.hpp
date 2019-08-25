@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+
 #include "EditorWidget.hpp"
 #include <QFrame>
 #include <QLabel>
@@ -15,8 +17,8 @@ class CurveView : public QWidget {
   friend class CurveControls;
   amuse::ObjToken<ProjectModel::CurveNode> m_node;
   QFont m_gridFont;
-  QStaticText m_percentTexts[11];
-  QStaticText m_percentTextsCenter[11];
+  std::array<QStaticText, 11> m_percentTexts;
+  std::array<QStaticText, 11> m_percentTextsCenter;
   CurveEditor* getEditor() const;
 
 public:
