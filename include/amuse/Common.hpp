@@ -48,16 +48,16 @@ using LittleDNAV = athena::io::DNAVYaml<athena::Little>;
  *  SoundMacros, Tables, Keymaps, Layers, Samples, SFX, Songs */
 struct ObjectId {
   uint16_t id = 0xffff;
-  ObjectId() = default;
-  ObjectId(uint16_t idIn) : id(idIn) {}
-  ObjectId& operator=(uint16_t idIn) {
+  constexpr ObjectId() noexcept = default;
+  constexpr ObjectId(uint16_t idIn) noexcept : id(idIn) {}
+  constexpr ObjectId& operator=(uint16_t idIn) noexcept {
     id = idIn;
     return *this;
   }
-  bool operator==(const ObjectId& other) const { return id == other.id; }
-  bool operator!=(const ObjectId& other) const { return id != other.id; }
-  bool operator<(const ObjectId& other) const { return id < other.id; }
-  bool operator>(const ObjectId& other) const { return id > other.id; }
+  constexpr bool operator==(const ObjectId& other) const noexcept { return id == other.id; }
+  constexpr bool operator!=(const ObjectId& other) const noexcept { return !operator==(other); }
+  constexpr bool operator<(const ObjectId& other) const noexcept { return id < other.id; }
+  constexpr bool operator>(const ObjectId& other) const noexcept { return id > other.id; }
   static thread_local NameDB* CurNameDB;
 };
 template <athena::Endian DNAEn>
@@ -66,16 +66,16 @@ struct AT_SPECIALIZE_PARMS(athena::Endian::Big, athena::Endian::Little) ObjectId
   void _read(athena::io::YAMLDocReader& r);
   void _write(athena::io::YAMLDocWriter& w);
   ObjectId id;
-  ObjectIdDNA() = default;
-  ObjectIdDNA(ObjectId idIn) : id(idIn) {}
-  operator ObjectId() const { return id; }
+  constexpr ObjectIdDNA() noexcept = default;
+  constexpr ObjectIdDNA(ObjectId idIn) noexcept : id(idIn) {}
+  constexpr operator ObjectId() const noexcept { return id; }
 };
 
 #define DECL_ID_TYPE(type)                                                                                             \
   struct type : ObjectId {                                                                                             \
     using ObjectId::ObjectId;                                                                                          \
-    type() = default;                                                                                                  \
-    type(const ObjectId& idIn) : ObjectId(idIn) {}                                                                     \
+    constexpr type() noexcept = default;                                                                               \
+    constexpr type(const ObjectId& idIn) noexcept : ObjectId(idIn) {}                                                  \
     static thread_local NameDB* CurNameDB;                                                                             \
   };                                                                                                                   \
   template <athena::Endian DNAEn>                                                                                      \
@@ -84,9 +84,9 @@ struct AT_SPECIALIZE_PARMS(athena::Endian::Big, athena::Endian::Little) ObjectId
     void _read(athena::io::YAMLDocReader& r);                                                                          \
     void _write(athena::io::YAMLDocWriter& w);                                                                         \
     type id;                                                                                                           \
-    type##DNA() = default;                                                                                             \
-    type##DNA(type idIn) : id(idIn) {}                                                                                 \
-    operator type() const { return id; }                                                                               \
+    constexpr type##DNA() noexcept = default;                                                                          \
+    constexpr type##DNA(type idIn) noexcept : id(idIn) {}                                                              \
+    constexpr operator type() const noexcept { return id; }                                                            \
   };
 DECL_ID_TYPE(SoundMacroId)
 DECL_ID_TYPE(SampleId)
@@ -106,17 +106,17 @@ struct AT_SPECIALIZE_PARMS(athena::Endian::Big, athena::Endian::Little) PageObje
   void _read(athena::io::YAMLDocReader& r);
   void _write(athena::io::YAMLDocWriter& w);
   ObjectId id;
-  PageObjectIdDNA() = default;
-  PageObjectIdDNA(ObjectId idIn) : id(idIn) {}
-  operator ObjectId() const { return id; }
+  constexpr PageObjectIdDNA() noexcept = default;
+  constexpr PageObjectIdDNA(ObjectId idIn) noexcept : id(idIn) {}
+  constexpr operator ObjectId() const noexcept { return id; }
 };
 
 struct SoundMacroStep {
   uint16_t step = 0;
-  operator uint16_t() const { return step; }
-  SoundMacroStep() = default;
-  SoundMacroStep(uint16_t idIn) : step(idIn) {}
-  SoundMacroStep& operator=(uint16_t idIn) {
+  constexpr operator uint16_t() const noexcept { return step; }
+  constexpr SoundMacroStep() noexcept = default;
+  constexpr SoundMacroStep(uint16_t idIn) noexcept : step(idIn) {}
+  constexpr SoundMacroStep& operator=(uint16_t idIn) noexcept {
     step = idIn;
     return *this;
   }
@@ -126,18 +126,18 @@ template <athena::Endian DNAEn>
 struct AT_SPECIALIZE_PARMS(athena::Endian::Big, athena::Endian::Little) SoundMacroStepDNA : BigDNA {
   AT_DECL_EXPLICIT_DNA_YAML
   SoundMacroStep step;
-  SoundMacroStepDNA() = default;
-  SoundMacroStepDNA(SoundMacroStep idIn) : step(idIn) {}
-  operator SoundMacroStep() const { return step; }
+  constexpr SoundMacroStepDNA() noexcept = default;
+  constexpr SoundMacroStepDNA(SoundMacroStep idIn) noexcept : step(idIn) {}
+  constexpr operator SoundMacroStep() const noexcept { return step; }
 };
 
 struct LittleUInt24 : LittleDNA {
   AT_DECL_EXPLICIT_DNA_YAML
-  atUint32 val;
-  operator uint32_t() const { return val; }
-  LittleUInt24() = default;
-  LittleUInt24(uint32_t valIn) : val(valIn) {}
-  LittleUInt24& operator=(uint32_t valIn) {
+  atUint32 val{};
+  constexpr operator uint32_t() const noexcept { return val; }
+  constexpr LittleUInt24() noexcept = default;
+  constexpr LittleUInt24(uint32_t valIn) noexcept : val(valIn) {}
+  constexpr LittleUInt24& operator=(uint32_t valIn) noexcept {
     val = valIn;
     return *this;
   }
@@ -150,10 +150,12 @@ protected:
   virtual ~IObj() = default;
 
 public:
-  void increment() { m_refCount++; }
-  void decrement() {
-    if (m_refCount.fetch_sub(1) == 1)
+  void increment() noexcept { m_refCount.fetch_add(std::memory_order_relaxed); }
+  void decrement() noexcept {
+    if (m_refCount.fetch_sub(1, std::memory_order_release) == 1) {
+      std::atomic_thread_fence(std::memory_order_acquire);
       delete this;
+    }
   }
 };
 
@@ -163,102 +165,115 @@ class ObjWrapper : public IObj {
 
 public:
   template <class... _Args>
-  ObjWrapper(_Args&&... args) : m_obj(std::forward<_Args>(args)...) {}
-  SubCls* get() { return &m_obj; }
-  const SubCls* get() const { return &m_obj; }
+  ObjWrapper(_Args&&... args) noexcept : m_obj(std::forward<_Args>(args)...) {}
+  SubCls* get() noexcept { return &m_obj; }
+  const SubCls* get() const noexcept { return &m_obj; }
 };
 
 template <class SubCls>
 class ObjTokenBase {
 protected:
   IObj* m_obj = nullptr;
-  ObjTokenBase(IObj* obj) : m_obj(obj) {
-    if (m_obj)
+  ObjTokenBase(IObj* obj) noexcept : m_obj(obj) {
+    if (m_obj) {
       m_obj->increment();
+    }
   }
 
 public:
-  ObjTokenBase() = default;
-  ObjTokenBase(const ObjTokenBase& other) : m_obj(other.m_obj) {
-    if (m_obj)
+  ObjTokenBase() noexcept = default;
+  ObjTokenBase(const ObjTokenBase& other) noexcept : m_obj(other.m_obj) {
+    if (m_obj) {
       m_obj->increment();
+    }
   }
-  ObjTokenBase(ObjTokenBase&& other) : m_obj(other.m_obj) { other.m_obj = nullptr; }
-  ObjTokenBase& operator=(const ObjTokenBase& other) {
-    if (m_obj)
+  ObjTokenBase(ObjTokenBase&& other) noexcept : m_obj(other.m_obj) { other.m_obj = nullptr; }
+  ObjTokenBase& operator=(const ObjTokenBase& other) noexcept {
+    if (m_obj) {
       m_obj->decrement();
+    }
     m_obj = other.m_obj;
-    if (m_obj)
+    if (m_obj) {
       m_obj->increment();
+    }
     return *this;
   }
-  ObjTokenBase& operator=(ObjTokenBase&& other) {
-    if (m_obj)
+  ObjTokenBase& operator=(ObjTokenBase&& other) noexcept {
+    if (m_obj) {
       m_obj->decrement();
+    }
     m_obj = other.m_obj;
     other.m_obj = nullptr;
     return *this;
   }
-  ~ObjTokenBase() {
-    if (m_obj)
-      m_obj->decrement();
+  ~ObjTokenBase() noexcept {
+    if (!m_obj) {
+      return;
+    }
+
+    m_obj->decrement();
   }
-  bool operator==(const ObjTokenBase& other) const { return m_obj == other.m_obj; }
-  bool operator!=(const ObjTokenBase& other) const { return m_obj != other.m_obj; }
-  bool operator<(const ObjTokenBase& other) const { return m_obj < other.m_obj; }
-  bool operator>(const ObjTokenBase& other) const { return m_obj > other.m_obj; }
-  operator bool() const { return m_obj != nullptr; }
-  void reset() {
-    if (m_obj)
+  bool operator==(const ObjTokenBase& other) const noexcept { return m_obj == other.m_obj; }
+  bool operator!=(const ObjTokenBase& other) const noexcept { return !operator==(other); }
+  bool operator<(const ObjTokenBase& other) const noexcept { return m_obj < other.m_obj; }
+  bool operator>(const ObjTokenBase& other) const noexcept { return m_obj > other.m_obj; }
+  operator bool() const noexcept { return m_obj != nullptr; }
+  void reset() noexcept {
+    if (m_obj) {
       m_obj->decrement();
+    }
     m_obj = nullptr;
   }
 };
 
 template <class SubCls, class Enable = void>
 class ObjToken : public ObjTokenBase<SubCls> {
-  IObj*& _obj() { return ObjTokenBase<SubCls>::m_obj; }
-  IObj* const& _obj() const { return ObjTokenBase<SubCls>::m_obj; }
+  IObj*& _obj() noexcept { return ObjTokenBase<SubCls>::m_obj; }
+  IObj* const& _obj() const noexcept { return ObjTokenBase<SubCls>::m_obj; }
 
 public:
   using ObjTokenBase<SubCls>::ObjTokenBase;
-  ObjToken() = default;
-  ObjToken(ObjWrapper<SubCls>* obj) : ObjTokenBase<SubCls>(obj) {}
-  ObjToken& operator=(ObjWrapper<SubCls>* obj) {
-    if (_obj())
+  ObjToken() noexcept = default;
+  ObjToken(ObjWrapper<SubCls>* obj) noexcept : ObjTokenBase<SubCls>(obj) {}
+  ObjToken& operator=(ObjWrapper<SubCls>* obj) noexcept {
+    if (_obj()) {
       _obj()->decrement();
+    }
     _obj() = obj;
-    if (_obj())
+    if (_obj()) {
       _obj()->increment();
+    }
     return *this;
   }
-  SubCls* get() const { return static_cast<ObjWrapper<SubCls>*>(_obj())->get(); }
-  SubCls* operator->() const { return get(); }
-  SubCls& operator*() const { return *get(); }
+  SubCls* get() const noexcept { return static_cast<ObjWrapper<SubCls>*>(_obj())->get(); }
+  SubCls* operator->() const noexcept { return get(); }
+  SubCls& operator*() const noexcept { return *get(); }
 };
 
 template <class SubCls>
 class ObjToken<SubCls, typename std::enable_if_t<std::is_base_of_v<IObj, SubCls>>> : public ObjTokenBase<SubCls> {
-  IObj*& _obj() { return ObjTokenBase<SubCls>::m_obj; }
-  IObj* const& _obj() const { return ObjTokenBase<SubCls>::m_obj; }
+  IObj*& _obj() noexcept { return ObjTokenBase<SubCls>::m_obj; }
+  IObj* const& _obj() const noexcept { return ObjTokenBase<SubCls>::m_obj; }
 
 public:
   using ObjTokenBase<SubCls>::ObjTokenBase;
-  ObjToken() = default;
-  ObjToken(IObj* obj) : ObjTokenBase<SubCls>(obj) {}
-  ObjToken& operator=(IObj* obj) {
-    if (_obj())
+  ObjToken() noexcept = default;
+  ObjToken(IObj* obj) noexcept : ObjTokenBase<SubCls>(obj) {}
+  ObjToken& operator=(IObj* obj) noexcept {
+    if (_obj()) {
       _obj()->decrement();
+    }
     _obj() = obj;
-    if (_obj())
+    if (_obj()) {
       _obj()->increment();
+    }
     return *this;
   }
-  SubCls* get() const { return static_cast<SubCls*>(_obj()); }
-  SubCls* operator->() const { return get(); }
-  SubCls& operator*() const { return *get(); }
+  SubCls* get() const noexcept { return static_cast<SubCls*>(_obj()); }
+  SubCls* operator->() const noexcept { return get(); }
+  SubCls& operator*() const noexcept { return *get(); }
   template <class T>
-  T* cast() const {
+  T* cast() const noexcept {
     return static_cast<T*>(_obj());
   }
 };
@@ -267,26 +282,28 @@ public:
  * Bypasses type_traits tests for incomplete type definitions. */
 template <class SubCls>
 class IObjToken : public ObjTokenBase<SubCls> {
-  IObj*& _obj() { return ObjTokenBase<SubCls>::m_obj; }
-  IObj* const& _obj() const { return ObjTokenBase<SubCls>::m_obj; }
+  IObj*& _obj() noexcept { return ObjTokenBase<SubCls>::m_obj; }
+  IObj* const& _obj() const noexcept { return ObjTokenBase<SubCls>::m_obj; }
 
 public:
   using ObjTokenBase<SubCls>::ObjTokenBase;
-  IObjToken() = default;
-  IObjToken(IObj* obj) : ObjTokenBase<SubCls>(obj) {}
-  IObjToken& operator=(IObj* obj) {
-    if (_obj())
+  IObjToken() noexcept = default;
+  IObjToken(IObj* obj) noexcept : ObjTokenBase<SubCls>(obj) {}
+  IObjToken& operator=(IObj* obj) noexcept {
+    if (_obj()) {
       _obj()->decrement();
+    }
     _obj() = obj;
-    if (_obj())
+    if (_obj()) {
       _obj()->increment();
+    }
     return *this;
   }
-  SubCls* get() const { return static_cast<SubCls*>(_obj()); }
-  SubCls* operator->() const { return get(); }
-  SubCls& operator*() const { return *get(); }
+  SubCls* get() const noexcept { return static_cast<SubCls*>(_obj()); }
+  SubCls* operator->() const noexcept { return get(); }
+  SubCls& operator*() const noexcept { return *get(); }
   template <class T>
-  T* cast() const {
+  T* cast() const noexcept {
     return static_cast<T*>(_obj());
   }
 };
@@ -358,7 +375,7 @@ constexpr T clamp(T a, T val, T b) {
 }
 
 template <typename T>
-constexpr T ClampFull(float in) {
+constexpr T ClampFull(float in) noexcept {
   if (std::is_floating_point<T>()) {
     return in;
   } else {
@@ -443,7 +460,7 @@ bool Copy(const SystemChar* from, const SystemChar* to);
 
 /* Type-sensitive byte swappers */
 template <typename T>
-constexpr T bswap16(T val) {
+constexpr T bswap16(T val) noexcept {
 #if __GNUC__
   return __builtin_bswap16(val);
 #elif _WIN32
@@ -454,7 +471,7 @@ constexpr T bswap16(T val) {
 }
 
 template <typename T>
-constexpr T bswap32(T val) {
+constexpr T bswap32(T val) noexcept {
 #if __GNUC__
   return __builtin_bswap32(val);
 #elif _WIN32
@@ -467,7 +484,7 @@ constexpr T bswap32(T val) {
 }
 
 template <typename T>
-constexpr T bswap64(T val) {
+constexpr T bswap64(T val) noexcept {
 #if __GNUC__
   return __builtin_bswap64(val);
 #elif _WIN32
@@ -481,18 +498,18 @@ constexpr T bswap64(T val) {
 }
 
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-constexpr int16_t SBig(int16_t val) { return bswap16(val); }
-constexpr uint16_t SBig(uint16_t val) { return bswap16(val); }
-constexpr int32_t SBig(int32_t val) { return bswap32(val); }
-constexpr uint32_t SBig(uint32_t val) { return bswap32(val); }
-constexpr int64_t SBig(int64_t val) { return bswap64(val); }
-constexpr uint64_t SBig(uint64_t val) { return bswap64(val); }
-constexpr float SBig(float val) {
+constexpr int16_t SBig(int16_t val) noexcept { return bswap16(val); }
+constexpr uint16_t SBig(uint16_t val) noexcept { return bswap16(val); }
+constexpr int32_t SBig(int32_t val) noexcept { return bswap32(val); }
+constexpr uint32_t SBig(uint32_t val) noexcept { return bswap32(val); }
+constexpr int64_t SBig(int64_t val) noexcept { return bswap64(val); }
+constexpr uint64_t SBig(uint64_t val) noexcept { return bswap64(val); }
+constexpr float SBig(float val) noexcept {
   union { float f; atInt32 i; } uval1 = {val};
   union { atInt32 i; float f; } uval2 = {bswap32(uval1.i)};
   return uval2.f;
 }
-constexpr double SBig(double val) {
+constexpr double SBig(double val) noexcept {
   union { double f; atInt64 i; } uval1 = {val};
   union { atInt64 i; double f; } uval2 = {bswap64(uval1.i)};
   return uval2.f;
@@ -501,29 +518,29 @@ constexpr double SBig(double val) {
 #define SBIG(q) (((q)&0x000000FF) << 24 | ((q)&0x0000FF00) << 8 | ((q)&0x00FF0000) >> 8 | ((q)&0xFF000000) >> 24)
 #endif
 
-constexpr int16_t SLittle(int16_t val) { return val; }
-constexpr uint16_t SLittle(uint16_t val) { return val; }
-constexpr int32_t SLittle(int32_t val) { return val; }
-constexpr uint32_t SLittle(uint32_t val) { return val; }
-constexpr int64_t SLittle(int64_t val) { return val; }
-constexpr uint64_t SLittle(uint64_t val) { return val; }
-constexpr float SLittle(float val) { return val; }
-constexpr double SLittle(double val) { return val; }
+constexpr int16_t SLittle(int16_t val) noexcept { return val; }
+constexpr uint16_t SLittle(uint16_t val) noexcept { return val; }
+constexpr int32_t SLittle(int32_t val) noexcept { return val; }
+constexpr uint32_t SLittle(uint32_t val) noexcept { return val; }
+constexpr int64_t SLittle(int64_t val) noexcept { return val; }
+constexpr uint64_t SLittle(uint64_t val) noexcept { return val; }
+constexpr float SLittle(float val) noexcept { return val; }
+constexpr double SLittle(double val) noexcept { return val; }
 #ifndef SLITTLE
 #define SLITTLE(q) (q)
 #endif
 #else
-constexpr int16_t SLittle(int16_t val) { return bswap16(val); }
-constexpr uint16_t SLittle(uint16_t val) { return bswap16(val); }
-constexpr int32_t SLittle(int32_t val) { return bswap32(val); }
-constexpr uint32_t SLittle(uint32_t val) { return bswap32(val); }
-constexpr int64_t SLittle(int64_t val) { return bswap64(val); }
-constexpr uint64_t SLittle(uint64_t val) { return bswap64(val); }
-constexpr float SLittle(float val) {
+constexpr int16_t SLittle(int16_t val) noexcept { return bswap16(val); }
+constexpr uint16_t SLittle(uint16_t val) noexcept { return bswap16(val); }
+constexpr int32_t SLittle(int32_t val) noexcept { return bswap32(val); }
+constexpr uint32_t SLittle(uint32_t val) noexcept { return bswap32(val); }
+constexpr int64_t SLittle(int64_t val) noexcept { return bswap64(val); }
+constexpr uint64_t SLittle(uint64_t val) noexcept { return bswap64(val); }
+constexpr float SLittle(float val) noexcept {
   int32_t ival = bswap32(*((int32_t*)(&val)));
   return *((float*)(&ival));
 }
-constexpr double SLittle(double val) {
+constexpr double SLittle(double val) noexcept {
   int64_t ival = bswap64(*((int64_t*)(&val)));
   return *((double*)(&ival));
 }
@@ -531,14 +548,14 @@ constexpr double SLittle(double val) {
 #define SLITTLE(q) (((q)&0x000000FF) << 24 | ((q)&0x0000FF00) << 8 | ((q)&0x00FF0000) >> 8 | ((q)&0xFF000000) >> 24)
 #endif
 
-constexpr int16_t SBig(int16_t val) { return val; }
-constexpr uint16_t SBig(uint16_t val) { return val; }
-constexpr int32_t SBig(int32_t val) { return val; }
-constexpr uint32_t SBig(uint32_t val) { return val; }
-constexpr int64_t SBig(int64_t val) { return val; }
-constexpr uint64_t SBig(uint64_t val) { return val; }
-constexpr float SBig(float val) { return val; }
-constexpr double SBig(double val) { return val; }
+constexpr int16_t SBig(int16_t val) noexcept { return val; }
+constexpr uint16_t SBig(uint16_t val) noexcept { return val; }
+constexpr int32_t SBig(int32_t val) noexcept { return val; }
+constexpr uint32_t SBig(uint32_t val) noexcept { return val; }
+constexpr int64_t SBig(int64_t val) noexcept { return val; }
+constexpr uint64_t SBig(uint64_t val) noexcept { return val; }
+constexpr float SBig(float val) noexcept { return val; }
+constexpr double SBig(double val) noexcept { return val; }
 #ifndef SBIG
 #define SBIG(q) (q)
 #endif
