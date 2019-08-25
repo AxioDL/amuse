@@ -611,9 +611,10 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
     encoder.getResult().push_back(0x51);
     encoder.getResult().push_back(3);
 
-    uint32_t tempo24 = SBig(60000000 / (song.m_header.m_initialTempo & 0x7fffffff));
-    for (int i = 1; i < 4; ++i)
-      encoder.getResult().push_back(reinterpret_cast<uint8_t*>(&tempo24)[i]);
+    const uint32_t initialTempo24 = SBig(60000000 / (song.m_header.m_initialTempo & 0x7fffffff));
+    for (size_t i = 1; i < 4; ++i) {
+      encoder.getResult().push_back(reinterpret_cast<const uint8_t*>(&initialTempo24)[i]);
+    }
 
     /* Write out tempo changes */
     int lastTick = 0;
@@ -631,9 +632,10 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
       encoder.getResult().push_back(0x51);
       encoder.getResult().push_back(3);
 
-      uint32_t tempo24 = SBig(60000000 / (change.m_tempo & 0x7fffffff));
-      for (int i = 1; i < 4; ++i)
-        encoder.getResult().push_back(reinterpret_cast<uint8_t*>(&tempo24)[i]);
+      const uint32_t tempo24 = SBig(60000000 / (change.m_tempo & 0x7fffffff));
+      for (size_t i = 1; i < 4; ++i) {
+        encoder.getResult().push_back(reinterpret_cast<const uint8_t*>(&tempo24)[i]);
+      }
 
       ++tempoPtr;
     }
@@ -974,9 +976,9 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
       if (tempos.size() == 1)
         initTempo = tempos.begin()->second;
       else if (tempos.size() > 1) {
-        auto it = tempos.begin();
-        initTempo = it->second;
-        ++it;
+        auto iter = tempos.begin();
+        initTempo = iter->second;
+        ++iter;
         for (auto& pair : tempos) {
           if (big)
             tempoBuf.emplace_back(SBig(uint32_t(pair.first * 384 / header.div)), SBig(uint32_t(pair.second)));
@@ -1046,15 +1048,17 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
                   region.eventBuf.push_back(0x80 | event.second.noteOrCtrl);
                 } else {
                   if (big) {
-                    uint32_t tickBig = SBig(uint32_t(eventTick - startTick));
-                    for (int i = 0; i < 4; ++i)
-                      region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&tickBig)[i]);
+                    const uint32_t tickBig = SBig(uint32_t(eventTick - startTick));
+                    for (size_t j = 0; j < 4; ++j) {
+                      region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&tickBig)[j]);
+                    }
                     region.eventBuf.push_back(0x80 | event.second.velOrVal);
                     region.eventBuf.push_back(0x80 | event.second.noteOrCtrl);
                   } else {
-                    uint32_t tick = uint32_t(eventTick - startTick);
-                    for (int i = 0; i < 4; ++i)
-                      region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&tick)[i]);
+                    const uint32_t tick = uint32_t(eventTick - startTick);
+                    for (size_t j = 0; j < 4; ++j) {
+                      region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&tick)[j]);
+                    }
                     region.eventBuf.push_back(0x80 | event.second.velOrVal);
                     region.eventBuf.push_back(0x80 | event.second.noteOrCtrl);
                   }
@@ -1070,15 +1074,17 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
                 region.eventBuf.push_back(0);
               } else {
                 if (big) {
-                  uint32_t tickBig = SBig(uint32_t(eventTick - startTick));
-                  for (int i = 0; i < 4; ++i)
-                    region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&tickBig)[i]);
+                  const uint32_t tickBig = SBig(uint32_t(eventTick - startTick));
+                  for (size_t j = 0; j < 4; ++j) {
+                    region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&tickBig)[j]);
+                  }
                   region.eventBuf.push_back(0x80 | event.second.program);
                   region.eventBuf.push_back(0);
                 } else {
-                  uint32_t tick = uint32_t(eventTick - startTick);
-                  for (int i = 0; i < 4; ++i)
-                    region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&tick)[i]);
+                  const uint32_t tick = uint32_t(eventTick - startTick);
+                  for (size_t j = 0; j < 4; ++j) {
+                    region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&tick)[j]);
+                  }
                   region.eventBuf.push_back(0x80 | event.second.program);
                   region.eventBuf.push_back(0);
                 }
@@ -1099,24 +1105,26 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
                 lastEventTick = eventTick;
                 region.eventBuf.push_back(event.second.noteOrCtrl);
                 region.eventBuf.push_back(event.second.velOrVal);
-                uint16_t lenBig = SBig(uint16_t(lenTicks));
+                const uint16_t lenBig = SBig(uint16_t(lenTicks));
                 region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&lenBig)[0]);
                 region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&lenBig)[1]);
               } else {
                 if (big) {
-                  uint32_t tickBig = SBig(uint32_t(eventTick - startTick));
-                  for (int i = 0; i < 4; ++i)
-                    region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&tickBig)[i]);
-                  uint16_t lenBig = SBig(uint16_t(lenTicks));
+                  const uint32_t tickBig = SBig(uint32_t(eventTick - startTick));
+                  for (size_t j = 0; j < 4; ++j) {
+                    region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&tickBig)[j]);
+                  }
+                  const uint16_t lenBig = SBig(uint16_t(lenTicks));
                   region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&lenBig)[0]);
                   region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&lenBig)[1]);
                   region.eventBuf.push_back(event.second.noteOrCtrl);
                   region.eventBuf.push_back(event.second.velOrVal);
                 } else {
-                  uint32_t tick = uint32_t(eventTick - startTick);
-                  for (int i = 0; i < 4; ++i)
-                    region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&tick)[i]);
-                  uint16_t len = uint16_t(lenTicks);
+                  const uint32_t tick = uint32_t(eventTick - startTick);
+                  for (size_t j = 0; j < 4; ++j) {
+                    region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&tick)[j]);
+                  }
+                  const uint16_t len = uint16_t(lenTicks);
                   region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&len)[0]);
                   region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&len)[1]);
                   region.eventBuf.push_back(event.second.noteOrCtrl);
@@ -1152,21 +1160,23 @@ std::vector<uint8_t> SongConverter::MIDIToSong(const std::vector<uint8_t>& data,
             region.eventBuf.push_back(0xff);
           } else {
             if (big) {
-              uint32_t selTick =
+              const uint32_t selTick =
                   std::max(std::max(lastEventTick - startTick, lastPitchTick - startTick), lastModTick - startTick);
-              uint32_t tickBig = SBig(uint32_t(selTick));
-              for (int i = 0; i < 4; ++i)
-                region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&tickBig)[i]);
+              const uint32_t tickBig = SBig(uint32_t(selTick));
+              for (size_t j = 0; j < 4; ++j) {
+                region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&tickBig)[j]);
+              }
               region.eventBuf.push_back(0);
               region.eventBuf.push_back(0);
               region.eventBuf.push_back(0xff);
               region.eventBuf.push_back(0xff);
             } else {
-              uint32_t selTick =
+              const uint32_t selTick =
                   std::max(std::max(lastEventTick - startTick, lastPitchTick - startTick), lastModTick - startTick);
-              uint32_t tick = uint32_t(selTick);
-              for (int i = 0; i < 4; ++i)
-                region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&tick)[i]);
+              const uint32_t tick = uint32_t(selTick);
+              for (size_t j = 0; j < 4; ++j) {
+                region.eventBuf.push_back(reinterpret_cast<const uint8_t*>(&tick)[j]);
+              }
               region.eventBuf.push_back(0);
               region.eventBuf.push_back(0);
               region.eventBuf.push_back(0xff);

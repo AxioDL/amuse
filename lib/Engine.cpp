@@ -161,11 +161,11 @@ AudioGroup* Engine::_addAudioGroup(const AudioGroupData& data, std::unique_ptr<A
   m_audioGroups.emplace(std::make_pair(&data, std::move(grp)));
 
   /* setup SFX index for contained objects */
-  for (const auto& grp : ret->getProj().sfxGroups()) {
-    const SFXGroupIndex& sfxGroup = *grp.second;
+  for (const auto& [groupID, groupIndex] : ret->getProj().sfxGroups()) {
+    const SFXGroupIndex& sfxGroup = *groupIndex;
     m_sfxLookup.reserve(m_sfxLookup.size() + sfxGroup.m_sfxEntries.size());
     for (const auto& ent : sfxGroup.m_sfxEntries)
-      m_sfxLookup[ent.first] = std::make_tuple(ret, grp.first, &ent.second);
+      m_sfxLookup[ent.first] = std::make_tuple(ret, groupID, &ent.second);
   }
 
   return ret;
@@ -218,8 +218,9 @@ void Engine::removeAudioGroup(const AudioGroupData& data) {
   /* teardown SFX index for contained objects */
   for (const auto& pair : grp->getProj().sfxGroups()) {
     const SFXGroupIndex& sfxGroup = *pair.second;
-    for (const auto& pair : sfxGroup.m_sfxEntries)
-      m_sfxLookup.erase(pair.first);
+    for (const auto& sfxEntry : sfxGroup.m_sfxEntries) {
+      m_sfxLookup.erase(sfxEntry.first);
+    }
   }
 
   m_audioGroups.erase(search);

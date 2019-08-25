@@ -332,8 +332,8 @@ void SoundMacro::readCmds(athena::io::IStreamReader& r, uint32_t size) {
   for (uint32_t i = 0; i < numCmds; ++i) {
     uint32_t data[2];
     athena::io::Read<athena::io::PropType::None>::Do<decltype(data), DNAE>({}, data, r);
-    athena::io::MemoryReader r(data, 8);
-    m_cmds.push_back(CmdDo<MakeCmdOp, std::unique_ptr<SoundMacro::ICmd>>(r));
+    athena::io::MemoryReader mr(data, sizeof(data));
+    m_cmds.push_back(CmdDo<MakeCmdOp, std::unique_ptr<ICmd>>(mr));
   }
 }
 template void SoundMacro::readCmds<athena::Big>(athena::io::IStreamReader& r, uint32_t size);
@@ -343,7 +343,7 @@ template <athena::Endian DNAE>
 void SoundMacro::writeCmds(athena::io::IStreamWriter& w) const {
   for (const auto& cmd : m_cmds) {
     uint32_t data[2];
-    athena::io::MemoryWriter mw((uint8_t*)data, 8);
+    athena::io::MemoryWriter mw(reinterpret_cast<uint8_t*>(data), sizeof(data));
     mw.writeUByte(uint8_t(cmd->Isa()));
     cmd->write(mw);
     athena::io::Write<athena::io::PropType::None>::Do<decltype(data), DNAE>({}, data, w);
