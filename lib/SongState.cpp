@@ -253,14 +253,14 @@ int SongState::DetectVersion(const unsigned char* ptr, bool& isBig) {
           const unsigned char* expectedEnd =
               ptr + (isBig ? SBig(regionIdxTable[regionIdx + 1]) : regionIdxTable[regionIdx + 1]);
 
-          Track::Header header = *reinterpret_cast<const Track::Header*>(data);
+          auto header2 = *reinterpret_cast<const Track::Header*>(data);
           if (isBig)
-            header.swapBig();
+            header2.swapBig();
           data += 12;
 
           /* continuous pitch data */
-          if (header.m_pitchOff) {
-            const unsigned char* dptr = ptr + header.m_pitchOff;
+          if (header2.m_pitchOff) {
+            const unsigned char* dptr = ptr + header2.m_pitchOff;
             while (dptr[0] != 0x80 || dptr[1] != 0x00)
               DecodeDelta(dptr);
             dptr += 2;
@@ -269,8 +269,8 @@ int SongState::DetectVersion(const unsigned char* ptr, bool& isBig) {
           }
 
           /* continuous modulation data */
-          if (header.m_modOff) {
-            const unsigned char* dptr = ptr + header.m_modOff;
+          if (header2.m_modOff) {
+            const unsigned char* dptr = ptr + header2.m_modOff;
             while (dptr[0] != 0x80 || dptr[1] != 0x00)
               DecodeDelta(dptr);
             dptr += 2;
