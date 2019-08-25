@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.10)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
+# Automatically handle invoking moc
+set(CMAKE_AUTOMOC ON)
+
 find_package(Qt5 COMPONENTS LinguistTools Network Qml Svg Widgets Xml REQUIRED)
 
 configure_file(resources/translation_res.qrc translation_res.qrc @ONLY)
@@ -14,25 +17,6 @@ QT5_ADD_RESOURCES(qrc_resources.cpp resources/resources.qrc)
 QT5_ADD_RESOURCES(qrc_translation_res.cpp ${CMAKE_CURRENT_BINARY_DIR}/translation_res.qrc OPTIONS -no-compress)
 
 QT5_WRAP_UI(MAIN_WINDOW_UI MainWindow.ui)
-
-QT5_WRAP_CPP(AMUSE_MOC
-  ADSREditor.hpp
-  Common.hpp
-  CurveEditor.hpp
-  EditorWidget.hpp
-  LayersEditor.hpp
-  MainWindow.hpp
-  NewSoundMacroDialog.hpp
-  KeyboardWidget.hpp
-  KeymapEditor.hpp
-  ProjectModel.hpp
-  SampleEditor.hpp
-  SongGroupEditor.hpp
-  SoundGroupEditor.hpp
-  SoundMacroEditor.hpp
-  StatusBarWidget.hpp
-  StudioSetupWidget.hpp
-)
 
 add_executable(amuse-gui WIN32 MACOSX_BUNDLE
   ADSREditor.cpp
@@ -76,7 +60,6 @@ add_executable(amuse-gui WIN32 MACOSX_BUNDLE
   qrc_translation_res.cpp
   resources/resources.qrc
 
-  ${AMUSE_MOC}
   ${MAIN_WINDOW_UI}
   ${QM_FILES}
 )
