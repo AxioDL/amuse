@@ -2,12 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-find_package(Qt5Widgets REQUIRED)
-find_package(Qt5Network REQUIRED)
-find_package(Qt5Xml REQUIRED)
-find_package(Qt5Svg REQUIRED)
-find_package(Qt5Qml REQUIRED)
-find_package(Qt5LinguistTools REQUIRED)
+find_package(Qt5 COMPONENTS LinguistTools Network Qml Svg Widgets Xml REQUIRED)
 
 if(WIN32)
   list(APPEND PLAT_SRCS platforms/win/amuse-gui.rc platforms/win/amuse-gui.manifest)
@@ -76,12 +71,24 @@ if(COMMAND add_sanitizers)
 endif()
 
 set_target_properties(amuse-gui PROPERTIES
-        MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/platforms/mac/Info.plist")
+  MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/platforms/mac/Info.plist"
+)
 
-target_link_libraries(amuse-gui ${PLAT_LIBS}
-        ${Qt5Widgets_LIBRARIES}
-        ${Qt5Network_LIBRARIES}
-        ${Qt5Xml_LIBRARIES}
-        ${Qt5Svg_LIBRARIES}
-        ${Qt5Qml_LIBRARIES}
-        amuse boo ${BOO_SYS_LIBS} logvisor athena-core xxhash ${ZLIB_LIBRARIES} lzokay)
+target_link_libraries(amuse-gui
+  ${PLAT_LIBS}
+
+  Qt5::Network
+  Qt5::Qml
+  Qt5::Svg
+  Qt5::Widgets
+  Qt5::Xml
+
+  amuse
+  athena-core
+  boo
+  ${BOO_SYS_LIBS}
+  logvisor
+  lzokay
+  xxhash
+  ${ZLIB_LIBRARIES}
+)
