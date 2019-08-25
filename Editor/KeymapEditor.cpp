@@ -1,26 +1,54 @@
 #include "KeymapEditor.hpp"
-#include "MainWindow.hpp"
-#include "KeyboardWidget.hpp"
-#include <QVBoxLayout>
+
+#include <array>
+
 #include <QPainter>
 #include <QScrollBar>
+#include <QVBoxLayout>
 
-static const int HueTable[] = {0, 30, 60, 80, 120, 170, 200, 240, 280, 320};
+#include "KeyboardWidget.hpp"
+#include "MainWindow.hpp"
 
-static const int SaturationTable[] = {255, 255, 255, 255, 255, 127, 127, 127, 127, 127, 63, 63, 63};
+constexpr std::array<int, 10> HueTable{
+    0, 30, 60, 80, 120, 170, 200, 240, 280, 320,
+};
 
-static const int ValueTable[] = {240, 200, 160, 120, 80, 240, 200, 160, 120, 80, 240, 200, 160};
+constexpr std::array<int, 13> SaturationTable{
+    255, 255, 255, 255, 255, 127, 127, 127, 127, 127, 63, 63, 63,
+};
 
-static const QPoint PointTable[] = {{21, 180},  {41, 104},  {61, 180},  {86, 104},  {101, 180}, {141, 180},
-                                    {156, 104}, {181, 180}, {201, 104}, {221, 180}, {246, 104}, {261, 180}};
+constexpr std::array<int, 13> ValueTable{
+    240, 200, 160, 120, 80, 240, 200, 160, 120, 80, 240, 200, 160,
+};
 
-static const int RadiusTable[] = {14, 10, 14, 10, 14, 14, 10, 14, 10, 14, 10, 14};
+constexpr std::array<QPoint, 12> PointTable{{
+    {21, 180},
+    {41, 104},
+    {61, 180},
+    {86, 104},
+    {101, 180},
+    {141, 180},
+    {156, 104},
+    {181, 180},
+    {201, 104},
+    {221, 180},
+    {246, 104},
+    {261, 180},
+}};
 
-static const QColor PenColorTable[] = {Qt::black, Qt::white, Qt::black, Qt::white, Qt::black, Qt::black,
-                                       Qt::white, Qt::black, Qt::white, Qt::black, Qt::white, Qt::black};
+constexpr std::array<int, 12> RadiusTable{
+    14, 10, 14, 10, 14, 14, 10, 14, 10, 14, 10, 14,
+};
 
-static const QColor NeutralColorTable[] = {Qt::white, Qt::black, Qt::white, Qt::black, Qt::white, Qt::white,
-                                           Qt::black, Qt::white, Qt::black, Qt::white, Qt::black, Qt::white};
+constexpr std::array<Qt::GlobalColor, 12> PenColorTable{
+    Qt::black, Qt::white, Qt::black, Qt::white, Qt::black, Qt::black,
+    Qt::white, Qt::black, Qt::white, Qt::black, Qt::white, Qt::black,
+};
+
+constexpr std::array<Qt::GlobalColor, 12> NeutralColorTable{
+    Qt::white, Qt::black, Qt::white, Qt::black, Qt::white, Qt::white,
+    Qt::black, Qt::white, Qt::black, Qt::white, Qt::black, Qt::white,
+};
 
 PaintButton::PaintButton(QWidget* parent) : QPushButton(parent) {
   setIcon(QIcon(QStringLiteral(":/icons/IconPaintbrush.svg")));
@@ -37,15 +65,16 @@ void KeymapView::loadData(ProjectModel::KeymapNode* node) { m_node = node; }
 
 void KeymapView::unloadData() {
   m_node.reset();
-  std::fill(std::begin(m_keyPalettes), std::end(m_keyPalettes), -1);
+  m_keyPalettes.fill(-1);
 }
 
 ProjectModel::INode* KeymapView::currentNode() const { return m_node.get(); }
 
-void KeymapView::drawKey(QPainter& painter, const QRect& octaveRect, qreal penWidth, const QColor* keyPalette, int o,
-                         int k) const {
-  int keyIdx = o * 12 + k;
-  int keyPalIdx = m_keyPalettes[keyIdx];
+void KeymapView::drawKey(QPainter& painter, const QRect& octaveRect, qreal penWidth, const PaintPalette& keyPalette,
+                         int o, int k) const {
+  const int keyIdx = o * 12 + k;
+  const int keyPalIdx = m_keyPalettes[keyIdx];
+
   painter.setPen(QPen(PenColorTable[k], penWidth));
   painter.setBrush(keyPalIdx < 0 ? NeutralColorTable[k] : keyPalette[keyPalIdx]);
   painter.drawEllipse(PointTable[k] + octaveRect.topLeft(), RadiusTable[k], RadiusTable[k]);
@@ -61,51 +90,60 @@ void KeymapView::paintEvent(QPaintEvent* ev) {
   QPainter painter(this);
   painter.setRenderHint(QPainter::Antialiasing);
 
-  const QColor* keyPalette = getEditor()->m_paintPalette;
+  const auto& keyPalette = getEditor()->m_paintPalette;
 
-  qreal deviceRatio = devicePixelRatioF();
-  qreal penWidth = std::max(std::floor(deviceRatio), 1.0) / deviceRatio;
+  const qreal deviceRatio = devicePixelRatioF();
+  const qreal penWidth = std::max(std::floor(deviceRatio), 1.0) / deviceRatio;
 
   painter.setFont(m_keyFont);
-  int kbY = height() / 2 - 100;
+  const int kbY = height() / 2 - 100;
   for (int o = 0; o < 10; ++o) {
-    QRect thisRect(o * 280, kbY, 280, 200);
+    const QRect thisRect(o * 280, kbY, 280, 200);
     if (ev->rect().intersects(thisRect)) {
       m_octaveRenderer.render(&painter, thisRect);
-      for (int k = 0; k < 12; ++k)
+      for (int k = 0; k < 12; ++k) {
         drawKey(painter, thisRect, penWidth, keyPalette, o, k);
+      }
     }
   }
-  QRect thisRect(2800, kbY, 202, 200);
+
+  const QRect thisRect(2800, kbY, 202, 200);
   if (ev->rect().intersects(thisRect)) {
     m_lastOctaveRenderer.render(&painter, thisRect);
-    for (int k = 0; k < 8; ++k)
+    for (int k = 0; k < 8; ++k) {
       drawKey(painter, thisRect, penWidth, keyPalette, 10, k);
+    }
   }
 }
 
 void KeymapView::mousePressEvent(QMouseEvent* ev) { mouseMoveEvent(ev); }
 
 int KeymapView::getKey(const QPoint& localPos) const {
-  QPointF localPoint = m_widgetToSvg.map(localPos);
-  for (int i = 0; i < 5; ++i)
-    if (m_sharp[i].contains(localPoint))
+  const QPointF localPoint = m_widgetToSvg.map(localPos);
+  for (size_t i = 0; i < m_sharp.size(); ++i) {
+    if (m_sharp[i].contains(localPoint)) {
       return SharpKeyNumbers[i];
-  for (int i = 0; i < 7; ++i)
-    if (m_natural[i].contains(localPoint))
+    }
+  }
+  for (size_t i = 0; i < m_natural.size(); ++i) {
+    if (m_natural[i].contains(localPoint)) {
       return NaturalKeyNumbers[i];
+    }
+  }
   return -1;
 }
 
 void KeymapView::mouseMoveEvent(QMouseEvent* ev) {
-  int octave = ev->x() / 280;
-  int key = getKey(ev->pos() - QPoint(octave * 280, height() / 2 - 100));
-  if (octave >= 0 && key >= 0)
+  const int octave = ev->x() / 280;
+  const int key = getKey(ev->pos() - QPoint(octave * 280, height() / 2 - 100));
+
+  if (octave >= 0 && key >= 0) {
     getEditor()->touchKey(octave * 12 + key, ev->modifiers() & Qt::ShiftModifier);
+  }
 }
 
 void KeymapView::wheelEvent(QWheelEvent* event) {
-  if (QScrollArea* scroll = qobject_cast<QScrollArea*>(parentWidget()->parentWidget())) {
+  if (const QScrollArea* scroll = qobject_cast<QScrollArea*>(parentWidget()->parentWidget())) {
     /* Send wheel event directly to the scroll bar */
     QApplication::sendEvent(scroll->horizontalScrollBar(), event);
   }
@@ -117,22 +155,29 @@ KeymapView::KeymapView(QWidget* parent)
 , m_lastOctaveRenderer(QStringLiteral(":/bg/keyboard_last.svg")) {
   setMinimumWidth(3002);
 
-  int k = 0;
-  for (int i = 0; i < 11; ++i)
-    for (int j = 0; j < 12 && k < 128; ++j)
+  size_t k = 0;
+  for (size_t i = 0; i < 11; ++i) {
+    for (size_t j = 0; j < 12 && k < m_keyTexts.size(); ++j) {
       m_keyTexts[k++].setText(QStringLiteral("%1%2").arg(KeyStrings[j]).arg(i - 1));
-  m_keyFont.setPointSize(12);
-  std::fill(std::begin(m_keyPalettes), std::end(m_keyPalettes), -1);
+    }
+  }
 
-  for (int i = 0; i < 7; ++i)
-    if (m_octaveRenderer.elementExists(NaturalKeyNames[i]))
+  m_keyFont.setPointSize(12);
+  m_keyPalettes.fill(-1);
+
+  for (size_t i = 0; i < m_natural.size(); ++i) {
+    if (m_octaveRenderer.elementExists(NaturalKeyNames[i])) {
       m_natural[i] = m_octaveRenderer.matrixForElement(NaturalKeyNames[i])
                          .mapRect(m_octaveRenderer.boundsOnElement(NaturalKeyNames[i]));
+    }
+  }
 
-  for (int i = 0; i < 5; ++i)
-    if (m_octaveRenderer.elementExists(SharpKeyNames[i]))
+  for (size_t i = 0; i < m_sharp.size(); ++i) {
+    if (m_octaveRenderer.elementExists(SharpKeyNames[i])) {
       m_sharp[i] = m_octaveRenderer.matrixForElement(SharpKeyNames[i])
                        .mapRect(m_octaveRenderer.boundsOnElement(SharpKeyNames[i]));
+    }
+  }
 
   m_widgetToSvg = RectToRect(QRect(0, 0, 280, 200), m_octaveRenderer.viewBoxF());
 }
@@ -145,7 +190,7 @@ void KeymapControls::setPaintIdx(int idx) {
     palette.setColor(QPalette::Window, QWidget::palette().color(QPalette::Window));
     palette.setColor(QPalette::Button, QWidget::palette().color(QPalette::Button));
   } else {
-    const QColor* keyPalette = getEditor()->m_paintPalette;
+    const auto& keyPalette = getEditor()->m_paintPalette;
     palette.setColor(QPalette::Window, keyPalette[idx]);
     palette.setColor(QPalette::Button, keyPalette[idx].darker(300));
   }
@@ -154,7 +199,7 @@ void KeymapControls::setPaintIdx(int idx) {
 
 void KeymapControls::setKeymap(const amuse::Keymap& km) {
   m_enableUpdate = false;
-  int idx = m_macro->collection()->indexOfId(km.macro.id);
+  const int idx = m_macro->collection()->indexOfId(km.macro.id);
   m_macro->setCurrentIndex(idx + 1);
   m_transpose->setValue(km.transpose);
   if (km.pan == -128) {
@@ -365,11 +410,11 @@ int KeymapEditor::allocateConfigIdx(uint64_t key) {
     ++search->second.second;
     return search->second.first;
   }
-  for (int i = 0; i < 129; ++i)
+  for (size_t i = 0; i < m_idxBitmap.size(); ++i)
     if (!m_idxBitmap[i]) {
-      m_configToIdx[key] = std::make_pair(i, 1);
+      m_configToIdx.insert_or_assign(key, std::make_pair(int(i), 1));
       m_idxBitmap.set(i);
-      return i;
+      return int(i);
     }
   Q_UNREACHABLE();
 }
@@ -388,12 +433,15 @@ void KeymapEditor::deallocateConfigIdx(uint64_t key) {
 }
 
 int KeymapEditor::getConfigIdx(uint64_t key) const {
-  auto search = m_configToIdx.find(key);
-  if (search != m_configToIdx.end())
+  const auto search = m_configToIdx.find(key);
+  if (search != m_configToIdx.end()) {
     return search->second.first;
-  for (int i = 0; i < 129; ++i)
-    if (!m_idxBitmap[i])
-      return i;
+  }
+  for (size_t i = 0; i < m_idxBitmap.size(); ++i) {
+    if (!m_idxBitmap[i]) {
+      return int(i);
+    }
+  }
   Q_UNREACHABLE();
 }
 
@@ -402,12 +450,14 @@ bool KeymapEditor::loadData(ProjectModel::KeymapNode* node) {
     m_configToIdx.clear();
     m_idxBitmap.reset();
 
-    for (int i = 0; i < 128; ++i) {
-      amuse::Keymap& km = (*node->m_obj)[i];
-      if (km.macro.id == 0xffff)
+    for (size_t i = 0; i < m_kmView->m_keyPalettes.size(); ++i) {
+      const amuse::Keymap& km = (*node->m_obj)[i];
+
+      if (km.macro.id == 0xffff) {
         m_kmView->m_keyPalettes[i] = -1;
-      else
+      } else {
         m_kmView->m_keyPalettes[i] = allocateConfigIdx(km.configKey());
+      }
     }
 
     m_controlKeymap = amuse::Keymap();
@@ -447,11 +497,12 @@ void KeymapEditor::keyPressEvent(QKeyEvent* event) {
 
 KeymapEditor::KeymapEditor(QWidget* parent)
 : EditorWidget(parent), m_scrollArea(new QScrollArea), m_kmView(new KeymapView), m_controls(new KeymapControls) {
-
-  int k = 0;
-  for (int i = 0; i < 13; ++i)
-    for (int j = 0; j < 10 && k < 129; ++j)
+  size_t k = 0;
+  for (size_t i = 0; i < ValueTable.size(); ++i) {
+    for (size_t j = 0; j < HueTable.size() && k < m_paintPalette.size(); ++j) {
       m_paintPalette[k++].setHsv(HueTable[j], SaturationTable[i], ValueTable[i]);
+    }
+  }
 
   m_scrollArea->setWidget(m_kmView);
   m_scrollArea->setWidgetResizable(true);
