@@ -4,21 +4,10 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 find_package(Qt5 COMPONENTS LinguistTools Network Qml Svg Widgets Xml REQUIRED)
 
-if(WIN32)
-  list(APPEND PLAT_SRCS platforms/win/amuse-gui.rc platforms/win/amuse-gui.manifest)
-elseif(APPLE)
-  list(APPEND PLAT_SRCS platforms/mac/mainicon.icns MacOSExtras.mm)
-  set_source_files_properties(platforms/mac/mainicon.icns PROPERTIES
-          MACOSX_PACKAGE_LOCATION Resources)
-endif()
-
-add_subdirectory(platforms/freedesktop)
-declare_qticon_target()
-list(APPEND PLAT_SRCS mainicon_qt.cpp)
-
 configure_file(resources/translation_res.qrc translation_res.qrc @ONLY)
 set(TRANSLATIONS
-    resources/lang_de.ts)
+  resources/lang_de.ts
+)
 QT5_CREATE_TRANSLATION(QM_FILES ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../lib ${TRANSLATIONS})
 
 QT5_ADD_RESOURCES(qrc_resources.cpp resources/resources.qrc)
@@ -89,9 +78,28 @@ add_executable(amuse-gui WIN32 MACOSX_BUNDLE
 
   ${AMUSE_MOC}
   ${MAIN_WINDOW_UI}
-  ${PLAT_SRCS}
   ${QM_FILES}
 )
+
+if(WIN32)
+  target_sources(amuse-gui PRIVATE
+    platforms/win/amuse-gui.rc
+    platforms/win/amuse-gui.manifest
+  )
+elseif(APPLE)
+  target_sources(amuse-gui PRIVATE
+    MacOSExtras.mm
+    platforms/mac/mainicon.icns
+  )
+  set_source_files_properties(platforms/mac/mainicon.icns PROPERTIES
+    MACOSX_PACKAGE_LOCATION Resources
+  )
+endif()
+
+add_subdirectory(platforms/freedesktop)
+declare_qticon_target()
+target_sources(amuse-gui PRIVATE mainicon_qt.cpp)
+
 if(COMMAND add_sanitizers)
   add_sanitizers(amuse-gui)
 endif()
