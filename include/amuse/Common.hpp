@@ -150,10 +150,12 @@ protected:
   virtual ~IObj() = default;
 
 public:
-  void increment() noexcept { m_refCount++; }
+  void increment() noexcept { m_refCount.fetch_add(std::memory_order_relaxed); }
   void decrement() noexcept {
-    if (m_refCount.fetch_sub(1) == 1)
+    if (m_refCount.fetch_sub(1, std::memory_order_release) == 1) {
+      std::atomic_thread_fence(std::memory_order_acquire);
       delete this;
+    }
   }
 };
 
@@ -373,7 +375,7 @@ constexpr T clamp(T a, T val, T b) {
 }
 
 template <typename T>
-constexpr T ClampFull(float in) {
+constexpr T ClampFull(float in) noexcept {
   if (std::is_floating_point<T>()) {
     return in;
   } else {
