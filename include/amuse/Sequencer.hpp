@@ -1,14 +1,16 @@
 #pragma once
 
-#include "Entity.hpp"
-#include "AudioGroupProject.hpp"
-#include "SongState.hpp"
-#include "Studio.hpp"
-#include "Voice.hpp"
+#include <cstddef>
+#include <cstdint>
 #include <unordered_map>
 #include <unordered_set>
-#include <memory>
-#include <list>
+
+#include "amuse/AudioGroupProject.hpp"
+#include "amuse/Common.hpp"
+#include "amuse/Entity.hpp"
+#include "amuse/SongState.hpp"
+#include "amuse/Studio.hpp"
+#include "amuse/Voice.hpp"
 
 namespace amuse {
 

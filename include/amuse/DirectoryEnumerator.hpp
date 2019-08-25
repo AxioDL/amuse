@@ -1,7 +1,10 @@
 #pragma once
 
-#include "Common.hpp"
+#include <cstring>
+#include <string>
 #include <vector>
+
+#include "amuse/Common.hpp"
 
 namespace amuse {
 

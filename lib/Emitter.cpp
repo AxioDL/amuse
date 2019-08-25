@@ -1,7 +1,8 @@
 #include "amuse/Emitter.hpp"
+
+#include "amuse/Engine.hpp"
 #include "amuse/Listener.hpp"
 #include "amuse/Voice.hpp"
-#include "amuse/Engine.hpp"
 
 namespace amuse {
 

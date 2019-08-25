@@ -1,9 +1,12 @@
 #pragma once
 
-#include "AudioGroupPool.hpp"
+#include <cstdint>
 
 namespace amuse {
 class Voice;
+
+struct ADSR;
+struct ADSRDLS;
 
 /** Per-sample state tracker for ADSR envelope data */
 class Envelope {

@@ -1,10 +1,9 @@
 #pragma once
 
-#include <cstdint>
-#include <vector>
 #include <array>
-#include <list>
-#include "Entity.hpp"
+#include <cstdint>
+
+#include "amuse/Entity.hpp"
 
 namespace amuse {
 class Sequencer;
@@ -13,8 +12,8 @@ enum class SongPlayState { Stopped, Playing };
 
 /** Real-time state of Song execution */
 class SongState {
-  friend class Voice;
   friend class SongConverter;
+  friend class Voice;
 
   /** Song header */
   struct Header {

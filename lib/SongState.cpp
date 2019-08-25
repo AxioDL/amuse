@@ -1,7 +1,9 @@
 #include "amuse/SongState.hpp"
+
+#include <cmath>
+
 #include "amuse/Common.hpp"
 #include "amuse/Sequencer.hpp"
-#include <cmath>
 
 namespace amuse {
 

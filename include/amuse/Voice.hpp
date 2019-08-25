@@ -2,15 +2,16 @@
 
 #include <cstdint>
 #include <cstdlib>
-#include <memory>
 #include <list>
+#include <memory>
 #include <queue>
-#include "SoundMacroState.hpp"
-#include "Entity.hpp"
-#include "AudioGroupSampleDirectory.hpp"
-#include "AudioGroup.hpp"
-#include "Envelope.hpp"
-#include "Studio.hpp"
+
+#include "amuse/AudioGroup.hpp"
+#include "amuse/AudioGroupSampleDirectory.hpp"
+#include "amuse/Entity.hpp"
+#include "amuse/Envelope.hpp"
+#include "amuse/SoundMacroState.hpp"
+#include "amuse/Studio.hpp"
 
 namespace amuse {
 class IBackendVoice;
@@ -26,20 +27,20 @@ enum class VoiceState {
 
 /** Individual source of audio */
 class Voice : public Entity {
-  friend class Engine;
-  friend class Sequencer;
-  friend struct SoundMacroState;
-  friend class Envelope;
   friend class Emitter;
-  friend struct SoundMacro::CmdScaleVolume;
-  friend struct SoundMacro::CmdKeyOff;
-  friend struct SoundMacro::CmdScaleVolumeDLS;
-  friend struct SoundMacro::CmdReturn;
+  friend class Engine;
+  friend class Envelope;
+  friend class Sequencer;
+  friend struct SoundMacro::CmdGetMessage;
   friend struct SoundMacro::CmdGoSub;
+  friend struct SoundMacro::CmdKeyOff;
+  friend struct SoundMacro::CmdModeSelect;
+  friend struct SoundMacro::CmdReturn;
+  friend struct SoundMacro::CmdScaleVolume;
+  friend struct SoundMacro::CmdScaleVolumeDLS;
   friend struct SoundMacro::CmdTrapEvent;
   friend struct SoundMacro::CmdUntrapEvent;
-  friend struct SoundMacro::CmdGetMessage;
-  friend struct SoundMacro::CmdModeSelect;
+  friend struct SoundMacroState;
 
   struct VolumeCache {
     bool m_curDLS = false;       /**< Current DLS status of cached lookup */

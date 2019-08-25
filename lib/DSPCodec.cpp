@@ -1,7 +1,9 @@
 #include "amuse/DSPCodec.hpp"
+
 #include <algorithm>
+#include <cfloat>
 #include <cmath>
-#include <memory.h>
+#include <cstdlib>
 
 #if __SWITCH__
 #include "switch_math.hpp"

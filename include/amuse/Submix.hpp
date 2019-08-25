@@ -1,14 +1,16 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
-#include "SoundMacroState.hpp"
-#include "IBackendSubmix.hpp"
-#include "IBackendVoice.hpp"
-#include "EffectBase.hpp"
-#include "EffectChorus.hpp"
-#include "EffectDelay.hpp"
-#include "EffectReverb.hpp"
-#include <unordered_set>
+#include <vector>
+
+#include "amuse/EffectBase.hpp"
+#include "amuse/EffectChorus.hpp"
+#include "amuse/EffectDelay.hpp"
+#include "amuse/EffectReverb.hpp"
+#include "amuse/IBackendSubmix.hpp"
+#include "amuse/SoundMacroState.hpp"
+
 
 namespace amuse {
 class IBackendSubmix;

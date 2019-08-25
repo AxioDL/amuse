@@ -1,15 +1,17 @@
 #include "amuse/Voice.hpp"
-#include "amuse/Submix.hpp"
-#include "amuse/IBackendVoice.hpp"
-#include "amuse/IBackendVoiceAllocator.hpp"
-#include "amuse/AudioGroup.hpp"
-#include "amuse/Common.hpp"
-#include "amuse/Engine.hpp"
-#include "amuse/DSPCodec.hpp"
-#include "amuse/N64MusyXCodec.hpp"
-#include "amuse/VolumeTable.hpp"
+
 #include <cmath>
 #include <cstring>
+
+#include "amuse/AudioGroup.hpp"
+#include "amuse/Common.hpp"
+#include "amuse/DSPCodec.hpp"
+#include "amuse/Engine.hpp"
+#include "amuse/IBackendVoice.hpp"
+#include "amuse/IBackendVoiceAllocator.hpp"
+#include "amuse/N64MusyXCodec.hpp"
+#include "amuse/Submix.hpp"
+#include "amuse/VolumeTable.hpp"
 
 namespace amuse {
 

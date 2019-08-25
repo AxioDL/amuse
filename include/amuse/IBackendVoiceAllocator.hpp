@@ -1,15 +1,14 @@
 #pragma once
 
 #include <memory>
-#include <functional>
 #include <vector>
 
 namespace amuse {
-class IBackendVoice;
-class IBackendSubmix;
-class Voice;
-class Submix;
 class Engine;
+class IBackendSubmix;
+class IBackendVoice;
+class Submix;
+class Voice;
 
 /** Same enum as boo for describing speaker-configuration */
 enum class AudioChannelSet { Stereo, Quad, Surround51, Surround71, Unknown = 0xff };

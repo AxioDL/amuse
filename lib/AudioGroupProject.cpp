@@ -1,11 +1,13 @@
-#include <athena/VectorWriter.hpp>
 #include "amuse/AudioGroupProject.hpp"
+
 #include "amuse/AudioGroupPool.hpp"
 #include "amuse/AudioGroupSampleDirectory.hpp"
 #include "amuse/AudioGroupData.hpp"
-#include "athena/MemoryReader.hpp"
-#include "athena/FileWriter.hpp"
-#include "athena/FileReader.hpp"
+
+#include <athena/MemoryReader.hpp>
+#include <athena/FileReader.hpp>
+#include <athena/FileWriter.hpp>
+#include <athena/VectorWriter.hpp>
 
 namespace amuse {
 

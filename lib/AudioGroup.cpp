@@ -1,9 +1,13 @@
 #include "amuse/AudioGroup.hpp"
-#include "amuse/AudioGroupData.hpp"
+
 #include <regex>
+#include <sstream>
+
+#include "amuse/AudioGroupData.hpp"
+
 #include <athena/FileReader.hpp>
 #include <fmt/ostream.h>
-#include <sstream>
+
 
 using namespace std::literals;
 

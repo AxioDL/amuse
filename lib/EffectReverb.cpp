@@ -1,7 +1,9 @@
 #include "amuse/EffectReverb.hpp"
-#include "amuse/IBackendVoice.hpp"
+
 #include <cmath>
 #include <cstring>
+
+#include "amuse/IBackendVoice.hpp"
 
 namespace amuse {
 

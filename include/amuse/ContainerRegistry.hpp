@@ -1,10 +1,12 @@
 #pragma once
 
-#include "AudioGroupData.hpp"
-#include "Common.hpp"
-#include <string>
-#include <vector>
+#include <cstddef>
+#include <cstdint>
 #include <memory>
+#include <vector>
+
+#include "amuse/AudioGroupData.hpp"
+#include "amuse/Common.hpp"
 
 namespace amuse {
 

@@ -1,12 +1,13 @@
 #include "amuse/Engine.hpp"
-#include "amuse/Voice.hpp"
-#include "amuse/Submix.hpp"
-#include "amuse/Sequencer.hpp"
+
+#include "amuse/AudioGroup.hpp"
+#include "amuse/AudioGroupData.hpp"
+#include "amuse/Common.hpp"
 #include "amuse/IBackendVoice.hpp"
 #include "amuse/IBackendVoiceAllocator.hpp"
-#include "amuse/AudioGroupData.hpp"
-#include "amuse/AudioGroup.hpp"
-#include "amuse/Common.hpp"
+#include "amuse/Sequencer.hpp"
+#include "amuse/Submix.hpp"
+#include "amuse/Voice.hpp"
 
 namespace amuse {
 

@@ -1,11 +1,14 @@
 #include "amuse/ContainerRegistry.hpp"
-#include "amuse/Common.hpp"
+
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <string>
 #include <memory>
+#include <string>
 #include <unordered_map>
+
+#include "amuse/Common.hpp"
+
 #include <zlib.h>
 #include <lzokay.hpp>
 

@@ -1,8 +1,9 @@
 #pragma once
 
-#include "EffectBase.hpp"
-#include "Common.hpp"
 #include <cstdint>
+
+#include "amuse/Common.hpp"
+#include "amuse/EffectBase.hpp"
 
 namespace amuse {
 template <typename T>

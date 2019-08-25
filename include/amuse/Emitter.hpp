@@ -1,11 +1,11 @@
 #pragma once
 
-#include "Entity.hpp"
-#include "Common.hpp"
-#include "Voice.hpp"
-#include <memory>
-#include <cmath>
 #include <cfloat>
+#include <cmath>
+
+#include "amuse/Common.hpp"
+#include "amuse/Entity.hpp"
+#include "amuse/Voice.hpp"
 
 namespace amuse {
 class Listener;
@@ -32,6 +32,8 @@ inline float Normalize(Vector3f& out) {
 
 /** Voice wrapper with positional-3D level control */
 class Emitter : public Entity {
+  friend class Engine;
+
   ObjToken<Voice> m_vox;
   Vector3f m_pos = {};
   Vector3f m_dir = {};
@@ -43,7 +45,6 @@ class Emitter : public Entity {
   bool m_dirty = true;
   Voice::VolumeCache m_attCache;
 
-  friend class Engine;
   void _destroy();
   float _attenuationCurve(float dist) const;
   void _update();

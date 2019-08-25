@@ -1,10 +1,10 @@
 #pragma once
 
-#include <memory>
 #include <list>
-#include "Entity.hpp"
-#include "Submix.hpp"
-#include <type_traits>
+
+#include "amuse/Common.hpp"
+#include "amuse/Entity.hpp"
+#include "amuse/Submix.hpp"
 
 namespace amuse {
 struct StudioSend;

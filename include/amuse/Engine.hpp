@@ -1,25 +1,27 @@
 #pragma once
 
-#include <memory>
+#include <cstddef>
+#include <cstdint>
 #include <list>
+#include <memory>
 #include <random>
 #include <unordered_map>
-#include <unordered_set>
-#include "Emitter.hpp"
-#include "Listener.hpp"
-#include "AudioGroupSampleDirectory.hpp"
-#include "Sequencer.hpp"
-#include "Studio.hpp"
-#include "IBackendVoiceAllocator.hpp"
+
+#include "amuse/AudioGroupSampleDirectory.hpp"
+#include "amuse/Emitter.hpp"
+#include "amuse/IBackendVoiceAllocator.hpp"
+#include "amuse/Listener.hpp"
+#include "amuse/Sequencer.hpp"
+#include "amuse/Studio.hpp"
 
 namespace amuse {
-class IBackendVoiceAllocator;
-class Voice;
-class Submix;
-class Emitter;
 class AudioGroup;
 class AudioGroupData;
+class Emitter;
+class IBackendVoiceAllocator;
 class IMIDIReader;
+class Submix;
+class Voice;
 
 enum class AmplitudeMode {
   PerSample,      /**< Per-sample amplitude evaluation (dt = 1.0 / sampleRate, rather CPU demanding) */
@@ -28,10 +30,10 @@ enum class AmplitudeMode {
 
 /** Main audio playback system for a single audio output */
 class Engine {
-  friend class Voice;
   friend class Emitter;
   friend class Sequencer;
   friend class Studio;
+  friend class Voice;
   friend struct Sequencer::ChannelState;
 
   IBackendVoiceAllocator& m_backend;

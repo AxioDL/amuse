@@ -1,8 +1,9 @@
 #include "amuse/Sequencer.hpp"
-#include "amuse/Submix.hpp"
-#include "amuse/Voice.hpp"
-#include "amuse/Engine.hpp"
+
 #include <map>
+
+#include "amuse/Engine.hpp"
+#include "amuse/Voice.hpp"
 
 namespace amuse {
 

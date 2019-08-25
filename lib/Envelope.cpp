@@ -1,4 +1,6 @@
 #include "amuse/Envelope.hpp"
+
+#include "amuse/AudioGroupPool.hpp"
 #include "amuse/Voice.hpp"
 
 namespace amuse {

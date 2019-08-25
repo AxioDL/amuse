@@ -1,8 +1,12 @@
 #pragma once
 
-#include <unordered_map>
 #include <cstdint>
-#include "Common.hpp"
+#include <unordered_map>
+#include <vector>
+
+#include "amuse/Common.hpp"
+
+#include <athena/DNA.hpp>
 
 namespace amuse {
 class AudioGroupData;

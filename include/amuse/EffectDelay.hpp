@@ -1,10 +1,11 @@
 #pragma once
 
-#include "EffectBase.hpp"
-#include "IBackendVoice.hpp"
-#include "Common.hpp"
 #include <cstdint>
 #include <memory>
+
+#include "amuse/Common.hpp"
+#include "amuse/EffectBase.hpp"
+#include "amuse/IBackendVoice.hpp"
 
 namespace amuse {
 template <typename T>

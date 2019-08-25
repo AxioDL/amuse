@@ -1,15 +1,21 @@
 #pragma once
 
-#include <boo/audiodev/IAudioVoiceEngine.hpp>
+#include <cstddef>
+#include <cstdint>
+#include <list>
+#include <memory>
+#include <mutex>
+#include <unordered_map>
+#include <vector>
+
+#include "amuse/IBackendVoice.hpp"
+#include "amuse/IBackendSubmix.hpp"
+#include "amuse/IBackendVoiceAllocator.hpp"
+
 #include <boo/audiodev/IAudioSubmix.hpp>
+#include <boo/audiodev/IAudioVoiceEngine.hpp>
 #include <boo/audiodev/IMIDIReader.hpp>
 #include <boo/audiodev/MIDIDecoder.hpp>
-#include "IBackendVoice.hpp"
-#include "IBackendSubmix.hpp"
-#include "IBackendVoiceAllocator.hpp"
-#include <mutex>
-#include <list>
-#include <unordered_map>
 
 namespace amuse {
 
