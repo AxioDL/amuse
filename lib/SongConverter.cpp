@@ -1,8 +1,12 @@
 #include "amuse/SongConverter.hpp"
-#include "amuse/SongState.hpp"
-#include "amuse/Common.hpp"
+
+#include <algorithm>
+#include <array>
 #include <cstdlib>
 #include <map>
+
+#include "amuse/Common.hpp"
+#include "amuse/SongState.hpp"
 
 namespace amuse {
 

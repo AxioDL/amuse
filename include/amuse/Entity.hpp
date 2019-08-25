@@ -1,13 +1,11 @@
 #pragma once
 
-#include <cstdint>
-#include <functional>
 #include <cassert>
-#include "Common.hpp"
+#include "amuse/Common.hpp"
 
 namespace amuse {
-class Engine;
 class AudioGroup;
+class Engine;
 
 /** Common 'engine child' class */
 class Entity : public IObj {

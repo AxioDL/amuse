@@ -1,12 +1,15 @@
-#include <athena/MemoryWriter.hpp>
 #include "amuse/AudioGroupPool.hpp"
+
+#include "amuse/AudioGroupData.hpp"
 #include "amuse/Common.hpp"
 #include "amuse/Entity.hpp"
-#include "amuse/AudioGroupData.hpp"
-#include "logvisor/logvisor.hpp"
-#include "athena/FileWriter.hpp"
-#include "athena/FileReader.hpp"
-#include "athena/VectorWriter.hpp"
+
+#include <athena/FileReader.hpp>
+#include <athena/FileWriter.hpp>
+#include <athena/MemoryWriter.hpp>
+#include <athena/VectorWriter.hpp>
+
+#include <logvisor/logvisor.hpp>
 
 using namespace std::literals;
 

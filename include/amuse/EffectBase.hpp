@@ -1,8 +1,5 @@
 #pragma once
 
-#include <cstdint>
-#include <cstdlib>
-
 namespace amuse {
 struct ChannelMap;
 

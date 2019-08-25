@@ -1,10 +1,13 @@
 #include "amuse/SoundMacroState.hpp"
-#include "amuse/Voice.hpp"
-#include "amuse/Engine.hpp"
-#include "amuse/Common.hpp"
+
+#include <cmath>
+#include <cstring>
+
 #include "amuse/AudioGroup.hpp"
 #include "amuse/AudioGroupPool.hpp"
-#include <cstring>
+#include "amuse/Common.hpp"
+#include "amuse/Engine.hpp"
+#include "amuse/Voice.hpp"
 
 using namespace std::literals;
 

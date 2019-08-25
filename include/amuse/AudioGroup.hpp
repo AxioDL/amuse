@@ -1,9 +1,12 @@
 #pragma once
 
-#include "AudioGroupPool.hpp"
-#include "AudioGroupProject.hpp"
-#include "AudioGroupSampleDirectory.hpp"
+#include <string>
 #include <unordered_set>
+
+#include "amuse/AudioGroupPool.hpp"
+#include "amuse/AudioGroupProject.hpp"
+#include "amuse/AudioGroupSampleDirectory.hpp"
+#include "amuse/Common.hpp"
 
 namespace amuse {
 class AudioGroupData;

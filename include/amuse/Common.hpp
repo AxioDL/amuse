@@ -1,17 +1,16 @@
 #pragma once
 
 #include <algorithm>
-#include <limits>
-#include <cstdio>
+#include <atomic>
 #include <cstdint>
-#include <cstdarg>
+#include <cstdio>
+#include <limits>
 #include <string>
 #include <string_view>
-#include <cstring>
-#include <atomic>
 #include <unordered_map>
-#include "athena/DNA.hpp"
-#include "logvisor/logvisor.hpp"
+
+#include <athena/DNA.hpp>
+#include <logvisor/logvisor.hpp>
 
 #ifndef _WIN32
 #include <strings.h>

@@ -1,13 +1,19 @@
 #pragma once
 
-#include <cstdint>
-#include <vector>
-#include <cmath>
-#include <unordered_map>
 #include <array>
-#include "Entity.hpp"
-#include "Common.hpp"
-#include "athena/MemoryReader.hpp"
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+#include "amuse/Common.hpp"
+#include "amuse/Entity.hpp"
+
+#include <athena/DNA.hpp>
+#include <athena/MemoryReader.hpp>
 
 namespace amuse {
 class AudioGroupData;

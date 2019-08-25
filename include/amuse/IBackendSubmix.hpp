@@ -1,10 +1,6 @@
 #pragma once
 
-#include <memory>
-
 namespace amuse {
-class IBackendVoice;
-class Voice;
 
 enum class SubmixFormat { Int16, Int32, Float };
 

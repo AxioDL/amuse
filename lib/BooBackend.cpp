@@ -1,7 +1,8 @@
 #include "amuse/BooBackend.hpp"
-#include "amuse/Voice.hpp"
-#include "amuse/Submix.hpp"
+
 #include "amuse/Engine.hpp"
+#include "amuse/Submix.hpp"
+#include "amuse/Voice.hpp"
 
 namespace amuse {
 

@@ -1,11 +1,12 @@
 #pragma once
 
 #include <cstdint>
+#include <tuple>
 #include <vector>
-#include <list>
-#include "Entity.hpp"
-#include "Common.hpp"
-#include "AudioGroupPool.hpp"
+
+#include "amuse/AudioGroupPool.hpp"
+#include "amuse/Common.hpp"
+#include "amuse/Entity.hpp"
 
 /* Squelch Win32 macro pollution >.< */
 #undef SendMessage

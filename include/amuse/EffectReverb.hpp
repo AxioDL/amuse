@@ -1,8 +1,10 @@
 #pragma once
 
-#include "EffectBase.hpp"
-#include "amuse/Common.hpp"
+#include <cstdint>
 #include <memory>
+
+#include "amuse/Common.hpp"
+#include "amuse/EffectBase.hpp"
 
 namespace amuse {
 

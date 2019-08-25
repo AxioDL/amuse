@@ -1,6 +1,8 @@
 #pragma once
 
-#include "Common.hpp"
+#include <cstddef>
+
+#include "amuse/Common.hpp"
 
 namespace amuse {
 

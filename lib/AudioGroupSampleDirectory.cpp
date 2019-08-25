@@ -1,15 +1,19 @@
 #include "amuse/AudioGroupSampleDirectory.hpp"
-#include "amuse/Common.hpp"
+
+#include <cstring>
+
+#include "amuse/AudioGroup.hpp"
 #include "amuse/AudioGroupData.hpp"
+#include "amuse/Common.hpp"
+#include "amuse/DirectoryEnumerator.hpp"
 #include "amuse/DSPCodec.hpp"
 #include "amuse/N64MusyXCodec.hpp"
-#include "amuse/DirectoryEnumerator.hpp"
-#include "amuse/AudioGroup.hpp"
-#include "athena/MemoryReader.hpp"
-#include "athena/FileWriter.hpp"
-#include "athena/FileReader.hpp"
-#include "athena/VectorWriter.hpp"
-#include <cstring>
+
+#include <athena/FileReader.hpp>
+#include <athena/FileWriter.hpp>
+#include <athena/MemoryReader.hpp>
+#include <athena/VectorWriter.hpp>
+
 #ifndef _WIN32
 #include <fcntl.h>
 #else

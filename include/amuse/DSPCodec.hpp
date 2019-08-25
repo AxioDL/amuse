@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <cfloat>
 
 constexpr int16_t DSPSampClamp(int32_t val) {
   if (val < -32768)

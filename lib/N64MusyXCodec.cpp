@@ -1,7 +1,7 @@
 #include "amuse/N64MusyXCodec.hpp"
-#include <stdint.h>
-#include <string.h>
-#include <stdio.h>
+
+#include <cstdint>
+#include <cstring>
 
 /* Acknowledgements:
  * SubDrag for N64 Sound Tool (http://www.goldeneyevault.com/viewfile.php?id=212)

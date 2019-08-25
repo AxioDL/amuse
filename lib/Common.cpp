@@ -1,5 +1,11 @@
 #include "amuse/Common.hpp"
-#include "logvisor/logvisor.hpp"
+
+#ifndef _WIN32
+#include <cstdio>
+#include <memory>
+#endif
+
+#include <logvisor/logvisor.hpp>
 
 using namespace std::literals;
 

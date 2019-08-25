@@ -1,8 +1,10 @@
 #include "amuse/EffectDelay.hpp"
+
+#include <cmath>
+#include <cstring>
+
 #include "amuse/Common.hpp"
 #include "amuse/IBackendVoice.hpp"
-#include <cstring>
-#include <cmath>
 
 namespace amuse {
 
