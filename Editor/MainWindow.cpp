@@ -50,68 +50,67 @@ MainWindow::MainWindow(QWidget* parent)
   palette.setColor(QPalette::Base, palette.color(QPalette::Window));
   m_ui.projectOutlineFilter->setPalette(palette);
   m_ui.projectOutline->setItemDelegate(&m_treeDelegate);
-  connect(m_ui.projectOutline, SIGNAL(activated(const QModelIndex&)), this,
-          SLOT(outlineItemActivated(const QModelIndex&)));
+  connect(m_ui.projectOutline, &QTreeView::activated, this, &MainWindow::outlineItemActivated);
   m_goBack = new QAction(m_ui.backButton->icon(), tr("Go Back"), this);
   m_goBack->setEnabled(false);
-  connect(m_goBack, SIGNAL(triggered()), this, SLOT(goBack()));
+  connect(m_goBack, &QAction::triggered, this, &MainWindow::goBack);
   m_goBack->setShortcut(QKeySequence::Back);
   m_ui.backButton->setDefaultAction(m_goBack);
   m_goForward = new QAction(m_ui.forwardButton->icon(), tr("Go Forward"), this);
   m_goForward->setEnabled(false);
-  connect(m_goForward, SIGNAL(triggered()), this, SLOT(goForward()));
+  connect(m_goForward, &QAction::triggered, this, &MainWindow::goForward);
   m_goForward->setShortcut(QKeySequence::Forward);
   m_ui.forwardButton->setDefaultAction(m_goForward);
 
   connectMessenger(&m_mainMessenger, Qt::DirectConnection);
 
-  m_ui.statusbar->connectKillClicked(this, SLOT(killSounds()));
-  m_ui.statusbar->connectFXPressed(this, SLOT(fxPressed()));
+  m_ui.statusbar->connectKillClicked(this, &MainWindow::killSounds);
+  m_ui.statusbar->connectFXPressed(this, &MainWindow::fxPressed);
   m_ui.statusbar->setVolumeValue(70);
-  m_ui.statusbar->connectVolumeSlider(this, SLOT(volumeChanged(int)));
-  m_ui.statusbar->connectASlider(this, SLOT(auxAChanged(int)));
-  m_ui.statusbar->connectBSlider(this, SLOT(auxBChanged(int)));
+  m_ui.statusbar->connectVolumeSlider(this, &MainWindow::volumeChanged);
+  m_ui.statusbar->connectASlider(this, &MainWindow::auxAChanged);
+  m_ui.statusbar->connectBSlider(this, &MainWindow::auxBChanged);
 
   m_ui.keyboardContents->setStatusFocus(new StatusBarFocus(m_ui.statusbar));
   m_ui.velocitySlider->setStatusFocus(new StatusBarFocus(m_ui.statusbar));
   m_ui.modulationSlider->setStatusFocus(new StatusBarFocus(m_ui.statusbar));
   m_ui.pitchSlider->setStatusFocus(new StatusBarFocus(m_ui.statusbar));
-  connect(m_ui.keyboardContents, SIGNAL(notePressed(int)), this, SLOT(notePressed(int)));
-  connect(m_ui.keyboardContents, SIGNAL(noteReleased()), this, SLOT(noteReleased()));
-  connect(m_ui.velocitySlider, SIGNAL(valueChanged(int)), this, SLOT(velocityChanged(int)));
-  connect(m_ui.modulationSlider, SIGNAL(valueChanged(int)), this, SLOT(modulationChanged(int)));
-  connect(m_ui.pitchSlider, SIGNAL(valueChanged(int)), this, SLOT(pitchChanged(int)));
+  connect(m_ui.keyboardContents, &KeyboardWidget::notePressed, this, &MainWindow::notePressed);
+  connect(m_ui.keyboardContents, &KeyboardWidget::noteReleased, this, &MainWindow::noteReleased);
+  connect(m_ui.velocitySlider, qOverload<int>(&VelocitySlider::valueChanged), this, &MainWindow::velocityChanged);
+  connect(m_ui.modulationSlider, qOverload<int>(&ModulationSlider::valueChanged), this, &MainWindow::modulationChanged);
+  connect(m_ui.pitchSlider, qOverload<int>(&PitchSlider::valueChanged), this, &MainWindow::pitchChanged);
 
   m_ui.actionNew_Project->setShortcut(QKeySequence::New);
-  connect(m_ui.actionNew_Project, SIGNAL(triggered()), this, SLOT(newAction()));
+  connect(m_ui.actionNew_Project, &QAction::triggered, this, &MainWindow::newAction);
   m_ui.actionOpen_Project->setShortcut(QKeySequence::Open);
-  connect(m_ui.actionOpen_Project, SIGNAL(triggered()), this, SLOT(openAction()));
+  connect(m_ui.actionOpen_Project, &QAction::triggered, this, &MainWindow::openAction);
   m_ui.actionSave_Project->setShortcut(QKeySequence::Save);
-  connect(m_ui.actionSave_Project, SIGNAL(triggered()), this, SLOT(saveAction()));
-  connect(m_ui.actionRevert_Project, SIGNAL(triggered()), this, SLOT(revertAction()));
-  connect(m_ui.actionReload_Sample_Data, SIGNAL(triggered()), this, SLOT(reloadSampleDataAction()));
-  connect(m_ui.actionImport_Groups, SIGNAL(triggered()), this, SLOT(importAction()));
-  connect(m_ui.actionImport_Songs, SIGNAL(triggered()), this, SLOT(importSongsAction()));
-  connect(m_ui.actionExport_GameCube_Groups, SIGNAL(triggered()), this, SLOT(exportAction()));
-  connect(m_ui.actionImport_C_Headers, SIGNAL(triggered()), this, SLOT(importHeadersAction()));
-  connect(m_ui.actionExport_C_Headers, SIGNAL(triggered()), this, SLOT(exportHeadersAction()));
+  connect(m_ui.actionSave_Project, &QAction::triggered, this, &MainWindow::saveAction);
+  connect(m_ui.actionRevert_Project, &QAction::triggered, this, &MainWindow::revertAction);
+  connect(m_ui.actionReload_Sample_Data, &QAction::triggered, this, &MainWindow::reloadSampleDataAction);
+  connect(m_ui.actionImport_Groups, &QAction::triggered, this, &MainWindow::importAction);
+  connect(m_ui.actionImport_Songs, &QAction::triggered, this, &MainWindow::importSongsAction);
+  connect(m_ui.actionExport_GameCube_Groups, &QAction::triggered, this, &MainWindow::exportAction);
+  connect(m_ui.actionImport_C_Headers, &QAction::triggered, this, &MainWindow::importHeadersAction);
+  connect(m_ui.actionExport_C_Headers, &QAction::triggered, this, &MainWindow::exportHeadersAction);
   m_ui.actionQuit->setShortcut(QKeySequence::Quit);
-  connect(m_ui.actionQuit, SIGNAL(triggered()), this, SLOT(close()));
+  connect(m_ui.actionQuit, &QAction::triggered, this, &MainWindow::close);
 
   for (int i = 0; i < MaxRecentFiles; ++i) {
     m_recentFileActs[i] = new QAction(this);
     m_recentFileActs[i]->setVisible(false);
     m_ui.menuRecent_Projects->addAction(m_recentFileActs[i]);
-    connect(m_recentFileActs[i], SIGNAL(triggered()), this, SLOT(openRecentFileAction()));
+    connect(m_recentFileActs[i], &QAction::triggered, this, &MainWindow::openRecentFileAction);
   }
   m_ui.menuRecent_Projects->addSeparator();
   m_clearRecentFileAct = new QAction(tr("Clear Recent Projects"), this);
-  connect(m_clearRecentFileAct, SIGNAL(triggered()), this, SLOT(clearRecentFilesAction()));
+  connect(m_clearRecentFileAct, &QAction::triggered, this, &MainWindow::clearRecentFilesAction);
   m_ui.menuRecent_Projects->addAction(m_clearRecentFileAct);
 
   updateRecentFileActions();
 
-  connect(m_undoStack, SIGNAL(cleanChanged(bool)), this, SLOT(cleanChanged(bool)));
+  connect(m_undoStack, &QUndoStack::cleanChanged, this, &MainWindow::cleanChanged);
   QAction* undoAction = m_undoStack->createUndoAction(this);
   undoAction->setShortcut(QKeySequence::Undo);
   undoAction->setIcon(QIcon::fromTheme(QStringLiteral("edit-undo")));
@@ -127,8 +126,8 @@ MainWindow::MainWindow(QWidget* parent)
   m_ui.actionDelete->setShortcut(QKeySequence::Delete);
   onFocusChanged(nullptr, this);
 
-  connect(m_ui.actionAbout_Amuse, SIGNAL(triggered()), this, SLOT(aboutAmuseAction()));
-  connect(m_ui.actionAbout_Qt, SIGNAL(triggered()), this, SLOT(aboutQtAction()));
+  connect(m_ui.actionAbout_Amuse, &QAction::triggered, this, &MainWindow::aboutAmuseAction);
+  connect(m_ui.actionAbout_Qt, &QAction::triggered, this, &MainWindow::aboutQtAction);
 
   QGridLayout* faceLayout = new QGridLayout;
   QSvgWidget* faceSvg = new QSvgWidget(QStringLiteral(":/bg/FaceGrey.svg"));
@@ -157,23 +156,23 @@ MainWindow::MainWindow(QWidget* parent)
   m_ui.editorContents->setCurrentWidget(m_faceSvg);
 
   m_studioSetup = new StudioSetupWidget(this);
-  connect(m_studioSetup, SIGNAL(hidden()), this, SLOT(studioSetupHidden()));
-  connect(m_studioSetup, SIGNAL(shown()), this, SLOT(studioSetupShown()));
+  connect(m_studioSetup, &StudioSetupWidget::hidden, this, &MainWindow::studioSetupHidden);
+  connect(m_studioSetup, &StudioSetupWidget::shown, this, &MainWindow::studioSetupShown);
 
-  connect(m_ui.actionNew_Subproject, SIGNAL(triggered()), this, SLOT(newSubprojectAction()));
-  connect(m_ui.actionNew_SFX_Group, SIGNAL(triggered()), this, SLOT(newSFXGroupAction()));
-  connect(m_ui.actionNew_Song_Group, SIGNAL(triggered()), this, SLOT(newSongGroupAction()));
-  connect(m_ui.actionNew_Sound_Macro, SIGNAL(triggered()), this, SLOT(newSoundMacroAction()));
-  connect(m_ui.actionNew_ADSR, SIGNAL(triggered()), this, SLOT(newADSRAction()));
-  connect(m_ui.actionNew_Curve, SIGNAL(triggered()), this, SLOT(newCurveAction()));
-  connect(m_ui.actionNew_Keymap, SIGNAL(triggered()), this, SLOT(newKeymapAction()));
-  connect(m_ui.actionNew_Layers, SIGNAL(triggered()), this, SLOT(newLayersAction()));
+  connect(m_ui.actionNew_Subproject, &QAction::triggered, this, &MainWindow::newSubprojectAction);
+  connect(m_ui.actionNew_SFX_Group, &QAction::triggered, this, &MainWindow::newSFXGroupAction);
+  connect(m_ui.actionNew_Song_Group, &QAction::triggered, this, &MainWindow::newSongGroupAction);
+  connect(m_ui.actionNew_Sound_Macro, &QAction::triggered, this, &MainWindow::newSoundMacroAction);
+  connect(m_ui.actionNew_ADSR, &QAction::triggered, this, &MainWindow::newADSRAction);
+  connect(m_ui.actionNew_Curve, &QAction::triggered, this, &MainWindow::newCurveAction);
+  connect(m_ui.actionNew_Keymap, &QAction::triggered, this, &MainWindow::newKeymapAction);
+  connect(m_ui.actionNew_Layers, &QAction::triggered, this, &MainWindow::newLayersAction);
 
-  connect(m_ui.menuAudio, SIGNAL(aboutToShow()), this, SLOT(aboutToShowAudioIOMenu()));
-  connect(m_ui.menuMIDI, SIGNAL(aboutToShow()), this, SLOT(aboutToShowMIDIIOMenu()));
+  connect(m_ui.menuAudio, &QMenu::aboutToShow, this, &MainWindow::aboutToShowAudioIOMenu);
+  connect(m_ui.menuMIDI, &QMenu::aboutToShow, this, &MainWindow::aboutToShowMIDIIOMenu);
 
-  connect(qApp, SIGNAL(focusChanged(QWidget*, QWidget*)), this, SLOT(onFocusChanged(QWidget*, QWidget*)));
-  connect(QGuiApplication::clipboard(), SIGNAL(dataChanged()), this, SLOT(onClipboardChanged()));
+  connect(qApp, &QApplication::focusChanged, this, &MainWindow::onFocusChanged);
+  connect(QGuiApplication::clipboard(), &QClipboard::dataChanged, this, &MainWindow::onClipboardChanged);
 
   m_voxEngine = boo::NewAudioVoiceEngine();
   m_voxAllocator = std::make_unique<VoiceAllocator>(*m_voxEngine);
@@ -194,31 +193,40 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::connectMessenger(UIMessenger* messenger, Qt::ConnectionType type) {
-  connect(
-      messenger,
-      SIGNAL(information(const QString&, const QString&, QMessageBox::StandardButtons, QMessageBox::StandardButton)),
-      this,
-      SLOT(msgInformation(const QString&, const QString&, QMessageBox::StandardButtons, QMessageBox::StandardButton)),
-      type);
   connect(messenger,
-          SIGNAL(question(const QString&, const QString&, const QString&, const QString&, const QString&, int, int)),
+          qOverload<const QString&, const QString&, QMessageBox::StandardButtons, QMessageBox::StandardButton>(
+              &UIMessenger::information),
           this,
-          SLOT(msgQuestion(const QString&, const QString&, const QString&, const QString&, const QString&, int, int)),
+          qOverload<const QString&, const QString&, QMessageBox::StandardButtons, QMessageBox::StandardButton>(
+              &MainWindow::msgInformation),
           type);
   connect(messenger,
-          SIGNAL(question(const QString&, const QString&, QMessageBox::StandardButtons, QMessageBox::StandardButton)),
+          qOverload<const QString&, const QString&, const QString&, const QString&, const QString&, int, int>(
+              &UIMessenger::question),
           this,
-          SLOT(msgQuestion(const QString&, const QString&, QMessageBox::StandardButtons, QMessageBox::StandardButton)),
+          qOverload<const QString&, const QString&, const QString&, const QString&, const QString&, int, int>(
+              &MainWindow::msgQuestion),
           type);
   connect(messenger,
-          SIGNAL(warning(const QString&, const QString&, QMessageBox::StandardButtons, QMessageBox::StandardButton)),
+          qOverload<const QString&, const QString&, QMessageBox::StandardButtons, QMessageBox::StandardButton>(
+              &UIMessenger::question),
           this,
-          SLOT(msgWarning(const QString&, const QString&, QMessageBox::StandardButtons, QMessageBox::StandardButton)),
+          qOverload<const QString&, const QString&, QMessageBox::StandardButtons, QMessageBox::StandardButton>(
+              &MainWindow::msgQuestion),
           type);
   connect(messenger,
-          SIGNAL(critical(const QString&, const QString&, QMessageBox::StandardButtons, QMessageBox::StandardButton)),
+          qOverload<const QString&, const QString&, QMessageBox::StandardButtons, QMessageBox::StandardButton>(
+              &UIMessenger::warning),
           this,
-          SLOT(msgCritical(const QString&, const QString&, QMessageBox::StandardButtons, QMessageBox::StandardButton)),
+          qOverload<const QString&, const QString&, QMessageBox::StandardButtons, QMessageBox::StandardButton>(
+              &MainWindow::msgWarning),
+          type);
+  connect(messenger,
+          qOverload<const QString&, const QString&, QMessageBox::StandardButtons, QMessageBox::StandardButton>(
+              &UIMessenger::critical),
+          this,
+          qOverload<const QString&, const QString&, QMessageBox::StandardButtons, QMessageBox::StandardButton>(
+              &MainWindow::msgCritical),
           type);
 }
 
@@ -288,11 +296,11 @@ bool MainWindow::setProjectPath(const QString& path) {
     m_projectModel->deleteLater();
   m_projectModel = new ProjectModel(path, this);
   m_ui.projectOutlineFilter->clear();
-  connect(m_ui.projectOutlineFilter, SIGNAL(textChanged(const QString&)), m_projectModel->getOutlineProxy(),
-          SLOT(setFilterRegExp(const QString&)));
+  connect(m_ui.projectOutlineFilter, &QLineEdit::textChanged, m_projectModel->getOutlineProxy(),
+          &OutlineFilterProxyModel::setFilterRegExp);
   m_ui.projectOutline->setModel(m_projectModel->getOutlineProxy());
-  connect(m_ui.projectOutline->selectionModel(), SIGNAL(selectionChanged(const QItemSelection&, const QItemSelection&)),
-          this, SLOT(onOutlineSelectionChanged(const QItemSelection&, const QItemSelection&)));
+  connect(m_ui.projectOutline->selectionModel(), &QItemSelectionModel::selectionChanged, this,
+          &MainWindow::onOutlineSelectionChanged);
   m_openDirectoryDialog.setDirectory(path);
   m_openFileDialog.setDirectory(path);
   m_newFileDialog.setDirectory(path);
@@ -342,7 +350,7 @@ void MainWindow::refreshAudioIO() {
       act->setData(QString::fromStdString(dev.first));
       if (curOut == dev.first)
         act->setChecked(true);
-      connect(act, SIGNAL(triggered()), this, SLOT(setAudioIO()));
+      connect(act, &QAction::triggered, this, &MainWindow::setAudioIO);
       addedDev = true;
     }
   }
@@ -364,7 +372,7 @@ void MainWindow::refreshMIDIIO() {
       act->setCheckable(true);
       act->setData(QStringLiteral("<amuse-virtual-in>"));
       act->setChecked(static_cast<MIDIReader*>(m_engine->getMIDIReader())->hasVirtualIn());
-      connect(act, SIGNAL(triggered(bool)), this, SLOT(setMIDIIO(bool)));
+      connect(act, &QAction::triggered, this, &MainWindow::setMIDIIO);
       addedDev = true;
     }
     for (const auto& dev : m_voxEngine->enumerateMIDIInputs()) {
@@ -372,7 +380,7 @@ void MainWindow::refreshMIDIIO() {
       act->setCheckable(true);
       act->setData(QString::fromStdString(dev.first));
       act->setChecked(static_cast<MIDIReader*>(m_engine->getMIDIReader())->hasMIDIIn(dev.first.c_str()));
-      connect(act, SIGNAL(triggered(bool)), this, SLOT(setMIDIIO(bool)));
+      connect(act, &QAction::triggered, this, &MainWindow::setMIDIIO);
       addedDev = true;
     }
   }
@@ -480,12 +488,16 @@ void MainWindow::startBackgroundTask(int id, const QString& windowTitle, const Q
   m_backgroundDialog->setMaximum(0);
   m_backgroundDialog->setValue(0);
 
-  connect(m_backgroundTask, SIGNAL(setMinimum(int)), m_backgroundDialog, SLOT(setMinimum(int)), Qt::QueuedConnection);
-  connect(m_backgroundTask, SIGNAL(setMaximum(int)), m_backgroundDialog, SLOT(setMaximum(int)), Qt::QueuedConnection);
-  connect(m_backgroundTask, SIGNAL(setValue(int)), m_backgroundDialog, SLOT(setValue(int)), Qt::QueuedConnection);
-  connect(m_backgroundTask, SIGNAL(setLabelText(const QString&)), m_backgroundDialog,
-          SLOT(setLabelText(const QString&)), Qt::QueuedConnection);
-  connect(m_backgroundTask, SIGNAL(finished(int)), this, SLOT(onBackgroundTaskFinished(int)), Qt::QueuedConnection);
+  connect(m_backgroundTask, &BackgroundTask::setMinimum, m_backgroundDialog, &QProgressDialog::setMinimum,
+          Qt::QueuedConnection);
+  connect(m_backgroundTask, &BackgroundTask::setMaximum, m_backgroundDialog, &QProgressDialog::setMaximum,
+          Qt::QueuedConnection);
+  connect(m_backgroundTask, &BackgroundTask::setValue, m_backgroundDialog, &QProgressDialog::setValue,
+          Qt::QueuedConnection);
+  connect(m_backgroundTask, &BackgroundTask::setLabelText, m_backgroundDialog, &QProgressDialog::setLabelText,
+          Qt::QueuedConnection);
+  connect(m_backgroundTask, &BackgroundTask::finished, this, &MainWindow::onBackgroundTaskFinished,
+          Qt::QueuedConnection);
   m_backgroundDialog->open(m_backgroundTask, SLOT(cancel()));
 
   connectMessenger(&m_backgroundTask->uiMessenger(), Qt::BlockingQueuedConnection);
@@ -1105,7 +1117,7 @@ bool TreeDelegate::editorEvent(QEvent* event, QAbstractItemModel* __model, const
       if (node->type() == ProjectModel::INode::Type::Group) {
         QAction* exportGroupAction = new QAction(tr("Export GameCube Group"), menu);
         exportGroupAction->setData(QVariant::fromValue((void*)node));
-        connect(exportGroupAction, SIGNAL(triggered()), this, SLOT(doExportGroup()));
+        connect(exportGroupAction, &QAction::triggered, this, &TreeDelegate::doExportGroup);
         menu->addAction(exportGroupAction);
 
         menu->addSeparator();
@@ -1114,7 +1126,7 @@ bool TreeDelegate::editorEvent(QEvent* event, QAbstractItemModel* __model, const
       QAction* findUsagesAction = new QAction(tr("Find Usages"), menu);
       findUsagesAction->setData(QVariant::fromValue((void*)node));
       findUsagesAction->setIcon(QIcon::fromTheme(QStringLiteral("edit-find")));
-      connect(findUsagesAction, SIGNAL(triggered()), this, SLOT(doFindUsages()));
+      connect(findUsagesAction, &QAction::triggered, this, &TreeDelegate::doFindUsages);
       menu->addAction(findUsagesAction);
 
       menu->addSeparator();
@@ -1124,7 +1136,7 @@ bool TreeDelegate::editorEvent(QEvent* event, QAbstractItemModel* __model, const
       cutAction->setEnabled(flags & AmuseItemCut);
       cutAction->setIcon(QIcon::fromTheme(QStringLiteral("edit-cut")));
       cutAction->setShortcut(QKeySequence::Cut);
-      connect(cutAction, SIGNAL(triggered()), this, SLOT(doCut()));
+      connect(cutAction, &QAction::triggered, this, &TreeDelegate::doCut);
       menu->addAction(cutAction);
 
       QAction* copyAction = new QAction(tr("Copy"), menu);
@@ -1132,7 +1144,7 @@ bool TreeDelegate::editorEvent(QEvent* event, QAbstractItemModel* __model, const
       copyAction->setEnabled(flags & AmuseItemCopy);
       copyAction->setIcon(QIcon::fromTheme(QStringLiteral("edit-copy")));
       copyAction->setShortcut(QKeySequence::Copy);
-      connect(copyAction, SIGNAL(triggered()), this, SLOT(doCopy()));
+      connect(copyAction, &QAction::triggered, this, &TreeDelegate::doCopy);
       menu->addAction(copyAction);
 
       QAction* pasteAction = new QAction(tr("Paste"), menu);
@@ -1140,12 +1152,12 @@ bool TreeDelegate::editorEvent(QEvent* event, QAbstractItemModel* __model, const
       pasteAction->setEnabled(g_MainWindow->m_clipboardAmuseData && flags & AmuseItemPaste);
       pasteAction->setIcon(QIcon::fromTheme(QStringLiteral("edit-paste")));
       pasteAction->setShortcut(QKeySequence::Paste);
-      connect(pasteAction, SIGNAL(triggered()), this, SLOT(doPaste()));
+      connect(pasteAction, &QAction::triggered, this, &TreeDelegate::doPaste);
       menu->addAction(pasteAction);
 
       QAction* dupeAction = new QAction(tr("Duplicate"), menu);
       dupeAction->setData(index);
-      connect(dupeAction, SIGNAL(triggered()), this, SLOT(doDuplicate()));
+      connect(dupeAction, &QAction::triggered, this, &TreeDelegate::doDuplicate);
       menu->addAction(dupeAction);
 
       QAction* deleteAction = new QAction(tr("Delete"), menu);
@@ -1153,13 +1165,13 @@ bool TreeDelegate::editorEvent(QEvent* event, QAbstractItemModel* __model, const
       deleteAction->setEnabled(flags & AmuseItemDelete);
       deleteAction->setIcon(QIcon::fromTheme(QStringLiteral("edit-delete")));
       deleteAction->setShortcut(QKeySequence::Delete);
-      connect(deleteAction, SIGNAL(triggered()), this, SLOT(doDelete()));
+      connect(deleteAction, &QAction::triggered, this, &TreeDelegate::doDelete);
       menu->addAction(deleteAction);
 
       QAction* renameAction = new QAction(tr("Rename"), menu);
       renameAction->setData(index);
       renameAction->setShortcut(Qt::Key_F2);
-      connect(renameAction, SIGNAL(triggered()), this, SLOT(doRename()));
+      connect(renameAction, &QAction::triggered, this, &TreeDelegate::doRename);
       menu->addAction(renameAction);
 
       menu->popup(ev->globalPos());
@@ -1613,15 +1625,15 @@ void MainWindow::onFocusChanged(QWidget* old, QWidget* now) {
   disconnect(m_canEditConn);
 
   if (QLineEdit* le = qobject_cast<QLineEdit*>(now)) {
-    m_cutConn = connect(m_ui.actionCut, SIGNAL(triggered()), le, SLOT(cut()));
+    m_cutConn = connect(m_ui.actionCut, &QAction::triggered, le, &QLineEdit::cut);
     m_ui.actionCut->setEnabled(le->hasSelectedText());
-    m_copyConn = connect(m_ui.actionCopy, SIGNAL(triggered()), le, SLOT(copy()));
+    m_copyConn = connect(m_ui.actionCopy, &QAction::triggered, le, &QLineEdit::copy);
     m_ui.actionCopy->setEnabled(le->hasSelectedText());
-    m_pasteConn = connect(m_ui.actionPaste, SIGNAL(triggered()), le, SLOT(paste()));
+    m_pasteConn = connect(m_ui.actionPaste, &QAction::triggered, le, &QLineEdit::paste);
     m_ui.actionPaste->setEnabled(true);
-    m_deleteConn = connect(m_ui.actionDelete, SIGNAL(triggered()), this, SLOT(onTextDelete()));
+    m_deleteConn = connect(m_ui.actionDelete, &QAction::triggered, this, &MainWindow::onTextDelete);
     m_ui.actionDelete->setEnabled(true);
-    m_canEditConn = connect(le, SIGNAL(selectionChanged()), this, SLOT(onTextSelect()));
+    m_canEditConn = connect(le, &QLineEdit::selectionChanged, this, &MainWindow::onTextSelect);
     return;
   }
 
@@ -1631,18 +1643,18 @@ void MainWindow::onFocusChanged(QWidget* old, QWidget* now) {
       editFlags = AmuseItemEditFlags(editFlags & ~AmuseItemPaste);
     setItemEditFlags(editFlags);
     if (m_projectModel) {
-      m_cutConn = connect(m_ui.actionCut, SIGNAL(triggered()), this, SLOT(outlineCutAction()));
-      m_copyConn = connect(m_ui.actionCopy, SIGNAL(triggered()), this, SLOT(outlineCopyAction()));
-      m_pasteConn = connect(m_ui.actionPaste, SIGNAL(triggered()), this, SLOT(outlinePasteAction()));
-      m_deleteConn = connect(m_ui.actionDelete, SIGNAL(triggered()), this, SLOT(outlineDeleteAction()));
+      m_cutConn = connect(m_ui.actionCut, &QAction::triggered, this, &MainWindow::outlineCutAction);
+      m_copyConn = connect(m_ui.actionCopy, &QAction::triggered, this, &MainWindow::outlineCopyAction);
+      m_pasteConn = connect(m_ui.actionPaste, &QAction::triggered, this, &MainWindow::outlinePasteAction);
+      m_deleteConn = connect(m_ui.actionDelete, &QAction::triggered, this, &MainWindow::outlineDeleteAction);
     }
   } else if (now == m_ui.editorContents || m_ui.editorContents->isAncestorOf(now)) {
     if (EditorWidget* editor = getEditorWidget()) {
       setItemEditFlags(editor->itemEditFlags());
-      m_cutConn = connect(m_ui.actionCut, SIGNAL(triggered()), editor, SLOT(itemCutAction()));
-      m_copyConn = connect(m_ui.actionCopy, SIGNAL(triggered()), editor, SLOT(itemCopyAction()));
-      m_pasteConn = connect(m_ui.actionPaste, SIGNAL(triggered()), editor, SLOT(itemPasteAction()));
-      m_deleteConn = connect(m_ui.actionDelete, SIGNAL(triggered()), editor, SLOT(itemDeleteAction()));
+      m_cutConn = connect(m_ui.actionCut, &QAction::triggered, editor, &EditorWidget::itemCutAction);
+      m_copyConn = connect(m_ui.actionCopy, &QAction::triggered, editor, &EditorWidget::itemCopyAction);
+      m_pasteConn = connect(m_ui.actionPaste, &QAction::triggered, editor, &EditorWidget::itemPasteAction);
+      m_deleteConn = connect(m_ui.actionDelete, &QAction::triggered, editor, &EditorWidget::itemDeleteAction);
     } else {
       setItemEditFlags(AmuseItemNone);
     }

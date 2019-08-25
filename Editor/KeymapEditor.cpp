@@ -250,7 +250,7 @@ KeymapControls::KeymapControls(QWidget* parent) : QFrame(parent) {
   leftLayout->addWidget(new QLabel(tr("SoundMacro")), 0, 0);
   m_macro = new FieldProjectNode;
   m_macro->setDisabled(true);
-  connect(m_macro, SIGNAL(currentIndexChanged(int)), this, SLOT(controlChanged()));
+  connect(m_macro, qOverload<int>(&FieldProjectNode::currentIndexChanged), this, &KeymapControls::controlChanged);
   leftLayout->addWidget(m_macro, 1, 0);
 
   leftLayout->addWidget(new QLabel(tr("Transpose")), 0, 1);
@@ -259,7 +259,7 @@ KeymapControls::KeymapControls(QWidget* parent) : QFrame(parent) {
   m_transpose->setDisabled(true);
   m_transpose->setRange(-128, 127);
   m_transpose->setToolTip(tr("Offset resulting MIDI note"));
-  connect(m_transpose, SIGNAL(valueChanged(int)), this, SLOT(controlChanged()));
+  connect(m_transpose, qOverload<int>(&QSpinBox::valueChanged), this, &KeymapControls::controlChanged);
   leftLayout->addWidget(m_transpose, 1, 1);
 
   leftLayout->addWidget(new QLabel(tr("Pan")), 0, 2);
@@ -268,7 +268,7 @@ KeymapControls::KeymapControls(QWidget* parent) : QFrame(parent) {
   m_pan->setDisabled(true);
   m_pan->setRange(-127, 127);
   m_pan->setToolTip(tr("Set initial pan"));
-  connect(m_pan, SIGNAL(valueChanged(int)), this, SLOT(controlChanged()));
+  connect(m_pan, qOverload<int>(&QSpinBox::valueChanged), this, &KeymapControls::controlChanged);
   leftLayout->addWidget(m_pan, 1, 2);
 
   leftLayout->addWidget(new QLabel(tr("Surround")), 0, 3);
@@ -276,7 +276,7 @@ KeymapControls::KeymapControls(QWidget* parent) : QFrame(parent) {
   m_surround->setPalette(palette);
   m_surround->setDisabled(true);
   m_surround->setToolTip(tr("Initially play through surround channels"));
-  connect(m_surround, SIGNAL(stateChanged(int)), this, SLOT(controlChanged()));
+  connect(m_surround, qOverload<int>(&QCheckBox::stateChanged), this, &KeymapControls::controlChanged);
   leftLayout->addWidget(m_surround, 1, 3);
 
   leftLayout->addWidget(new QLabel(tr("Prio Offset")), 0, 4);
@@ -285,7 +285,7 @@ KeymapControls::KeymapControls(QWidget* parent) : QFrame(parent) {
   m_prioOffset->setDisabled(true);
   m_prioOffset->setRange(-128, 127);
   m_prioOffset->setToolTip(tr("Offset resulting priority"));
-  connect(m_prioOffset, SIGNAL(valueChanged(int)), this, SLOT(controlChanged()));
+  connect(m_prioOffset, qOverload<int>(&QSpinBox::valueChanged), this, &KeymapControls::controlChanged);
   leftLayout->addWidget(m_prioOffset, 1, 4);
 
   leftLayout->setColumnMinimumWidth(0, 200);
@@ -301,7 +301,7 @@ KeymapControls::KeymapControls(QWidget* parent) : QFrame(parent) {
 
   m_paintButton = new PaintButton;
   m_paintButton->setDisabled(true);
-  connect(m_paintButton, SIGNAL(pressed()), this, SLOT(paintButtonPressed()));
+  connect(m_paintButton, &PaintButton::pressed, this, &KeymapControls::paintButtonPressed);
   rightLayout->addWidget(m_paintButton);
   rightLayout->setContentsMargins(0, 0, 10, 0);
 

@@ -142,8 +142,8 @@ NewSoundMacroDialog::NewSoundMacroDialog(const QString& groupName, QWidget* pare
     m_combo.addItem(tr(ent.m_name), idx++);
   m_combo.setCurrentIndex(0);
 
-  QObject::connect(&m_buttonBox, SIGNAL(accepted()), this, SLOT(accept()));
-  QObject::connect(&m_buttonBox, SIGNAL(rejected()), this, SLOT(reject()));
+  connect(&m_buttonBox, &QDialogButtonBox::accepted, this, &NewSoundMacroDialog::accept);
+  connect(&m_buttonBox, &QDialogButtonBox::rejected, this, &NewSoundMacroDialog::reject);
 
   QVBoxLayout* layout = new QVBoxLayout;
 

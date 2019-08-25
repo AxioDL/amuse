@@ -828,7 +828,7 @@ ADSRControls::ADSRControls(QWidget* parent) : QFrame(parent) {
   m_attack->setSingleStep(0.1);
   m_attack->setSuffix(tr(" sec"));
   m_attack->setPalette(palette);
-  connect(m_attack, SIGNAL(valueChanged(double)), this, SLOT(attackChanged(double)));
+  connect(m_attack, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &ADSRControls::attackChanged);
   leftLayout->addWidget(m_attack, 1, 0);
 
   palette.setColor(QPalette::Text, Green);
@@ -842,7 +842,7 @@ ADSRControls::ADSRControls(QWidget* parent) : QFrame(parent) {
   m_decay->setSingleStep(0.1);
   m_decay->setSuffix(tr(" sec"));
   m_decay->setPalette(palette);
-  connect(m_decay, SIGNAL(valueChanged(double)), this, SLOT(decayChanged(double)));
+  connect(m_decay, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &ADSRControls::decayChanged);
   leftLayout->addWidget(m_decay, 1, 1);
 
   palette.setColor(QPalette::Text, Qt::white);
@@ -853,7 +853,7 @@ ADSRControls::ADSRControls(QWidget* parent) : QFrame(parent) {
   m_sustain->setDecimals(3);
   m_sustain->setSuffix(tr(" %"));
   m_sustain->setPalette(palette);
-  connect(m_sustain, SIGNAL(valueChanged(double)), this, SLOT(sustainChanged(double)));
+  connect(m_sustain, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &ADSRControls::sustainChanged);
   leftLayout->addWidget(m_sustain, 1, 2);
 
   palette.setColor(QPalette::Text, Blue);
@@ -867,7 +867,7 @@ ADSRControls::ADSRControls(QWidget* parent) : QFrame(parent) {
   m_release->setSingleStep(0.1);
   m_release->setSuffix(tr(" sec"));
   m_release->setPalette(palette);
-  connect(m_release, SIGNAL(valueChanged(double)), this, SLOT(releaseChanged(double)));
+  connect(m_release, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &ADSRControls::releaseChanged);
   leftLayout->addWidget(m_release, 1, 3);
 
   palette.setColor(QPalette::Text, Qt::white);
@@ -876,7 +876,7 @@ ADSRControls::ADSRControls(QWidget* parent) : QFrame(parent) {
   m_dls->setPalette(palette);
   m_dls->setDisabled(true);
   m_dls->setChecked(false);
-  connect(m_dls, SIGNAL(stateChanged(int)), this, SLOT(dlsStateChanged(int)));
+  connect(m_dls, qOverload<int>(&QCheckBox::stateChanged), this, &ADSRControls::dlsStateChanged);
   leftLayout->addWidget(m_dls, 1, 4);
 
   m_velToAttackLab = new QLabel(tr("Vel To Attack"));
@@ -888,7 +888,7 @@ ADSRControls::ADSRControls(QWidget* parent) : QFrame(parent) {
   m_velToAttack->setDecimals(3);
   m_velToAttack->setSingleStep(1.0);
   m_velToAttack->setPalette(palette);
-  connect(m_velToAttack, SIGNAL(valueChanged(double)), this, SLOT(velToAttackChanged(double)));
+  connect(m_velToAttack, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &ADSRControls::velToAttackChanged);
   leftLayout->addWidget(m_velToAttack, 1, 5);
 
   m_keyToDecayLab = new QLabel(tr("Key To Decay"));
@@ -900,7 +900,7 @@ ADSRControls::ADSRControls(QWidget* parent) : QFrame(parent) {
   m_keyToDecay->setDecimals(3);
   m_keyToDecay->setSingleStep(1.0);
   m_keyToDecay->setPalette(palette);
-  connect(m_keyToDecay, SIGNAL(valueChanged(double)), this, SLOT(keyToDecayChanged(double)));
+  connect(m_keyToDecay, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &ADSRControls::keyToDecayChanged);
   leftLayout->addWidget(m_keyToDecay, 1, 6);
 
   leftLayout->setColumnMinimumWidth(0, 75);

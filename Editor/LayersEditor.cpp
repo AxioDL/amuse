@@ -109,7 +109,7 @@ QWidget* SoundMacroDelegate::createEditor(QWidget* parent, const QStyleOptionVie
   ProjectModel::GroupNode* group = g_MainWindow->projectModel()->getGroupNode(model->m_node.get());
   EditorFieldProjectNode* cb =
       new EditorFieldProjectNode(group->getCollectionOfType(ProjectModel::INode::Type::SoundMacro), parent);
-  connect(cb, SIGNAL(currentIndexChanged(int)), this, SLOT(smIndexChanged()));
+  connect(cb, qOverload<int>(&EditorFieldProjectNode::currentIndexChanged), this, &SoundMacroDelegate::smIndexChanged);
   return cb;
 }
 
@@ -606,15 +606,13 @@ void LayersEditor::itemDeleteAction() { m_tableView.deleteSelection(); }
 LayersEditor::LayersEditor(QWidget* parent)
 : EditorWidget(parent), m_model(this), m_tableView(this), m_addRemoveButtons(this) {
   m_tableView.setModel(&m_model);
-  connect(m_tableView.selectionModel(), SIGNAL(selectionChanged(const QItemSelection&, const QItemSelection&)), this,
-          SLOT(doSelectionChanged()));
-  connect(&m_model, SIGNAL(rowsInserted(const QModelIndex&, int, int)), this,
-          SLOT(rowsInserted(const QModelIndex&, int, int)));
-  connect(&m_model, SIGNAL(rowsMoved(const QModelIndex&, int, int, const QModelIndex&, int)), this,
-          SLOT(rowsMoved(const QModelIndex&, int, int, const QModelIndex&, int)));
+  connect(m_tableView.selectionModel(), &QItemSelectionModel::selectionChanged, this,
+          &LayersEditor::doSelectionChanged);
+  connect(&m_model, &LayersModel::rowsInserted, this, &LayersEditor::rowsInserted);
+  connect(&m_model, &LayersModel::rowsMoved, this, &LayersEditor::rowsMoved);
 
   m_addRemoveButtons.addAction()->setToolTip(tr("Add new layer mapping"));
-  connect(m_addRemoveButtons.addAction(), SIGNAL(triggered(bool)), this, SLOT(doAdd()));
+  connect(m_addRemoveButtons.addAction(), &QAction::triggered, this, &LayersEditor::doAdd);
   m_addRemoveButtons.removeAction()->setToolTip(tr("Remove selected layer mappings"));
-  connect(m_addRemoveButtons.removeAction(), SIGNAL(triggered(bool)), this, SLOT(itemDeleteAction()));
+  connect(m_addRemoveButtons.removeAction(), &QAction::triggered, this, &LayersEditor::itemDeleteAction);
 }

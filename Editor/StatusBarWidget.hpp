@@ -45,21 +45,28 @@ public:
   explicit StatusBarWidget(QWidget* parent = Q_NULLPTR);
   void setNormalMessage(const QString& message) { m_normalMessage.setText(message); }
   void setVoiceCount(int voices);
-  void connectKillClicked(const QObject* receiver, const char* method) {
-    connect(&m_killButton, SIGNAL(clicked(bool)), receiver, method);
+
+  template <typename Receiver>
+  void connectKillClicked(const Receiver* receiver, void (Receiver::*method)()) {
+    connect(&m_killButton, &QPushButton::clicked, receiver, method);
   }
-  void connectFXPressed(const QObject* receiver, const char* method) {
-    connect(&m_fxButton, SIGNAL(pressed()), receiver, method);
+  template <typename Receiver>
+  void connectFXPressed(const Receiver* receiver, void (Receiver::*method)()) {
+    connect(&m_fxButton, &FXButton::pressed, receiver, method);
   }
   void setFXDown(bool down) { m_fxButton.setDown(down); }
-  void connectVolumeSlider(const QObject* receiver, const char* method) {
-    connect(&m_volumeSlider, SIGNAL(valueChanged(int)), receiver, method);
+
+  template <typename Receiver>
+  void connectVolumeSlider(const Receiver* receiver, void (Receiver::*method)(int)) {
+    connect(&m_volumeSlider, qOverload<int>(&QSlider::valueChanged), receiver, method);
   }
-  void connectASlider(const QObject* receiver, const char* method) {
-    connect(&m_aSlider, SIGNAL(valueChanged(int)), receiver, method);
+  template <typename Receiver>
+  void connectASlider(const Receiver* receiver, void (Receiver::*method)(int)) {
+    connect(&m_aSlider, qOverload<int>(&QSlider::valueChanged), receiver, method);
   }
-  void connectBSlider(const QObject* receiver, const char* method) {
-    connect(&m_bSlider, SIGNAL(valueChanged(int)), receiver, method);
+  template <typename Receiver>
+  void connectBSlider(const Receiver* receiver, void (Receiver::*method)(int)) {
+    connect(&m_bSlider, qOverload<int>(&QSlider::valueChanged), receiver, method);
   }
   void setVolumeValue(int vol) { m_volumeSlider.setValue(vol); }
 

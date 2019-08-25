@@ -581,14 +581,14 @@ void SampleControls::updateFileState() {
   case amuse::SampleFileState::CompressedNoWAV:
     m_makeOtherVersion->setText(tr("Make WAV Version"));
     m_makeOtherVersion->setDisabled(false);
-    m_makeOtherConn = connect(m_makeOtherVersion, SIGNAL(clicked(bool)), this, SLOT(makeWAVVersion()));
+    m_makeOtherConn = connect(m_makeOtherVersion, &QPushButton::clicked, this, &SampleControls::makeWAVVersion);
     break;
   case amuse::SampleFileState::MemoryOnlyCompressed:
   case amuse::SampleFileState::WAVRecent:
   case amuse::SampleFileState::WAVNoCompressed:
     m_makeOtherVersion->setText(tr("Make Compressed Version"));
     m_makeOtherVersion->setDisabled(false);
-    m_makeOtherConn = connect(m_makeOtherVersion, SIGNAL(clicked(bool)), this, SLOT(makeCompressedVersion()));
+    m_makeOtherConn = connect(m_makeOtherVersion, &QPushButton::clicked, this, &SampleControls::makeCompressedVersion);
     break;
   default:
     m_makeOtherVersion->setText(tr("Up To Date"));
@@ -680,28 +680,28 @@ SampleControls::SampleControls(QWidget* parent) : QFrame(parent) {
   m_zoomSlider = new QSlider(Qt::Horizontal);
   m_zoomSlider->setDisabled(true);
   m_zoomSlider->setRange(0, 99);
-  connect(m_zoomSlider, SIGNAL(valueChanged(int)), this, SLOT(zoomSliderChanged(int)));
+  connect(m_zoomSlider, qOverload<int>(&QSlider::valueChanged), this, &SampleControls::zoomSliderChanged);
   leftLayout->addWidget(m_zoomSlider, 1, 0);
 
   leftLayout->addWidget(new QLabel(tr("Loop")), 0, 1);
   m_loopCheck = new QCheckBox;
   m_loopCheck->setPalette(palette);
   m_loopCheck->setDisabled(true);
-  connect(m_loopCheck, SIGNAL(stateChanged(int)), this, SLOT(loopStateChanged(int)));
+  connect(m_loopCheck, qOverload<int>(&QCheckBox::stateChanged), this, &SampleControls::loopStateChanged);
   leftLayout->addWidget(m_loopCheck, 1, 1);
 
   leftLayout->addWidget(new QLabel(tr("Start")), 0, 2);
   m_loopStart = new QSpinBox;
   m_loopStart->setPalette(palette);
   m_loopStart->setDisabled(true);
-  connect(m_loopStart, SIGNAL(valueChanged(int)), this, SLOT(startValueChanged(int)));
+  connect(m_loopStart, qOverload<int>(&QSpinBox::valueChanged), this, &SampleControls::startValueChanged);
   leftLayout->addWidget(m_loopStart, 1, 2);
 
   leftLayout->addWidget(new QLabel(tr("End")), 0, 3);
   m_loopEnd = new QSpinBox;
   m_loopEnd->setPalette(palette);
   m_loopEnd->setDisabled(true);
-  connect(m_loopEnd, SIGNAL(valueChanged(int)), this, SLOT(endValueChanged(int)));
+  connect(m_loopEnd, qOverload<int>(&QSpinBox::valueChanged), this, &SampleControls::endValueChanged);
   leftLayout->addWidget(m_loopEnd, 1, 3);
 
   leftLayout->addWidget(new QLabel(tr("Base Pitch")), 0, 4);
@@ -710,7 +710,7 @@ SampleControls::SampleControls(QWidget* parent) : QFrame(parent) {
   m_basePitch->setDisabled(true);
   m_basePitch->setMinimum(0);
   m_basePitch->setMaximum(127);
-  connect(m_basePitch, SIGNAL(valueChanged(int)), this, SLOT(pitchValueChanged(int)));
+  connect(m_basePitch, qOverload<int>(&QSpinBox::valueChanged), this, &SampleControls::pitchValueChanged);
   leftLayout->addWidget(m_basePitch, 1, 4);
 
   leftLayout->setColumnMinimumWidth(0, 100);
@@ -731,7 +731,7 @@ SampleControls::SampleControls(QWidget* parent) : QFrame(parent) {
   m_showInBrowser = new QPushButton(ShowInGraphicalShellString());
   m_showInBrowser->setMinimumWidth(250);
   m_showInBrowser->setDisabled(true);
-  connect(m_showInBrowser, SIGNAL(clicked(bool)), this, SLOT(showInBrowser()));
+  connect(m_showInBrowser, &QPushButton::clicked, this, &SampleControls::showInBrowser);
   rightLayout->addWidget(m_showInBrowser);
 
   mainLayout->addLayout(leftLayout);

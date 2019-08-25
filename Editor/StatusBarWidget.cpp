@@ -34,7 +34,7 @@ StatusBarWidget::StatusBarWidget(QWidget* parent)
   m_volumeIcon.setPixmap(m_volumeIcons[0].pixmap(16, 16));
   QString volTip = tr("Master volume level");
   m_volumeIcon.setToolTip(volTip);
-  connect(&m_volumeSlider, SIGNAL(valueChanged(int)), this, SLOT(volumeChanged(int)));
+  connect(&m_volumeSlider, qOverload<int>(&QSlider::valueChanged), this, &StatusBarWidget::volumeChanged);
   m_volumeSlider.setRange(0, 100);
   m_volumeSlider.setFixedWidth(100);
   m_volumeSlider.setToolTip(volTip);
