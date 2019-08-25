@@ -129,7 +129,7 @@ QWidget* SFXObjectDelegate::createEditor(QWidget* parent, const QStyleOptionView
   const SFXModel* model = static_cast<const SFXModel*>(index.model());
   ProjectModel::GroupNode* group = g_MainWindow->projectModel()->getGroupNode(model->m_node.get());
   EditorFieldPageObjectNode* cb = new EditorFieldPageObjectNode(group, parent);
-  connect(cb, SIGNAL(currentIndexChanged(int)), this, SLOT(objIndexChanged()));
+  connect(cb, &EditorFieldPageObjectNode::currentIndexChanged, this, &SFXObjectDelegate::objIndexChanged);
   return cb;
 }
 
@@ -554,7 +554,7 @@ SFXPlayerWidget::SFXPlayerWidget(QModelIndex index, amuse::GroupId gid, amuse::S
 : QWidget(parent), m_playAction(tr("Play")), m_button(this), m_index(index), m_groupId(gid), m_sfxId(id) {
   m_playAction.setIcon(QIcon(QStringLiteral(":/icons/IconSoundMacro.svg")));
   m_button.setDefaultAction(&m_playAction);
-  connect(&m_playAction, SIGNAL(triggered()), this, SLOT(clicked()));
+  connect(&m_playAction, &QAction::triggered, this, &SFXPlayerWidget::clicked);
 }
 
 bool SoundGroupEditor::loadData(ProjectModel::SoundGroupNode* node) {
@@ -620,20 +620,17 @@ void SoundGroupEditor::itemDeleteAction() { m_sfxTable->deleteSelection(); }
 SoundGroupEditor::SoundGroupEditor(QWidget* parent)
 : EditorWidget(parent), m_sfxs(this), m_sfxTable(new SFXTableView(this)), m_addRemoveButtons(this) {
   m_sfxTable->setModel(&m_sfxs);
-  connect(m_sfxTable->selectionModel(), SIGNAL(selectionChanged(const QItemSelection&, const QItemSelection&)), this,
-          SLOT(doSelectionChanged()));
+  connect(m_sfxTable->selectionModel(), &QItemSelectionModel::selectionChanged, this,
+          &SoundGroupEditor::doSelectionChanged);
 
-  connect(&m_sfxs, SIGNAL(rowsInserted(const QModelIndex&, int, int)), this,
-          SLOT(rowsInserted(const QModelIndex&, int, int)));
-  connect(&m_sfxs, SIGNAL(rowsRemoved(const QModelIndex&, int, int)), this, SLOT(sfxDataChanged()));
-  connect(&m_sfxs, SIGNAL(dataChanged(const QModelIndex&, const QModelIndex&, const QVector<int>&)), this,
-          SLOT(sfxDataChanged()));
-  connect(&m_sfxs, SIGNAL(rowsMoved(const QModelIndex&, int, int, const QModelIndex&, int)), this,
-          SLOT(rowsMoved(const QModelIndex&, int, int, const QModelIndex&, int)));
-  connect(&m_sfxs, SIGNAL(modelReset()), this, SLOT(sfxDataChanged()));
+  connect(&m_sfxs, &SFXModel::rowsInserted, this, &SoundGroupEditor::rowsInserted);
+  connect(&m_sfxs, &SFXModel::rowsRemoved, this, &SoundGroupEditor::sfxDataChanged);
+  connect(&m_sfxs, &SFXModel::dataChanged, this, &SoundGroupEditor::sfxDataChanged);
+  connect(&m_sfxs, &SFXModel::rowsMoved, this, &SoundGroupEditor::rowsMoved);
+  connect(&m_sfxs, &SFXModel::modelReset, this, &SoundGroupEditor::sfxDataChanged);
 
   m_addRemoveButtons.addAction()->setToolTip(tr("Add new SFX entry"));
-  connect(m_addRemoveButtons.addAction(), SIGNAL(triggered(bool)), this, SLOT(doAdd()));
+  connect(m_addRemoveButtons.addAction(), &QAction::triggered, this, &SoundGroupEditor::doAdd);
   m_addRemoveButtons.removeAction()->setToolTip(tr("Remove selected SFX entries"));
-  connect(m_addRemoveButtons.removeAction(), SIGNAL(triggered(bool)), this, SLOT(itemDeleteAction()));
+  connect(m_addRemoveButtons.removeAction(), &QAction::triggered, this, &SoundGroupEditor::itemDeleteAction);
 }

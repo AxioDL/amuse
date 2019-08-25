@@ -88,10 +88,11 @@ FieldSoundMacroStep::FieldSoundMacroStep(FieldProjectNode* macroField, QWidget* 
   m_spinBox.setMinimum(0);
   m_spinBox.setDisabled(true);
   m_targetButton.setDisabled(true);
-  connect(&m_spinBox, SIGNAL(valueChanged(int)), this, SIGNAL(valueChanged(int)));
-  connect(&m_targetButton, SIGNAL(pressed()), this, SLOT(targetPressed()));
-  if (macroField)
-    connect(macroField, SIGNAL(currentIndexChanged(int)), this, SLOT(updateMacroField()));
+  connect(&m_spinBox, qOverload<int>(&QSpinBox::valueChanged), this, &FieldSoundMacroStep::valueChanged);
+  connect(&m_targetButton, &QPushButton::pressed, this, &FieldSoundMacroStep::targetPressed);
+  if (macroField) {
+    connect(macroField, &FieldProjectNode::currentIndexChanged, this, &FieldSoundMacroStep::updateMacroField);
+  }
   setLayout(layout);
 }
 
@@ -128,7 +129,7 @@ CommandWidget::CommandWidget(QWidget* parent, amuse::SoundMacro::ICmd* cmd, amus
   headLayout->addWidget(&m_titleLabel);
   if (op != amuse::SoundMacro::CmdOp::End) {
     m_deleteButton.setVisible(true);
-    connect(&m_deleteButton, SIGNAL(clicked(bool)), this, SLOT(deleteClicked()));
+    connect(&m_deleteButton, &ListingDeleteButton::clicked, this, &CommandWidget::deleteClicked);
     headLayout->addWidget(&m_deleteButton);
   }
 
@@ -153,7 +154,7 @@ CommandWidget::CommandWidget(QWidget* parent, amuse::SoundMacro::ICmd* cmd, amus
           cb->setProperty("fieldIndex", f);
           cb->setProperty("fieldName", fieldName);
           cb->setCheckState(amuse::AccessField<bool>(m_cmd, field) ? Qt::Checked : Qt::Unchecked);
-          connect(cb, SIGNAL(stateChanged(int)), this, SLOT(boolChanged(int)));
+          connect(cb, qOverload<int>(&QCheckBox::stateChanged), this, &CommandWidget::boolChanged);
           layout->addWidget(cb, 1, f);
           break;
         }
@@ -192,7 +193,7 @@ CommandWidget::CommandWidget(QWidget* parent, amuse::SoundMacro::ICmd* cmd, amus
           default:
             break;
           }
-          connect(sb, SIGNAL(valueChanged(int)), this, SLOT(numChanged(int)));
+          connect(sb, qOverload<int>(&FieldSpinBox::valueChanged), this, &CommandWidget::numChanged);
           layout->addWidget(sb, 1, f);
           break;
         }
@@ -218,7 +219,7 @@ CommandWidget::CommandWidget(QWidget* parent, amuse::SoundMacro::ICmd* cmd, amus
           int index =
               collection->indexOfId(amuse::AccessField<amuse::SoundMacroIdDNA<athena::Little>>(m_cmd, field).id);
           nf->setCurrentIndex(index < 0 ? 0 : index + 1);
-          connect(nf, SIGNAL(currentIndexChanged(int)), this, SLOT(nodeChanged(int)));
+          connect(nf, &FieldProjectNode::currentIndexChanged, this, &CommandWidget::nodeChanged);
           layout->addWidget(nf, 1, f);
           break;
         }
@@ -228,7 +229,7 @@ CommandWidget::CommandWidget(QWidget* parent, amuse::SoundMacro::ICmd* cmd, amus
           sb->setProperty("fieldIndex", f);
           sb->setProperty("fieldName", fieldName);
           sb->m_spinBox.setValue(amuse::AccessField<amuse::SoundMacroStepDNA<athena::Little>>(m_cmd, field).step);
-          connect(sb, SIGNAL(valueChanged(int)), this, SLOT(numChanged(int)));
+          connect(sb, &FieldSoundMacroStep::valueChanged, this, &CommandWidget::numChanged);
           layout->addWidget(sb, 1, f);
           m_stepField = sb;
           break;
@@ -244,7 +245,7 @@ CommandWidget::CommandWidget(QWidget* parent, amuse::SoundMacro::ICmd* cmd, amus
             cb->addItem(tr(field.m_choices[j].data()));
           }
           cb->setCurrentIndex(int(amuse::AccessField<int8_t>(m_cmd, field)));
-          connect(cb, SIGNAL(currentIndexChanged(int)), this, SLOT(numChanged(int)));
+          connect(cb, qOverload<int>(&FieldComboBox::currentIndexChanged), this, &CommandWidget::numChanged);
           layout->addWidget(cb, 1, f);
           break;
         }
@@ -456,8 +457,8 @@ void CommandWidgetContainer::animateOpen() {
   m_animation->setStartValue(minimumHeight());
   m_animation->setEndValue(newHeight);
   m_animation->setEasingCurve(QEasingCurve::InOutExpo);
-  connect(m_animation, SIGNAL(valueChanged(const QVariant&)), parentWidget(), SLOT(update()));
-  connect(m_animation, SIGNAL(destroyed(QObject*)), this, SLOT(animationDestroyed()));
+  connect(m_animation, &QPropertyAnimation::valueChanged, parentWidget(), qOverload<>(&QWidget::update));
+  connect(m_animation, &QPropertyAnimation::destroyed, this, &CommandWidgetContainer::animationDestroyed);
   m_animation->start(QAbstractAnimation::DeleteWhenStopped);
 }
 
@@ -467,8 +468,8 @@ void CommandWidgetContainer::animateClosed() {
   m_animation->setStartValue(minimumHeight());
   m_animation->setEndValue(100);
   m_animation->setEasingCurve(QEasingCurve::InOutExpo);
-  connect(m_animation, SIGNAL(valueChanged(const QVariant&)), parentWidget(), SLOT(update()));
-  connect(m_animation, SIGNAL(destroyed(QObject*)), this, SLOT(animationDestroyed()));
+  connect(m_animation, &QPropertyAnimation::valueChanged, parentWidget(), qOverload<>(&QWidget::update));
+  connect(m_animation, &QPropertyAnimation::destroyed, this, &CommandWidgetContainer::animationDestroyed);
   m_animation->start(QAbstractAnimation::DeleteWhenStopped);
 }
 
@@ -1036,8 +1037,7 @@ SoundMacroEditor::SoundMacroEditor(QWidget* parent)
     m_splitter->addWidget(m_catalogue);
   }
 
-  connect(m_catalogue, SIGNAL(itemDoubleClicked(QTreeWidgetItem*, int)), this,
-          SLOT(catalogueDoubleClicked(QTreeWidgetItem*, int)));
+  connect(m_catalogue, &SoundMacroCatalogue::itemDoubleClicked, this, &SoundMacroEditor::catalogueDoubleClicked);
 
   m_splitter->setCollapsible(0, false);
   QGridLayout* layout = new QGridLayout;

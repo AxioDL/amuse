@@ -153,7 +153,7 @@ Uint32X8Popup::Uint32X8Popup(int min, int max, QWidget* parent) : QFrame(parent,
     slider->setToolTip(QStringLiteral("[%1,%2]").arg(min).arg(max));
     slider->setProperty("chanIdx", i);
     slider->setRange(min, max);
-    connect(slider, SIGNAL(valueChanged(int)), this, SLOT(doValueChanged(int)));
+    connect(slider, qOverload<int>(&FieldSlider::valueChanged), this, &Uint32X8Popup::doValueChanged);
     layout->addWidget(slider, i, 1);
   }
   setLayout(layout);
@@ -169,7 +169,7 @@ void Uint32X8Popup::doValueChanged(int val) {
 
 Uint32X8Button::Uint32X8Button(int min, int max, QWidget* parent)
 : QPushButton(parent), m_popup(new Uint32X8Popup(min, max, this)) {
-  connect(this, SIGNAL(pressed()), this, SLOT(onPressed()));
+  connect(this, &Uint32X8Button::pressed, this, &Uint32X8Button::onPressed);
 }
 
 void Uint32X8Button::paintEvent(QPaintEvent*) {
@@ -231,7 +231,7 @@ EffectWidget::EffectWidget(QWidget* parent, amuse::EffectBaseTypeless* effect, a
   headLayout->addWidget(&m_titleLabel);
 
   m_deleteButton.setVisible(true);
-  connect(&m_deleteButton, SIGNAL(clicked(bool)), this, SLOT(deleteClicked()));
+  connect(&m_deleteButton, &ListingDeleteButton::clicked, this, &EffectWidget::deleteClicked);
   headLayout->addWidget(&m_deleteButton);
 
   mainLayout->addLayout(headLayout);
@@ -255,7 +255,7 @@ EffectWidget::EffectWidget(QWidget* parent, amuse::EffectBaseTypeless* effect, a
           sb->setRange(int(field.m_min), int(field.m_max));
           sb->setToolTip(QStringLiteral("[%1,%2]").arg(int(field.m_min)).arg(int(field.m_max)));
           sb->setValue(GetEffectParm<uint32_t>(m_effect, f, 0));
-          connect(sb, SIGNAL(valueChanged(int)), this, SLOT(numChanged(int)));
+          connect(sb, qOverload<int>(&FieldSlider::valueChanged), this, qOverload<int>(&EffectWidget::numChanged));
           layout->addWidget(sb, 1, f);
           break;
         }
@@ -264,7 +264,7 @@ EffectWidget::EffectWidget(QWidget* parent, amuse::EffectBaseTypeless* effect, a
           sb->popup()->setProperty("fieldIndex", f);
           for (int i = 0; i < 8; ++i)
             sb->popup()->setValue(i, GetEffectParm<uint32_t>(m_effect, f, i));
-          connect(sb->popup(), SIGNAL(valueChanged(int, int)), this, SLOT(chanNumChanged(int, int)));
+          connect(sb->popup(), &Uint32X8Popup::valueChanged, this, &EffectWidget::chanNumChanged);
           layout->addWidget(sb, 1, f);
           break;
         }
@@ -274,7 +274,8 @@ EffectWidget::EffectWidget(QWidget* parent, amuse::EffectBaseTypeless* effect, a
           sb->setRange(field.m_min, field.m_max);
           sb->setToolTip(QStringLiteral("[%1,%2]").arg(field.m_min).arg(field.m_max));
           sb->setValue(GetEffectParm<float>(m_effect, f, 0));
-          connect(sb, SIGNAL(valueChanged(double)), this, SLOT(numChanged(double)));
+          connect(sb, qOverload<double>(&FieldDoubleSlider::valueChanged), this,
+                  qOverload<double>(&EffectWidget::numChanged));
           layout->addWidget(sb, 1, f);
           break;
         }
@@ -354,8 +355,8 @@ void EffectWidgetContainer::animateOpen() {
   m_animation->setStartValue(minimumHeight());
   m_animation->setEndValue(newHeight);
   m_animation->setEasingCurve(QEasingCurve::InOutExpo);
-  connect(m_animation, SIGNAL(valueChanged(const QVariant&)), parentWidget(), SLOT(update()));
-  connect(m_animation, SIGNAL(destroyed(QObject*)), this, SLOT(animationDestroyed()));
+  connect(m_animation, &QPropertyAnimation::valueChanged, parentWidget(), qOverload<>(&QWidget::update));
+  connect(m_animation, &QPropertyAnimation::destroyed, this, &EffectWidgetContainer::animationDestroyed);
   m_animation->start(QAbstractAnimation::DeleteWhenStopped);
 }
 
@@ -365,8 +366,8 @@ void EffectWidgetContainer::animateClosed() {
   m_animation->setStartValue(minimumHeight());
   m_animation->setEndValue(100);
   m_animation->setEasingCurve(QEasingCurve::InOutExpo);
-  connect(m_animation, SIGNAL(valueChanged(const QVariant&)), parentWidget(), SLOT(update()));
-  connect(m_animation, SIGNAL(destroyed(QObject*)), this, SLOT(animationDestroyed()));
+  connect(m_animation, &QPropertyAnimation::valueChanged, parentWidget(), qOverload<>(&QWidget::update));
+  connect(m_animation, &QPropertyAnimation::destroyed, this, &EffectWidgetContainer::animationDestroyed);
   m_animation->start(QAbstractAnimation::DeleteWhenStopped);
 }
 
@@ -866,8 +867,7 @@ StudioSetupWidget::StudioSetupWidget(QWidget* parent)
     m_splitter->addWidget(m_catalogue);
   }
 
-  connect(m_catalogue, SIGNAL(itemDoubleClicked(QTreeWidgetItem*, int)), this,
-          SLOT(catalogueDoubleClicked(QTreeWidgetItem*, int)));
+  connect(m_catalogue, &EffectCatalogue::itemDoubleClicked, this, &StudioSetupWidget::catalogueDoubleClicked);
 
   m_splitter->setCollapsible(0, false);
   QGridLayout* layout = new QGridLayout;

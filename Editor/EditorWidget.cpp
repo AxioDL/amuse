@@ -18,7 +18,7 @@ FieldSlider::FieldSlider(QWidget* parent) : QWidget(parent), m_slider(Qt::Horizo
   layout->setContentsMargins(QMargins());
   setLayout(layout);
   m_value.setFixedWidth(42);
-  connect(&m_slider, SIGNAL(valueChanged(int)), this, SLOT(doValueChanged(int)));
+  connect(&m_slider, qOverload<int>(&QSlider::valueChanged), this, &FieldSlider::doValueChanged);
   m_slider.setValue(0);
 }
 
@@ -36,7 +36,7 @@ FieldDoubleSlider::FieldDoubleSlider(QWidget* parent) : QWidget(parent), m_slide
   layout->setContentsMargins(QMargins());
   setLayout(layout);
   m_value.setFixedWidth(42);
-  connect(&m_slider, SIGNAL(valueChanged(int)), this, SLOT(doValueChanged(int)));
+  connect(&m_slider, qOverload<int>(&QSlider::valueChanged), this, &FieldDoubleSlider::doValueChanged);
   m_slider.setRange(0, 1000);
   m_slider.setValue(0);
 }
@@ -77,8 +77,9 @@ FieldProjectNode::FieldProjectNode(ProjectModel::CollectionNode* collection, QWi
   m_button.setDisabled(true);
   m_button.setFixedSize(30, 30);
   m_comboBox.setFixedHeight(30);
-  connect(&m_comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(_currentIndexChanged(int)));
-  connect(&m_button, SIGNAL(clicked(bool)), this, SLOT(openCurrent()));
+  connect(&m_comboBox, qOverload<int>(&FieldComboBox::currentIndexChanged), this,
+          &FieldProjectNode::_currentIndexChanged);
+  connect(&m_button, &QPushButton::clicked, this, &FieldProjectNode::openCurrent);
   QIcon icon(QStringLiteral(":/icons/IconForward.svg"));
   icon.addFile(QStringLiteral(":/icons/IconForwardDisabled.svg"), {}, QIcon::Disabled);
   m_button.setIcon(icon);
@@ -137,8 +138,9 @@ FieldPageObjectNode::FieldPageObjectNode(ProjectModel::GroupNode* group, QWidget
   m_button.setDisabled(true);
   m_button.setFixedSize(30, 30);
   m_comboBox.setFixedHeight(30);
-  connect(&m_comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(_currentIndexChanged(int)));
-  connect(&m_button, SIGNAL(clicked(bool)), this, SLOT(openCurrent()));
+  connect(&m_comboBox, qOverload<int>(&FieldComboBox::currentIndexChanged), this,
+          &FieldPageObjectNode::_currentIndexChanged);
+  connect(&m_button, &QPushButton::clicked, this, &FieldPageObjectNode::openCurrent);
   QIcon icon(QStringLiteral(":/icons/IconForward.svg"));
   icon.addFile(QStringLiteral(":/icons/IconForwardDisabled.svg"), {}, QIcon::Disabled);
   m_button.setIcon(icon);
@@ -247,13 +249,13 @@ bool BaseObjectDelegate::editorEvent(QEvent* event, QAbstractItemModel* model, c
       QAction* openEditorAction = new QAction(tr("Open in Editor"), menu);
       openEditorAction->setData(QVariant::fromValue((void*)node));
       openEditorAction->setIcon(QIcon::fromTheme(QStringLiteral("document-edit")));
-      connect(openEditorAction, SIGNAL(triggered()), this, SLOT(doOpenEditor()));
+      connect(openEditorAction, &QAction::triggered, this, &BaseObjectDelegate::doOpenEditor);
       menu->addAction(openEditorAction);
 
       QAction* findUsagesAction = new QAction(tr("Find Usages"), menu);
       findUsagesAction->setData(QVariant::fromValue((void*)node));
       findUsagesAction->setIcon(QIcon::fromTheme(QStringLiteral("edit-find")));
-      connect(findUsagesAction, SIGNAL(triggered()), this, SLOT(doFindUsages()));
+      connect(findUsagesAction, &QAction::triggered, this, &BaseObjectDelegate::doFindUsages);
       menu->addAction(findUsagesAction);
 
       menu->popup(ev->globalPos());

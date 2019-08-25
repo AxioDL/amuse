@@ -262,7 +262,7 @@ QWidget* PageObjectDelegate::createEditor(QWidget* parent, const QStyleOptionVie
   const PageModel* model = static_cast<const PageModel*>(index.model());
   ProjectModel::GroupNode* group = g_MainWindow->projectModel()->getGroupNode(model->m_node.get());
   EditorFieldPageObjectNode* cb = new EditorFieldPageObjectNode(group, parent);
-  connect(cb, SIGNAL(currentIndexChanged(int)), this, SLOT(objIndexChanged()));
+  connect(cb, &EditorFieldPageObjectNode::currentIndexChanged, this, &PageObjectDelegate::objIndexChanged);
   return cb;
 }
 
@@ -322,8 +322,8 @@ MIDIFileFieldWidget::MIDIFileFieldWidget(QWidget* parent)
   layout->setSpacing(0);
   setLayout(layout);
 
-  connect(&m_le, SIGNAL(returnPressed()), this, SIGNAL(pathChanged()));
-  connect(&m_button, SIGNAL(clicked(bool)), this, SLOT(buttonPressed()));
+  connect(&m_le, &QLineEdit::returnPressed, this, &MIDIFileFieldWidget::pathChanged);
+  connect(&m_button, &QPushButton::clicked, this, &MIDIFileFieldWidget::buttonPressed);
 
   m_dialog.setFileMode(QFileDialog::ExistingFile);
   m_dialog.setAcceptMode(QFileDialog::AcceptOpen);
@@ -332,7 +332,7 @@ MIDIFileFieldWidget::MIDIFileFieldWidget(QWidget* parent)
 QWidget* MIDIFileDelegate::createEditor(QWidget* parent, const QStyleOptionViewItem& option,
                                         const QModelIndex& index) const {
   MIDIFileFieldWidget* field = new MIDIFileFieldWidget(parent);
-  connect(field, SIGNAL(pathChanged()), this, SLOT(pathChanged()));
+  connect(field, &MIDIFileFieldWidget::pathChanged, this, &MIDIFileDelegate::pathChanged);
   return field;
 }
 
@@ -377,13 +377,13 @@ bool MIDIFileDelegate::editorEvent(QEvent* event, QAbstractItemModel* model, con
       QAction* midiAction = new QAction(tr("Save As MIDI"), menu);
       midiAction->setData(path);
       midiAction->setIcon(QIcon::fromTheme(QStringLiteral("file-save")));
-      connect(midiAction, SIGNAL(triggered()), this, SLOT(doExportMIDI()));
+      connect(midiAction, &QAction::triggered, this, &MIDIFileDelegate::doExportMIDI);
       menu->addAction(midiAction);
 
       QAction* sngAction = new QAction(tr("Save As SNG"), menu);
       sngAction->setData(path);
       sngAction->setIcon(QIcon::fromTheme(QStringLiteral("file-save")));
-      connect(sngAction, SIGNAL(triggered()), this, SLOT(doExportSNG()));
+      connect(sngAction, &QAction::triggered, this, &MIDIFileDelegate::doExportSNG);
       menu->addAction(sngAction);
 
       menu->popup(ev->globalPos());
@@ -1360,7 +1360,7 @@ MIDIPlayerWidget::MIDIPlayerWidget(QModelIndex index, amuse::GroupId gid, amuse:
 , m_path(path) {
   m_playAction.setIcon(QIcon(QStringLiteral(":/icons/IconSoundMacro.svg")));
   m_button.setDefaultAction(&m_playAction);
-  connect(&m_playAction, SIGNAL(triggered()), this, SLOT(clicked()));
+  connect(&m_playAction, &QAction::triggered, this, &MIDIPlayerWidget::clicked);
 }
 
 bool SongGroupEditor::loadData(ProjectModel::SongGroupNode* node) {
@@ -1553,48 +1553,37 @@ SongGroupEditor::SongGroupEditor(QWidget* parent)
   m_tabs.addTab(m_drumTable, tr("Drum Pages"));
   m_tabs.addTab(m_setupTable, tr("MIDI Setups"));
 
-  connect(&m_tabs, SIGNAL(currentChanged(int)), this, SLOT(currentTabChanged(int)));
+  connect(&m_tabs, &ColoredTabWidget::currentChanged, this, &SongGroupEditor::currentTabChanged);
 
   m_normTable->setModel(&m_normPages);
   m_drumTable->setModel(&m_drumPages);
   m_setupTable->setModel(&m_setupList, &m_setup);
-  connect(m_normTable->selectionModel(), SIGNAL(selectionChanged(const QItemSelection&, const QItemSelection&)), this,
-          SLOT(doSelectionChanged()));
-  connect(m_drumTable->selectionModel(), SIGNAL(selectionChanged(const QItemSelection&, const QItemSelection&)), this,
-          SLOT(doSelectionChanged()));
-  connect(m_setupTable->m_listView->selectionModel(),
-          SIGNAL(selectionChanged(const QItemSelection&, const QItemSelection&)), this,
-          SLOT(doSetupSelectionChanged()));
+  connect(m_normTable->selectionModel(), &QItemSelectionModel::selectionChanged, this,
+          &SongGroupEditor::doSelectionChanged);
+  connect(m_drumTable->selectionModel(), &QItemSelectionModel::selectionChanged, this,
+          &SongGroupEditor::doSelectionChanged);
+  connect(m_setupTable->m_listView->selectionModel(), &QItemSelectionModel::selectionChanged, this,
+          &SongGroupEditor::doSetupSelectionChanged);
 
-  connect(&m_normPages, SIGNAL(rowsInserted(const QModelIndex&, int, int)), this,
-          SLOT(normRowsInserted(const QModelIndex&, int, int)));
-  connect(&m_normPages, SIGNAL(rowsMoved(const QModelIndex&, int, int, const QModelIndex&, int)), this,
-          SLOT(normRowsMoved(const QModelIndex&, int, int, const QModelIndex&, int)));
+  connect(&m_normPages, &PageModel::rowsInserted, this, &SongGroupEditor::normRowsInserted);
+  connect(&m_normPages, &PageModel::rowsMoved, this, &SongGroupEditor::normRowsMoved);
 
-  connect(&m_drumPages, SIGNAL(rowsInserted(const QModelIndex&, int, int)), this,
-          SLOT(drumRowsInserted(const QModelIndex&, int, int)));
-  connect(&m_drumPages, SIGNAL(rowsMoved(const QModelIndex&, int, int, const QModelIndex&, int)), this,
-          SLOT(drumRowsMoved(const QModelIndex&, int, int, const QModelIndex&, int)));
+  connect(&m_drumPages, &PageModel::rowsInserted, this, &SongGroupEditor::drumRowsInserted);
+  connect(&m_drumPages, &PageModel::rowsMoved, this, &SongGroupEditor::drumRowsMoved);
 
-  connect(&m_setupList, SIGNAL(rowsInserted(const QModelIndex&, int, int)), this,
-          SLOT(setupRowsInserted(const QModelIndex&, int, int)));
-  connect(&m_setupList, SIGNAL(rowsMoved(const QModelIndex&, int, int, const QModelIndex&, int)), this,
-          SLOT(setupRowsMoved(const QModelIndex&, int, int, const QModelIndex&, int)));
-  connect(&m_setupList, SIGNAL(rowsAboutToBeRemoved(const QModelIndex&, int, int)), this,
-          SLOT(setupRowsAboutToBeRemoved(const QModelIndex&, int, int)));
-  connect(&m_setupList, SIGNAL(modelAboutToBeReset()), this, SLOT(setupModelAboutToBeReset()));
-  connect(&m_setupList, SIGNAL(rowsRemoved(const QModelIndex&, int, int)), this, SLOT(setupDataChanged()));
-  connect(&m_setupList, SIGNAL(dataChanged(const QModelIndex&, const QModelIndex&, const QVector<int>&)), this,
-          SLOT(setupDataChanged()));
-  connect(&m_setupList,
-          SIGNAL(layoutChanged(const QList<QPersistentModelIndex>&, QAbstractItemModel::LayoutChangeHint)), this,
-          SLOT(setupDataChanged()));
-  connect(&m_setupList, SIGNAL(modelReset()), this, SLOT(setupDataChanged()));
+  connect(&m_setupList, &SetupListModel::rowsInserted, this, &SongGroupEditor::setupRowsInserted);
+  connect(&m_setupList, &SetupListModel::rowsMoved, this, &SongGroupEditor::setupRowsMoved);
+  connect(&m_setupList, &SetupListModel::rowsAboutToBeRemoved, this, &SongGroupEditor::setupRowsAboutToBeRemoved);
+  connect(&m_setupList, &SetupListModel::modelAboutToBeReset, this, &SongGroupEditor::setupModelAboutToBeReset);
+  connect(&m_setupList, &SetupListModel::rowsRemoved, this, &SongGroupEditor::setupDataChanged);
+  connect(&m_setupList, &SetupListModel::dataChanged, this, &SongGroupEditor::setupDataChanged);
+  connect(&m_setupList, &SetupListModel::layoutChanged, this, &SongGroupEditor::setupDataChanged);
+  connect(&m_setupList, &SetupListModel::modelReset, this, &SongGroupEditor::setupDataChanged);
 
   m_addRemoveButtons.addAction()->setToolTip(tr("Add new page entry"));
-  connect(m_addRemoveButtons.addAction(), SIGNAL(triggered(bool)), this, SLOT(doAdd()));
+  connect(m_addRemoveButtons.addAction(), &QAction::triggered, this, &SongGroupEditor::doAdd);
   m_addRemoveButtons.removeAction()->setToolTip(tr("Remove selected page entries"));
-  connect(m_addRemoveButtons.removeAction(), SIGNAL(triggered(bool)), this, SLOT(itemDeleteAction()));
+  connect(m_addRemoveButtons.removeAction(), &QAction::triggered, this, &SongGroupEditor::itemDeleteAction);
 
   m_tabs.setCurrentIndex(0);
 }

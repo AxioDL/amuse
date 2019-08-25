@@ -206,12 +206,12 @@ CurveControls::CurveControls(QWidget* parent) : QFrame(parent) {
   QPalette palette = m_lineEdit->palette();
   palette.setColor(QPalette::Base, palette.color(QPalette::Window));
   m_lineEdit->setPalette(palette);
-  connect(m_lineEdit, SIGNAL(returnPressed()), this, SLOT(exprCommit()));
+  connect(m_lineEdit, &QLineEdit::returnPressed, this, &CurveControls::exprCommit);
   leftLayout->addWidget(m_lineEdit, 1, 0);
 
   m_setExpr = new QPushButton(tr("Apply"));
   m_setExpr->setDisabled(true);
-  connect(m_setExpr, SIGNAL(clicked(bool)), this, SLOT(exprCommit()));
+  connect(m_setExpr, &QPushButton::clicked, this, &CurveControls::exprCommit);
   leftLayout->addWidget(m_setExpr, 1, 1);
 
   m_errLabel = new QLabel(this);
