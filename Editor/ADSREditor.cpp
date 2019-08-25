@@ -17,48 +17,49 @@ void ADSRView::unloadData() { m_node.reset(); }
 ProjectModel::INode* ADSRView::currentNode() const { return m_node.get(); }
 
 void ADSRView::paintEvent(QPaintEvent* ev) {
-  if (!m_node)
+  if (!m_node) {
     return;
+  }
 
   QPainter painter(this);
   painter.setRenderHint(QPainter::Antialiasing);
 
-  amuse::ITable& table = **m_node->m_obj;
+  const amuse::ITable& table = **m_node->m_obj;
   qreal adTime = 0.0;
   qreal aTime = 0.0;
   qreal relTime = 0.0;
   qreal sustain = 0.0;
   if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
-    amuse::ADSRDLS& adsr = static_cast<amuse::ADSRDLS&>(table);
+    const auto& adsr = static_cast<const amuse::ADSRDLS&>(table);
     adTime += adsr.getAttack();
     aTime = adsr.getAttack();
     adTime += adsr.getDecay();
     sustain = adsr.getSustain();
     relTime = adsr.getRelease();
   } else if (table.Isa() == amuse::ITable::Type::ADSR) {
-    amuse::ADSR& adsr = static_cast<amuse::ADSR&>(table);
+    const auto& adsr = static_cast<const amuse::ADSR&>(table);
     adTime += adsr.getAttack();
     aTime = adsr.getAttack();
     adTime += adsr.getDecay();
     sustain = adsr.getSustain();
     relTime = adsr.getRelease();
   }
-  qreal totalTime = adTime + 1.0 + relTime;
+  const qreal totalTime = adTime + 1.0 + relTime;
 
-  qreal deviceRatio = devicePixelRatioF();
-  qreal penWidth = std::max(std::floor(deviceRatio), 1.0) / deviceRatio;
+  const qreal deviceRatio = devicePixelRatioF();
+  const qreal penWidth = std::max(std::floor(deviceRatio), 1.0) / deviceRatio;
 
   painter.setPen(QPen(QColor(127, 127, 127), penWidth));
   painter.setFont(m_gridFont);
-  qreal yIncrement = (height() - 16.0) / 10.0;
+  const qreal yIncrement = (height() - 16.0) / 10.0;
   for (int i = 0; i < 11; ++i) {
-    qreal thisY = i * yIncrement;
-    qreal textY = thisY - (i == 0 ? 2.0 : (i == 10 ? 16.0 : 8.0));
+    const qreal thisY = i * yIncrement;
+    const qreal textY = thisY - (i == 0 ? 2.0 : (i == 10 ? 16.0 : 8.0));
     painter.drawStaticText(QPointF(0.0, textY), m_percentTexts[i]);
     painter.drawLine(QPointF(30.0, thisY), QPointF(width(), thisY));
   }
 
-  size_t maxTime = size_t(std::max(adTime, relTime)) + 1;
+  const size_t maxTime = size_t(std::max(adTime, relTime)) + 1;
   if (m_timeTexts.size() < maxTime) {
     m_timeTexts.reserve(maxTime);
     for (size_t i = m_timeTexts.size(); i < maxTime; ++i) {
@@ -70,27 +71,27 @@ void ADSRView::paintEvent(QPaintEvent* ev) {
     }
   }
   qreal xBase = 30.0;
-  qreal xIncrement = (width() - xBase) / totalTime;
+  const qreal xIncrement = (width() - xBase) / totalTime;
   for (size_t i = 0; i <= size_t(adTime); ++i) {
-    qreal thisX = i * xIncrement + xBase;
-    qreal textX = thisX - 15.0;
+    const qreal thisX = i * xIncrement + xBase;
+    const qreal textX = thisX - 15.0;
     painter.drawStaticText(QPointF(textX, height() - 16.0), m_timeTexts[i]);
     painter.drawLine(QPointF(thisX, 0.0), QPointF(thisX, height() - 16.0));
   }
   xBase = (width() - 30.0) * ((adTime + 1.0) / totalTime) + 30.0;
   for (size_t i = 0; i <= size_t(relTime); ++i) {
-    qreal thisX = i * xIncrement + xBase;
-    qreal textX = thisX - 15.0;
+    const qreal thisX = i * xIncrement + xBase;
+    const qreal textX = thisX - 15.0;
     painter.drawStaticText(QPointF(textX, height() - 16.0), m_timeTexts[i]);
     painter.drawLine(QPointF(thisX, 0.0), QPointF(thisX, height() - 16.0));
   }
 
-  qreal sustainY = (height() - 16.0) - (height() - 16.0) * sustain;
-  QPointF pt0 = QPointF(30.0, height() - 16.0);
-  QPointF pt1 = QPointF((width() - 30.0) * (aTime / totalTime) + 30.0, 0.0);
-  QPointF pt2 = QPointF((width() - 30.0) * (adTime / totalTime) + 30.0, sustainY);
-  QPointF pt3 = QPointF((width() - 30.0) * ((adTime + 1.0) / totalTime) + 30.0, sustainY);
-  QPointF pt4 = QPointF(width(), height() - 16.0);
+  const qreal sustainY = (height() - 16.0) - (height() - 16.0) * sustain;
+  const auto pt0 = QPointF(30.0, height() - 16.0);
+  const auto pt1 = QPointF((width() - 30.0) * (aTime / totalTime) + 30.0, 0.0);
+  const auto pt2 = QPointF((width() - 30.0) * (adTime / totalTime) + 30.0, sustainY);
+  const auto pt3 = QPointF((width() - 30.0) * ((adTime + 1.0) / totalTime) + 30.0, sustainY);
+  const auto pt4 = QPointF(width(), height() - 16.0);
 
   painter.setPen(QPen(Red, penWidth * 3.0));
   painter.drawLine(pt0, pt1);
@@ -110,7 +111,7 @@ void ADSRView::paintEvent(QPaintEvent* ev) {
 }
 
 static qreal PointDistanceSq(const QPointF& p1, const QPointF& p2) {
-  QPointF delta = p1 - p2;
+  const QPointF delta = p1 - p2;
   return QPointF::dotProduct(delta, delta);
 }
 
@@ -120,34 +121,39 @@ void ADSRView::mousePressEvent(QMouseEvent* ev) {
   if (!m_node)
     return;
 
-  amuse::ITable& table = **m_node->m_obj;
+  const amuse::ITable& table = **m_node->m_obj;
   qreal adTime = 0.0;
   qreal aTime = 0.0;
   qreal relTime = 0.0;
   qreal sustain = 0.0;
   if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
-    amuse::ADSRDLS& adsr = static_cast<amuse::ADSRDLS&>(table);
+    const auto& adsr = static_cast<const amuse::ADSRDLS&>(table);
     adTime += adsr.getAttack();
     aTime = adsr.getAttack();
     adTime += adsr.getDecay();
     sustain = adsr.getSustain();
     relTime = adsr.getRelease();
   } else if (table.Isa() == amuse::ITable::Type::ADSR) {
-    amuse::ADSR& adsr = static_cast<amuse::ADSR&>(table);
+    const auto& adsr = static_cast<const amuse::ADSR&>(table);
     adTime += adsr.getAttack();
     aTime = adsr.getAttack();
     adTime += adsr.getDecay();
     sustain = adsr.getSustain();
     relTime = adsr.getRelease();
   }
-  qreal totalTime = adTime + 1.0 + relTime;
+  const qreal totalTime = adTime + 1.0 + relTime;
 
-  qreal sustainY = (height() - 16.0) - (height() - 16.0) * sustain;
-  QPointF points[] = {QPointF((width() - 30.0) * (aTime / totalTime) + 30.0, 0.0),
-                      QPointF((width() - 30.0) * (adTime / totalTime) + 30.0, sustainY),
-                      QPointF((width() - 30.0) * ((adTime + 1.0) / totalTime) + 30.0, sustainY)};
-  qreal dists[] = {PointDistance(ev->localPos(), points[0]), PointDistance(ev->localPos(), points[1]),
-                   PointDistance(ev->localPos(), points[2])};
+  const qreal sustainY = (height() - 16.0) - (height() - 16.0) * sustain;
+  const QPointF points[] = {
+      QPointF((width() - 30.0) * (aTime / totalTime) + 30.0, 0.0),
+      QPointF((width() - 30.0) * (adTime / totalTime) + 30.0, sustainY),
+      QPointF((width() - 30.0) * ((adTime + 1.0) / totalTime) + 30.0, sustainY),
+  };
+  const qreal dists[] = {
+      PointDistance(ev->localPos(), points[0]),
+      PointDistance(ev->localPos(), points[1]),
+      PointDistance(ev->localPos(), points[2]),
+  };
 
   int minDist = 0;
   if (dists[1] < dists[minDist] + 8.0) /* pt1 overlaps pt0, so include radius in test */
@@ -165,20 +171,20 @@ void ADSRView::mousePressEvent(QMouseEvent* ev) {
 void ADSRView::mouseReleaseEvent(QMouseEvent* ev) { m_dragPoint = -1; }
 
 void ADSRView::mouseMoveEvent(QMouseEvent* ev) {
-  amuse::ITable& table = **m_node->m_obj;
+  const amuse::ITable& table = **m_node->m_obj;
   ADSRControls* ctrls = getEditor()->m_controls;
 
   qreal adTime = 0.0;
   qreal aTime = 0.0;
   qreal relTime = 0.0;
   if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
-    amuse::ADSRDLS& adsr = static_cast<amuse::ADSRDLS&>(table);
+    const auto& adsr = static_cast<const amuse::ADSRDLS&>(table);
     adTime += adsr.getAttack();
     aTime = adsr.getAttack();
     adTime += adsr.getDecay();
     relTime = adsr.getRelease();
   } else if (table.Isa() == amuse::ITable::Type::ADSR) {
-    amuse::ADSR& adsr = static_cast<amuse::ADSR&>(table);
+    const auto& adsr = static_cast<const amuse::ADSR&>(table);
     adTime += adsr.getAttack();
     aTime = adsr.getAttack();
     adTime += adsr.getDecay();
@@ -187,15 +193,16 @@ void ADSRView::mouseMoveEvent(QMouseEvent* ev) {
   qreal totalTime = adTime + 1.0 + relTime;
 
   if (m_dragPoint == 0) {
-    qreal newAttack = std::max(0.0, (ev->localPos().x() - 30.0) / (width() - 30.0) * totalTime);
-    qreal delta = newAttack - aTime;
+    const qreal newAttack = std::max(0.0, (ev->localPos().x() - 30.0) / (width() - 30.0) * totalTime);
+    const qreal delta = newAttack - aTime;
     ctrls->setAttackAndDecay(newAttack, std::max(0.0, ctrls->m_decay->value() - delta), m_cycleIdx);
   } else if (m_dragPoint == 1) {
-    qreal newDecay = std::max(0.0, (ev->localPos().x() - 30.0) * totalTime / (width() - 30.0) - aTime);
-    qreal newSustain = (-ev->localPos().y() + (height() - 16.0)) / (height() - 16.0);
+    const qreal newDecay = std::max(0.0, (ev->localPos().x() - 30.0) * totalTime / (width() - 30.0) - aTime);
+    const qreal newSustain = (-ev->localPos().y() + (height() - 16.0)) / (height() - 16.0);
     ctrls->setDecayAndSustain(newDecay, newSustain * 100.0, m_cycleIdx);
   } else if (m_dragPoint == 2) {
-    qreal newRelease = std::max(0.0, (width() - 30.0) * (adTime + 1.0) / (ev->localPos().x() - 30.0) - (adTime + 1.0));
+    const qreal newRelease =
+        std::max(0.0, (width() - 30.0) * (adTime + 1.0) / (ev->localPos().x() - 30.0) - (adTime + 1.0));
     ctrls->setRelease(newRelease, m_cycleIdx);
     ctrls->m_release->setValue(newRelease);
   }
@@ -215,14 +222,14 @@ ADSREditor* ADSRControls::getEditor() const { return qobject_cast<ADSREditor*>(p
 void ADSRControls::loadData() {
   m_enableUpdate = false;
 
-  amuse::ITable& table = **getEditor()->m_adsrView->m_node->m_obj;
+  const amuse::ITable& table = **getEditor()->m_adsrView->m_node->m_obj;
   m_attack->setDisabled(false);
   m_decay->setDisabled(false);
   m_sustain->setDisabled(false);
   m_release->setDisabled(false);
   m_dls->setDisabled(false);
   if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
-    amuse::ADSRDLS& adsr = static_cast<amuse::ADSRDLS&>(table);
+    const auto& adsr = static_cast<const amuse::ADSRDLS&>(table);
     m_attack->setValue(adsr.getAttack());
     m_decay->setValue(adsr.getDecay());
     m_sustain->setValue(adsr.getSustain() * 100.0);
@@ -235,7 +242,7 @@ void ADSRControls::loadData() {
     m_keyToDecay->setVisible(true);
     m_keyToDecay->setValue(adsr._getKeyToDecay());
   } else if (table.Isa() == amuse::ITable::Type::ADSR) {
-    amuse::ADSR& adsr = static_cast<amuse::ADSR&>(table);
+    const auto& adsr = static_cast<const amuse::ADSR&>(table);
     m_attack->setValue(adsr.getAttack());
     m_decay->setValue(adsr.getDecay());
     m_sustain->setValue(adsr.getSustain() * 100.0);
@@ -275,10 +282,10 @@ public:
     m_undid = true;
     amuse::ITable& table = **m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
-      amuse::ADSRDLS& adsr = static_cast<amuse::ADSRDLS&>(table);
+      auto& adsr = static_cast<amuse::ADSRDLS&>(table);
       adsr.setAttack(m_undoVal);
     } else if (table.Isa() == amuse::ITable::Type::ADSR) {
-      amuse::ADSR& adsr = static_cast<amuse::ADSR&>(table);
+      auto& adsr = static_cast<amuse::ADSR&>(table);
       adsr.setAttack(m_undoVal);
     }
     EditorUndoCommand::undo();
@@ -286,11 +293,11 @@ public:
   void redo() override {
     amuse::ITable& table = **m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
-      amuse::ADSRDLS& adsr = static_cast<amuse::ADSRDLS&>(table);
+      auto& adsr = static_cast<amuse::ADSRDLS&>(table);
       m_undoVal = adsr.getAttack();
       adsr.setAttack(m_redoVal);
     } else if (table.Isa() == amuse::ITable::Type::ADSR) {
-      amuse::ADSR& adsr = static_cast<amuse::ADSR&>(table);
+      auto& adsr = static_cast<amuse::ADSR&>(table);
       m_undoVal = adsr.getAttack();
       adsr.setAttack(m_redoVal);
     }
@@ -326,10 +333,10 @@ public:
     m_undid = true;
     amuse::ITable& table = **m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
-      amuse::ADSRDLS& adsr = static_cast<amuse::ADSRDLS&>(table);
+      auto& adsr = static_cast<amuse::ADSRDLS&>(table);
       adsr.setDecay(m_undoVal);
     } else if (table.Isa() == amuse::ITable::Type::ADSR) {
-      amuse::ADSR& adsr = static_cast<amuse::ADSR&>(table);
+      auto& adsr = static_cast<amuse::ADSR&>(table);
       adsr.setDecay(m_undoVal);
     }
     EditorUndoCommand::undo();
@@ -337,11 +344,11 @@ public:
   void redo() override {
     amuse::ITable& table = **m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
-      amuse::ADSRDLS& adsr = static_cast<amuse::ADSRDLS&>(table);
+      auto& adsr = static_cast<amuse::ADSRDLS&>(table);
       m_undoVal = adsr.getDecay();
       adsr.setDecay(m_redoVal);
     } else if (table.Isa() == amuse::ITable::Type::ADSR) {
-      amuse::ADSR& adsr = static_cast<amuse::ADSR&>(table);
+      auto& adsr = static_cast<amuse::ADSR&>(table);
       m_undoVal = adsr.getDecay();
       adsr.setDecay(m_redoVal);
     }
@@ -377,10 +384,10 @@ public:
     m_undid = true;
     amuse::ITable& table = **m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
-      amuse::ADSRDLS& adsr = static_cast<amuse::ADSRDLS&>(table);
+      auto& adsr = static_cast<amuse::ADSRDLS&>(table);
       adsr.setSustain(m_undoVal);
     } else if (table.Isa() == amuse::ITable::Type::ADSR) {
-      amuse::ADSR& adsr = static_cast<amuse::ADSR&>(table);
+      auto& adsr = static_cast<amuse::ADSR&>(table);
       adsr.setSustain(m_undoVal);
     }
     EditorUndoCommand::undo();
@@ -388,11 +395,11 @@ public:
   void redo() override {
     amuse::ITable& table = **m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
-      amuse::ADSRDLS& adsr = static_cast<amuse::ADSRDLS&>(table);
+      auto& adsr = static_cast<amuse::ADSRDLS&>(table);
       m_undoVal = adsr.getSustain();
       adsr.setSustain(m_redoVal);
     } else if (table.Isa() == amuse::ITable::Type::ADSR) {
-      amuse::ADSR& adsr = static_cast<amuse::ADSR&>(table);
+      auto& adsr = static_cast<amuse::ADSR&>(table);
       m_undoVal = adsr.getSustain();
       adsr.setSustain(m_redoVal);
     }
@@ -434,11 +441,11 @@ public:
     m_undid = true;
     amuse::ITable& table = **m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
-      amuse::ADSRDLS& adsr = static_cast<amuse::ADSRDLS&>(table);
+      auto& adsr = static_cast<amuse::ADSRDLS&>(table);
       adsr.setAttack(m_undoAttack);
       adsr.setDecay(m_undoDecay);
     } else if (table.Isa() == amuse::ITable::Type::ADSR) {
-      amuse::ADSR& adsr = static_cast<amuse::ADSR&>(table);
+      auto& adsr = static_cast<amuse::ADSR&>(table);
       adsr.setAttack(m_undoAttack);
       adsr.setDecay(m_undoDecay);
     }
@@ -447,13 +454,13 @@ public:
   void redo() override {
     amuse::ITable& table = **m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
-      amuse::ADSRDLS& adsr = static_cast<amuse::ADSRDLS&>(table);
+      auto& adsr = static_cast<amuse::ADSRDLS&>(table);
       m_undoAttack = adsr.getAttack();
       m_undoDecay = adsr.getDecay();
       adsr.setAttack(m_redoAttack);
       adsr.setDecay(m_redoDecay);
     } else if (table.Isa() == amuse::ITable::Type::ADSR) {
-      amuse::ADSR& adsr = static_cast<amuse::ADSR&>(table);
+      auto& adsr = static_cast<amuse::ADSR&>(table);
       m_undoAttack = adsr.getAttack();
       m_undoDecay = adsr.getDecay();
       adsr.setAttack(m_redoAttack);
@@ -463,11 +470,14 @@ public:
       EditorUndoCommand::redo();
   }
   bool mergeWith(const QUndoCommand* other) override {
-    if (other->id() == id() && m_cycleCount == static_cast<const ADSRAttackAndDecayUndoCommand*>(other)->m_cycleCount) {
-      m_redoAttack = static_cast<const ADSRAttackAndDecayUndoCommand*>(other)->m_redoAttack;
-      m_redoDecay = static_cast<const ADSRAttackAndDecayUndoCommand*>(other)->m_redoDecay;
+    const auto* const command = static_cast<const ADSRAttackAndDecayUndoCommand*>(other);
+
+    if (other->id() == id() && m_cycleCount == command->m_cycleCount) {
+      m_redoAttack = command->m_redoAttack;
+      m_redoDecay = command->m_redoDecay;
       return true;
     }
+
     return false;
   }
   int id() const override { return int(Id::ADSRAttackAndDecay); }
@@ -502,11 +512,11 @@ public:
     m_undid = true;
     amuse::ITable& table = **m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
-      amuse::ADSRDLS& adsr = static_cast<amuse::ADSRDLS&>(table);
+      auto& adsr = static_cast<amuse::ADSRDLS&>(table);
       adsr.setDecay(m_undoDecay);
       adsr.setSustain(m_undoSustain);
     } else if (table.Isa() == amuse::ITable::Type::ADSR) {
-      amuse::ADSR& adsr = static_cast<amuse::ADSR&>(table);
+      auto& adsr = static_cast<amuse::ADSR&>(table);
       adsr.setDecay(m_undoDecay);
       adsr.setSustain(m_undoSustain);
     }
@@ -515,13 +525,13 @@ public:
   void redo() override {
     amuse::ITable& table = **m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
-      amuse::ADSRDLS& adsr = static_cast<amuse::ADSRDLS&>(table);
+      auto& adsr = static_cast<amuse::ADSRDLS&>(table);
       m_undoDecay = adsr.getDecay();
       m_undoSustain = adsr.getSustain();
       adsr.setDecay(m_redoDecay);
       adsr.setSustain(m_redoSustain);
     } else if (table.Isa() == amuse::ITable::Type::ADSR) {
-      amuse::ADSR& adsr = static_cast<amuse::ADSR&>(table);
+      auto& adsr = static_cast<amuse::ADSR&>(table);
       m_undoDecay = adsr.getDecay();
       m_undoSustain = adsr.getSustain();
       adsr.setDecay(m_redoDecay);
@@ -531,12 +541,14 @@ public:
       EditorUndoCommand::redo();
   }
   bool mergeWith(const QUndoCommand* other) override {
-    if (other->id() == id() &&
-        m_cycleCount == static_cast<const ADSRDecayAndSustainUndoCommand*>(other)->m_cycleCount) {
-      m_redoDecay = static_cast<const ADSRDecayAndSustainUndoCommand*>(other)->m_redoDecay;
-      m_redoSustain = static_cast<const ADSRDecayAndSustainUndoCommand*>(other)->m_redoSustain;
+    const auto* const command = static_cast<const ADSRDecayAndSustainUndoCommand*>(other);
+
+    if (other->id() == id() && m_cycleCount == command->m_cycleCount) {
+      m_redoDecay = command->m_redoDecay;
+      m_redoSustain = command->m_redoSustain;
       return true;
     }
+
     return false;
   }
   int id() const override { return int(Id::ADSRDecayAndSustain); }
@@ -566,10 +578,10 @@ public:
     m_undid = true;
     amuse::ITable& table = **m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
-      amuse::ADSRDLS& adsr = static_cast<amuse::ADSRDLS&>(table);
+      auto& adsr = static_cast<amuse::ADSRDLS&>(table);
       adsr.setRelease(m_undoVal);
     } else if (table.Isa() == amuse::ITable::Type::ADSR) {
-      amuse::ADSR& adsr = static_cast<amuse::ADSR&>(table);
+      auto& adsr = static_cast<amuse::ADSR&>(table);
       adsr.setRelease(m_undoVal);
     }
     EditorUndoCommand::undo();
@@ -577,11 +589,11 @@ public:
   void redo() override {
     amuse::ITable& table = **m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
-      amuse::ADSRDLS& adsr = static_cast<amuse::ADSRDLS&>(table);
+      auto& adsr = static_cast<amuse::ADSRDLS&>(table);
       m_undoVal = adsr.getRelease();
       adsr.setRelease(m_redoVal);
     } else if (table.Isa() == amuse::ITable::Type::ADSR) {
-      amuse::ADSR& adsr = static_cast<amuse::ADSR&>(table);
+      auto& adsr = static_cast<amuse::ADSR&>(table);
       m_undoVal = adsr.getRelease();
       adsr.setRelease(m_redoVal);
     }
@@ -589,10 +601,13 @@ public:
       EditorUndoCommand::redo();
   }
   bool mergeWith(const QUndoCommand* other) override {
-    if (other->id() == id() && m_cycleCount == static_cast<const ADSRReleaseUndoCommand*>(other)->m_cycleCount) {
-      m_redoVal = static_cast<const ADSRReleaseUndoCommand*>(other)->m_redoVal;
+    const auto* const command = static_cast<const ADSRReleaseUndoCommand*>(other);
+
+    if (other->id() == id() && m_cycleCount == command->m_cycleCount) {
+      m_redoVal = command->m_redoVal;
       return true;
     }
+
     return false;
   }
   int id() const override { return int(Id::ADSRRelease); }
@@ -620,13 +635,13 @@ template <class T>
 static std::unique_ptr<T> MakeAlternateVersion(amuse::ITable& table) {
   std::unique_ptr<T> ret = std::make_unique<T>();
   if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
-    amuse::ADSRDLS& adsr = static_cast<amuse::ADSRDLS&>(table);
+    auto& adsr = static_cast<amuse::ADSRDLS&>(table);
     ret->setAttack(adsr.getAttack());
     ret->setDecay(adsr.getDecay());
     ret->setSustain(adsr.getSustain());
     ret->setRelease(adsr.getRelease());
   } else if (table.Isa() == amuse::ITable::Type::ADSR) {
-    amuse::ADSR& adsr = static_cast<amuse::ADSR&>(table);
+    auto& adsr = static_cast<amuse::ADSR&>(table);
     ret->setAttack(adsr.getAttack());
     ret->setDecay(adsr.getDecay());
     ret->setSustain(adsr.getSustain());
@@ -652,8 +667,9 @@ public:
     m_undid = true;
     std::unique_ptr<amuse::ITable>& table = *m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if ((table->Isa() == amuse::ITable::Type::ADSRDLS && !m_redoVal) ||
-        (table->Isa() == amuse::ITable::Type::ADSR && m_redoVal))
+        (table->Isa() == amuse::ITable::Type::ADSR && m_redoVal)) {
       return;
+    }
 
     std::unique_ptr<amuse::ITable> oldTable = std::move(table);
     if (!m_redoVal) {
@@ -669,8 +685,9 @@ public:
   void redo() override {
     std::unique_ptr<amuse::ITable>& table = *m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if ((table->Isa() == amuse::ITable::Type::ADSRDLS && m_redoVal) ||
-        (table->Isa() == amuse::ITable::Type::ADSR && !m_redoVal))
+        (table->Isa() == amuse::ITable::Type::ADSR && !m_redoVal)) {
       return;
+    }
 
     std::unique_ptr<amuse::ITable> oldTable = std::move(table);
     if (m_redoVal) {
@@ -690,11 +707,14 @@ public:
   }
   bool mergeWith(const QUndoCommand* other) override {
     if (other->id() == id()) {
-      m_redoVal = static_cast<const ADSRDLSUndoCommand*>(other)->m_redoVal;
-      m_redoVelToAttack = static_cast<const ADSRDLSUndoCommand*>(other)->m_redoVelToAttack;
-      m_redoKeyToDecay = static_cast<const ADSRDLSUndoCommand*>(other)->m_redoKeyToDecay;
+      const auto* const command = static_cast<const ADSRDLSUndoCommand*>(other);
+
+      m_redoVal = command->m_redoVal;
+      m_redoVelToAttack = command->m_redoVelToAttack;
+      m_redoKeyToDecay = command->m_redoKeyToDecay;
       return true;
     }
+
     return false;
   }
   int id() const override { return int(Id::ADSRDLS); }
@@ -725,7 +745,7 @@ public:
     m_undid = true;
     amuse::ITable& table = **m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
-      amuse::ADSRDLS& adsr = static_cast<amuse::ADSRDLS&>(table);
+      auto& adsr = static_cast<amuse::ADSRDLS&>(table);
       adsr._setVelToAttack(m_undoVal);
     }
     EditorUndoCommand::undo();
@@ -733,7 +753,7 @@ public:
   void redo() override {
     amuse::ITable& table = **m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
-      amuse::ADSRDLS& adsr = static_cast<amuse::ADSRDLS&>(table);
+      auto& adsr = static_cast<amuse::ADSRDLS&>(table);
       m_undoVal = adsr._getVelToAttack();
       adsr._setVelToAttack(m_redoVal);
     }
@@ -769,7 +789,7 @@ public:
     m_undid = true;
     amuse::ITable& table = **m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
-      amuse::ADSRDLS& adsr = static_cast<amuse::ADSRDLS&>(table);
+      auto& adsr = static_cast<amuse::ADSRDLS&>(table);
       adsr._setKeyToDecay(m_undoVal);
     }
     EditorUndoCommand::undo();
@@ -777,7 +797,7 @@ public:
   void redo() override {
     amuse::ITable& table = **m_node.cast<ProjectModel::ADSRNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::ADSRDLS) {
-      amuse::ADSRDLS& adsr = static_cast<amuse::ADSRDLS&>(table);
+      auto& adsr = static_cast<amuse::ADSRDLS&>(table);
       m_undoVal = adsr._getKeyToDecay();
       adsr._setKeyToDecay(m_redoVal);
     }
@@ -810,9 +830,8 @@ ADSRControls::ADSRControls(QWidget* parent) : QFrame(parent) {
   setBackgroundRole(QPalette::Base);
   setAutoFillBackground(true);
 
-  QHBoxLayout* mainLayout = new QHBoxLayout;
-
-  QGridLayout* leftLayout = new QGridLayout;
+  auto* const mainLayout = new QHBoxLayout;
+  auto* const leftLayout = new QGridLayout;
 
   QPalette palette = QWidget::palette();
   palette.setColor(QPalette::Base, palette.color(QPalette::Window));
@@ -940,7 +959,7 @@ void ADSREditor::unloadData() {
 ProjectModel::INode* ADSREditor::currentNode() const { return m_adsrView->currentNode(); }
 
 ADSREditor::ADSREditor(QWidget* parent) : EditorWidget(parent), m_adsrView(new ADSRView), m_controls(new ADSRControls) {
-  QVBoxLayout* layout = new QVBoxLayout;
+  auto* const layout = new QVBoxLayout;
   layout->setContentsMargins(QMargins());
   layout->setSpacing(1);
   layout->addWidget(m_adsrView);
