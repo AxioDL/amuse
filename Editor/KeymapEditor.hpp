@@ -1,15 +1,18 @@
 #pragma once
 
 #include "EditorWidget.hpp"
+
+#include <array>
+#include <bitset>
+
+#include <QCheckBox>
 #include <QFrame>
 #include <QLabel>
+#include <QPushButton>
+#include <QScrollArea>
 #include <QStaticText>
 #include <QSpinBox>
-#include <QPushButton>
 #include <QSvgRenderer>
-#include <QScrollArea>
-#include <QCheckBox>
-#include <bitset>
 
 class KeymapEditor;
 
@@ -23,6 +26,8 @@ public:
   void keyPressEvent(QKeyEvent* event) override { event->ignore(); }
 };
 
+using PaintPalette = std::array<QColor, 129>;
+
 class KeymapView : public QWidget {
   Q_OBJECT
   friend class KeymapControls;
@@ -30,15 +35,15 @@ class KeymapView : public QWidget {
   amuse::ObjToken<ProjectModel::KeymapNode> m_node;
   QSvgRenderer m_octaveRenderer;
   QSvgRenderer m_lastOctaveRenderer;
-  QRectF m_natural[7];
-  QRectF m_sharp[5];
+  std::array<QRectF, 7> m_natural;
+  std::array<QRectF, 5> m_sharp;
   QTransform m_widgetToSvg;
   QFont m_keyFont;
-  QStaticText m_keyTexts[128];
-  int m_keyPalettes[128];
+  std::array<QStaticText, 128> m_keyTexts;
+  std::array<int, 128> m_keyPalettes;
   KeymapEditor* getEditor() const;
   int getKey(const QPoint& localPos) const;
-  void drawKey(QPainter& painter, const QRect& octaveRect, qreal penWidth, const QColor* keyPalette, int o,
+  void drawKey(QPainter& painter, const QRect& octaveRect, qreal penWidth, const PaintPalette& keyPalette, int o,
                int k) const;
 
 public:
@@ -84,7 +89,7 @@ class KeymapEditor : public EditorWidget {
   QScrollArea* m_scrollArea;
   KeymapView* m_kmView;
   KeymapControls* m_controls;
-  QColor m_paintPalette[129];
+  PaintPalette m_paintPalette;
   amuse::Keymap m_controlKeymap;
   std::unordered_map<uint64_t, std::pair<int, int>> m_configToIdx;
   std::bitset<129> m_idxBitmap;
