@@ -29,7 +29,7 @@ protected:
 public:
   Entity(Engine& engine, const AudioGroup& group, GroupId groupId, ObjectId oid = ObjectId())
   : m_engine(engine), m_audioGroup(group), m_groupId(groupId), m_objectId(oid) {}
-  ~Entity() {
+  ~Entity() override {
     /* Ensure proper destruction procedure followed */
     assert(m_destroyed);
   }

@@ -406,7 +406,7 @@ public:
   , m_redoStartVal(redoStart)
   , m_redoEndVal(redoEnd)
   , m_fieldIdx(fieldIdx) {}
-  void undo() {
+  void undo() override {
     m_undid = true;
     amuse::SampleEntryData* data = m_node.cast<ProjectModel::SampleNode>()->m_obj->m_data.get();
     data->setLoopStartSample(m_undoStartVal);
@@ -415,7 +415,7 @@ public:
     if (SampleEditor* e = static_cast<SampleEditor*>(g_MainWindow->getEditorWidget()))
       e->m_controls->doFileWrite();
   }
-  void redo() {
+  void redo() override {
     amuse::SampleEntryData* data = m_node.cast<ProjectModel::SampleNode>()->m_obj->m_data.get();
     m_undoStartVal = data->getLoopStartSample();
     m_undoEndVal = data->getLoopEndSample();
@@ -427,7 +427,7 @@ public:
         e->m_controls->doFileWrite();
     }
   }
-  bool mergeWith(const QUndoCommand* other) {
+  bool mergeWith(const QUndoCommand* other) override {
     if (other->id() == id() && static_cast<const SampLoopUndoCommand*>(other)->m_fieldIdx == m_fieldIdx) {
       m_redoStartVal = static_cast<const SampLoopUndoCommand*>(other)->m_redoStartVal;
       m_redoEndVal = static_cast<const SampLoopUndoCommand*>(other)->m_redoEndVal;
@@ -435,7 +435,7 @@ public:
     }
     return false;
   }
-  int id() const { return int(Id::SampLoop); }
+  int id() const override { return int(Id::SampLoop); }
 };
 
 void SampleControls::loopStateChanged(int state) {
@@ -508,7 +508,7 @@ class SampPitchUndoCommand : public EditorUndoCommand {
 public:
   SampPitchUndoCommand(atUint8 redoPitch, amuse::ObjToken<ProjectModel::SampleNode> node)
   : EditorUndoCommand(node.get(), SampleControls::tr("Change Base Pitch")), m_redoPitchVal(redoPitch) {}
-  void undo() {
+  void undo() override {
     m_undid = true;
     amuse::SampleEntryData* data = m_node.cast<ProjectModel::SampleNode>()->m_obj->m_data.get();
     data->m_pitch = m_undoPitchVal;
@@ -516,7 +516,7 @@ public:
     if (SampleEditor* e = static_cast<SampleEditor*>(g_MainWindow->getEditorWidget()))
       e->m_controls->doFileWrite();
   }
-  void redo() {
+  void redo() override {
     amuse::SampleEntryData* data = m_node.cast<ProjectModel::SampleNode>()->m_obj->m_data.get();
     m_undoPitchVal = data->m_pitch;
     data->m_pitch = m_redoPitchVal;
@@ -526,14 +526,14 @@ public:
         e->m_controls->doFileWrite();
     }
   }
-  bool mergeWith(const QUndoCommand* other) {
+  bool mergeWith(const QUndoCommand* other) override {
     if (other->id() == id()) {
       m_redoPitchVal = static_cast<const SampPitchUndoCommand*>(other)->m_redoPitchVal;
       return true;
     }
     return false;
   }
-  int id() const { return int(Id::SampPitch); }
+  int id() const override { return int(Id::SampPitch); }
 };
 
 void SampleControls::pitchValueChanged(int val) {

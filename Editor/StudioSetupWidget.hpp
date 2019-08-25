@@ -46,7 +46,7 @@ class Uint32X8Button : public QPushButton {
 
 public:
   explicit Uint32X8Button(int min, int max, QWidget* parent = Q_NULLPTR);
-  void paintEvent(QPaintEvent* event);
+  void paintEvent(QPaintEvent* event) override;
   Uint32X8Popup* popup() const { return m_popup; }
   QStyleOptionComboBox comboStyleOption() const;
 private slots:
@@ -77,7 +77,7 @@ public:
   EffectListing* getParent() const;
   explicit EffectWidget(QWidget* parent, amuse::EffectBaseTypeless* effect);
   explicit EffectWidget(QWidget* parent, amuse::EffectType op);
-  void paintEvent(QPaintEvent* event);
+  void paintEvent(QPaintEvent* event) override;
   QString getText() const { return m_titleLabel.text(); }
 };
 
@@ -130,7 +130,7 @@ public:
   explicit EffectListing(QWidget* parent = Q_NULLPTR);
   bool loadData(amuse::Submix* submix);
   void unloadData();
-  void timerEvent(QTimerEvent* event);
+  void timerEvent(QTimerEvent* event) override;
 };
 
 class EffectCatalogueItem : public QWidget {
@@ -151,9 +151,9 @@ class EffectCatalogue : public QTreeWidget {
   Q_OBJECT
 public:
   explicit EffectCatalogue(QWidget* parent = Q_NULLPTR);
-  void mousePressEvent(QMouseEvent* event);
-  void mouseReleaseEvent(QMouseEvent* event);
-  void mouseMoveEvent(QMouseEvent* event);
+  void mousePressEvent(QMouseEvent* event) override;
+  void mouseReleaseEvent(QMouseEvent* event) override;
+  void mouseMoveEvent(QMouseEvent* event) override;
 };
 
 class StudioSetupWidget : public QWidget {
@@ -176,13 +176,13 @@ public:
   bool loadData(amuse::Studio* studio);
   void unloadData();
 
-  void mousePressEvent(QMouseEvent* event);
-  void mouseReleaseEvent(QMouseEvent* event);
-  void mouseMoveEvent(QMouseEvent* event);
-  void keyPressEvent(QKeyEvent* event);
+  void mousePressEvent(QMouseEvent* event) override;
+  void mouseReleaseEvent(QMouseEvent* event) override;
+  void mouseMoveEvent(QMouseEvent* event) override;
+  void keyPressEvent(QKeyEvent* event) override;
 
-  void hideEvent(QHideEvent* event);
-  void showEvent(QShowEvent* event);
+  void hideEvent(QHideEvent* event) override;
+  void showEvent(QShowEvent* event) override;
   void updateWindowPosition();
 
 public slots:

@@ -53,8 +53,8 @@ protected:
 public:
   EditorUndoCommand(amuse::ObjToken<ProjectModel::INode> node, const QString& text, QUndoCommand* parent = nullptr)
   : QUndoCommand(text, parent), m_node(node) {}
-  void undo();
-  void redo();
+  void undo() override;
+  void redo() override;
 };
 
 class FieldSpinBox : public QSpinBox {
@@ -63,7 +63,7 @@ public:
   explicit FieldSpinBox(QWidget* parent = Q_NULLPTR) : QSpinBox(parent) {}
 
   /* Don't scroll */
-  void wheelEvent(QWheelEvent* event) { event->ignore(); }
+  void wheelEvent(QWheelEvent* event) override { event->ignore(); }
 };
 
 class FieldSlider : public QWidget {
@@ -75,7 +75,7 @@ public:
   explicit FieldSlider(QWidget* parent = Q_NULLPTR);
 
   /* Don't scroll */
-  void wheelEvent(QWheelEvent* event) { event->ignore(); }
+  void wheelEvent(QWheelEvent* event) override { event->ignore(); }
 
   int value() const { return m_slider.value(); }
   void setValue(int value) {
@@ -101,7 +101,7 @@ public:
   explicit FieldDoubleSlider(QWidget* parent = Q_NULLPTR);
 
   /* Don't scroll */
-  void wheelEvent(QWheelEvent* event) { event->ignore(); }
+  void wheelEvent(QWheelEvent* event) override { event->ignore(); }
 
   double value() const;
   void setValue(double value);
@@ -119,7 +119,7 @@ public:
   explicit FieldComboBox(QWidget* parent = Q_NULLPTR) : QComboBox(parent) {}
 
   /* Don't scroll */
-  void wheelEvent(QWheelEvent* event) { event->ignore(); }
+  void wheelEvent(QWheelEvent* event) override { event->ignore(); }
 };
 
 class FieldProjectNode : public QWidget {
@@ -136,7 +136,7 @@ public:
   void setCurrentIndex(int index) { m_comboBox.setCurrentIndex(index); }
   void showPopup() { m_comboBox.showPopup(); }
   ProjectModel::BasePoolObjectNode* currentNode() const;
-  bool event(QEvent* ev);
+  bool event(QEvent* ev) override;
 private slots:
   void _currentIndexChanged(int);
 public slots:
@@ -160,7 +160,7 @@ public:
   QModelIndex rootModelIndex() const { return m_comboBox.rootModelIndex(); }
   void showPopup() { m_comboBox.showPopup(); }
   ProjectModel::BasePoolObjectNode* currentNode() const;
-  bool event(QEvent* ev);
+  bool event(QEvent* ev) override;
 private slots:
   void _currentIndexChanged(int);
 public slots:
@@ -188,7 +188,7 @@ using EditorFieldPageObjectNode = EditorFieldNode<FieldPageObjectNode>;
 template <int MIN, int MAX>
 class RangedValueFactory : public QItemEditorFactory {
 public:
-  QWidget* createEditor(int userType, QWidget* parent) const {
+  QWidget* createEditor(int userType, QWidget* parent) const override {
     QSpinBox* sb = new QSpinBox(parent);
     sb->setFrame(false);
     sb->setMinimum(MIN);
@@ -214,13 +214,13 @@ class ListingDeleteButton : public QPushButton {
   Q_OBJECT
 public:
   explicit ListingDeleteButton(QWidget* parent = Q_NULLPTR);
-  void enterEvent(QEvent* event);
-  void leaveEvent(QEvent* event);
+  void enterEvent(QEvent* event) override;
+  void leaveEvent(QEvent* event) override;
 };
 
 class ContextMenu : public QMenu {
 public:
-  void hideEvent(QHideEvent* ev) {
+  void hideEvent(QHideEvent* ev) override {
     QMenu::hideEvent(ev);
     deleteLater();
   }
@@ -234,7 +234,7 @@ protected:
 public:
   explicit BaseObjectDelegate(QObject* parent = Q_NULLPTR) : QStyledItemDelegate(parent) {}
   bool editorEvent(QEvent* event, QAbstractItemModel* model, const QStyleOptionViewItem& option,
-                   const QModelIndex& index);
+                   const QModelIndex& index) override;
 private slots:
   void doOpenEditor();
   void doFindUsages();

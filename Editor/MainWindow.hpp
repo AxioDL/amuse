@@ -75,7 +75,7 @@ public:
   : QStyledItemDelegate(parent), m_window(window) {}
 
   bool editorEvent(QEvent* event, QAbstractItemModel* model, const QStyleOptionViewItem& option,
-                   const QModelIndex& index);
+                   const QModelIndex& index) override;
 public slots:
   void doExportGroup();
   void doFindUsages();
@@ -153,10 +153,10 @@ class MainWindow : public QMainWindow {
   bool setProjectPath(const QString& path);
   void refreshAudioIO();
   void refreshMIDIIO();
-  void timerEvent(QTimerEvent* ev);
+  void timerEvent(QTimerEvent* ev) override;
   void setSustain(bool sustain);
-  void keyPressEvent(QKeyEvent* ev);
-  void keyReleaseEvent(QKeyEvent* ev);
+  void keyPressEvent(QKeyEvent* ev) override;
+  void keyReleaseEvent(QKeyEvent* ev) override;
 
   void startBackgroundTask(int id, const QString& windowTitle, const QString& label,
                            std::function<void(BackgroundTask&)>&& task);
@@ -165,7 +165,7 @@ class MainWindow : public QMainWindow {
 
 public:
   explicit MainWindow(QWidget* parent = Q_NULLPTR);
-  ~MainWindow();
+  ~MainWindow() override;
 
   bool openProject(const QString& path);
 
@@ -190,8 +190,8 @@ public:
   void updateFocus();
   void aboutToDeleteNode(ProjectModel::INode* node);
   bool askAboutSave();
-  void closeEvent(QCloseEvent* ev);
-  void showEvent(QShowEvent* ev);
+  void closeEvent(QCloseEvent* ev) override;
+  void showEvent(QShowEvent* ev) override;
 
   QString getGroupName(ProjectModel::GroupNode* group) const;
   ProjectModel::GroupNode* getSelectedGroupNode() const;

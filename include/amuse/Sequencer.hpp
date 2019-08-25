@@ -86,7 +86,7 @@ class Sequencer : public Entity {
   void _destroy();
 
 public:
-  ~Sequencer();
+  ~Sequencer() override;
   Sequencer(Engine& engine, const AudioGroup& group, GroupId groupId, const SongGroupIndex* songGroup, SongId setupId,
             ObjToken<Studio> studio);
   Sequencer(Engine& engine, const AudioGroup& group, GroupId groupId, const SFXGroupIndex* sfxGroup,

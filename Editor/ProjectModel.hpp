@@ -35,31 +35,31 @@ public:
   explicit OutlineFilterProxyModel(ProjectModel* source);
 public slots:
   void setFilterRegExp(const QString& pattern);
-  bool filterAcceptsRow(int sourceRow, const QModelIndex& sourceParent) const;
+  bool filterAcceptsRow(int sourceRow, const QModelIndex& sourceParent) const override;
 };
 
 class NullItemProxyModel : public QIdentityProxyModel {
   Q_OBJECT
 public:
   explicit NullItemProxyModel(ProjectModel* source);
-  QModelIndex mapFromSource(const QModelIndex& sourceIndex) const;
-  QModelIndex mapToSource(const QModelIndex& proxyIndex) const;
-  int rowCount(const QModelIndex& parent) const;
-  QModelIndex index(int row, int column, const QModelIndex& parent) const;
-  QVariant data(const QModelIndex& proxyIndex, int role) const;
+  QModelIndex mapFromSource(const QModelIndex& sourceIndex) const override;
+  QModelIndex mapToSource(const QModelIndex& proxyIndex) const override;
+  int rowCount(const QModelIndex& parent) const override;
+  QModelIndex index(int row, int column, const QModelIndex& parent) const override;
+  QVariant data(const QModelIndex& proxyIndex, int role) const override;
 };
 
 class PageObjectProxyModel : public QIdentityProxyModel {
   Q_OBJECT
 public:
   explicit PageObjectProxyModel(ProjectModel* source);
-  QModelIndex mapFromSource(const QModelIndex& sourceIndex) const;
-  QModelIndex mapToSource(const QModelIndex& proxyIndex) const;
-  QModelIndex parent(const QModelIndex& child) const;
-  int rowCount(const QModelIndex& parent) const;
-  QModelIndex index(int row, int column, const QModelIndex& parent) const;
-  QVariant data(const QModelIndex& proxyIndex, int role) const;
-  Qt::ItemFlags flags(const QModelIndex& proxyIndex) const;
+  QModelIndex mapFromSource(const QModelIndex& sourceIndex) const override;
+  QModelIndex mapToSource(const QModelIndex& proxyIndex) const override;
+  QModelIndex parent(const QModelIndex& child) const override;
+  int rowCount(const QModelIndex& parent) const override;
+  QModelIndex index(int row, int column, const QModelIndex& parent) const override;
+  QVariant data(const QModelIndex& proxyIndex, int role) const override;
+  Qt::ItemFlags flags(const QModelIndex& proxyIndex) const override;
 };
 
 class ProjectModel : public QAbstractItemModel {
@@ -124,7 +124,7 @@ public:
     amuse::IObjToken<INode> m_nullChild;
 
   public:
-    virtual ~INode() = default;
+    ~INode() override = default;
     INode(const QString& name);
     INode(INode* parent) : m_parent(parent), m_row(0) { /* ONLY USED BY NULL NODE! */
     }
@@ -221,17 +221,17 @@ public:
   struct NullNode final : INode {
     NullNode(INode* parent) : INode(parent) {}
 
-    Type type() const { return Type::Null; }
-    QString text() const { return {}; }
-    QIcon icon() const { return {}; }
+    Type type() const override { return Type::Null; }
+    QString text() const override { return {}; }
+    QIcon icon() const override { return {}; }
   };
   struct RootNode final : INode {
     RootNode() : INode(QStringLiteral("<root>")) {}
 
-    Type type() const { return Type::Root; }
-    QString text() const { return {}; }
-    QIcon icon() const { return {}; }
-    Qt::ItemFlags flags() const { return Qt::ItemIsEnabled; }
+    Type type() const override { return Type::Root; }
+    QString text() const override { return {}; }
+    QIcon icon() const override { return {}; }
+    Qt::ItemFlags flags() const override { return Qt::ItemIsEnabled; }
   };
   struct CollectionNode;
   struct BasePoolObjectNode;
@@ -241,14 +241,14 @@ public:
     GroupNode(std::unordered_map<QString, std::unique_ptr<amuse::AudioGroupDatabase>>::iterator it)
     : INode(it->first), m_it(it) {}
 
-    int hypotheticalIndex(const QString& name) const;
-    void _sortChildren();
+    int hypotheticalIndex(const QString& name) const override;
+    void _sortChildren() override;
 
     static QIcon Icon;
-    Type type() const { return Type::Group; }
-    QString text() const { return m_name; }
-    QIcon icon() const { return Icon; }
-    AmuseItemEditFlags editFlags() const { return AmuseItemNoCut; }
+    Type type() const override { return Type::Group; }
+    QString text() const override { return m_name; }
+    QIcon icon() const override { return Icon; }
+    AmuseItemEditFlags editFlags() const override { return AmuseItemNoCut; }
 
     CollectionNode* getCollectionOfType(Type tp) const;
     amuse::AudioGroupDatabase* getAudioGroup() const { return m_it->second.get(); }
@@ -262,19 +262,19 @@ public:
     : INode(amuse::GroupId::CurNameDB->resolveNameFromId(id).data()), m_id(id), m_index(index) {}
 
     static QIcon Icon;
-    Type type() const { return Type::SongGroup; }
-    QString text() const { return m_name; }
-    QIcon icon() const { return Icon; }
-    AmuseItemEditFlags editFlags() const { return AmuseItemAll; }
+    Type type() const override { return Type::SongGroup; }
+    QString text() const override { return m_name; }
+    QIcon icon() const override { return Icon; }
+    AmuseItemEditFlags editFlags() const override { return AmuseItemAll; }
 
-    amuse::NameDB* getNameDb() const { return amuse::GroupId::CurNameDB; }
+    amuse::NameDB* getNameDb() const override { return amuse::GroupId::CurNameDB; }
 
-    void registerNames(const NameUndoRegistry& registry) const {
+    void registerNames(const NameUndoRegistry& registry) const override {
       amuse::GroupId::CurNameDB->registerPair(text().toUtf8().data(), m_id);
       for (auto& p : m_index->m_midiSetups)
         registry.registerSongName(p.first);
     }
-    void unregisterNames(NameUndoRegistry& registry) const {
+    void unregisterNames(NameUndoRegistry& registry) const override {
       amuse::GroupId::CurNameDB->remove(m_id);
       for (auto& p : m_index->m_midiSetups)
         registry.unregisterSongName(p.first);
@@ -288,19 +288,19 @@ public:
     : INode(amuse::GroupId::CurNameDB->resolveNameFromId(id).data()), m_id(id), m_index(index) {}
 
     static QIcon Icon;
-    Type type() const { return Type::SoundGroup; }
-    QString text() const { return m_name; }
-    QIcon icon() const { return Icon; }
-    AmuseItemEditFlags editFlags() const { return AmuseItemAll; }
+    Type type() const override { return Type::SoundGroup; }
+    QString text() const override { return m_name; }
+    QIcon icon() const override { return Icon; }
+    AmuseItemEditFlags editFlags() const override { return AmuseItemAll; }
 
-    amuse::NameDB* getNameDb() const { return amuse::GroupId::CurNameDB; }
+    amuse::NameDB* getNameDb() const override { return amuse::GroupId::CurNameDB; }
 
-    void registerNames(const NameUndoRegistry& registry) const {
+    void registerNames(const NameUndoRegistry& registry) const override {
       amuse::GroupId::CurNameDB->registerPair(text().toUtf8().data(), m_id);
       for (auto& p : m_index->m_sfxEntries)
         registry.registerSFXName(p.first);
     }
-    void unregisterNames(NameUndoRegistry& registry) const {
+    void unregisterNames(NameUndoRegistry& registry) const override {
       amuse::GroupId::CurNameDB->remove(m_id);
       for (auto& p : m_index->m_sfxEntries)
         registry.unregisterSFXName(p.first);
@@ -312,10 +312,10 @@ public:
     CollectionNode(const QString& name, const QIcon& icon, Type collectionType)
     : INode(name), m_icon(icon), m_collectionType(collectionType) {}
 
-    Type type() const { return Type::Collection; }
-    QString text() const { return m_name; }
-    QIcon icon() const { return m_icon; }
-    Qt::ItemFlags flags() const { return Qt::ItemIsEnabled; }
+    Type type() const override { return Type::Collection; }
+    QString text() const override { return m_name; }
+    QIcon icon() const override { return m_icon; }
+    Qt::ItemFlags flags() const override { return Qt::ItemIsEnabled; }
 
     Type collectionType() const { return m_collectionType; }
     int indexOfId(amuse::ObjectId id) const;
@@ -328,8 +328,8 @@ public:
     BasePoolObjectNode(const QString& name) : INode(name) {}
     BasePoolObjectNode(amuse::ObjectId id, const QString& name) : INode(name), m_id(id) {}
     amuse::ObjectId id() const { return m_id; }
-    QString text() const { return m_name; }
-    QIcon icon() const { return {}; }
+    QString text() const override { return m_name; }
+    QIcon icon() const override { return {}; }
   };
   template <class ID, class T, INode::Type TP>
   struct PoolObjectNode final : BasePoolObjectNode {
@@ -338,14 +338,14 @@ public:
     PoolObjectNode(ID id, amuse::ObjToken<T> obj)
     : BasePoolObjectNode(id, ID::CurNameDB->resolveNameFromId(id).data()), m_obj(obj) {}
 
-    Type type() const { return TP; }
-    AmuseItemEditFlags editFlags() const { return TP == INode::Type::Sample ? AmuseItemNoCut : AmuseItemAll; }
+    Type type() const override { return TP; }
+    AmuseItemEditFlags editFlags() const override { return TP == INode::Type::Sample ? AmuseItemNoCut : AmuseItemAll; }
 
-    void registerNames(const NameUndoRegistry& registry) const {
+    void registerNames(const NameUndoRegistry& registry) const override {
       ID::CurNameDB->registerPair(text().toUtf8().data(), m_id);
     }
-    void unregisterNames(NameUndoRegistry& registry) const { ID::CurNameDB->remove(m_id); }
-    amuse::NameDB* getNameDb() const { return ID::CurNameDB; }
+    void unregisterNames(NameUndoRegistry& registry) const override { ID::CurNameDB->remove(m_id); }
+    amuse::NameDB* getNameDb() const override { return ID::CurNameDB; }
   };
   using SoundMacroNode = PoolObjectNode<amuse::SoundMacroId, amuse::SoundMacro, INode::Type::SoundMacro>;
   using ADSRNode = PoolObjectNode<amuse::TableId, std::unique_ptr<amuse::ITable>, INode::Type::ADSR>;
@@ -385,14 +385,14 @@ public:
   bool ensureModelData();
 
   QModelIndex proxyCreateIndex(int arow, int acolumn, void* adata) const;
-  QModelIndex index(int row, int column, const QModelIndex& parent = QModelIndex()) const;
+  QModelIndex index(int row, int column, const QModelIndex& parent = QModelIndex()) const override;
   QModelIndex index(INode* node) const;
-  QModelIndex parent(const QModelIndex& child) const;
-  int rowCount(const QModelIndex& parent = QModelIndex()) const;
-  int columnCount(const QModelIndex& parent = QModelIndex()) const;
-  QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const;
-  bool setData(const QModelIndex& index, const QVariant& value, int role = Qt::EditRole);
-  Qt::ItemFlags flags(const QModelIndex& index) const;
+  QModelIndex parent(const QModelIndex& child) const override;
+  int rowCount(const QModelIndex& parent = QModelIndex()) const override;
+  int columnCount(const QModelIndex& parent = QModelIndex()) const override;
+  QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
+  bool setData(const QModelIndex& index, const QVariant& value, int role = Qt::EditRole) override;
+  Qt::ItemFlags flags(const QModelIndex& index) const override;
   INode* node(const QModelIndex& index) const;
   GroupNode* getGroupNode(INode* node) const;
   AmuseItemEditFlags editFlags(const QModelIndex& index) const;
@@ -439,9 +439,10 @@ public:
   template <class NT>
   void loadMimeData(const QMimeData* data, const QString& mimeType, GroupNode* gn);
 
-  QStringList mimeTypes() const;
-  QMimeData* mimeData(const QModelIndexList& indexes) const;
-  bool dropMimeData(const QMimeData* data, Qt::DropAction action, int row, int column, const QModelIndex& parent);
+  QStringList mimeTypes() const override;
+  QMimeData* mimeData(const QModelIndexList& indexes) const override;
+  bool dropMimeData(const QMimeData* data, Qt::DropAction action, int row, int column,
+                    const QModelIndex& parent) override;
 
   void cut(const QModelIndex& index);
   void copy(const QModelIndex& index);

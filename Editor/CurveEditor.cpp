@@ -17,7 +17,7 @@ public:
   : EditorUndoCommand(node.get(), CurveControls::tr("Edit Curve")), m_usedExpr(usedExpr) {
     std::memcpy(m_redoData, redoData, 128);
   }
-  void undo() {
+  void undo() override {
     m_undid = true;
     amuse::ITable& table = **m_node.cast<ProjectModel::CurveNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::Curve) {
@@ -27,7 +27,7 @@ public:
     }
     EditorUndoCommand::undo();
   }
-  void redo() {
+  void redo() override {
     amuse::ITable& table = **m_node.cast<ProjectModel::CurveNode>()->m_obj;
     if (table.Isa() == amuse::ITable::Type::Curve) {
       amuse::Curve& curve = static_cast<amuse::Curve&>(table);
@@ -38,14 +38,14 @@ public:
     if (m_undid)
       EditorUndoCommand::redo();
   }
-  bool mergeWith(const QUndoCommand* other) {
+  bool mergeWith(const QUndoCommand* other) override {
     if (other->id() == id() && !m_usedExpr && !static_cast<const CurveEditUndoCommand*>(other)->m_usedExpr) {
       std::memcpy(m_redoData, static_cast<const CurveEditUndoCommand*>(other)->m_redoData, 128);
       return true;
     }
     return false;
   }
-  int id() const { return int(Id::CurveEdit); }
+  int id() const override { return int(Id::CurveEdit); }
 };
 
 CurveEditor* CurveView::getEditor() const { return qobject_cast<CurveEditor*>(parentWidget()); }

@@ -1019,8 +1019,8 @@ class RenameNodeUndoCommand : public EditorUndoCommand {
 public:
   RenameNodeUndoCommand(const QString& text, ProjectModel::INode* node, const QString& redoVal)
   : EditorUndoCommand(node, text.arg(node->name())), m_redoVal(redoVal) {}
-  void undo() { g_MainWindow->projectModel()->_renameNode(m_node.get(), m_undoVal); }
-  void redo() {
+  void undo() override { g_MainWindow->projectModel()->_renameNode(m_node.get(), m_undoVal); }
+  void redo() override {
     m_undoVal = m_node->name();
     g_MainWindow->projectModel()->_renameNode(m_node.get(), m_redoVal);
   }
@@ -1160,8 +1160,8 @@ public:
   explicit GroupNodeAddUndoCommand(const QString& text, std::unique_ptr<amuse::AudioGroupDatabase>&& data,
                                    ProjectModel::GroupNode* node)
   : GroupNodeUndoCommand(text, std::move(data), node) {}
-  void undo() { base::del(); }
-  void redo() { base::add(); }
+  void undo() override { base::del(); }
+  void redo() override { base::add(); }
 };
 
 class GroupNodeDelUndoCommand : public GroupNodeUndoCommand {
@@ -1170,8 +1170,8 @@ class GroupNodeDelUndoCommand : public GroupNodeUndoCommand {
 public:
   explicit GroupNodeDelUndoCommand(const QString& text, ProjectModel::GroupNode* node)
   : GroupNodeUndoCommand(text, {}, node) {}
-  void undo() { base::add(); }
-  void redo() { base::del(); }
+  void undo() override { base::add(); }
+  void redo() override { base::del(); }
 };
 
 void ProjectModel::_addNode(GroupNode* node, std::unique_ptr<amuse::AudioGroupDatabase>&& data,
@@ -1235,8 +1235,8 @@ class NodeAddUndoCommand : public NodeUndoCommand<NT> {
 public:
   explicit NodeAddUndoCommand(const QString& text, NT* node, ProjectModel::GroupNode* parent)
   : NodeUndoCommand<NT>(text, node, parent) {}
-  void undo() { base::del(); }
-  void redo() { base::add(); }
+  void undo() override { base::del(); }
+  void redo() override { base::add(); }
 };
 
 template <class NT>
@@ -1246,8 +1246,8 @@ class NodeDelUndoCommand : public NodeUndoCommand<NT> {
 public:
   explicit NodeDelUndoCommand(const QString& text, NT* node)
   : NodeUndoCommand<NT>(text, node, g_MainWindow->projectModel()->getGroupNode(node)) {}
-  void undo() { base::add(); }
-  void redo() { base::del(); }
+  void undo() override { base::add(); }
+  void redo() override { base::del(); }
 };
 
 template <class NT, class T>

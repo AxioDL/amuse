@@ -25,9 +25,9 @@ public:
   void unloadData();
   ProjectModel::INode* currentNode() const;
 
-  void paintEvent(QPaintEvent* ev);
-  void mousePressEvent(QMouseEvent* ev);
-  void mouseMoveEvent(QMouseEvent* ev);
+  void paintEvent(QPaintEvent* ev) override;
+  void mousePressEvent(QMouseEvent* ev) override;
+  void mouseMoveEvent(QMouseEvent* ev) override;
 };
 
 class CurveControls : public QFrame {
@@ -43,7 +43,7 @@ public:
   explicit CurveControls(QWidget* parent = Q_NULLPTR);
   void loadData();
   void unloadData();
-  void resizeEvent(QResizeEvent* ev);
+  void resizeEvent(QResizeEvent* ev) override;
 public slots:
   void exprCommit();
 };
@@ -58,6 +58,6 @@ class CurveEditor : public EditorWidget {
 public:
   explicit CurveEditor(QWidget* parent = Q_NULLPTR);
   bool loadData(ProjectModel::CurveNode* node);
-  void unloadData();
-  ProjectModel::INode* currentNode() const;
+  void unloadData() override;
+  ProjectModel::INode* currentNode() const override;
 };

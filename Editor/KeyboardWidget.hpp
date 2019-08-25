@@ -26,7 +26,7 @@ public:
   explicit KeyboardOctave(int octave, const QString& svgPath, QWidget* parent = Q_NULLPTR);
   int getOctave() const { return m_octave; }
   int getKey(const QPoint& localPos) const;
-  void resizeEvent(QResizeEvent* event);
+  void resizeEvent(QResizeEvent* event) override;
 };
 
 class KeyboardWidget : public QWidget {
@@ -47,13 +47,13 @@ public:
   explicit KeyboardWidget(QWidget* parent = Q_NULLPTR);
   void setStatusFocus(StatusBarFocus* statusFocus) { m_statusFocus = statusFocus; }
 
-  void mouseMoveEvent(QMouseEvent* event);
-  void mousePressEvent(QMouseEvent* event);
-  void mouseReleaseEvent(QMouseEvent* event);
-  void enterEvent(QEvent* event);
-  void leaveEvent(QEvent* event);
-  void wheelEvent(QWheelEvent* event);
-  void showEvent(QShowEvent* event);
+  void mouseMoveEvent(QMouseEvent* event) override;
+  void mousePressEvent(QMouseEvent* event) override;
+  void mouseReleaseEvent(QMouseEvent* event) override;
+  void enterEvent(QEvent* event) override;
+  void leaveEvent(QEvent* event) override;
+  void wheelEvent(QWheelEvent* event) override;
+  void showEvent(QShowEvent* event) override;
 
 signals:
   void notePressed(int key);
@@ -68,15 +68,15 @@ protected:
 
 public:
   explicit KeyboardSlider(QWidget* parent = Q_NULLPTR);
-  void enterEvent(QEvent* event);
-  void leaveEvent(QEvent* event);
+  void enterEvent(QEvent* event) override;
+  void leaveEvent(QEvent* event) override;
   void setStatusFocus(StatusBarFocus* statusFocus);
-  void sliderChange(SliderChange change);
+  void sliderChange(SliderChange change) override;
 };
 
 class VelocitySlider : public KeyboardSlider {
   Q_OBJECT
-  QString stringOfValue(int value) const;
+  QString stringOfValue(int value) const override;
 
 public:
   explicit VelocitySlider(QWidget* parent = Q_NULLPTR);
@@ -84,7 +84,7 @@ public:
 
 class ModulationSlider : public KeyboardSlider {
   Q_OBJECT
-  QString stringOfValue(int value) const;
+  QString stringOfValue(int value) const override;
 
 public:
   explicit ModulationSlider(QWidget* parent = Q_NULLPTR);
@@ -92,10 +92,10 @@ public:
 
 class PitchSlider : public KeyboardSlider {
   Q_OBJECT
-  QString stringOfValue(int value) const;
+  QString stringOfValue(int value) const override;
 
 public:
   explicit PitchSlider(QWidget* parent = Q_NULLPTR);
-  void mouseReleaseEvent(QMouseEvent* ev);
-  void wheelEvent(QWheelEvent* ev) { ev->ignore(); }
+  void mouseReleaseEvent(QMouseEvent* ev) override;
+  void wheelEvent(QWheelEvent* ev) override { ev->ignore(); }
 };

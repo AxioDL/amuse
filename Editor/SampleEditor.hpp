@@ -41,14 +41,14 @@ public:
   void setSamplePos(int pos);
   void updateSampleRange(int oldSamp, int newSamp);
 
-  void paintEvent(QPaintEvent* ev);
+  void paintEvent(QPaintEvent* ev) override;
   void resetZoom();
   void setZoom(int zVal);
-  void showEvent(QShowEvent* ev);
-  void mousePressEvent(QMouseEvent* ev);
-  void mouseReleaseEvent(QMouseEvent* ev);
-  void mouseMoveEvent(QMouseEvent* ev);
-  void wheelEvent(QWheelEvent* ev);
+  void showEvent(QShowEvent* ev) override;
+  void mousePressEvent(QMouseEvent* ev) override;
+  void mouseReleaseEvent(QMouseEvent* ev) override;
+  void mouseMoveEvent(QMouseEvent* ev) override;
+  void wheelEvent(QWheelEvent* ev) override;
 };
 
 class SampleControls : public QFrame {
@@ -98,10 +98,10 @@ class SampleEditor : public EditorWidget {
 public:
   explicit SampleEditor(QWidget* parent = Q_NULLPTR);
   bool loadData(ProjectModel::SampleNode* node);
-  void unloadData();
-  ProjectModel::INode* currentNode() const;
+  void unloadData() override;
+  ProjectModel::INode* currentNode() const override;
   const amuse::SoundMacro* soundMacro() const;
   void setSamplePos(int pos);
 
-  void resizeEvent(QResizeEvent* ev);
+  void resizeEvent(QResizeEvent* ev) override;
 };
