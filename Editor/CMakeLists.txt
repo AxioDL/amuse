@@ -68,6 +68,9 @@ target_compile_definitions(amuse-gui PRIVATE
   # Disable narrowing conversions in signal/slot connect() calls.
   -DQT_NO_NARROWING_CONVERSIONS_IN_CONNECT
 
+  # Disable implicit QString->QUrl conversions to enforce use of proper resolving functions.
+  -DQT_NO_URL_CAST_FROM_STRING
+
   # Allows for more efficient string concatenation, resulting in less temporaries.
   -DQT_USE_QSTRINGBUILDER 
 )
