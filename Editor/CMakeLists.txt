@@ -60,6 +60,11 @@ add_executable(amuse-gui WIN32 MACOSX_BUNDLE
   ${QM_FILES}
 )
 
+target_compile_definitions(amuse-gui PRIVATE
+  # Allows for more efficient string concatenation, resulting in less temporaries.
+  -DQT_USE_QSTRINGBUILDER 
+)
+
 if(WIN32)
   target_sources(amuse-gui PRIVATE
     platforms/win/amuse-gui.rc
