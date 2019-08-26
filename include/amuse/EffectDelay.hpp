@@ -51,41 +51,41 @@ public:
   using ImpType = EffectDelayImp<T>;
 
   void setDelay(uint32_t delay) {
-    delay = clamp(10u, delay, 5000u);
+    delay = std::clamp(10u, delay, 5000u);
     for (int i = 0; i < 8; ++i)
       x3c_delay[i] = delay;
     m_dirty = true;
   }
   void setChanDelay(int chanIdx, uint32_t delay) {
-    delay = clamp(10u, delay, 5000u);
+    delay = std::clamp(10u, delay, 5000u);
     x3c_delay[chanIdx] = delay;
     m_dirty = true;
   }
   uint32_t getChanDelay(int chanIdx) const { return x3c_delay[chanIdx]; }
 
   void setFeedback(uint32_t feedback) {
-    feedback = clamp(0u, feedback, 100u);
+    feedback = std::clamp(0u, feedback, 100u);
     for (int i = 0; i < 8; ++i)
       x48_feedback[i] = feedback;
     m_dirty = true;
   }
 
   void setChanFeedback(int chanIdx, uint32_t feedback) {
-    feedback = clamp(0u, feedback, 100u);
+    feedback = std::clamp(0u, feedback, 100u);
     x48_feedback[chanIdx] = feedback;
     m_dirty = true;
   }
   uint32_t getChanFeedback(int chanIdx) const { return x48_feedback[chanIdx]; }
 
   void setOutput(uint32_t output) {
-    output = clamp(0u, output, 100u);
+    output = std::clamp(0u, output, 100u);
     for (int i = 0; i < 8; ++i)
       x54_output[i] = output;
     m_dirty = true;
   }
 
   void setChanOutput(int chanIdx, uint32_t output) {
-    output = clamp(0u, output, 100u);
+    output = std::clamp(0u, output, 100u);
     x54_output[chanIdx] = output;
     m_dirty = true;
   }
@@ -93,9 +93,9 @@ public:
 
   void setParams(const EffectDelayInfo& info) {
     for (int i = 0; i < 8; ++i) {
-      x3c_delay[i] = clamp(10u, info.delay[i], 5000u);
-      x48_feedback[i] = clamp(0u, info.feedback[i], 100u);
-      x54_output[i] = clamp(0u, info.output[i], 100u);
+      x3c_delay[i] = std::clamp(10u, info.delay[i], 5000u);
+      x48_feedback[i] = std::clamp(0u, info.feedback[i], 100u);
+      x54_output[i] = std::clamp(0u, info.output[i], 100u);
     }
     m_dirty = true;
   }

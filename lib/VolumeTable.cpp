@@ -37,7 +37,7 @@ static const float DLSVolumeTable[] = {
     0.892802f, 0.907744f, 0.922810f, 0.938000f, 0.953314f, 0.968752f, 0.984314f, 1.000000f, 1.000000f};
 
 float LookupVolume(float vol) {
-  vol = amuse::clamp(0.f, vol * 127.f, 127.f);
+  vol = std::clamp(0.f, vol * 127.f, 127.f);
   float f = std::floor(vol);
   float c = std::ceil(vol);
   if (f == c)
@@ -47,7 +47,7 @@ float LookupVolume(float vol) {
 }
 
 float LookupDLSVolume(float vol) {
-  vol = amuse::clamp(0.f, vol * 127.f, 127.f);
+  vol = std::clamp(0.f, vol * 127.f, 127.f);
   float f = std::floor(vol);
   float c = std::ceil(vol);
   if (f == c)

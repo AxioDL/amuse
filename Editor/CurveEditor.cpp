@@ -138,7 +138,7 @@ void CurveView::mouseMoveEvent(QMouseEvent* ev) {
   if (idx < 0 || idx > 127) {
     return;
   }
-  const int val = 127 - amuse::clamp(0, int(std::round(ev->localPos().y() / (height() - 16.0) * 127.0)), 127);
+  const int val = 127 - std::clamp(0, int(std::round(ev->localPos().y() / (height() - 16.0) * 127.0)), 127);
 
   CurveEditUndoCommand::RedoData newData;
   auto& curve = static_cast<amuse::Curve&>(table);
@@ -196,7 +196,7 @@ void CurveControls::exprCommit() {
       m_errLabel->setText(val.toString());
       return;
     } else if (val.isNumber()) {
-      newData[i] = uint8_t(amuse::clamp(0, int(std::round(val.toNumber() * 127.0)), 127));
+      newData[i] = uint8_t(std::clamp(0, int(std::round(val.toNumber() * 127.0)), 127));
     } else {
       notANumber = true;
       newData[i] = 0;

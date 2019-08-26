@@ -399,7 +399,7 @@ int main(int argc, const boo::SystemChar** argv)
   std::unique_ptr<boo::IAudioVoiceEngine> voxEngine = boo::NewWAVAudioVoiceEngine(pathOut.c_str(), rate, chCount);
   amuse::BooBackendVoiceAllocator booBackend(*voxEngine);
   amuse::Engine engine(booBackend, amuse::AmplitudeMode::PerSample);
-  engine.setVolume(float(amuse::clamp(0.0, volume, 1.0)));
+  engine.setVolume(float(std::clamp(0.0, volume, 1.0)));
 
   /* Load group into engine */
   const amuse::AudioGroup* group = engine.addAudioGroup(*selData);

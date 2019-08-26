@@ -443,7 +443,7 @@ bool SongState::Track::advance(Sequencer& seq, double dt) {
         if (pitchTick + remPitchTicks > nextTick) {
           /* Update pitch */
           m_pitchVal += m_nextPitchDelta;
-          seq.setPitchWheel(m_midiChan, clamp(-1.f, m_pitchVal / 8191.f, 1.f));
+          seq.setPitchWheel(m_midiChan, std::clamp(-1.f, m_pitchVal / 8191.f, 1.f));
           if (m_pitchWheelData[0] != 0x80 || m_pitchWheelData[1] != 0x00) {
             auto delta = DecodeDelta(m_pitchWheelData);
             m_nextPitchTick += delta.first;
@@ -467,7 +467,7 @@ bool SongState::Track::advance(Sequencer& seq, double dt) {
         if (modTick + remModTicks > nextTick) {
           /* Update modulation */
           m_modVal += m_nextModDelta;
-          seq.setCtrlValue(m_midiChan, 1, int8_t(clamp(0, m_modVal / 127, 127)));
+          seq.setCtrlValue(m_midiChan, 1, int8_t(std::clamp(0, m_modVal / 127, 127)));
           if (m_modWheelData[0] != 0x80 || m_modWheelData[1] != 0x00) {
             auto delta = DecodeDelta(m_modWheelData);
             m_nextModTick += delta.first;
