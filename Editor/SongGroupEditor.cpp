@@ -1152,13 +1152,17 @@ Qt::ItemFlags SetupModel::flags(const QModelIndex& index) const { return Qt::Ite
 SetupModel::SetupModel(QObject* parent) : QAbstractTableModel(parent) {}
 
 void PageTableView::deleteSelection() {
-  QModelIndexList list = selectionModel()->selectedRows();
-  if (list.isEmpty())
+  const QModelIndexList list = selectionModel()->selectedRows();
+  if (list.isEmpty()) {
     return;
+  }
+
   std::vector<std::pair<uint8_t, amuse::SongGroupIndex::PageEntry>> data;
   data.reserve(list.size());
-  for (QModelIndex idx : list)
-    data.push_back(std::make_pair(model()->data(idx).toInt() - 1, amuse::SongGroupIndex::PageEntry{}));
+  for (const QModelIndex idx : list) {
+    data.emplace_back(model()->data(idx).toInt() - 1, amuse::SongGroupIndex::PageEntry{});
+  }
+
   std::sort(data.begin(), data.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
   g_MainWindow->pushUndoCommand(new PageRowDelUndoCommand(
       static_cast<PageModel*>(model())->m_node.get(),
@@ -1413,7 +1417,7 @@ void SongGroupEditor::doAdd() {
     }
 
     std::vector<std::pair<uint8_t, amuse::SongGroupIndex::PageEntry>> data;
-    data.push_back(std::make_pair(prog, amuse::SongGroupIndex::PageEntry{}));
+    data.emplace_back(prog, amuse::SongGroupIndex::PageEntry{});
     g_MainWindow->pushUndoCommand(
         new PageRowAddUndoCommand(model->m_node.get(), tr("Add Page Entry"), table, std::move(data)));
 
@@ -1423,7 +1427,7 @@ void SongGroupEditor::doAdd() {
     g_MainWindow->projectModel()->setIdDatabases(model->m_node.get());
     std::vector<std::tuple<amuse::SongId, std::string, std::array<amuse::SongGroupIndex::MIDISetup, 16>>> data;
     auto songId = g_MainWindow->projectModel()->bootstrapSongId();
-    data.push_back(std::make_tuple(songId.first, songId.second, std::array<amuse::SongGroupIndex::MIDISetup, 16>{}));
+    data.emplace_back(songId.first, songId.second, std::array<amuse::SongGroupIndex::MIDISetup, 16>{});
     g_MainWindow->pushUndoCommand(
         new SetupRowAddUndoCommand(model->m_node.get(), tr("Add Setup Entry"), table, std::move(data)));
   }

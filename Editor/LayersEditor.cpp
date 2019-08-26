@@ -508,13 +508,17 @@ amuse::LayerMapping LayersModel::_removeRow(int row) {
 LayersModel::LayersModel(QObject* parent) : QAbstractTableModel(parent) {}
 
 void LayersTableView::deleteSelection() {
-  QModelIndexList list = selectionModel()->selectedRows();
-  if (list.isEmpty())
+  const QModelIndexList list = selectionModel()->selectedRows();
+  if (list.isEmpty()) {
     return;
+  }
+
   std::vector<std::pair<amuse::LayerMapping, int>> data;
   data.reserve(list.size());
-  for (QModelIndex idx : list)
-    data.push_back(std::make_pair(amuse::LayerMapping{}, idx.row()));
+  for (const QModelIndex idx : list) {
+    data.emplace_back(amuse::LayerMapping{}, idx.row());
+  }
+
   std::sort(data.begin(), data.end(), [](const auto& a, const auto& b) { return a.second < b.second; });
   g_MainWindow->pushUndoCommand(new LayerRowDelUndoCommand(static_cast<LayersModel*>(model())->m_node.get(),
                                                            data.size() > 1 ? tr("Delete Layers") : tr("Delete Layer"),
@@ -585,12 +589,15 @@ void LayersEditor::rowsMoved(const QModelIndex& parent, int start, int end, cons
 }
 
 void LayersEditor::doAdd() {
-  QModelIndex idx = m_tableView.selectionModel()->currentIndex();
+  const QModelIndex idx = m_tableView.selectionModel()->currentIndex();
   std::vector<std::pair<amuse::LayerMapping, int>> data;
-  if (!idx.isValid())
-    data.push_back(std::make_pair(amuse::LayerMapping{}, m_model.rowCount() - 1));
-  else
-    data.push_back(std::make_pair(amuse::LayerMapping{}, idx.row()));
+
+  if (idx.isValid()) {
+    data.emplace_back(amuse::LayerMapping{}, idx.row());
+  } else {
+    data.emplace_back(amuse::LayerMapping{}, m_model.rowCount() - 1);
+  }
+
   g_MainWindow->pushUndoCommand(
       new LayerRowAddUndoCommand(m_model.m_node.get(), tr("Add Layer"), &m_tableView, std::move(data)));
 }
