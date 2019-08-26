@@ -65,6 +65,9 @@ target_compile_definitions(amuse-gui PRIVATE
   -DQT_NO_CAST_FROM_ASCII
   -DQT_NO_CAST_TO_ASCII
 
+  # Disable narrowing conversions in signal/slot connect() calls.
+  -DQT_NO_NARROWING_CONVERSIONS_IN_CONNECT
+
   # Allows for more efficient string concatenation, resulting in less temporaries.
   -DQT_USE_QSTRINGBUILDER 
 )
