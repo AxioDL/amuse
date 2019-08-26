@@ -324,27 +324,27 @@ struct AppCallback : boo::IApplicationCallback {
     if (m_seq && m_chanId != -1) {
       switch (charCode) {
       case 'z':
-        m_octave = amuse::clamp(-1, m_octave - 1, 8);
+        m_octave = std::clamp(-1, m_octave - 1, 8);
         m_updateDisp = true;
         break;
       case 'x':
-        m_octave = amuse::clamp(-1, m_octave + 1, 8);
+        m_octave = std::clamp(-1, m_octave + 1, 8);
         m_updateDisp = true;
         break;
       case 'c':
-        m_velocity = amuse::clamp(0, m_velocity - 1, 127);
+        m_velocity = std::clamp(0, m_velocity - 1, 127);
         m_updateDisp = true;
         break;
       case 'v':
-        m_velocity = amuse::clamp(0, m_velocity + 1, 127);
+        m_velocity = std::clamp(0, m_velocity + 1, 127);
         m_updateDisp = true;
         break;
       case 'b':
-        m_chanId = amuse::clamp(0, m_chanId - 1, 15);
+        m_chanId = std::clamp(0, m_chanId - 1, 15);
         m_updateDisp = true;
         break;
       case 'n':
-        m_chanId = amuse::clamp(0, m_chanId + 1, 15);
+        m_chanId = std::clamp(0, m_chanId + 1, 15);
         m_updateDisp = true;
         break;
       case ',':
@@ -397,27 +397,27 @@ struct AppCallback : boo::IApplicationCallback {
         setPanic = true;
         break;
       case 'z':
-        m_octave = amuse::clamp(-1, m_octave - 1, 8);
+        m_octave = std::clamp(-1, m_octave - 1, 8);
         m_updateDisp = true;
         break;
       case 'x':
-        m_octave = amuse::clamp(-1, m_octave + 1, 8);
+        m_octave = std::clamp(-1, m_octave + 1, 8);
         m_updateDisp = true;
         break;
       case 'c':
-        m_velocity = amuse::clamp(0, m_velocity - 1, 127);
+        m_velocity = std::clamp(0, m_velocity - 1, 127);
         m_updateDisp = true;
         break;
       case 'v':
-        m_velocity = amuse::clamp(0, m_velocity + 1, 127);
+        m_velocity = std::clamp(0, m_velocity + 1, 127);
         m_updateDisp = true;
         break;
       case 'b':
-        m_chanId = amuse::clamp(0, m_chanId - 1, 15);
+        m_chanId = std::clamp(0, m_chanId - 1, 15);
         m_updateDisp = true;
         break;
       case 'n':
-        m_chanId = amuse::clamp(0, m_chanId + 1, 15);
+        m_chanId = std::clamp(0, m_chanId + 1, 15);
         m_updateDisp = true;
         break;
       case ',':
@@ -844,13 +844,13 @@ void EventCallback::specialKeyDown(boo::ESpecialKey key, boo::EModifierKey mods,
     break;
   case boo::ESpecialKey::Up:
     if (m_app.m_volume < 1.f)
-      m_app.m_volume = amuse::clamp(0.f, m_app.m_volume + 0.05f, 1.f);
+      m_app.m_volume = std::clamp(0.f, m_app.m_volume + 0.05f, 1.f);
     m_app.m_engine->setVolume(m_app.m_volume);
     m_app.m_updateDisp = true;
     break;
   case boo::ESpecialKey::Down:
     if (m_app.m_volume > 0.f)
-      m_app.m_volume = amuse::clamp(0.f, m_app.m_volume - 0.05f, 1.f);
+      m_app.m_volume = std::clamp(0.f, m_app.m_volume - 0.05f, 1.f);
     m_app.m_engine->setVolume(m_app.m_volume);
     m_app.m_updateDisp = true;
     break;
@@ -866,7 +866,7 @@ void EventCallback::specialKeyUp(boo::ESpecialKey key, boo::EModifierKey mods) {
 
 void EventCallback::mouseDown(const boo::SWindowCoord& coord, boo::EMouseButton, boo::EModifierKey) {
   m_tracking = true;
-  m_app.m_pitchBend = amuse::clamp(-1.f, coord.norm[1] * 2.f - 1.f, 1.f);
+  m_app.m_pitchBend = std::clamp(-1.f, coord.norm[1] * 2.f - 1.f, 1.f);
   if (m_app.m_vox)
     m_app.m_vox->setPitchWheel(m_app.m_pitchBend);
   if (m_app.m_seq && m_app.m_chanId != -1)
@@ -884,13 +884,13 @@ void EventCallback::mouseUp(const boo::SWindowCoord&, boo::EMouseButton, boo::EM
 
 void EventCallback::mouseMove(const boo::SWindowCoord& coord) {
   if (m_tracking) {
-    m_app.m_modulation = amuse::clamp(0.f, coord.norm[0], 1.f);
+    m_app.m_modulation = std::clamp(0.f, coord.norm[0], 1.f);
     if (m_app.m_vox)
       m_app.m_vox->setCtrlValue(1, m_app.m_modulation * 127.f);
     if (m_app.m_seq && m_app.m_chanId != -1)
       m_app.m_seq->setCtrlValue(m_app.m_chanId, 1, m_app.m_modulation * 127.f);
 
-    m_app.m_pitchBend = amuse::clamp(-1.f, coord.norm[1] * 2.f - 1.f, 1.f);
+    m_app.m_pitchBend = std::clamp(-1.f, coord.norm[1] * 2.f - 1.f, 1.f);
     if (m_app.m_vox)
       m_app.m_vox->setPitchWheel(m_app.m_pitchBend);
     if (m_app.m_seq && m_app.m_chanId != -1)

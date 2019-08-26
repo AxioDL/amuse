@@ -75,31 +75,31 @@ public:
   using ImpType = EffectReverbStdImp<T>;
 
   void setColoration(float coloration) {
-    x140_x1c8_coloration = clamp(0.f, coloration, 1.f);
+    x140_x1c8_coloration = std::clamp(0.f, coloration, 1.f);
     m_dirty = true;
   }
   float getColoration() const { return x140_x1c8_coloration; }
 
   void setMix(float mix) {
-    x144_x1cc_mix = clamp(0.f, mix, 1.f);
+    x144_x1cc_mix = std::clamp(0.f, mix, 1.f);
     m_dirty = true;
   }
   float getMix() const { return x144_x1cc_mix; }
 
   void setTime(float time) {
-    x148_x1d0_time = clamp(0.01f, time, 10.f);
+    x148_x1d0_time = std::clamp(0.01f, time, 10.f);
     m_dirty = true;
   }
   float getTime() const { return x148_x1d0_time; }
 
   void setDamping(float damping) {
-    x14c_x1d4_damping = clamp(0.f, damping, 1.f);
+    x14c_x1d4_damping = std::clamp(0.f, damping, 1.f);
     m_dirty = true;
   }
   float getDamping() const { return x14c_x1d4_damping; }
 
   void setPreDelay(float preDelay) {
-    x150_x1d8_preDelay = clamp(0.f, preDelay, 0.1f);
+    x150_x1d8_preDelay = std::clamp(0.f, preDelay, 0.1f);
     m_dirty = true;
   }
   float getPreDelay() const { return x150_x1d8_preDelay; }
@@ -126,7 +126,7 @@ public:
   using ImpType = EffectReverbHiImp<T>;
 
   void setCrosstalk(float crosstalk) {
-    x1dc_crosstalk = clamp(0.f, crosstalk, 1.f);
+    x1dc_crosstalk = std::clamp(0.f, crosstalk, 1.f);
     m_dirty = true;
   }
   float getCrosstalk() const { return x1dc_crosstalk; }

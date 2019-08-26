@@ -67,7 +67,7 @@ float SoundMacroState::Evaluator::evaluate(double time, const Voice& vox, const 
         break;
       case 135:
         /* Time since macro-start (ms) */
-        thisValue = clamp(0.f, float(st.m_execTime * 1000.f), 16383.f);
+        thisValue = std::clamp(0.f, float(st.m_execTime * 1000.f), 16383.f);
         break;
       default:
         thisValue = vox.getCtrlValue(comp.m_midiCtrl);
@@ -462,7 +462,7 @@ const SoundMacro::CmdIntrospection SoundMacro::CmdScaleVolume::Introspective = {
      {FIELD_HEAD(SoundMacro::CmdScaleVolume, originalVol), "Original Vol"sv, 0, 1, 1}}};
 bool SoundMacro::CmdScaleVolume::Do(SoundMacroState& st, Voice& vox) const {
   int32_t eval = int32_t(originalVol ? st.m_initVel : st.m_curVel) * scale / 127 + add;
-  eval = clamp(0, eval, 127);
+  eval = std::clamp(0, eval, 127);
 
   if (table.id != 0) {
     const Curve* curveData = vox.getAudioGroup().getPool().tableAsCurves(table.id);
@@ -504,7 +504,7 @@ bool SoundMacro::CmdEnvelope::Do(SoundMacroState& st, Voice& vox) const {
   double secTime = ticksOrMs / q;
 
   int32_t eval = int32_t(st.m_curVel) * scale / 127 + add;
-  eval = clamp(0, eval, 127);
+  eval = std::clamp(0, eval, 127);
 
   const Curve* curveData;
   if (table.id != 0)
@@ -601,7 +601,7 @@ bool SoundMacro::CmdFadeIn::Do(SoundMacroState& st, Voice& vox) const {
   float secTime = ticksOrMs / q;
 
   int32_t eval = int32_t(st.m_curVel) * scale / 127 + add;
-  eval = clamp(0, eval, 127);
+  eval = std::clamp(0, eval, 127);
 
   const Curve* curveData;
   if (table.id != 0)

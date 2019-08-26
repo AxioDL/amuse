@@ -683,7 +683,7 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
             /* Update pitch */
             trk.m_pitchVal += trk.m_nextPitchDelta;
             events.emplace(regStart + trk.m_nextPitchTick,
-                           Event{PitchEvent{}, trk.m_midiChan, clamp(0, trk.m_pitchVal + 0x2000, 0x4000)});
+                           Event{PitchEvent{}, trk.m_midiChan, std::clamp(0, trk.m_pitchVal + 0x2000, 0x4000)});
             if (trk.m_pitchWheelData[0] != 0x80 || trk.m_pitchWheelData[1] != 0x00) {
               auto delta = DecodeDelta(trk.m_pitchWheelData);
               trk.m_nextPitchTick += delta.first;
@@ -700,7 +700,7 @@ std::vector<uint8_t> SongConverter::SongToMIDI(const unsigned char* data, int& v
             /* Update modulation */
             trk.m_modVal += trk.m_nextModDelta;
             events.emplace(regStart + trk.m_nextModTick,
-                           Event{CtrlEvent{}, trk.m_midiChan, 1, uint8_t(clamp(0, trk.m_modVal / 128, 127)), 0});
+                           Event{CtrlEvent{}, trk.m_midiChan, 1, uint8_t(std::clamp(0, trk.m_modVal / 128, 127)), 0});
             if (trk.m_modWheelData[0] != 0x80 || trk.m_modWheelData[1] != 0x00) {
               auto delta = DecodeDelta(trk.m_modWheelData);
               trk.m_nextModTick += delta.first;

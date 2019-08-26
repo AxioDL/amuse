@@ -369,11 +369,6 @@ inline int CompareCaseInsensitive(const SystemChar* a, const SystemChar* b) {
 }
 
 template <typename T>
-constexpr T clamp(T a, T val, T b) {
-  return std::max<T>(a, std::min<T>(b, val));
-}
-
-template <typename T>
 constexpr T ClampFull(float in) noexcept {
   if (std::is_floating_point<T>()) {
     return in;

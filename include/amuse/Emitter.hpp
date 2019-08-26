@@ -56,7 +56,7 @@ public:
 
   void setVectors(const float* pos, const float* dir);
   void setMaxVol(float maxVol) {
-    m_maxVol = clamp(0.f, maxVol, 1.f);
+    m_maxVol = std::clamp(0.f, maxVol, 1.f);
     m_dirty = true;
   }
 
