@@ -492,9 +492,9 @@ ProjectModel::ProjectModel(const QString& path, QObject* parent)
 : QAbstractItemModel(parent), m_dir(path), m_outlineProxy(this), m_nullProxy(this), m_pageObjectProxy(this) {
   m_root = amuse::MakeObj<RootNode>();
 
-  GroupNode::Icon = QIcon(":/icons/IconGroup.svg");
-  SongGroupNode::Icon = QIcon(":/icons/IconSongGroup.svg");
-  SoundGroupNode::Icon = QIcon(":/icons/IconSoundGroup.svg");
+  GroupNode::Icon = QIcon(QStringLiteral(":/icons/IconGroup.svg"));
+  SongGroupNode::Icon = QIcon(QStringLiteral(":/icons/IconSongGroup.svg"));
+  SoundGroupNode::Icon = QIcon(QStringLiteral(":/icons/IconSoundGroup.svg"));
 }
 
 bool ProjectModel::clearProjectData() {
@@ -800,15 +800,15 @@ void ProjectModel::updateNodeNames() {
     gn->oneLevelTraverse([](INode* n) {
       if (n->type() == INode::Type::SongGroup) {
         SongGroupNode* sgn = static_cast<SongGroupNode*>(n);
-        sgn->m_name = amuse::GroupId::CurNameDB->resolveNameFromId(sgn->m_id).data();
+        sgn->m_name = QString::fromUtf8(amuse::GroupId::CurNameDB->resolveNameFromId(sgn->m_id).data());
       } else if (n->type() == INode::Type::SoundGroup) {
         SoundGroupNode* sgn = static_cast<SoundGroupNode*>(n);
-        sgn->m_name = amuse::GroupId::CurNameDB->resolveNameFromId(sgn->m_id).data();
+        sgn->m_name = QString::fromUtf8(amuse::GroupId::CurNameDB->resolveNameFromId(sgn->m_id).data());
       } else if (n->type() == INode::Type::Collection) {
         CollectionNode* cn = static_cast<CollectionNode*>(n);
         cn->oneLevelTraverse([](INode* n) {
           BasePoolObjectNode* on = static_cast<BasePoolObjectNode*>(n);
-          on->m_name = on->getNameDb()->resolveNameFromId(on->m_id).data();
+          on->m_name = QString::fromUtf8(on->getNameDb()->resolveNameFromId(on->m_id).data());
           return true;
         });
         cn->_sortChildren();
@@ -824,12 +824,13 @@ void ProjectModel::updateNodeNames() {
 
 void ProjectModel::_buildGroupNodeCollections(GroupNode& gn) {
   gn.reserve(6);
-  gn._appendChild<CollectionNode>(tr("Sound Macros"), QIcon(":/icons/IconSoundMacro.svg"), INode::Type::SoundMacro);
-  gn._appendChild<CollectionNode>(tr("ADSRs"), QIcon(":/icons/IconADSR.svg"), INode::Type::ADSR);
-  gn._appendChild<CollectionNode>(tr("Curves"), QIcon(":/icons/IconCurve.svg"), INode::Type::Curve);
-  gn._appendChild<CollectionNode>(tr("Keymaps"), QIcon(":/icons/IconKeymap.svg"), INode::Type::Keymap);
-  gn._appendChild<CollectionNode>(tr("Layers"), QIcon(":/icons/IconLayers.svg"), INode::Type::Layer);
-  gn._appendChild<CollectionNode>(tr("Samples"), QIcon(":/icons/IconSample.svg"), INode::Type::Sample);
+  gn._appendChild<CollectionNode>(tr("Sound Macros"), QIcon(QStringLiteral(":/icons/IconSoundMacro.svg")),
+                                  INode::Type::SoundMacro);
+  gn._appendChild<CollectionNode>(tr("ADSRs"), QIcon(QStringLiteral(":/icons/IconADSR.svg")), INode::Type::ADSR);
+  gn._appendChild<CollectionNode>(tr("Curves"), QIcon(QStringLiteral(":/icons/IconCurve.svg")), INode::Type::Curve);
+  gn._appendChild<CollectionNode>(tr("Keymaps"), QIcon(QStringLiteral(":/icons/IconKeymap.svg")), INode::Type::Keymap);
+  gn._appendChild<CollectionNode>(tr("Layers"), QIcon(QStringLiteral(":/icons/IconLayers.svg")), INode::Type::Layer);
+  gn._appendChild<CollectionNode>(tr("Samples"), QIcon(QStringLiteral(":/icons/IconSample.svg")), INode::Type::Sample);
 }
 
 void ProjectModel::_buildGroupNode(GroupNode& gn, amuse::AudioGroup& group) {
@@ -1736,15 +1737,23 @@ QMimeData* ProjectModel::mimeData(const QModelIndexList& indexes) const {
 bool ProjectModel::dropMimeData(const QMimeData* data, Qt::DropAction action, int row, int column,
                                 const QModelIndex& parent) {
   if (data->hasFormat(QStringLiteral("application/x-amuse-subprojectpath"))) {
-    auto path = data->data(QStringLiteral("application/x-amuse-subprojectpath"));
-    QDir oldDir(path);
-    QString newName = MakeDedupedSubprojectName(oldDir.dirName());
+    const auto path = data->data(QStringLiteral("application/x-amuse-subprojectpath"));
+    const QDir oldDir(QString::fromUtf8(path));
+    const QString newName = MakeDedupedSubprojectName(oldDir.dirName());
+
     m_dir.mkdir(newName);
-    QDir newDir(QFileInfo(m_dir, newName).filePath());
-    for (auto ent : oldDir.entryList({"*.wav", "*.dsp", "*.vadpcm", "!pool.yaml", "!project.yaml"}, QDir::Files))
+
+    const QDir newDir(QFileInfo(m_dir, newName).filePath());
+    const auto entryList =
+        oldDir.entryList({QStringLiteral("*.wav"), QStringLiteral("*.dsp"), QStringLiteral("*.vadpcm"),
+                          QStringLiteral("!pool.yaml"), QStringLiteral("!project.yaml")},
+                         QDir::Files);
+    for (const auto& ent : entryList) {
       QFile::copy(QFileInfo(oldDir, ent).filePath(), QFileInfo(newDir, ent).filePath());
+    }
+
     auto dataNode = std::make_unique<amuse::AudioGroupDatabase>(QStringToSysString(newDir.path()));
-    auto node = amuse::MakeObj<GroupNode>(newName);
+    const auto node = amuse::MakeObj<GroupNode>(newName);
     _buildGroupNode(*node, *dataNode);
     g_MainWindow->pushUndoCommand(
         new GroupNodeAddUndoCommand(tr("Add Subproject %1"), std::move(dataNode), node.get()));
@@ -1773,14 +1782,16 @@ bool ProjectModel::dropMimeData(const QMimeData* data, Qt::DropAction action, in
   else if (data->hasFormat(QStringLiteral("application/x-amuse-layers")))
     loadMimeData<LayersNode>(data, QStringLiteral("application/x-amuse-layers"), gn);
   else if (data->hasFormat(QStringLiteral("application/x-amuse-samplepath"))) {
-    auto path = data->data(QStringLiteral("application/x-amuse-samplepath"));
-    QString newName = MakeDedupedName(QFileInfo(path).completeBaseName(), amuse::SampleId::CurNameDB);
-    QString newBasePath = QFileInfo(QFileInfo(m_dir, gn->name()).filePath(), newName).filePath();
-    amuse::SystemString newBasePathStr = QStringToSysString(newBasePath);
+    const auto path = data->data(QStringLiteral("application/x-amuse-samplepath"));
+    const QString newName =
+        MakeDedupedName(QFileInfo(QString::fromUtf8(path)).completeBaseName(), amuse::SampleId::CurNameDB);
+    const QString newBasePath = QFileInfo(QFileInfo(m_dir, gn->name()).filePath(), newName).filePath();
+    const amuse::SystemString newBasePathStr = QStringToSysString(newBasePath);
+
     gn->getAudioGroup()->copySampleInto(QStringToSysString(QString::fromUtf8(path)), newBasePathStr);
     auto dataNode = amuse::MakeObj<amuse::SampleEntry>();
     dataNode->loadLooseData(newBasePathStr);
-    auto node = amuse::MakeObj<SampleNode>(newName, dataNode);
+    const auto node = amuse::MakeObj<SampleNode>(newName, dataNode);
     NameUndoRegistry dummy;
     _addPoolNode(node.get(), gn, dummy, gn->getAudioGroup()->getSdir().sampleEntries());
   } else
@@ -1860,13 +1871,21 @@ QModelIndex ProjectModel::duplicate(const QModelIndex& index) {
   GroupNode* gn = getGroupNode(n);
   switch (n->type()) {
   case INode::Type::Group: {
-    GroupNode* cn = static_cast<GroupNode*>(n);
+    auto* const cn = static_cast<GroupNode*>(n);
     newName = MakeDedupedSubprojectName(n->name());
+
     m_dir.mkdir(newName);
-    QDir oldDir(QFileInfo(m_dir, n->name()).filePath());
-    QDir newDir(QFileInfo(m_dir, newName).filePath());
-    for (auto ent : oldDir.entryList({"*.wav", "*.dsp", "*.vadpcm", "!pool.yaml"}, QDir::Files))
+
+    const QDir oldDir(QFileInfo(m_dir, n->name()).filePath());
+    const QDir newDir(QFileInfo(m_dir, newName).filePath());
+    const auto entryList = oldDir.entryList(
+        {QStringLiteral("*.wav"), QStringLiteral("*.dsp"), QStringLiteral("*.vadpcm"), QStringLiteral("!pool.yaml")},
+        QDir::Files);
+
+    for (const auto& ent : entryList) {
       QFile::copy(QFileInfo(oldDir, ent).filePath(), QFileInfo(newDir, ent).filePath());
+    }
+
     auto data = std::make_unique<amuse::AudioGroupDatabase>(*cn->getAudioGroup(), QStringToSysString(newDir.path()));
     auto node = amuse::MakeObj<GroupNode>(newName);
     _buildGroupNode(*node, *data);

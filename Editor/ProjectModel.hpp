@@ -259,7 +259,7 @@ public:
     amuse::ObjToken<amuse::SongGroupIndex> m_index;
     SongGroupNode(const QString& name, amuse::ObjToken<amuse::SongGroupIndex> index) : INode(name), m_index(index) {}
     SongGroupNode(amuse::GroupId id, amuse::ObjToken<amuse::SongGroupIndex> index)
-    : INode(amuse::GroupId::CurNameDB->resolveNameFromId(id).data()), m_id(id), m_index(index) {}
+    : INode(QString::fromUtf8(amuse::GroupId::CurNameDB->resolveNameFromId(id).data())), m_id(id), m_index(index) {}
 
     static QIcon Icon;
     Type type() const override { return Type::SongGroup; }
@@ -285,7 +285,7 @@ public:
     amuse::ObjToken<amuse::SFXGroupIndex> m_index;
     SoundGroupNode(const QString& name, amuse::ObjToken<amuse::SFXGroupIndex> index) : INode(name), m_index(index) {}
     SoundGroupNode(amuse::GroupId id, amuse::ObjToken<amuse::SFXGroupIndex> index)
-    : INode(amuse::GroupId::CurNameDB->resolveNameFromId(id).data()), m_id(id), m_index(index) {}
+    : INode(QString::fromUtf8(amuse::GroupId::CurNameDB->resolveNameFromId(id).data())), m_id(id), m_index(index) {}
 
     static QIcon Icon;
     Type type() const override { return Type::SoundGroup; }
@@ -336,7 +336,7 @@ public:
     amuse::ObjToken<T> m_obj;
     PoolObjectNode(const QString& name, amuse::ObjToken<T> obj) : BasePoolObjectNode(name), m_obj(obj) {}
     PoolObjectNode(ID id, amuse::ObjToken<T> obj)
-    : BasePoolObjectNode(id, ID::CurNameDB->resolveNameFromId(id).data()), m_obj(obj) {}
+    : BasePoolObjectNode(id, QString::fromUtf8(ID::CurNameDB->resolveNameFromId(id).data())), m_obj(obj) {}
 
     Type type() const override { return TP; }
     AmuseItemEditFlags editFlags() const override { return TP == INode::Type::Sample ? AmuseItemNoCut : AmuseItemAll; }

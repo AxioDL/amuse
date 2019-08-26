@@ -250,13 +250,12 @@ void MainWindow::updateWindowTitle() {
 }
 
 void MainWindow::updateRecentFileActions() {
-  QSettings settings;
-  QStringList files = settings.value("recentFileList").toStringList();
-
-  int numRecentFiles = std::min(files.size(), int(MaxRecentFiles));
+  const QSettings settings;
+  const QStringList files = settings.value(QStringLiteral("recentFileList")).toStringList();
+  const int numRecentFiles = std::min(files.size(), int(MaxRecentFiles));
 
   for (int i = 0; i < numRecentFiles; ++i) {
-    QString text = QStringLiteral("&%1 %2").arg(i + 1).arg(QDir(files[i]).dirName());
+    const QString text = QStringLiteral("&%1 %2").arg(i + 1).arg(QDir(files[i]).dirName());
     m_recentFileActs[i]->setText(text);
     m_recentFileActs[i]->setData(files[i]);
     m_recentFileActs[i]->setToolTip(files[i]);
@@ -321,13 +320,15 @@ bool MainWindow::setProjectPath(const QString& path) {
 
   updateNavigationButtons();
 
+  const QString key = QStringLiteral("recentFileList");
   QSettings settings;
-  QStringList files = settings.value("recentFileList").toStringList();
+  QStringList files = settings.value(key).toStringList();
   files.removeAll(dir.path());
   files.prepend(dir.path());
-  while (files.size() > MaxRecentFiles)
+  while (files.size() > MaxRecentFiles) {
     files.removeLast();
-  settings.setValue("recentFileList", files);
+  }
+  settings.setValue(key, files);
   settings.sync();
 
   updateRecentFileActions();
@@ -801,24 +802,30 @@ void MainWindow::_openAction(const QString& path) {
 }
 
 void MainWindow::openRecentFileAction() {
-  if (!askAboutSave())
+  if (!askAboutSave()) {
     return;
+  }
 
-  if (QAction* action = qobject_cast<QAction*>(sender()))
-    if (!openProject(action->data().toString())) {
-      QString path = action->data().toString();
-      QSettings settings;
-      QStringList files = settings.value("recentFileList").toStringList();
-      files.removeAll(path);
-      settings.setValue("recentFileList", files);
-      settings.sync();
-      updateRecentFileActions();
+  if (const QAction* action = qobject_cast<QAction*>(sender())) {
+    const QString path = action->data().toString();
+    if (openProject(path)) {
+      return;
     }
+
+    const QString key = QStringLiteral("recentFileList");
+    QSettings settings;
+    QStringList files = settings.value(key).toStringList();
+
+    files.removeAll(path);
+    settings.setValue(key, files);
+    settings.sync();
+    updateRecentFileActions();
+  }
 }
 
 void MainWindow::clearRecentFilesAction() {
   QSettings settings;
-  settings.setValue("recentFileList", QStringList());
+  settings.setValue(QStringLiteral("recentFileList"), QStringList());
   settings.sync();
   updateRecentFileActions();
 }
@@ -943,11 +950,10 @@ void MainWindow::_importAction(const QString& path) {
       ProjectModel* model = m_projectModel;
       startBackgroundTask(
           TaskImport, tr("Importing"), tr("Scanning Project"), [model, path, importMode](BackgroundTask& task) {
-            QDir dir = QFileInfo(path).dir();
-            QStringList filters;
-            filters << "*.proj"
-                    << "*.pro";
-            QStringList files = dir.entryList(filters, QDir::Files);
+            const QDir dir = QFileInfo(path).dir();
+            const QStringList filters{QStringLiteral("*.proj"), QStringLiteral("*.pro")};
+            const QStringList files = dir.entryList(filters, QDir::Files);
+
             for (const QString& fPath : files) {
               auto data = amuse::ContainerRegistry::LoadContainer(QStringToSysString(dir.filePath(fPath)).c_str());
               for (auto& p : data) {

@@ -60,12 +60,12 @@ int main(int argc, char* argv[]) {
   QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
   QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
 #endif
-  QApplication::setStyle(new ColoredTabBarStyle(QStyleFactory::create("Fusion")));
+  QApplication::setStyle(new ColoredTabBarStyle(QStyleFactory::create(QStringLiteral("Fusion"))));
   QApplication a(argc, argv);
   QApplication::setWindowIcon(MakeAppIcon());
 
-  a.setOrganizationName("AxioDL");
-  a.setApplicationName("Amuse");
+  a.setOrganizationName(QStringLiteral("AxioDL"));
+  a.setApplicationName(QStringLiteral("Amuse"));
 
   QPalette darkPalette;
   darkPalette.setColor(QPalette::Window, QColor(53, 53, 53));
@@ -102,8 +102,9 @@ int main(int argc, char* argv[]) {
 
   Q_INIT_RESOURCE(translation_res);
   QTranslator translator;
-  if (translator.load(QLocale(), QLatin1String("lang"), QLatin1String("_"), QLatin1String(":/translations")))
+  if (translator.load(QLocale(), QStringLiteral("lang"), QStringLiteral("_"), QStringLiteral(":/translations"))) {
     a.installTranslator(&translator);
+  }
 
   MainWindow w;
   g_MainWindow = &w;

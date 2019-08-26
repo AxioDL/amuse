@@ -60,6 +60,27 @@ add_executable(amuse-gui WIN32 MACOSX_BUNDLE
   ${QM_FILES}
 )
 
+target_compile_definitions(amuse-gui PRIVATE
+  # Disable implicit conversions from ASCII to QString.
+  -DQT_NO_CAST_FROM_ASCII
+  -DQT_NO_CAST_TO_ASCII
+
+  # Disable implicit conversions of QByteArray to const char* or const void*
+  -DQT_NO_CAST_FROM_BYTEARRAY
+
+  # Disable narrowing conversions in signal/slot connect() calls.
+  -DQT_NO_NARROWING_CONVERSIONS_IN_CONNECT
+
+  # Disable unsafe overloads of QProcess' start() function.
+  -DQT_NO_PROCESS_COMBINED_ARGUMENT_START
+
+  # Disable implicit QString->QUrl conversions to enforce use of proper resolving functions.
+  -DQT_NO_URL_CAST_FROM_STRING
+
+  # Allows for more efficient string concatenation, resulting in less temporaries.
+  -DQT_USE_QSTRINGBUILDER 
+)
+
 if(WIN32)
   target_sources(amuse-gui PRIVATE
     platforms/win/amuse-gui.rc

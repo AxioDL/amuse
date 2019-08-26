@@ -232,7 +232,7 @@ QVariant SFXModel::data(const QModelIndex& index, int role) const {
     switch (index.column()) {
     case 0: {
       g_MainWindow->projectModel()->setIdDatabases(m_node.get());
-      return amuse::SFXId::CurNameDB->resolveNameFromId(entry->first.id).data();
+      return QString::fromUtf8(amuse::SFXId::CurNameDB->resolveNameFromId(entry->first.id).data());
     }
     case 1: {
       ProjectModel::GroupNode* group = g_MainWindow->projectModel()->getGroupNode(m_node.get());
