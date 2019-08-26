@@ -65,6 +65,9 @@ target_compile_definitions(amuse-gui PRIVATE
   -DQT_NO_CAST_FROM_ASCII
   -DQT_NO_CAST_TO_ASCII
 
+  # Disable implicit conversions of QByteArray to const char* or const void*
+  -DQT_NO_CAST_FROM_BYTEARRAY
+
   # Disable narrowing conversions in signal/slot connect() calls.
   -DQT_NO_NARROWING_CONVERSIONS_IN_CONNECT
 
