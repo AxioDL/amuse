@@ -933,7 +933,7 @@ AudioGroupSampleDirectory::toGCNData(const AudioGroupDatabase& group) const {
       entryDNA.m_sampleOff = sampleOffset;
       sampleOffset += ROUND_UP_32(dataLen);
       entryDNA.binarySize(adpcmOffset);
-      entries.push_back(std::make_pair(entryDNA, adpcmParms));
+      entries.emplace_back(entryDNA, adpcmParms);
     }
   }
   adpcmOffset += 4;

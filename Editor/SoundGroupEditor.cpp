@@ -581,7 +581,7 @@ void SoundGroupEditor::doAdd() {
   std::vector<std::tuple<amuse::SFXId, std::string, amuse::SFXGroupIndex::SFXEntry>> data;
   amuse::SFXId sfxId = amuse::SFXId::CurNameDB->generateId(amuse::NameDB::Type::SFX);
   std::string sfxName = amuse::SFXId::CurNameDB->generateName(sfxId, amuse::NameDB::Type::SFX);
-  data.push_back(std::make_tuple(sfxId, sfxName, amuse::SFXGroupIndex::SFXEntry{}));
+  data.emplace_back(sfxId, sfxName, amuse::SFXGroupIndex::SFXEntry{});
   g_MainWindow->pushUndoCommand(
       new SFXRowAddUndoCommand(m_sfxs.m_node.get(), tr("Add SFX Entry"), m_sfxTable, std::move(data)));
 }
