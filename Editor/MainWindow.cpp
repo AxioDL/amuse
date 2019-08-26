@@ -1295,60 +1295,75 @@ void MainWindow::recursiveExpandAndSelectOutline(const QModelIndex& index) const
 void MainWindow::newSubprojectAction() {
   QString newName;
   bool ok = true;
-  while (ok && newName.isEmpty())
+
+  while (ok && newName.isEmpty()) {
     newName = QInputDialog::getText(this, tr("New Subproject"), tr("What should this subproject be named?"),
                                     QLineEdit::Normal, QString(), &ok);
-  if (!ok)
-    return;
+  }
 
-  ProjectModel::GroupNode* node = m_projectModel->newSubproject(newName);
+  if (!ok) {
+    return;
+  }
+
+  m_projectModel->newSubproject(std::move(newName));
 }
 
 void MainWindow::newSFXGroupAction() {
   ProjectModel::GroupNode* group = getSelectedGroupNode();
   m_projectModel->setIdDatabases(group);
-  QString groupName = getGroupName(group);
+  const QString groupName = getGroupName(group);
   QString newName;
   bool ok = true;
-  while (ok && newName.isEmpty())
+
+  while (ok && newName.isEmpty()) {
     newName = QInputDialog::getText(
         this, tr("New SFX Group"), tr("What should the new SFX group in %1 be named?").arg(groupName),
         QLineEdit::Normal,
         QString::fromStdString(amuse::GroupId::CurNameDB->generateDefaultName(amuse::NameDB::Type::Group)), &ok);
-  if (!ok)
-    return;
+  }
 
-  ProjectModel::SoundGroupNode* node = m_projectModel->newSoundGroup(group, newName);
-  if (node)
+  if (!ok) {
+    return;
+  }
+
+  ProjectModel::SoundGroupNode* node = m_projectModel->newSoundGroup(group, std::move(newName));
+  if (node) {
     openEditor(node);
+  }
 }
 
 void MainWindow::newSongGroupAction() {
   ProjectModel::GroupNode* group = getSelectedGroupNode();
   m_projectModel->setIdDatabases(group);
-  QString groupName = getGroupName(group);
+  const QString groupName = getGroupName(group);
   QString newName;
   bool ok = true;
-  while (ok && newName.isEmpty())
+
+  while (ok && newName.isEmpty()) {
     newName = QInputDialog::getText(
         this, tr("New Song Group"), tr("What should the new Song group in %1 be named?").arg(groupName),
         QLineEdit::Normal,
         QString::fromStdString(amuse::GroupId::CurNameDB->generateDefaultName(amuse::NameDB::Type::Group)), &ok);
-  if (!ok)
-    return;
+  }
 
-  ProjectModel::SongGroupNode* node = m_projectModel->newSongGroup(group, newName);
-  if (node)
+  if (!ok) {
+    return;
+  }
+
+  ProjectModel::SongGroupNode* node = m_projectModel->newSongGroup(group, std::move(newName));
+  if (node) {
     openEditor(node);
+  }
 }
 
 void MainWindow::newSoundMacroAction() {
   ProjectModel::GroupNode* group = getSelectedGroupNode();
   m_projectModel->setIdDatabases(group);
-  QString groupName = getGroupName(group);
+  const QString groupName = getGroupName(group);
   QString newName;
   const SoundMacroTemplateEntry* templ = nullptr;
   int result = QDialog::Accepted;
+
   while (result == QDialog::Accepted && newName.isEmpty()) {
     NewSoundMacroDialog dialog(groupName, this);
     dialog.setWindowModality(Qt::WindowModal);
@@ -1356,84 +1371,107 @@ void MainWindow::newSoundMacroAction() {
     newName = dialog.getName();
     templ = dialog.getSelectedTemplate();
   }
-  if (result == QDialog::Rejected)
-    return;
 
-  ProjectModel::SoundMacroNode* node = m_projectModel->newSoundMacro(group, newName, templ);
-  if (node)
+  if (result == QDialog::Rejected) {
+    return;
+  }
+
+  ProjectModel::SoundMacroNode* node = m_projectModel->newSoundMacro(group, std::move(newName), templ);
+  if (node) {
     openEditor(node);
+  }
 }
 
 void MainWindow::newADSRAction() {
   ProjectModel::GroupNode* group = getSelectedGroupNode();
   m_projectModel->setIdDatabases(group);
-  QString groupName = getGroupName(group);
+  const QString groupName = getGroupName(group);
   QString newName;
   bool ok = true;
-  while (ok && newName.isEmpty())
+
+  while (ok && newName.isEmpty()) {
     newName = QInputDialog::getText(
         this, tr("New ADSR"), tr("What should the new ADSR in %1 be named?").arg(groupName), QLineEdit::Normal,
         QString::fromStdString(amuse::TableId::CurNameDB->generateDefaultName(amuse::NameDB::Type::Table)), &ok);
-  if (!ok)
-    return;
+  }
 
-  ProjectModel::ADSRNode* node = m_projectModel->newADSR(group, newName);
-  if (node)
+  if (!ok) {
+    return;
+  }
+
+  ProjectModel::ADSRNode* node = m_projectModel->newADSR(group, std::move(newName));
+  if (node) {
     openEditor(node);
+  }
 }
 
 void MainWindow::newCurveAction() {
   ProjectModel::GroupNode* group = getSelectedGroupNode();
   m_projectModel->setIdDatabases(group);
-  QString groupName = getGroupName(group);
+  const QString groupName = getGroupName(group);
   QString newName;
   bool ok = true;
-  while (ok && newName.isEmpty())
+
+  while (ok && newName.isEmpty()) {
     newName = QInputDialog::getText(
         this, tr("New Curve"), tr("What should the new Curve in %1 be named?").arg(groupName), QLineEdit::Normal,
         QString::fromStdString(amuse::TableId::CurNameDB->generateDefaultName(amuse::NameDB::Type::Table)), &ok);
-  if (!ok)
-    return;
+  }
 
-  ProjectModel::CurveNode* node = m_projectModel->newCurve(group, newName);
-  if (node)
+  if (!ok) {
+    return;
+  }
+
+  ProjectModel::CurveNode* node = m_projectModel->newCurve(group, std::move(newName));
+  if (node) {
     openEditor(node);
+  }
 }
 
 void MainWindow::newKeymapAction() {
   ProjectModel::GroupNode* group = getSelectedGroupNode();
   m_projectModel->setIdDatabases(group);
-  QString groupName = getGroupName(group);
+  const QString groupName = getGroupName(group);
   QString newName;
   bool ok = true;
-  while (ok && newName.isEmpty())
+
+  while (ok && newName.isEmpty()) {
     newName = QInputDialog::getText(
         this, tr("New Keymap"), tr("What should the new Keymap in %1 be named?").arg(groupName), QLineEdit::Normal,
         QString::fromStdString(amuse::KeymapId::CurNameDB->generateDefaultName(amuse::NameDB::Type::Keymap)), &ok);
-  if (!ok)
-    return;
+  }
 
-  ProjectModel::KeymapNode* node = m_projectModel->newKeymap(group, newName);
-  if (node)
+  if (!ok) {
+    return;
+  }
+
+  ProjectModel::KeymapNode* node = m_projectModel->newKeymap(group, std::move(newName));
+  if (node) {
     openEditor(node);
+  }
 }
 
 void MainWindow::newLayersAction() {
   ProjectModel::GroupNode* group = getSelectedGroupNode();
   m_projectModel->setIdDatabases(group);
-  QString groupName = getGroupName(group);
+  const QString groupName = getGroupName(group);
   QString newName;
   bool ok = true;
-  while (ok && newName.isEmpty())
+
+  while (ok && newName.isEmpty()) {
     newName = QInputDialog::getText(
         this, tr("New Layers"), tr("What should the new Layers in %1 be named?").arg(groupName), QLineEdit::Normal,
         QString::fromStdString(amuse::LayersId::CurNameDB->generateDefaultName(amuse::NameDB::Type::Layer)), &ok);
-  if (!ok)
-    return;
+  }
 
-  ProjectModel::LayersNode* node = m_projectModel->newLayers(group, newName);
-  if (node)
+  if (!ok) {
+    return;
+  }
+
+  ProjectModel::LayersNode* node = m_projectModel->newLayers(group, std::move(newName));
+  if (node) {
     openEditor(node);
+  }
 }
 
 void MainWindow::updateNavigationButtons() {
