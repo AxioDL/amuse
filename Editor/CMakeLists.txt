@@ -61,6 +61,10 @@ add_executable(amuse-gui WIN32 MACOSX_BUNDLE
 )
 
 target_compile_definitions(amuse-gui PRIVATE
+  # Disable implicit conversions from ASCII to QString.
+  -DQT_NO_CAST_FROM_ASCII
+  -DQT_NO_CAST_TO_ASCII
+
   # Allows for more efficient string concatenation, resulting in less temporaries.
   -DQT_USE_QSTRINGBUILDER 
 )

@@ -839,7 +839,7 @@ QVariant SetupListModel::data(const QModelIndex& index, int role) const {
       if (role == Qt::ForegroundRole)
         return QVariant();
       g_MainWindow->projectModel()->setIdDatabases(m_node.get());
-      return amuse::SongId::CurNameDB->resolveNameFromId(entry->first.id).data();
+      return QString::fromUtf8(amuse::SongId::CurNameDB->resolveNameFromId(entry->first.id).data());
     } else if (index.column() == 1) {
       QString songPath = g_MainWindow->projectModel()->getMIDIPathOfSong(entry.m_it->first);
       if (songPath.isEmpty()) {
