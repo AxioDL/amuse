@@ -459,8 +459,8 @@ bool LayersModel::moveRows(const QModelIndex& sourceParent, int sourceRow, int c
       beginMoveRows(sourceParent, sourceRow, sourceRow + count - 1, destinationParent, destinationChild);
   std::vector<amuse::LayerMapping>& layers = *m_node->m_obj;
 
-  const auto pivot = std::make_move_iterator(layers.begin() + sourceRow);
-  const auto begin = std::make_move_iterator(layers.begin() + destinationChild);
+  const auto pivot = layers.begin() + sourceRow;
+  const auto begin = layers.begin() + destinationChild;
   const auto end = pivot + count;
 
   if (destinationChild < sourceRow) {
