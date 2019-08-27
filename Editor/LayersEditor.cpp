@@ -1,8 +1,13 @@
 #include "LayersEditor.hpp"
-#include "MainWindow.hpp"
-#include <QVBoxLayout>
-#include <QScrollBar>
+
+#include <algorithm>
+
 #include <QMimeData>
+#include <QScrollBar>
+#include <QVBoxLayout>
+
+#include "MainWindow.hpp"
+
 
 class LayerDataChangeUndoCommand : public EditorUndoCommand {
   QModelIndex m_index;
@@ -446,29 +451,27 @@ bool LayersModel::insertRows(int row, int count, const QModelIndex& parent) {
 
 bool LayersModel::moveRows(const QModelIndex& sourceParent, int sourceRow, int count,
                            const QModelIndex& destinationParent, int destinationChild) {
-  if (!m_node)
+  if (!m_node) {
     return false;
-  bool moving = beginMoveRows(sourceParent, sourceRow, sourceRow + count - 1, destinationParent, destinationChild);
-  std::vector<amuse::LayerMapping>& layers = *m_node->m_obj;
-  if (destinationChild < sourceRow) {
-    for (int i = 0; i < count; ++i) {
-      amuse::LayerMapping tmp = std::move(layers[sourceRow]);
-      for (int j = sourceRow; j != destinationChild; --j)
-        layers[j] = std::move(layers[j - 1]);
-      layers[destinationChild] = std::move(tmp);
-      ++sourceRow;
-      ++destinationChild;
-    }
-  } else if (destinationChild > sourceRow) {
-    for (int i = 0; i < count; ++i) {
-      amuse::LayerMapping tmp = std::move(layers[sourceRow]);
-      for (int j = sourceRow; j != destinationChild - 1; ++j)
-        layers[j] = std::move(layers[j + 1]);
-      layers[destinationChild - 1] = std::move(tmp);
-    }
   }
-  if (moving)
+
+  const bool moving =
+      beginMoveRows(sourceParent, sourceRow, sourceRow + count - 1, destinationParent, destinationChild);
+  std::vector<amuse::LayerMapping>& layers = *m_node->m_obj;
+
+  const auto pivot = layers.begin() + sourceRow;
+  const auto begin = layers.begin() + destinationChild;
+  const auto end = pivot + count;
+
+  if (destinationChild < sourceRow) {
+    std::rotate(begin, pivot, end);
+  } else if (destinationChild > sourceRow) {
+    std::rotate(pivot, end, begin);
+  }
+
+  if (moving) {
     endMoveRows();
+  }
   return true;
 }
 
