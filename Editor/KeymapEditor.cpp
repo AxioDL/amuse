@@ -160,7 +160,7 @@ KeymapView::KeymapView(QWidget* parent)
 
   size_t k = 0;
   for (size_t i = 0; i < 11; ++i) {
-    for (size_t j = 0; j < 12 && k < m_keyTexts.size(); ++j) {
+    for (size_t j = 0; j < KeyStrings.size() && k < m_keyTexts.size(); ++j) {
       m_keyTexts[k++].setText(QStringLiteral("%1%2").arg(KeyStrings[j]).arg(i - 1));
     }
   }
@@ -169,16 +169,20 @@ KeymapView::KeymapView(QWidget* parent)
   m_keyPalettes.fill(-1);
 
   for (size_t i = 0; i < m_natural.size(); ++i) {
-    if (m_octaveRenderer.elementExists(NaturalKeyNames[i])) {
-      m_natural[i] = m_octaveRenderer.matrixForElement(NaturalKeyNames[i])
-                         .mapRect(m_octaveRenderer.boundsOnElement(NaturalKeyNames[i]));
+    const auto& naturalKeyName = NaturalKeyNames[i];
+
+    if (m_octaveRenderer.elementExists(naturalKeyName)) {
+      m_natural[i] =
+          m_octaveRenderer.matrixForElement(naturalKeyName).mapRect(m_octaveRenderer.boundsOnElement(naturalKeyName));
     }
   }
 
   for (size_t i = 0; i < m_sharp.size(); ++i) {
-    if (m_octaveRenderer.elementExists(SharpKeyNames[i])) {
-      m_sharp[i] = m_octaveRenderer.matrixForElement(SharpKeyNames[i])
-                       .mapRect(m_octaveRenderer.boundsOnElement(SharpKeyNames[i]));
+    const auto& sharpKeyName = SharpKeyNames[i];
+
+    if (m_octaveRenderer.elementExists(sharpKeyName)) {
+      m_sharp[i] =
+          m_octaveRenderer.matrixForElement(sharpKeyName).mapRect(m_octaveRenderer.boundsOnElement(sharpKeyName));
     }
   }
 
