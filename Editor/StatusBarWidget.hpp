@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+
 #include <QLabel>
 #include <QMouseEvent>
 #include <QPushButton>
@@ -24,7 +26,7 @@ class StatusBarWidget : public QStatusBar {
   QLabel m_normalMessage;
   QPushButton m_killButton;
   FXButton m_fxButton;
-  QIcon m_volumeIcons[4];
+  std::array<QIcon, 4> m_volumeIcons;
   QLabel m_volumeIcon;
   QSlider m_volumeSlider;
   QLabel m_aIcon;
