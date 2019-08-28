@@ -1,13 +1,24 @@
 #pragma once
 
+#include <cstdint>
+#include <utility>
+
+#include <QFont>
+#include <QWidget>
+
 #include "EditorWidget.hpp"
 #include "ProjectModel.hpp"
-#include <QScrollArea>
-#include <QSlider>
-#include <QCheckBox>
-#include <QSpinBox>
+
+#include <amuse/AudioGroupPool.hpp>
+#include <amuse/AudioGroupSampleDirectory.hpp>
+#include <amuse/Common.hpp>
 
 class SampleEditor;
+
+class QCheckBox;
+class QPushButton;
+class QScrollArea;
+class QSlider;
 
 class SampleView : public QWidget {
   Q_OBJECT
@@ -33,6 +44,8 @@ class SampleView : public QWidget {
 
 public:
   explicit SampleView(QWidget* parent = Q_NULLPTR);
+  ~SampleView() override;
+
   bool loadData(ProjectModel::SampleNode* node);
   void unloadData();
   ProjectModel::INode* currentNode() const;
@@ -67,6 +80,8 @@ class SampleControls : public QFrame {
 
 public:
   explicit SampleControls(QWidget* parent = Q_NULLPTR);
+  ~SampleControls() override;
+
   void doFileWrite();
   void setFileWrite(bool w);
   void updateFileState();
@@ -74,6 +89,7 @@ public:
   void setLoopEndSample(int sample) { m_loopEnd->setValue(sample); }
   void loadData(bool reset);
   void unloadData();
+
 public slots:
   void zoomSliderChanged(int val);
   void loopStateChanged(int state);
@@ -97,6 +113,8 @@ class SampleEditor : public EditorWidget {
 
 public:
   explicit SampleEditor(QWidget* parent = Q_NULLPTR);
+  ~SampleEditor() override;
+
   bool loadData(ProjectModel::SampleNode* node);
   void unloadData() override;
   ProjectModel::INode* currentNode() const override;

@@ -100,6 +100,8 @@ public:
 
 SoundMacroDelegate::SoundMacroDelegate(QObject* parent) : BaseObjectDelegate(parent) {}
 
+SoundMacroDelegate::~SoundMacroDelegate() = default;
+
 ProjectModel::INode* SoundMacroDelegate::getNode(const QAbstractItemModel* __model, const QModelIndex& index) const {
   const LayersModel* model = static_cast<const LayersModel*>(__model);
   const amuse::LayerMapping& layer = (*model->m_node->m_obj)[index.row()];
@@ -507,6 +509,8 @@ amuse::LayerMapping LayersModel::_removeRow(int row) {
 
 LayersModel::LayersModel(QObject* parent) : QAbstractTableModel(parent) {}
 
+LayersModel::~LayersModel() = default;
+
 void LayersTableView::deleteSelection() {
   const QModelIndexList list = selectionModel()->selectedRows();
   if (list.isEmpty()) {
@@ -565,6 +569,8 @@ LayersTableView::LayersTableView(QWidget* parent) : QTableView(parent) {
   setItemDelegateForColumn(6, &m_unsignedDelegate);
   setItemDelegateForColumn(7, &m_unsignedDelegate);
 }
+
+LayersTableView::~LayersTableView() = default;
 
 bool LayersEditor::loadData(ProjectModel::LayersNode* node) {
   m_model.loadData(node);
@@ -626,3 +632,5 @@ LayersEditor::LayersEditor(QWidget* parent)
   m_addRemoveButtons.removeAction()->setToolTip(tr("Remove selected layer mappings"));
   connect(m_addRemoveButtons.removeAction(), &QAction::triggered, this, &LayersEditor::itemDeleteAction);
 }
+
+LayersEditor::~LayersEditor() = default;

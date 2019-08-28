@@ -1,11 +1,10 @@
 #pragma once
 
-#include <QStatusBar>
 #include <QLabel>
+#include <QMouseEvent>
 #include <QPushButton>
 #include <QSlider>
-#include <QMouseEvent>
-#include <cmath>
+#include <QStatusBar>
 
 class StatusBarFocus;
 
@@ -43,6 +42,8 @@ class StatusBarWidget : public QStatusBar {
 
 public:
   explicit StatusBarWidget(QWidget* parent = Q_NULLPTR);
+  ~StatusBarWidget() override;
+
   void setNormalMessage(const QString& message) { m_normalMessage.setText(message); }
   void setVoiceCount(int voices);
 

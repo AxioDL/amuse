@@ -1,11 +1,15 @@
 #include "SampleEditor.hpp"
-#include "MainWindow.hpp"
-#include "amuse/DSPCodec.hpp"
-#include <QPainter>
-#include <QPaintEvent>
-#include <QSpinBox>
-#include <QScrollBar>
+
 #include <QCheckBox>
+#include <QPaintEvent>
+#include <QPainter>
+#include <QScrollArea>
+#include <QScrollBar>
+#include <QSpinBox>
+
+#include "MainWindow.hpp"
+
+#include <amuse/DSPCodec.hpp>
 
 SampleEditor* SampleView::getEditor() const {
   return qobject_cast<SampleEditor*>(parentWidget()->parentWidget()->parentWidget());
@@ -389,6 +393,8 @@ SampleView::SampleView(QWidget* parent) : QWidget(parent) {
   m_rulerFont.setPointSize(8);
 }
 
+SampleView::~SampleView() = default;
+
 void SampleControls::zoomSliderChanged(int val) {
   SampleEditor* editor = qobject_cast<SampleEditor*>(parentWidget());
   editor->m_sampleView->setZoom(val);
@@ -740,6 +746,8 @@ SampleControls::SampleControls(QWidget* parent) : QFrame(parent) {
   setLayout(mainLayout);
 }
 
+SampleControls::~SampleControls() = default;
+
 bool SampleEditor::loadData(ProjectModel::SampleNode* node) {
   m_controls->loadData(m_sampleView->loadData(node));
   return true;
@@ -770,3 +778,5 @@ SampleEditor::SampleEditor(QWidget* parent)
   layout->addWidget(m_controls);
   setLayout(layout);
 }
+
+SampleEditor::~SampleEditor() = default;

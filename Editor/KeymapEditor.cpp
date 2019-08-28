@@ -2,8 +2,11 @@
 
 #include <array>
 
+#include <QCheckBox>
 #include <QPainter>
+#include <QScrollArea>
 #include <QScrollBar>
+#include <QSpinBox>
 #include <QVBoxLayout>
 
 #include "KeyboardWidget.hpp"
@@ -182,6 +185,8 @@ KeymapView::KeymapView(QWidget* parent)
   m_widgetToSvg = RectToRect(QRect(0, 0, 280, 200), m_octaveRenderer.viewBoxF());
 }
 
+KeymapView::~KeymapView() = default;
+
 KeymapEditor* KeymapControls::getEditor() const { return qobject_cast<KeymapEditor*>(parentWidget()); }
 
 void KeymapControls::setPaintIdx(int idx) {
@@ -356,6 +361,8 @@ KeymapControls::KeymapControls(QWidget* parent) : QFrame(parent) {
   setLayout(mainLayout);
 }
 
+KeymapControls::~KeymapControls() = default;
+
 void KeymapEditor::_touch() {
   if (m_controlKeymap.macro.id == 0xffff)
     m_controls->setPaintIdx(-1);
@@ -514,3 +521,5 @@ KeymapEditor::KeymapEditor(QWidget* parent)
   layout->addWidget(m_controls);
   setLayout(layout);
 }
+
+KeymapEditor::~KeymapEditor() = default;

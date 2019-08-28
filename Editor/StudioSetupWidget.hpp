@@ -1,18 +1,30 @@
 #pragma once
 
-#include "EditorWidget.hpp"
-#include <QWidget>
-#include <QTreeWidget>
+#include <string>
+
 #include <QLabel>
-#include <QVBoxLayout>
 #include <QLayoutItem>
-#include <QStaticText>
+#include <QMouseEvent>
 #include <QPropertyAnimation>
+#include <QPushButton>
 #include <QScrollArea>
 #include <QSplitter>
-#include "amuse/Studio.hpp"
+#include <QStaticText>
+#include <QTreeWidget>
+#include <QVBoxLayout>
+#include <QWidget>
+
+#include "EditorWidget.hpp"
 
 class EffectListing;
+
+namespace amuse {
+class EffectBaseTypeless;
+class Studio;
+class Submix;
+
+enum class EffectType;
+} // namespace amuse
 
 struct EffectIntrospection {
   struct Field {
@@ -33,9 +45,13 @@ class Uint32X8Popup : public QFrame {
 
 public:
   explicit Uint32X8Popup(int min, int max, QWidget* parent = Q_NULLPTR);
+  ~Uint32X8Popup() override;
+
   void setValue(int chanIdx, int val);
+
 private slots:
   void doValueChanged(int val);
+
 signals:
   void valueChanged(int chanIdx, int val);
 };
@@ -46,9 +62,12 @@ class Uint32X8Button : public QPushButton {
 
 public:
   explicit Uint32X8Button(int min, int max, QWidget* parent = Q_NULLPTR);
+  ~Uint32X8Button() override;
+
   void paintEvent(QPaintEvent* event) override;
   Uint32X8Popup* popup() const { return m_popup; }
   QStyleOptionComboBox comboStyleOption() const;
+
 private slots:
   void onPressed();
 };
@@ -64,6 +83,7 @@ class EffectWidget : public QWidget {
   amuse::EffectBaseTypeless* m_effect;
   const EffectIntrospection* m_introspection;
   void setIndex(int index);
+
 private slots:
   void numChanged(int);
   void numChanged(double);
@@ -72,6 +92,7 @@ private slots:
 
 private:
   explicit EffectWidget(QWidget* parent, amuse::EffectBaseTypeless* effect, amuse::EffectType type);
+  ~EffectWidget() override;
 
 public:
   EffectListing* getParent() const;
@@ -96,6 +117,7 @@ private slots:
 public:
   template <class... _Args>
   EffectWidgetContainer(QWidget* parent, _Args&&... args);
+  ~EffectWidgetContainer() override;
 };
 
 class EffectListing : public QWidget {
@@ -128,6 +150,8 @@ class EffectListing : public QWidget {
 
 public:
   explicit EffectListing(QWidget* parent = Q_NULLPTR);
+  ~EffectListing() override;
+
   bool loadData(amuse::Submix* submix);
   void unloadData();
   void timerEvent(QTimerEvent* event) override;
@@ -143,6 +167,8 @@ public:
   explicit EffectCatalogueItem(amuse::EffectType type, const QString& name, const QString& doc,
                                QWidget* parent = Q_NULLPTR);
   explicit EffectCatalogueItem(const EffectCatalogueItem& other, QWidget* parent = Q_NULLPTR);
+  ~EffectCatalogueItem() override;
+
   amuse::EffectType getType() const { return m_type; }
   QString getText() const { return m_label.text(); }
 };
@@ -173,6 +199,8 @@ class StudioSetupWidget : public QWidget {
 
 public:
   explicit StudioSetupWidget(QWidget* parent = Q_NULLPTR);
+  ~StudioSetupWidget() override;
+
   bool loadData(amuse::Studio* studio);
   void unloadData();
 

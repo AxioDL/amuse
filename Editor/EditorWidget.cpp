@@ -5,6 +5,8 @@
 
 EditorWidget::EditorWidget(QWidget* parent) : QWidget(parent) {}
 
+EditorWidget::~EditorWidget() = default;
+
 void EditorUndoCommand::undo() { g_MainWindow->openEditor(m_node.get()); }
 
 void EditorUndoCommand::redo() { g_MainWindow->openEditor(m_node.get()); }
@@ -92,6 +94,8 @@ FieldProjectNode::FieldProjectNode(ProjectModel::CollectionNode* collection, QWi
   setCollection(collection);
 }
 
+FieldProjectNode::~FieldProjectNode() = default;
+
 void FieldProjectNode::setCollection(ProjectModel::CollectionNode* collection) {
   m_collection = collection;
 
@@ -152,6 +156,8 @@ FieldPageObjectNode::FieldPageObjectNode(ProjectModel::GroupNode* group, QWidget
   setLayout(layout);
   setGroup(group);
 }
+
+FieldPageObjectNode::~FieldPageObjectNode() = default;
 
 void FieldPageObjectNode::setGroup(ProjectModel::GroupNode* group) {
   m_group = group;

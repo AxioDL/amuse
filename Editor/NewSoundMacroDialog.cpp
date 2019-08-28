@@ -155,3 +155,5 @@ NewSoundMacroDialog::NewSoundMacroDialog(const QString& groupName, QWidget* pare
 
   setLayout(layout);
 }
+
+NewSoundMacroDialog::~NewSoundMacroDialog() = default;

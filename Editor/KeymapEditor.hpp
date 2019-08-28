@@ -1,20 +1,25 @@
 #pragma once
 
-#include "EditorWidget.hpp"
-
 #include <array>
 #include <bitset>
+#include <cstdint>
+#include <unordered_map>
 
-#include <QCheckBox>
 #include <QFrame>
-#include <QLabel>
 #include <QPushButton>
-#include <QScrollArea>
 #include <QStaticText>
-#include <QSpinBox>
 #include <QSvgRenderer>
 
+#include "EditorWidget.hpp"
+#include "ProjectModel.hpp"
+
+#include <amuse/AudioGroupPool.hpp>
+#include <amuse/Common.hpp>
+
 class KeymapEditor;
+class QCheckBox;
+class QScrollArea;
+class QSpinBox;
 
 class PaintButton : public QPushButton {
   Q_OBJECT
@@ -48,6 +53,8 @@ class KeymapView : public QWidget {
 
 public:
   explicit KeymapView(QWidget* parent = Q_NULLPTR);
+  ~KeymapView() override;
+
   void loadData(ProjectModel::KeymapNode* node);
   void unloadData();
   ProjectModel::INode* currentNode() const;
@@ -75,8 +82,11 @@ class KeymapControls : public QFrame {
 
 public:
   explicit KeymapControls(QWidget* parent = Q_NULLPTR);
+  ~KeymapControls() override;
+
   void loadData(ProjectModel::KeymapNode* node);
   void unloadData();
+
 public slots:
   void controlChanged();
   void paintButtonPressed();
@@ -103,6 +113,8 @@ class KeymapEditor : public EditorWidget {
 
 public:
   explicit KeymapEditor(QWidget* parent = Q_NULLPTR);
+  ~KeymapEditor() override;
+
   bool loadData(ProjectModel::KeymapNode* node);
   void unloadData() override;
   ProjectModel::INode* currentNode() const override;

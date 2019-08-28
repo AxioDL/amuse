@@ -1,11 +1,10 @@
 #pragma once
 
-#include <QWidget>
-#include <QSvgWidget>
 #include <QSlider>
+#include <QString>
+#include <QSvgWidget>
 #include <QWheelEvent>
-#include "StatusBarWidget.hpp"
-#include "Common.hpp"
+#include <QWidget>
 
 extern const QString NaturalKeyNames[7];
 extern const QString SharpKeyNames[5];
@@ -14,6 +13,7 @@ extern const int NaturalKeyNumbers[7];
 extern const int SharpKeyNumbers[5];
 
 class KeyboardWidget;
+class StatusBarFocus;
 
 class KeyboardOctave : public QSvgWidget {
   Q_OBJECT
@@ -45,6 +45,8 @@ class KeyboardWidget : public QWidget {
 
 public:
   explicit KeyboardWidget(QWidget* parent = Q_NULLPTR);
+  ~KeyboardWidget() override;
+
   void setStatusFocus(StatusBarFocus* statusFocus) { m_statusFocus = statusFocus; }
 
   void mouseMoveEvent(QMouseEvent* event) override;
@@ -68,6 +70,8 @@ protected:
 
 public:
   explicit KeyboardSlider(QWidget* parent = Q_NULLPTR);
+  ~KeyboardSlider() override;
+
   void enterEvent(QEvent* event) override;
   void leaveEvent(QEvent* event) override;
   void setStatusFocus(StatusBarFocus* statusFocus);

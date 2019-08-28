@@ -1,37 +1,53 @@
 #pragma once
 
-#include <QMainWindow>
-#include <QUndoStack>
-#include <QProgressDialog>
-#include <QThread>
-#include <QStyledItemDelegate>
-#include <QSortFilterProxyModel>
-#include <QLinkedList>
+#include <cstdint>
+#include <functional>
+#include <memory>
+
 #include <QFileDialog>
-#include "ui_MainWindow.h"
-#include "amuse/Engine.hpp"
-#include "amuse/BooBackend.hpp"
-#include "boo/audiodev/IAudioVoiceEngine.hpp"
-#include "ProjectModel.hpp"
+#include <QLinkedList>
+#include <QMainWindow>
+#include <QMessageBox>
+#include <QStyledItemDelegate>
+#include <QThread>
+
 #include "EditorWidget.hpp"
-#include "MIDIReader.hpp"
-#include "StudioSetupWidget.hpp"
+#include "ProjectModel.hpp"
+
+#include "ui_MainWindow.h"
+
+#include <amuse/Common.hpp>
+#include <amuse/Sequencer.hpp>
+#include <amuse/Voice.hpp>
 
 #define MaxRecentFiles 4
+
+namespace amuse {
+class Engine;
+}
+
+namespace boo {
+struct IAudioVoiceEngine;
+}
 
 namespace Ui {
 class MainWindow;
 }
 
-class MainWindow;
-class SongGroupEditor;
-class SoundGroupEditor;
-class SoundMacroEditor;
 class ADSREditor;
 class CurveEditor;
 class KeymapEditor;
 class LayersEditor;
+class MainWindow;
 class SampleEditor;
+class SongGroupEditor;
+class SoundGroupEditor;
+class SoundMacroEditor;
+class StudioSetupWidget;
+class VoiceAllocator;
+
+class QProgressDialog;
+class QUndoStack;
 
 enum BackgroundTaskId { TaskOpen, TaskImport, TaskExport, TaskReloadSamples };
 

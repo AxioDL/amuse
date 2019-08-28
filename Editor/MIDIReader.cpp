@@ -1,5 +1,8 @@
 #include "MIDIReader.hpp"
+
 #include "MainWindow.hpp"
+
+#include <amuse/Engine.hpp>
 
 MIDIReader::MIDIReader(amuse::Engine& engine, bool useLock) : amuse::BooBackendMIDIReader(engine, useLock) {}
 

@@ -1,9 +1,12 @@
 #pragma once
 
-#include <QDialog>
-#include <QLineEdit>
+#include <cstddef>
+#include <cstdint>
+
 #include <QComboBox>
+#include <QDialog>
 #include <QDialogButtonBox>
+#include <QLineEdit>
 
 struct SoundMacroTemplateEntry {
   const char* m_name;
@@ -19,6 +22,8 @@ class NewSoundMacroDialog : public QDialog {
 
 public:
   explicit NewSoundMacroDialog(const QString& groupName, QWidget* parent = Q_NULLPTR);
+  ~NewSoundMacroDialog() override;
+
   QString getName() const { return m_le.text(); }
   const SoundMacroTemplateEntry* getSelectedTemplate() const;
 };

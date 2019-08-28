@@ -1,14 +1,21 @@
 #pragma once
 
-#include "EditorWidget.hpp"
+#include <cstdint>
+#include <vector>
+
 #include <QFrame>
-#include <QSpinBox>
-#include <QDoubleSpinBox>
-#include <QCheckBox>
-#include <QLabel>
 #include <QStaticText>
 
+#include "EditorWidget.hpp"
+#include "ProjectModel.hpp"
+
+#include <amuse/Common.hpp>
+
 class ADSREditor;
+
+class QCheckBox;
+class QDoubleSpinBox;
+class QLabel;
 
 class ADSRView : public QWidget {
   Q_OBJECT
@@ -23,6 +30,8 @@ class ADSRView : public QWidget {
 
 public:
   explicit ADSRView(QWidget* parent = Q_NULLPTR);
+  ~ADSRView() override;
+
   void loadData(ProjectModel::ADSRNode* node);
   void unloadData();
   ProjectModel::INode* currentNode() const;
@@ -53,8 +62,11 @@ class ADSRControls : public QFrame {
 
 public:
   explicit ADSRControls(QWidget* parent = Q_NULLPTR);
+  ~ADSRControls() override;
+
   void loadData();
   void unloadData();
+
 public slots:
   void attackChanged(double val);
   void decayChanged(double val);
@@ -74,6 +86,8 @@ class ADSREditor : public EditorWidget {
 
 public:
   explicit ADSREditor(QWidget* parent = Q_NULLPTR);
+  ~ADSREditor() override;
+
   bool loadData(ProjectModel::ADSRNode* node);
   void unloadData() override;
   ProjectModel::INode* currentNode() const override;

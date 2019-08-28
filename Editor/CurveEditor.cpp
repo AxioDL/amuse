@@ -7,9 +7,12 @@
 
 #include <QGridLayout>
 #include <QHBoxLayout>
+#include <QLabel>
+#include <QLineEdit>
 #include <QJSValueIterator>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QPushButton>
 
 class CurveEditUndoCommand : public EditorUndoCommand {
 public:
@@ -163,6 +166,8 @@ CurveView::CurveView(QWidget* parent) : QWidget(parent) {
   m_gridFont.setPointSize(8);
 }
 
+CurveView::~CurveView() = default;
+
 CurveEditor* CurveControls::getEditor() const { return qobject_cast<CurveEditor*>(parentWidget()); }
 
 void CurveControls::loadData() {
@@ -270,6 +275,8 @@ CurveControls::CurveControls(QWidget* parent) : QFrame(parent) {
   m_lineEdit->setToolTip(docStr);
 }
 
+CurveControls::~CurveControls() = default;
+
 bool CurveEditor::loadData(ProjectModel::CurveNode* node) {
   m_curveView->loadData(node);
   m_controls->loadData();
@@ -292,3 +299,5 @@ CurveEditor::CurveEditor(QWidget* parent)
   layout->addWidget(m_controls);
   setLayout(layout);
 }
+
+CurveEditor::~CurveEditor() = default;

@@ -1,8 +1,11 @@
 #include "Common.hpp"
 #include "MainWindow.hpp"
+
+#include <QDir>
 #include <QMessageBox>
 #include <QObject>
 #include <QProcess>
+#include <QTransform>
 
 boo::SystemString QStringToSysString(const QString& str) {
 #ifdef _WIN32

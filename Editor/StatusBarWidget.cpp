@@ -49,6 +49,8 @@ StatusBarWidget::StatusBarWidget(QWidget* parent)
   addPermanentWidget(&m_volumeSlider);
 }
 
+StatusBarWidget::~StatusBarWidget() = default;
+
 void StatusBarWidget::setVoiceCount(int voices) {
   if (voices != m_cachedVoiceCount) {
     m_voiceCount.setText(QString::number(voices));
