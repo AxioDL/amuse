@@ -2,15 +2,20 @@
 
 #include <array>
 
-#include "EditorWidget.hpp"
 #include <QFrame>
-#include <QLabel>
-#include <QStaticText>
-#include <QLineEdit>
-#include <QPushButton>
 #include <QJSEngine>
+#include <QStaticText>
+
+#include "EditorWidget.hpp"
+#include "ProjectModel.hpp"
+
+#include <amuse/Common.hpp>
 
 class CurveEditor;
+
+class QLabel;
+class QLineEdit;
+class QPushButton;
 
 class CurveView : public QWidget {
   Q_OBJECT
@@ -23,6 +28,8 @@ class CurveView : public QWidget {
 
 public:
   explicit CurveView(QWidget* parent = Q_NULLPTR);
+  ~CurveView() override;
+
   void loadData(ProjectModel::CurveNode* node);
   void unloadData();
   ProjectModel::INode* currentNode() const;
@@ -43,9 +50,12 @@ class CurveControls : public QFrame {
 
 public:
   explicit CurveControls(QWidget* parent = Q_NULLPTR);
+  ~CurveControls() override;
+
   void loadData();
   void unloadData();
   void resizeEvent(QResizeEvent* ev) override;
+
 public slots:
   void exprCommit();
 };
@@ -59,6 +69,8 @@ class CurveEditor : public EditorWidget {
 
 public:
   explicit CurveEditor(QWidget* parent = Q_NULLPTR);
+  ~CurveEditor() override;
+
   bool loadData(ProjectModel::CurveNode* node);
   void unloadData() override;
   ProjectModel::INode* currentNode() const override;

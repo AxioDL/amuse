@@ -1,10 +1,16 @@
 #include "StudioSetupWidget.hpp"
-#include "amuse/EffectChorus.hpp"
-#include "amuse/EffectDelay.hpp"
-#include "amuse/EffectReverb.hpp"
+
+#include <QApplication>
 #include <QPainter>
 #include <QScrollBar>
 #include <QStylePainter>
+
+#include <amuse/EffectBase.hpp>
+#include <amuse/EffectChorus.hpp>
+#include <amuse/EffectDelay.hpp>
+#include <amuse/EffectReverb.hpp>
+#include <amuse/Studio.hpp>
+#include <amuse/Submix.hpp>
 
 using namespace std::literals;
 
@@ -159,6 +165,8 @@ Uint32X8Popup::Uint32X8Popup(int min, int max, QWidget* parent) : QFrame(parent,
   setLayout(layout);
 }
 
+Uint32X8Popup::~Uint32X8Popup() = default;
+
 void Uint32X8Popup::setValue(int chanIdx, int val) { m_sliders[chanIdx]->setValue(val); }
 
 void Uint32X8Popup::doValueChanged(int val) {
@@ -171,6 +179,8 @@ Uint32X8Button::Uint32X8Button(int min, int max, QWidget* parent)
 : QPushButton(parent), m_popup(new Uint32X8Popup(min, max, this)) {
   connect(this, &Uint32X8Button::pressed, this, &Uint32X8Button::onPressed);
 }
+
+Uint32X8Button::~Uint32X8Button() = default;
 
 void Uint32X8Button::paintEvent(QPaintEvent*) {
   QStylePainter painter(this);
@@ -291,6 +301,8 @@ EffectWidget::EffectWidget(QWidget* parent, amuse::EffectBaseTypeless* effect, a
   setLayout(mainLayout);
 }
 
+EffectWidget::~EffectWidget() = default;
+
 void EffectWidget::paintEvent(QPaintEvent* event) {
   /* Rounded frame */
   QPainter painter(this);
@@ -397,6 +409,8 @@ EffectWidgetContainer::EffectWidgetContainer(QWidget* parent, _Args&&... args)
   outerLayout->addWidget(m_effectWidget);
   setLayout(outerLayout);
 }
+
+EffectWidgetContainer::~EffectWidgetContainer() = default;
 
 void EffectListing::startAutoscroll(QWidget* source, QMouseEvent* event, int delta) {
   if (m_autoscrollTimer == -1)
@@ -624,6 +638,8 @@ EffectListing::EffectListing(QWidget* parent) : QWidget(parent), m_layout(new QV
   reindex();
 }
 
+EffectListing::~EffectListing() = default;
+
 EffectCatalogueItem::EffectCatalogueItem(amuse::EffectType type, const QString& name, const QString& doc,
                                          QWidget* parent)
 : QWidget(parent), m_type(type), m_iconLab(this), m_label(name, this) {
@@ -653,6 +669,8 @@ EffectCatalogueItem::EffectCatalogueItem(const EffectCatalogueItem& other, QWidg
   layout->setContentsMargins(QMargins());
   setLayout(layout);
 }
+
+EffectCatalogueItem::~EffectCatalogueItem() = default;
 
 static const char* EffectStrings[] = {
     QT_TRANSLATE_NOOP("EffectCatalogue", "Reverb Standard"), QT_TRANSLATE_NOOP("EffectCatalogue", "Reverb High"),
@@ -875,3 +893,5 @@ StudioSetupWidget::StudioSetupWidget(QWidget* parent)
   layout->addWidget(m_splitter);
   setLayout(layout);
 }
+
+StudioSetupWidget::~StudioSetupWidget() = default;

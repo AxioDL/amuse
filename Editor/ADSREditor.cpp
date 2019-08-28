@@ -1,8 +1,11 @@
 #include "ADSREditor.hpp"
 #include "MainWindow.hpp"
-#include <QVBoxLayout>
-#include <QPainter>
+
+#include <QCheckBox>
+#include <QDoubleSpinBox>
 #include <QMouseEvent>
+#include <QPainter>
+#include <QVBoxLayout>
 
 const QColor Red = QColor(255, 127, 127);
 const QColor Green = QColor(127, 255, 127);
@@ -216,6 +219,8 @@ ADSRView::ADSRView(QWidget* parent) : QWidget(parent) {
   }
   m_gridFont.setPointSize(8);
 }
+
+ADSRView::~ADSRView() = default;
 
 ADSREditor* ADSRControls::getEditor() const { return qobject_cast<ADSREditor*>(parentWidget()); }
 
@@ -945,6 +950,8 @@ ADSRControls::ADSRControls(QWidget* parent) : QFrame(parent) {
   setLayout(mainLayout);
 }
 
+ADSRControls::~ADSRControls() = default;
+
 bool ADSREditor::loadData(ProjectModel::ADSRNode* node) {
   m_adsrView->loadData(node);
   m_controls->loadData();
@@ -966,3 +973,5 @@ ADSREditor::ADSREditor(QWidget* parent) : EditorWidget(parent), m_adsrView(new A
   layout->addWidget(m_controls);
   setLayout(layout);
 }
+
+ADSREditor::~ADSREditor() = default;

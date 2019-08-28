@@ -1,29 +1,34 @@
 #pragma once
 
-#include <QWidget>
-#include <QUndoCommand>
-#include <QApplication>
-#include <QSpinBox>
-#include <QComboBox>
-#include <QWheelEvent>
-#include <QItemEditorFactory>
-#include <QToolButton>
 #include <QAction>
-#include <QPushButton>
+#include <QComboBox>
+#include <QItemEditorFactory>
 #include <QLabel>
 #include <QMenu>
+#include <QPushButton>
+#include <QSpinBox>
 #include <QStyledItemDelegate>
+#include <QToolButton>
+#include <QUndoCommand>
+#include <QWheelEvent>
+#include <QWidget>
+
 #include "ProjectModel.hpp"
+
+#include <amuse/Common.hpp>
 
 class EditorWidget : public QWidget {
   Q_OBJECT
 public:
   explicit EditorWidget(QWidget* parent = Q_NULLPTR);
+  ~EditorWidget() override;
+
   virtual bool valid() const { return true; }
   virtual void unloadData() {}
   virtual ProjectModel::INode* currentNode() const { return nullptr; }
   virtual void setEditorEnabled(bool en) { setEnabled(en); }
   virtual AmuseItemEditFlags itemEditFlags() const { return AmuseItemNone; }
+
 public slots:
   virtual void itemCutAction() {}
   virtual void itemCopyAction() {}
@@ -130,6 +135,8 @@ class FieldProjectNode : public QWidget {
 
 public:
   explicit FieldProjectNode(ProjectModel::CollectionNode* collection = Q_NULLPTR, QWidget* parent = Q_NULLPTR);
+  ~FieldProjectNode() override;
+
   void setCollection(ProjectModel::CollectionNode* collection);
   ProjectModel::CollectionNode* collection() const { return m_collection; }
   int currentIndex() const { return m_comboBox.currentIndex(); }
@@ -137,10 +144,13 @@ public:
   void showPopup() { m_comboBox.showPopup(); }
   ProjectModel::BasePoolObjectNode* currentNode() const;
   bool event(QEvent* ev) override;
+
 private slots:
   void _currentIndexChanged(int);
+
 public slots:
   void openCurrent();
+
 signals:
   void currentIndexChanged(int);
 };
@@ -153,6 +163,8 @@ class FieldPageObjectNode : public QWidget {
 
 public:
   explicit FieldPageObjectNode(ProjectModel::GroupNode* group = Q_NULLPTR, QWidget* parent = Q_NULLPTR);
+  ~FieldPageObjectNode() override;
+
   void setGroup(ProjectModel::GroupNode* group);
   ProjectModel::GroupNode* group() const { return m_group; }
   int currentIndex() const { return m_comboBox.currentIndex(); }
@@ -161,10 +173,13 @@ public:
   void showPopup() { m_comboBox.showPopup(); }
   ProjectModel::BasePoolObjectNode* currentNode() const;
   bool event(QEvent* ev) override;
+
 private slots:
   void _currentIndexChanged(int);
+
 public slots:
   void openCurrent();
+
 signals:
   void currentIndexChanged(int);
 };

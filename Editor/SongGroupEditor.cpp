@@ -248,6 +248,8 @@ public:
 
 PageObjectDelegate::PageObjectDelegate(QObject* parent) : BaseObjectDelegate(parent) {}
 
+PageObjectDelegate::~PageObjectDelegate() = default;
+
 ProjectModel::INode* PageObjectDelegate::getNode(const QAbstractItemModel* __model, const QModelIndex& index) const {
   const PageModel* model = static_cast<const PageModel*>(__model);
   auto entry = model->m_sorted[index.row()];
@@ -328,6 +330,8 @@ MIDIFileFieldWidget::MIDIFileFieldWidget(QWidget* parent)
   m_dialog.setFileMode(QFileDialog::ExistingFile);
   m_dialog.setAcceptMode(QFileDialog::AcceptOpen);
 }
+
+MIDIFileFieldWidget::~MIDIFileFieldWidget() = default;
 
 QWidget* MIDIFileDelegate::createEditor(QWidget* parent, const QStyleOptionViewItem& option,
                                         const QModelIndex& index) const {
@@ -506,6 +510,8 @@ MIDIFileDelegate::MIDIFileDelegate(SetupTableView* parent)
 : QStyledItemDelegate(parent)
 , m_fileDialogMid(parent, tr("Export MIDI"), {}, tr("MIDI(*.mid)"))
 , m_fileDialogSng(parent, tr("Export Song"), {}, tr("Song(*.sng)")) {}
+
+MIDIFileDelegate::~MIDIFileDelegate() = default;
 
 std::unordered_map<uint8_t, amuse::SongGroupIndex::PageEntry>& PageModel::_getMap() const {
   return m_drum ? m_node->m_index->m_drumPages : m_node->m_index->m_normPages;
@@ -769,6 +775,8 @@ std::pair<uint8_t, amuse::SongGroupIndex::PageEntry> PageModel::_removeRow(uint8
 
 PageModel::PageModel(bool drum, QObject* parent) : QAbstractTableModel(parent), m_drum(drum) {}
 
+PageModel::~PageModel() = default;
+
 std::unordered_map<amuse::SongId, std::array<amuse::SongGroupIndex::MIDISetup, 16>>& SetupListModel::_getMap() const {
   return m_node->m_index->m_midiSetups;
 }
@@ -1024,6 +1032,8 @@ SetupListModel::_removeRow(amuse::SongId id) {
 
 SetupListModel::SetupListModel(QObject* parent) : QAbstractTableModel(parent) {}
 
+SetupListModel::~SetupListModel() = default;
+
 void SetupModel::loadData(std::pair<const amuse::SongId, std::array<amuse::SongGroupIndex::MIDISetup, 16>>* data) {
   beginResetModel();
   m_data = data;
@@ -1151,6 +1161,8 @@ Qt::ItemFlags SetupModel::flags(const QModelIndex& index) const { return Qt::Ite
 
 SetupModel::SetupModel(QObject* parent) : QAbstractTableModel(parent) {}
 
+SetupModel::~SetupModel() = default;
+
 void PageTableView::deleteSelection() {
   const QModelIndexList list = selectionModel()->selectedRows();
   if (list.isEmpty()) {
@@ -1195,6 +1207,8 @@ PageTableView::PageTableView(QWidget* parent) : QTableView(parent) {
   setItemDelegateForColumn(2, &m_255Delegate);
   setItemDelegateForColumn(3, &m_255Delegate);
 }
+
+PageTableView::~PageTableView() = default;
 
 void SetupTableView::setModel(QAbstractItemModel* list, QAbstractItemModel* table) {
   {
@@ -1255,6 +1269,8 @@ SetupTableView::SetupTableView(QWidget* parent)
   m_tableView->setItemDelegateForColumn(3, &m_127Delegate);
   m_tableView->setItemDelegateForColumn(4, &m_127Delegate);
 }
+
+SetupTableView::~SetupTableView() = default;
 
 void ColoredTabBarStyle::drawControl(QStyle::ControlElement element, const QStyleOption* option, QPainter* painter,
                                      const QWidget* widget) const {
@@ -1591,3 +1607,5 @@ SongGroupEditor::SongGroupEditor(QWidget* parent)
 
   m_tabs.setCurrentIndex(0);
 }
+
+SongGroupEditor::~SongGroupEditor() = default;

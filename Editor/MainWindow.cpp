@@ -1,24 +1,33 @@
 #include "MainWindow.hpp"
-#include <QFileDialog>
-#include <QMessageBox>
-#include <QLineEdit>
-#include <QInputDialog>
-#include <QProgressDialog>
-#include <QMouseEvent>
+
 #include <QClipboard>
+#include <QFileDialog>
+#include <QInputDialog>
+#include <QLineEdit>
+#include <QMessageBox>
+#include <QMouseEvent>
+#include <QProgressDialog>
 #include <QtSvg/QtSvg>
-#include "amuse/ContainerRegistry.hpp"
+#include <QUndoStack>
+
+#include "ADSREditor.hpp"
 #include "Common.hpp"
+#include "CurveEditor.hpp"
+#include "KeymapEditor.hpp"
+#include "LayersEditor.hpp"
+#include "MIDIReader.hpp"
+#include "NewSoundMacroDialog.hpp"
+#include "SampleEditor.hpp"
 #include "SongGroupEditor.hpp"
 #include "SoundGroupEditor.hpp"
 #include "SoundGroupEditor.hpp"
 #include "SoundMacroEditor.hpp"
-#include "ADSREditor.hpp"
-#include "CurveEditor.hpp"
-#include "KeymapEditor.hpp"
-#include "LayersEditor.hpp"
-#include "SampleEditor.hpp"
-#include "NewSoundMacroDialog.hpp"
+#include "StudioSetupWidget.hpp"
+
+#include <amuse/BooBackend.hpp>
+#include <amuse/ContainerRegistry.hpp>
+#include <amuse/Engine.hpp>
+#include <boo/audiodev/IAudioVoiceEngine.hpp>
 
 MainWindow::MainWindow(QWidget* parent)
 : QMainWindow(parent)

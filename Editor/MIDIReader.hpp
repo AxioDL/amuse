@@ -1,9 +1,17 @@
 #pragma once
 
-#include "amuse/Voice.hpp"
-#include "amuse/BooBackend.hpp"
-#include "amuse/Common.hpp"
+#include <cstdint>
+#include <memory>
+#include <unordered_map>
 #include <unordered_set>
+
+#include <amuse/BooBackend.hpp>
+#include <amuse/Common.hpp>
+#include <amuse/Voice.hpp>
+
+namespace amuse {
+class Engine;
+}
 
 class MIDIReader : public amuse::BooBackendMIDIReader {
   std::unordered_map<uint8_t, amuse::ObjToken<amuse::Voice>> m_chanVoxs;

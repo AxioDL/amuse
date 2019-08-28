@@ -1,9 +1,20 @@
 #pragma once
 
-#include "EditorWidget.hpp"
+#include <tuple>
+#include <unordered_map>
+#include <vector>
+
+#include <QAction>
 #include <QStyledItemDelegate>
 #include <QTableView>
-#include "amuse/Voice.hpp"
+#include <QToolButton>
+
+#include "EditorWidget.hpp"
+#include "ProjectModel.hpp"
+
+#include <amuse/AudioGroupProject.hpp>
+#include <amuse/Common.hpp>
+#include <amuse/Voice.hpp>
 
 class SFXObjectDelegate : public BaseObjectDelegate {
   Q_OBJECT
@@ -12,9 +23,12 @@ protected:
 
 public:
   explicit SFXObjectDelegate(QObject* parent = Q_NULLPTR);
+  ~SFXObjectDelegate() override;
+
   QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const override;
   void setEditorData(QWidget* editor, const QModelIndex& index) const override;
   void setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const override;
+
 private slots:
   void objIndexChanged();
 };
@@ -50,6 +64,8 @@ class SFXModel : public QAbstractTableModel {
 
 public:
   explicit SFXModel(QObject* parent = Q_NULLPTR);
+  ~SFXModel() override;
+
   void loadData(ProjectModel::SoundGroupNode* node);
   void unloadData();
 
@@ -73,6 +89,8 @@ class SFXTableView : public QTableView {
 
 public:
   explicit SFXTableView(QWidget* parent = Q_NULLPTR);
+  ~SFXTableView() override;
+
   void setModel(QAbstractItemModel* model) override;
   void deleteSelection();
 };
@@ -108,6 +126,8 @@ class SoundGroupEditor : public EditorWidget {
 
 public:
   explicit SoundGroupEditor(QWidget* parent = Q_NULLPTR);
+  ~SoundGroupEditor() override;
+
   bool loadData(ProjectModel::SoundGroupNode* node);
   void unloadData() override;
   ProjectModel::INode* currentNode() const override;
@@ -115,6 +135,7 @@ public:
   void resizeEvent(QResizeEvent* ev) override;
   QTableView* getSFXListView() const { return m_sfxTable; }
   AmuseItemEditFlags itemEditFlags() const override;
+
 private slots:
   void rowsInserted(const QModelIndex& parent, int first, int last);
   void rowsMoved(const QModelIndex& parent, int start, int end, const QModelIndex& destination, int row);

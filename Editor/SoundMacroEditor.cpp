@@ -1,14 +1,17 @@
 #include "SoundMacroEditor.hpp"
-#include "MainWindow.hpp"
+
+#include <QCheckBox>
+#include <QGridLayout>
+#include <QLayoutItem>
+#include <QLineEdit>
 #include <QPainter>
 #include <QPropertyAnimation>
-#include <QGridLayout>
-#include <QLineEdit>
-#include <QSplitter>
 #include <QScrollArea>
 #include <QScrollBar>
-#include <QApplication>
-#include <QCheckBox>
+#include <QSplitter>
+#include <QVBoxLayout>
+
+#include "MainWindow.hpp"
 
 TargetButton::TargetButton(QWidget* parent) : QPushButton(parent) {
   QIcon targetIcon(QStringLiteral(":/icons/IconSoundMacroTarget.svg"));
@@ -267,6 +270,8 @@ CommandWidget::CommandWidget(QWidget* parent, amuse::SoundMacro::ICmd* cmd, Soun
 CommandWidget::CommandWidget(QWidget* parent, amuse::SoundMacro::CmdOp op, SoundMacroListing* listing)
 : CommandWidget(parent, nullptr, op, listing) {}
 
+CommandWidget::~CommandWidget() = default;
+
 class ValChangedUndoCommand : public EditorUndoCommand {
   amuse::SoundMacro::ICmd* m_cmd;
   const amuse::SoundMacro::CmdIntrospection::Field& m_field;
@@ -499,6 +504,8 @@ CommandWidgetContainer::CommandWidgetContainer(QWidget* parent, _Args&&... args)
   outerLayout->addWidget(m_commandWidget);
   setLayout(outerLayout);
 }
+
+CommandWidgetContainer::~CommandWidgetContainer() = default;
 
 void SoundMacroListing::startAutoscroll(QWidget* source, QMouseEvent* event, int delta) {
   if (m_autoscrollTimer == -1)
@@ -781,6 +788,8 @@ SoundMacroListing::SoundMacroListing(QWidget* parent) : QWidget(parent), m_layou
   reindex();
 }
 
+SoundMacroListing::~SoundMacroListing() = default;
+
 CatalogueItem::CatalogueItem(amuse::SoundMacro::CmdOp op, const QString& name, const QString& doc, QWidget* parent)
 : QWidget(parent), m_op(op), m_label(name) {
   QHBoxLayout* layout = new QHBoxLayout;
@@ -808,6 +817,8 @@ CatalogueItem::CatalogueItem(const CatalogueItem& other, QWidget* parent) : QWid
   layout->setContentsMargins(QMargins());
   setLayout(layout);
 }
+
+CatalogueItem::~CatalogueItem() = default;
 
 static const char* CategoryStrings[] = {
     QT_TRANSLATE_NOOP("SoundMacroCatalogue", "Control"), QT_TRANSLATE_NOOP("SoundMacroCatalogue", "Pitch"),
@@ -1045,3 +1056,5 @@ SoundMacroEditor::SoundMacroEditor(QWidget* parent)
   layout->addWidget(m_splitter);
   setLayout(layout);
 }
+
+SoundMacroEditor::~SoundMacroEditor() = default;

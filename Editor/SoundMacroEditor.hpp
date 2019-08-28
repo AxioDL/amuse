@@ -1,20 +1,25 @@
 #pragma once
 
-#include "EditorWidget.hpp"
-#include <QStaticText>
-#include <QVBoxLayout>
-#include <QPropertyAnimation>
-#include <QSplitter>
 #include <QLabel>
 #include <QMouseEvent>
-#include <QSpinBox>
-#include <QComboBox>
-#include <QTreeWidget>
 #include <QPushButton>
+#include <QStaticText>
+#include <QTreeWidget>
 
+#include "EditorWidget.hpp"
+#include "ProjectModel.hpp"
+
+#include <amuse/AudioGroupPool.hpp>
+#include <amuse/Common.hpp>
+
+class CatalogueItem;
 class SoundMacroEditor;
 class SoundMacroListing;
-class CatalogueItem;
+
+class QLayoutItem;
+class QPropertyAnimation;
+class QSplitter;
+class QVBoxLayout;
 
 class TargetButton : public QPushButton {
   Q_OBJECT
@@ -72,6 +77,8 @@ private:
 public:
   CommandWidget(QWidget* parent, amuse::SoundMacro::ICmd* cmd, SoundMacroListing* listing);
   CommandWidget(QWidget* parent, amuse::SoundMacro::CmdOp op, SoundMacroListing* listing);
+  ~CommandWidget() override;
+
   void paintEvent(QPaintEvent* event) override;
   QString getText() const { return m_titleLabel.text(); }
 };
@@ -85,12 +92,14 @@ class CommandWidgetContainer : public QWidget {
   void animateClosed();
   void snapOpen();
   void snapClosed();
+
 private slots:
   void animationDestroyed();
 
 public:
   template <class... _Args>
   CommandWidgetContainer(QWidget* parent, _Args&&... args);
+  ~CommandWidgetContainer() override;
 };
 
 class SoundMacroListing : public QWidget {
@@ -123,6 +132,8 @@ class SoundMacroListing : public QWidget {
 
 public:
   explicit SoundMacroListing(QWidget* parent = Q_NULLPTR);
+  ~SoundMacroListing() override;
+
   bool loadData(ProjectModel::SoundMacroNode* node);
   void unloadData();
   ProjectModel::INode* currentNode() const;
@@ -139,6 +150,8 @@ public:
   explicit CatalogueItem(amuse::SoundMacro::CmdOp op, const QString& name, const QString& doc,
                          QWidget* parent = Q_NULLPTR);
   explicit CatalogueItem(const CatalogueItem& other, QWidget* parent = Q_NULLPTR);
+  ~CatalogueItem() override;
+
   amuse::SoundMacro::CmdOp getCmdOp() const { return m_op; }
   QString getText() const { return m_label.text(); }
 };
@@ -171,6 +184,8 @@ class SoundMacroEditor : public EditorWidget {
 
 public:
   explicit SoundMacroEditor(QWidget* parent = Q_NULLPTR);
+  ~SoundMacroEditor() override;
+
   bool loadData(ProjectModel::SoundMacroNode* node);
   void unloadData() override;
   ProjectModel::INode* currentNode() const override;

@@ -1,12 +1,18 @@
 #pragma once
 
-#include "boo/System.hpp"
-#include <QString>
-#include <QDir>
+#include <functional>
+
 #include <QMessageBox>
+#include <QString>
+
+#include <boo/System.hpp>
 
 class MainWindow;
 extern MainWindow* g_MainWindow;
+
+class QDir;
+class QRectF;
+class QTransform;
 
 class UIMessenger : public QObject {
   Q_OBJECT

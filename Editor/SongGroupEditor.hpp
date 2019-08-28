@@ -1,18 +1,29 @@
 #pragma once
 
-#include "EditorWidget.hpp"
+#include <array>
+#include <cstdint>
+#include <string>
+#include <tuple>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
+#include <QFileDialog>
+#include <QLineEdit>
+#include <QProxyStyle>
+#include <QPushButton>
+#include <QSplitter>
+#include <QStyledItemDelegate>
 #include <QTabWidget>
-#include <QAbstractTableModel>
 #include <QTableView>
 #include <QToolButton>
-#include <QAction>
-#include <QSplitter>
-#include <QListView>
-#include <QLineEdit>
-#include <QPushButton>
-#include <QFileDialog>
-#include <QProxyStyle>
-#include "amuse/Sequencer.hpp"
+
+#include "EditorWidget.hpp"
+#include "ProjectModel.hpp"
+
+#include <amuse/AudioGroupProject.hpp>
+#include <amuse/Common.hpp>
+#include <amuse/Sequencer.hpp>
 
 class SetupTableView;
 
@@ -23,9 +34,12 @@ protected:
 
 public:
   explicit PageObjectDelegate(QObject* parent = Q_NULLPTR);
+  ~PageObjectDelegate() override;
+
   QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const override;
   void setEditorData(QWidget* editor, const QModelIndex& index) const override;
   void setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const override;
+
 private slots:
   void objIndexChanged();
 };
@@ -38,11 +52,15 @@ class MIDIFileFieldWidget : public QWidget {
 
 public:
   explicit MIDIFileFieldWidget(QWidget* parent = Q_NULLPTR);
+  ~MIDIFileFieldWidget() override;
+
   QString path() const { return m_le.text(); }
   void setPath(const QString& path) { m_le.setText(path); }
+
 public slots:
   void buttonPressed();
   void fileDialogOpened(const QString& path);
+
 signals:
   void pathChanged();
 };
@@ -54,17 +72,21 @@ class MIDIFileDelegate : public QStyledItemDelegate {
 
 public:
   explicit MIDIFileDelegate(SetupTableView* parent = Q_NULLPTR);
+  ~MIDIFileDelegate() override;
+
   QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const override;
   void destroyEditor(QWidget* editor, const QModelIndex& index) const override;
   void setEditorData(QWidget* editor, const QModelIndex& index) const override;
   void setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const override;
   bool editorEvent(QEvent* event, QAbstractItemModel* model, const QStyleOptionViewItem& option,
                    const QModelIndex& index) override;
+
 private slots:
   void doExportMIDI();
   void _doExportMIDI(const QString& path);
   void doExportSNG();
   void _doExportSNG(const QString& path);
+
 public slots:
   void pathChanged();
 };
@@ -92,6 +114,8 @@ class PageModel : public QAbstractTableModel {
 
 public:
   explicit PageModel(bool drum, QObject* parent = Q_NULLPTR);
+  ~PageModel() override;
+
   void loadData(ProjectModel::SongGroupNode* node);
   void unloadData();
 
@@ -138,6 +162,8 @@ class SetupListModel : public QAbstractTableModel {
 
 public:
   explicit SetupListModel(QObject* parent = Q_NULLPTR);
+  ~SetupListModel() override;
+
   void loadData(ProjectModel::SongGroupNode* node);
   void unloadData();
 
@@ -159,6 +185,8 @@ class SetupModel : public QAbstractTableModel {
 
 public:
   explicit SetupModel(QObject* parent = Q_NULLPTR);
+  ~SetupModel() override;
+
   void loadData(std::pair<const amuse::SongId, std::array<amuse::SongGroupIndex::MIDISetup, 16>>* data);
   void unloadData();
 
@@ -180,6 +208,8 @@ class PageTableView : public QTableView {
 
 public:
   explicit PageTableView(QWidget* parent = Q_NULLPTR);
+  ~PageTableView() override;
+
   void setModel(QAbstractItemModel* model) override;
   void deleteSelection();
 };
@@ -197,6 +227,8 @@ class SetupTableView : public QSplitter {
 
 public:
   explicit SetupTableView(QWidget* parent = Q_NULLPTR);
+  ~SetupTableView() override;
+
   void setModel(QAbstractItemModel* list, QAbstractItemModel* table);
   void deleteSelection();
   void showEvent(QShowEvent* event) override;
@@ -264,6 +296,8 @@ class SongGroupEditor : public EditorWidget {
 
 public:
   explicit SongGroupEditor(QWidget* parent = Q_NULLPTR);
+  ~SongGroupEditor() override;
+
   bool loadData(ProjectModel::SongGroupNode* node);
   void unloadData() override;
   ProjectModel::INode* currentNode() const override;
@@ -271,6 +305,7 @@ public:
   void resizeEvent(QResizeEvent* ev) override;
   QTableView* getSetupListView() const { return m_setupTable->m_listView; }
   AmuseItemEditFlags itemEditFlags() const override;
+
 private slots:
   void doAdd();
   void doSelectionChanged();

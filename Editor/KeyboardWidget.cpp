@@ -1,10 +1,14 @@
 #include "KeyboardWidget.hpp"
+
+#include <QApplication>
 #include <QHBoxLayout>
-#include <QSvgRenderer>
 #include <QMouseEvent>
 #include <QScrollArea>
-#include <QApplication>
 #include <QScrollBar>
+#include <QSvgRenderer>
+
+#include "Common.hpp"
+#include "StatusBarWidget.hpp"
 
 const QString NaturalKeyNames[] = {QStringLiteral("C"), QStringLiteral("D"), QStringLiteral("E"), QStringLiteral("F"),
                                    QStringLiteral("G"), QStringLiteral("A"), QStringLiteral("B")};
@@ -69,6 +73,8 @@ KeyboardWidget::KeyboardWidget(QWidget* parent) : QWidget(parent) {
   setLayout(layout);
   setMouseTracking(true);
 }
+
+KeyboardWidget::~KeyboardWidget() = default;
 
 std::pair<int, int> KeyboardWidget::_getOctaveAndKey(QMouseEvent* event) const {
   for (KeyboardOctave* oct : m_widgets) {
@@ -143,6 +149,8 @@ void KeyboardWidget::showEvent(QShowEvent* event) {
 }
 
 KeyboardSlider::KeyboardSlider(QWidget* parent) : QSlider(parent) {}
+
+KeyboardSlider::~KeyboardSlider() = default;
 
 void KeyboardSlider::enterEvent(QEvent* event) {
   if (m_statusFocus)

@@ -1,11 +1,15 @@
 #pragma once
 
-#include "EditorWidget.hpp"
 #include <QAbstractTableModel>
-#include <QTableView>
 #include <QAction>
-#include <QToolButton>
 #include <QStyledItemDelegate>
+#include <QTableView>
+
+#include "EditorWidget.hpp"
+#include "ProjectModel.hpp"
+
+#include <amuse/AudioGroupPool.hpp>
+#include <amuse/Common.hpp>
 
 class SoundMacroDelegate : public BaseObjectDelegate {
   Q_OBJECT
@@ -14,9 +18,12 @@ protected:
 
 public:
   explicit SoundMacroDelegate(QObject* parent = Q_NULLPTR);
+  ~SoundMacroDelegate() override;
+
   QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const override;
   void setEditorData(QWidget* editor, const QModelIndex& index) const override;
   void setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const override;
+
 private slots:
   void smIndexChanged();
 };
@@ -30,6 +37,8 @@ class LayersModel : public QAbstractTableModel {
 
 public:
   explicit LayersModel(QObject* parent = Q_NULLPTR);
+  ~LayersModel() override;
+
   void loadData(ProjectModel::LayersNode* node);
   void unloadData();
 
@@ -62,6 +71,8 @@ class LayersTableView : public QTableView {
 
 public:
   explicit LayersTableView(QWidget* parent = Q_NULLPTR);
+  ~LayersTableView() override;
+
   void setModel(QAbstractItemModel* model) override;
   void deleteSelection();
 };
@@ -75,11 +86,14 @@ class LayersEditor : public EditorWidget {
 
 public:
   explicit LayersEditor(QWidget* parent = Q_NULLPTR);
+  ~LayersEditor() override;
+
   bool loadData(ProjectModel::LayersNode* node);
   void unloadData() override;
   ProjectModel::INode* currentNode() const override;
   void resizeEvent(QResizeEvent* ev) override;
   AmuseItemEditFlags itemEditFlags() const override;
+
 private slots:
   void rowsInserted(const QModelIndex& parent, int first, int last);
   void rowsMoved(const QModelIndex& parent, int start, int end, const QModelIndex& destination, int row);

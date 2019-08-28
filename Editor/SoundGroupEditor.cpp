@@ -115,6 +115,8 @@ public:
 
 SFXObjectDelegate::SFXObjectDelegate(QObject* parent) : BaseObjectDelegate(parent) {}
 
+SFXObjectDelegate::~SFXObjectDelegate() = default;
+
 ProjectModel::INode* SFXObjectDelegate::getNode(const QAbstractItemModel* __model, const QModelIndex& index) const {
   const SFXModel* model = static_cast<const SFXModel*>(__model);
   auto entry = model->m_sorted[index.row()];
@@ -458,6 +460,8 @@ std::tuple<amuse::SFXId, std::string, amuse::SFXGroupIndex::SFXEntry> SFXModel::
 
 SFXModel::SFXModel(QObject* parent) : QAbstractTableModel(parent) {}
 
+SFXModel::~SFXModel() = default;
+
 void SFXTableView::deleteSelection() {
   QModelIndexList list = selectionModel()->selectedRows();
   if (list.isEmpty())
@@ -506,6 +510,8 @@ SFXTableView::SFXTableView(QWidget* parent) : QTableView(parent) {
   setItemDelegateForColumn(5, &m_127Delegate);
   setItemDelegateForColumn(6, &m_127Delegate);
 }
+
+SFXTableView::~SFXTableView() = default;
 
 void SFXPlayerWidget::clicked() {
   if (!m_vox) {
@@ -634,3 +640,5 @@ SoundGroupEditor::SoundGroupEditor(QWidget* parent)
   m_addRemoveButtons.removeAction()->setToolTip(tr("Remove selected SFX entries"));
   connect(m_addRemoveButtons.removeAction(), &QAction::triggered, this, &SoundGroupEditor::itemDeleteAction);
 }
+
+SoundGroupEditor::~SoundGroupEditor() = default;
