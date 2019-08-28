@@ -14,6 +14,28 @@
 
 using namespace std::literals;
 
+struct EffectIntrospection {
+  struct Field {
+    enum class Type {
+      Invalid,
+      UInt32,
+      UInt32x8,
+      Float,
+    };
+
+    Type m_tp{};
+    std::string_view m_name;
+    float m_min{};
+    float m_max{};
+    float m_default{};
+  };
+  amuse::EffectType m_tp;
+  std::string_view m_name;
+  std::string_view m_description;
+  std::array<Field, 7> m_fields;
+};
+
+namespace {
 constexpr EffectIntrospection ReverbStdIntrospective = {
     amuse::EffectType::ReverbStd,
     "Reverb Std"sv,
@@ -111,7 +133,7 @@ constexpr std::array<ChorusSetFunc, 3> ChorusSetters{
     &amuse::EffectChorus::setPeriod,
 };
 
-static constexpr const EffectIntrospection* GetEffectIntrospection(amuse::EffectType type) {
+constexpr const EffectIntrospection* GetEffectIntrospection(amuse::EffectType type) {
   switch (type) {
   case amuse::EffectType::ReverbStd:
     return &ReverbStdIntrospective;
@@ -127,7 +149,7 @@ static constexpr const EffectIntrospection* GetEffectIntrospection(amuse::Effect
 }
 
 template <typename T>
-static T GetEffectParm(const amuse::EffectBaseTypeless* effect, int idx, int chanIdx) {
+T GetEffectParm(const amuse::EffectBaseTypeless* effect, int idx, int chanIdx) {
   switch (effect->Isa()) {
   case amuse::EffectType::ReverbStd:
     return (static_cast<const amuse::EffectReverbStdImp<float>*>(effect)->*ReverbStdGetters[idx])();
@@ -143,7 +165,7 @@ static T GetEffectParm(const amuse::EffectBaseTypeless* effect, int idx, int cha
 }
 
 template <typename T>
-static void SetEffectParm(amuse::EffectBaseTypeless* effect, int idx, int chanIdx, T val) {
+void SetEffectParm(amuse::EffectBaseTypeless* effect, int idx, int chanIdx, T val) {
   switch (effect->Isa()) {
   case amuse::EffectType::ReverbStd:
     (static_cast<amuse::EffectReverbStdImp<float>*>(effect)->*ReverbStdSetters[idx])(val);
@@ -169,6 +191,21 @@ constexpr std::array<const char*, NumChanNames> ChanNames{
     QT_TRANSLATE_NOOP("Uint32X8Popup", "Front Center"), QT_TRANSLATE_NOOP("Uint32X8Popup", "LFE"),
     QT_TRANSLATE_NOOP("Uint32X8Popup", "Side Left"),    QT_TRANSLATE_NOOP("Uint32X8Popup", "Side Right"),
 };
+
+constexpr std::array<const char*, 4> EffectStrings{
+    QT_TRANSLATE_NOOP("EffectCatalogue", "Reverb Standard"),
+    QT_TRANSLATE_NOOP("EffectCatalogue", "Reverb High"),
+    QT_TRANSLATE_NOOP("EffectCatalogue", "Delay"),
+    QT_TRANSLATE_NOOP("EffectCatalogue", "Chorus"),
+};
+
+constexpr std::array<const char*, 4> EffectDocStrings{
+    QT_TRANSLATE_NOOP("EffectCatalogue", "Reverb Standard"),
+    QT_TRANSLATE_NOOP("EffectCatalogue", "Reverb High"),
+    QT_TRANSLATE_NOOP("EffectCatalogue", "Delay"),
+    QT_TRANSLATE_NOOP("EffectCatalogue", "Chorus"),
+};
+} // Anonymous namespace
 
 Uint32X8Popup::Uint32X8Popup(int min, int max, QWidget* parent) : QFrame(parent, Qt::Popup) {
   setAttribute(Qt::WA_WindowPropagation);
@@ -713,20 +750,6 @@ EffectCatalogueItem::EffectCatalogueItem(const EffectCatalogueItem& other, QWidg
 }
 
 EffectCatalogueItem::~EffectCatalogueItem() = default;
-
-constexpr std::array<const char*, 4> EffectStrings{
-    QT_TRANSLATE_NOOP("EffectCatalogue", "Reverb Standard"),
-    QT_TRANSLATE_NOOP("EffectCatalogue", "Reverb High"),
-    QT_TRANSLATE_NOOP("EffectCatalogue", "Delay"),
-    QT_TRANSLATE_NOOP("EffectCatalogue", "Chorus"),
-};
-
-constexpr std::array<const char*, 4> EffectDocStrings{
-    QT_TRANSLATE_NOOP("EffectCatalogue", "Reverb Standard"),
-    QT_TRANSLATE_NOOP("EffectCatalogue", "Reverb High"),
-    QT_TRANSLATE_NOOP("EffectCatalogue", "Delay"),
-    QT_TRANSLATE_NOOP("EffectCatalogue", "Chorus"),
-};
 
 EffectCatalogue::EffectCatalogue(QWidget* parent) : QTreeWidget(parent) {
   setSelectionMode(QAbstractItemView::NoSelection);

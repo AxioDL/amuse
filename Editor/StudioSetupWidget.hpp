@@ -17,8 +17,6 @@
 
 #include "EditorWidget.hpp"
 
-class EffectListing;
-
 namespace amuse {
 class EffectBaseTypeless;
 class Studio;
@@ -27,26 +25,9 @@ class Submix;
 enum class EffectType;
 } // namespace amuse
 
-struct EffectIntrospection {
-  struct Field {
-    enum class Type {
-      Invalid,
-      UInt32,
-      UInt32x8,
-      Float,
-    };
+class EffectListing;
 
-    Type m_tp{};
-    std::string_view m_name;
-    float m_min{};
-    float m_max{};
-    float m_default{};
-  };
-  amuse::EffectType m_tp;
-  std::string_view m_name;
-  std::string_view m_description;
-  std::array<Field, 7> m_fields;
-};
+struct EffectIntrospection;
 
 class Uint32X8Popup : public QFrame {
   Q_OBJECT
