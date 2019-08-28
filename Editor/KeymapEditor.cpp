@@ -9,6 +9,7 @@
 #include <QSpinBox>
 #include <QVBoxLayout>
 
+#include "Common.hpp"
 #include "KeyboardWidget.hpp"
 #include "MainWindow.hpp"
 

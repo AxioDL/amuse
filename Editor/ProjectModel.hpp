@@ -1,21 +1,30 @@
 #pragma once
 
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
 #include <QAbstractItemModel>
-#include <QIdentityProxyModel>
-#include <QSortFilterProxyModel>
 #include <QDir>
 #include <QIcon>
-#include <map>
-#include "Common.hpp"
-#include "NewSoundMacroDialog.hpp"
-#include "amuse/AudioGroup.hpp"
-#include "amuse/AudioGroupData.hpp"
-#include "amuse/AudioGroupProject.hpp"
-#include "amuse/AudioGroupPool.hpp"
-#include "amuse/AudioGroupSampleDirectory.hpp"
+#include <QIdentityProxyModel>
+#include <QSortFilterProxyModel>
 
-class ProjectModel;
+#include "Common.hpp"
+
+#include <amuse/AudioGroup.hpp>
+#include <amuse/AudioGroupData.hpp>
+#include <amuse/AudioGroupProject.hpp>
+#include <amuse/AudioGroupPool.hpp>
+#include <amuse/AudioGroupSampleDirectory.hpp>
+#include <amuse/Common.hpp>
+
 class EditorUndoCommand;
+class ProjectModel;
+
+struct SoundMacroTemplateEntry;
 
 enum AmuseItemEditFlags {
   AmuseItemNone = 0,
@@ -373,6 +382,7 @@ public:
 
 public:
   explicit ProjectModel(const QString& path, QObject* parent = Q_NULLPTR);
+  ~ProjectModel() override;
 
   bool clearProjectData();
   bool openGroupData(QString groupName, UIMessenger& messenger);

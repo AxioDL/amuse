@@ -11,6 +11,7 @@
 #include <QStyledItemDelegate>
 #include <QThread>
 
+#include "Common.hpp"
 #include "EditorWidget.hpp"
 #include "ProjectModel.hpp"
 
