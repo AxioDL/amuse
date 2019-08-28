@@ -1,5 +1,7 @@
 #include "SampleEditor.hpp"
 
+#include <cfloat>
+
 #include <QCheckBox>
 #include <QPaintEvent>
 #include <QPainter>

@@ -1,5 +1,7 @@
 #include "StatusBarWidget.hpp"
 
+#include <cmath>
+
 FXButton::FXButton(QWidget* parent) : QPushButton(parent) {
   setIcon(QIcon(QStringLiteral(":/icons/IconFX.svg")));
   setToolTip(tr("Access studio setup window for experimenting with audio effects"));
