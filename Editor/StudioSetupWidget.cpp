@@ -14,80 +14,104 @@
 
 using namespace std::literals;
 
-static const EffectIntrospection ReverbStdIntrospective = {
+constexpr EffectIntrospection ReverbStdIntrospective = {
     amuse::EffectType::ReverbStd,
     "Reverb Std"sv,
     "Standard Reverb"sv,
-    {{EffectIntrospection::Field::Type::Float, "Coloration"sv, 0.f, 1.f, 0.f},
-     {EffectIntrospection::Field::Type::Float, "Mix"sv, 0.f, 1.f, 0.f},
-     {EffectIntrospection::Field::Type::Float, "Time"sv, 0.01f, 10.f, 0.01f},
-     {EffectIntrospection::Field::Type::Float, "Damping"sv, 0.f, 1.f, 0.f},
-     {EffectIntrospection::Field::Type::Float, "Pre Delay"sv, 0.f, 0.1f, 0.f}}};
+    {
+        {{EffectIntrospection::Field::Type::Float, "Coloration"sv, 0.f, 1.f, 0.f},
+         {EffectIntrospection::Field::Type::Float, "Mix"sv, 0.f, 1.f, 0.f},
+         {EffectIntrospection::Field::Type::Float, "Time"sv, 0.01f, 10.f, 0.01f},
+         {EffectIntrospection::Field::Type::Float, "Damping"sv, 0.f, 1.f, 0.f},
+         {EffectIntrospection::Field::Type::Float, "Pre Delay"sv, 0.f, 0.1f, 0.f}},
+    },
+};
 
-typedef float (amuse::EffectReverbStd::*ReverbStdGetFunc)() const;
-typedef void (amuse::EffectReverbStd::*ReverbStdSetFunc)(float);
-static const ReverbStdGetFunc ReverbStdGetters[] = {
-    &amuse::EffectReverbStd::getColoration, &amuse::EffectReverbStd::getMix, &amuse::EffectReverbStd::getTime,
-    &amuse::EffectReverbStd::getDamping, &amuse::EffectReverbStd::getPreDelay};
-static const ReverbStdSetFunc ReverbStdSetters[] = {
-    &amuse::EffectReverbStd::setColoration, &amuse::EffectReverbStd::setMix, &amuse::EffectReverbStd::setTime,
-    &amuse::EffectReverbStd::setDamping, &amuse::EffectReverbStd::setPreDelay};
+using ReverbStdGetFunc = float (amuse::EffectReverbStd::*)() const;
+using ReverbStdSetFunc = void (amuse::EffectReverbStd::*)(float);
+constexpr std::array<ReverbStdGetFunc, 5> ReverbStdGetters{
+    &amuse::EffectReverbStd::getColoration, &amuse::EffectReverbStd::getMix,      &amuse::EffectReverbStd::getTime,
+    &amuse::EffectReverbStd::getDamping,    &amuse::EffectReverbStd::getPreDelay,
+};
+constexpr std::array<ReverbStdSetFunc, 5> ReverbStdSetters{
+    &amuse::EffectReverbStd::setColoration, &amuse::EffectReverbStd::setMix,      &amuse::EffectReverbStd::setTime,
+    &amuse::EffectReverbStd::setDamping,    &amuse::EffectReverbStd::setPreDelay,
+};
 
-static const EffectIntrospection ReverbHiIntrospective = {
+constexpr EffectIntrospection ReverbHiIntrospective = {
     amuse::EffectType::ReverbHi,
     "Reverb Hi"sv,
     "High Reverb"sv,
-    {{EffectIntrospection::Field::Type::Float, "Coloration"sv, 0.f, 1.f, 0.f},
-     {EffectIntrospection::Field::Type::Float, "Mix"sv, 0.f, 1.f, 0.f},
-     {EffectIntrospection::Field::Type::Float, "Time"sv, 0.01f, 10.f, 0.01f},
-     {EffectIntrospection::Field::Type::Float, "Damping"sv, 0.f, 1.f, 0.f},
-     {EffectIntrospection::Field::Type::Float, "Pre Delay"sv, 0.f, 0.1f, 0.f},
-     {EffectIntrospection::Field::Type::Float, "Crosstalk"sv, 0.f, 1.f, 0.f}}};
+    {
+        {{EffectIntrospection::Field::Type::Float, "Coloration"sv, 0.f, 1.f, 0.f},
+         {EffectIntrospection::Field::Type::Float, "Mix"sv, 0.f, 1.f, 0.f},
+         {EffectIntrospection::Field::Type::Float, "Time"sv, 0.01f, 10.f, 0.01f},
+         {EffectIntrospection::Field::Type::Float, "Damping"sv, 0.f, 1.f, 0.f},
+         {EffectIntrospection::Field::Type::Float, "Pre Delay"sv, 0.f, 0.1f, 0.f},
+         {EffectIntrospection::Field::Type::Float, "Crosstalk"sv, 0.f, 1.f, 0.f}},
+    },
+};
 
-typedef float (amuse::EffectReverbHi::*ReverbHiGetFunc)() const;
-typedef void (amuse::EffectReverbHi::*ReverbHiSetFunc)(float);
-static const ReverbHiGetFunc ReverbHiGetters[] = {
+using ReverbHiGetFunc = float (amuse::EffectReverbHi::*)() const;
+using ReverbHiSetFunc = void (amuse::EffectReverbHi::*)(float);
+constexpr std::array<ReverbHiGetFunc, 6> ReverbHiGetters{
     &amuse::EffectReverbHi::getColoration, &amuse::EffectReverbHi::getMix,      &amuse::EffectReverbHi::getTime,
-    &amuse::EffectReverbHi::getDamping,    &amuse::EffectReverbHi::getPreDelay, &amuse::EffectReverbHi::getCrosstalk};
-static const ReverbHiSetFunc ReverbHiSetters[] = {
+    &amuse::EffectReverbHi::getDamping,    &amuse::EffectReverbHi::getPreDelay, &amuse::EffectReverbHi::getCrosstalk,
+};
+constexpr std::array<ReverbHiSetFunc, 6> ReverbHiSetters{
     &amuse::EffectReverbHi::setColoration, &amuse::EffectReverbHi::setMix,      &amuse::EffectReverbHi::setTime,
-    &amuse::EffectReverbHi::setDamping,    &amuse::EffectReverbHi::setPreDelay, &amuse::EffectReverbHi::setCrosstalk};
+    &amuse::EffectReverbHi::setDamping,    &amuse::EffectReverbHi::setPreDelay, &amuse::EffectReverbHi::setCrosstalk,
+};
 
-static const EffectIntrospection DelayIntrospective = {
+constexpr EffectIntrospection DelayIntrospective = {
     amuse::EffectType::Delay,
     "Delay"sv,
     "Delay"sv,
-    {
+    {{
         {EffectIntrospection::Field::Type::UInt32x8, "Delay"sv, 10, 5000, 10},
         {EffectIntrospection::Field::Type::UInt32x8, "Feedback"sv, 0, 100, 0},
         {EffectIntrospection::Field::Type::UInt32x8, "Output"sv, 0, 100, 0},
-    }};
+    }},
+};
 
-typedef uint32_t (amuse::EffectDelay::*DelayGetFunc)(int) const;
-typedef void (amuse::EffectDelay::*DelaySetFunc)(int, uint32_t);
-static const DelayGetFunc DelayGetters[] = {&amuse::EffectDelay::getChanDelay, &amuse::EffectDelay::getChanFeedback,
-                                            &amuse::EffectDelay::getChanOutput};
-static const DelaySetFunc DelaySetters[] = {&amuse::EffectDelay::setChanDelay, &amuse::EffectDelay::setChanFeedback,
-                                            &amuse::EffectDelay::setChanOutput};
+using DelayGetFunc = uint32_t (amuse::EffectDelay::*)(int) const;
+using DelaySetFunc = void (amuse::EffectDelay::*)(int, uint32_t);
+constexpr std::array<DelayGetFunc, 3> DelayGetters{
+    &amuse::EffectDelay::getChanDelay,
+    &amuse::EffectDelay::getChanFeedback,
+    &amuse::EffectDelay::getChanOutput,
+};
+constexpr std::array<DelaySetFunc, 3> DelaySetters{
+    &amuse::EffectDelay::setChanDelay,
+    &amuse::EffectDelay::setChanFeedback,
+    &amuse::EffectDelay::setChanOutput,
+};
 
-static const EffectIntrospection ChorusIntrospective = {
+constexpr EffectIntrospection ChorusIntrospective = {
     amuse::EffectType::Chorus,
     "Chorus"sv,
     "Chorus"sv,
-    {
+    {{
         {EffectIntrospection::Field::Type::UInt32, "Base Delay"sv, 5, 15, 5},
         {EffectIntrospection::Field::Type::UInt32, "Variation"sv, 0, 5, 0},
         {EffectIntrospection::Field::Type::UInt32, "Period"sv, 500, 10000, 500},
-    }};
+    }},
+};
 
-typedef uint32_t (amuse::EffectChorus::*ChorusGetFunc)() const;
-typedef void (amuse::EffectChorus::*ChorusSetFunc)(uint32_t);
-static const ChorusGetFunc ChorusGetters[] = {&amuse::EffectChorus::getBaseDelay, &amuse::EffectChorus::getVariation,
-                                              &amuse::EffectChorus::getPeriod};
-static const ChorusSetFunc ChorusSetters[] = {&amuse::EffectChorus::setBaseDelay, &amuse::EffectChorus::setVariation,
-                                              &amuse::EffectChorus::setPeriod};
+using ChorusGetFunc = uint32_t (amuse::EffectChorus::*)() const;
+using ChorusSetFunc = void (amuse::EffectChorus::*)(uint32_t);
+constexpr std::array<ChorusGetFunc, 3> ChorusGetters{
+    &amuse::EffectChorus::getBaseDelay,
+    &amuse::EffectChorus::getVariation,
+    &amuse::EffectChorus::getPeriod,
+};
+constexpr std::array<ChorusSetFunc, 3> ChorusSetters{
+    &amuse::EffectChorus::setBaseDelay,
+    &amuse::EffectChorus::setVariation,
+    &amuse::EffectChorus::setPeriod,
+};
 
-static const EffectIntrospection* GetEffectIntrospection(amuse::EffectType type) {
+static constexpr const EffectIntrospection* GetEffectIntrospection(amuse::EffectType type) {
   switch (type) {
   case amuse::EffectType::ReverbStd:
     return &ReverbStdIntrospective;
@@ -138,11 +162,13 @@ static void SetEffectParm(amuse::EffectBaseTypeless* effect, int idx, int chanId
   }
 }
 
-static const char* ChanNames[] = {
+constexpr int NumChanNames = 8;
+constexpr std::array<const char*, NumChanNames> ChanNames{
     QT_TRANSLATE_NOOP("Uint32X8Popup", "Front Left"),   QT_TRANSLATE_NOOP("Uint32X8Popup", "Front Right"),
     QT_TRANSLATE_NOOP("Uint32X8Popup", "Rear Left"),    QT_TRANSLATE_NOOP("Uint32X8Popup", "Rear Right"),
     QT_TRANSLATE_NOOP("Uint32X8Popup", "Front Center"), QT_TRANSLATE_NOOP("Uint32X8Popup", "LFE"),
-    QT_TRANSLATE_NOOP("Uint32X8Popup", "Side Left"),    QT_TRANSLATE_NOOP("Uint32X8Popup", "Side Right")};
+    QT_TRANSLATE_NOOP("Uint32X8Popup", "Side Left"),    QT_TRANSLATE_NOOP("Uint32X8Popup", "Side Right"),
+};
 
 Uint32X8Popup::Uint32X8Popup(int min, int max, QWidget* parent) : QFrame(parent, Qt::Popup) {
   setAttribute(Qt::WA_WindowPropagation);
@@ -152,7 +178,7 @@ Uint32X8Popup::Uint32X8Popup(int min, int max, QWidget* parent) : QFrame(parent,
   setFrameStyle(combo->style()->styleHint(QStyle::SH_ComboBox_PopupFrameStyle, &opt, combo));
 
   QGridLayout* layout = new QGridLayout;
-  for (int i = 0; i < 8; ++i) {
+  for (int i = 0; i < NumChanNames; ++i) {
     layout->addWidget(new QLabel(tr(ChanNames[i])), i, 0);
     FieldSlider* slider = new FieldSlider(this);
     m_sliders[i] = slider;
@@ -253,7 +279,8 @@ EffectWidget::EffectWidget(QWidget* parent, amuse::EffectBaseTypeless* effect, a
   if (m_introspection) {
     m_titleLabel.setText(tr(m_introspection->m_name.data()));
     m_titleLabel.setToolTip(tr(m_introspection->m_description.data()));
-    for (int f = 0; f < 7; ++f) {
+
+    for (int f = 0; f < int(m_introspection->m_fields.size()); ++f) {
       const EffectIntrospection::Field& field = m_introspection->m_fields[f];
       if (!field.m_name.empty()) {
         QString fieldName = tr(field.m_name.data());
@@ -272,8 +299,9 @@ EffectWidget::EffectWidget(QWidget* parent, amuse::EffectBaseTypeless* effect, a
         case EffectIntrospection::Field::Type::UInt32x8: {
           Uint32X8Button* sb = new Uint32X8Button(int(field.m_min), int(field.m_max), this);
           sb->popup()->setProperty("fieldIndex", f);
-          for (int i = 0; i < 8; ++i)
+          for (int i = 0; i < Uint32X8Popup::NumSliders; ++i) {
             sb->popup()->setValue(i, GetEffectParm<uint32_t>(m_effect, f, i));
+          }
           connect(sb->popup(), &Uint32X8Popup::valueChanged, this, &EffectWidget::chanNumChanged);
           layout->addWidget(sb, 1, f);
           break;
@@ -295,6 +323,7 @@ EffectWidget::EffectWidget(QWidget* parent, amuse::EffectBaseTypeless* effect, a
       }
     }
   }
+
   mainLayout->addLayout(layout);
   layout->setRowMinimumHeight(0, 22);
   layout->setRowMinimumHeight(1, 22);
@@ -308,17 +337,30 @@ void EffectWidget::paintEvent(QPaintEvent* event) {
   QPainter painter(this);
   painter.setRenderHint(QPainter::Antialiasing);
 
-  QPoint points[] = {
-      {1, 20}, {1, 99}, {width() - 1, 99}, {width() - 1, 1}, {20, 1}, {1, 20},
-  };
+  const std::array<QPoint, 6> points{{
+      {1, 20},
+      {1, 99},
+      {width() - 1, 99},
+      {width() - 1, 1},
+      {20, 1},
+      {1, 20},
+  }};
   painter.setBrush(palette().brush(QPalette::Window));
-  painter.drawPolygon(points, 6);
+  painter.drawPolygon(points.data(), int(points.size()));
   painter.setPen(QPen(QColor(127, 127, 127), 2.0));
-  painter.drawPolyline(points, 6);
+  painter.drawPolyline(points.data(), int(points.size()));
 
-  QPoint headPoints[] = {{1, 20}, {1, 55}, {35, 20}, {width() - 1, 20}, {width() - 1, 1}, {20, 1}, {1, 20}};
+  const std::array<QPoint, 7> headPoints{{
+      {1, 20},
+      {1, 55},
+      {35, 20},
+      {width() - 1, 20},
+      {width() - 1, 1},
+      {20, 1},
+      {1, 20},
+  }};
   painter.setBrush(QColor(127, 127, 127));
-  painter.drawPolygon(headPoints, 7);
+  painter.drawPolygon(headPoints.data(), int(headPoints.size()));
 
   painter.drawRect(17, 51, 32, 32);
 
@@ -672,13 +714,19 @@ EffectCatalogueItem::EffectCatalogueItem(const EffectCatalogueItem& other, QWidg
 
 EffectCatalogueItem::~EffectCatalogueItem() = default;
 
-static const char* EffectStrings[] = {
-    QT_TRANSLATE_NOOP("EffectCatalogue", "Reverb Standard"), QT_TRANSLATE_NOOP("EffectCatalogue", "Reverb High"),
-    QT_TRANSLATE_NOOP("EffectCatalogue", "Delay"), QT_TRANSLATE_NOOP("EffectCatalogue", "Chorus")};
+constexpr std::array<const char*, 4> EffectStrings{
+    QT_TRANSLATE_NOOP("EffectCatalogue", "Reverb Standard"),
+    QT_TRANSLATE_NOOP("EffectCatalogue", "Reverb High"),
+    QT_TRANSLATE_NOOP("EffectCatalogue", "Delay"),
+    QT_TRANSLATE_NOOP("EffectCatalogue", "Chorus"),
+};
 
-static const char* EffectDocStrings[] = {
-    QT_TRANSLATE_NOOP("EffectCatalogue", "Reverb Standard"), QT_TRANSLATE_NOOP("EffectCatalogue", "Reverb High"),
-    QT_TRANSLATE_NOOP("EffectCatalogue", "Delay"), QT_TRANSLATE_NOOP("EffectCatalogue", "Chorus")};
+constexpr std::array<const char*, 4> EffectDocStrings{
+    QT_TRANSLATE_NOOP("EffectCatalogue", "Reverb Standard"),
+    QT_TRANSLATE_NOOP("EffectCatalogue", "Reverb High"),
+    QT_TRANSLATE_NOOP("EffectCatalogue", "Delay"),
+    QT_TRANSLATE_NOOP("EffectCatalogue", "Chorus"),
+};
 
 EffectCatalogue::EffectCatalogue(QWidget* parent) : QTreeWidget(parent) {
   setSelectionMode(QAbstractItemView::NoSelection);
@@ -856,8 +904,8 @@ StudioSetupWidget::StudioSetupWidget(QWidget* parent)
   setWindowTitle(tr("Studio Setup"));
   setGeometry(0, 0, 900, 450);
 
-  QScrollArea* scrollAreas[2];
-  for (int i = 0; i < 2; ++i) {
+  std::array<QScrollArea*, 2> scrollAreas{};
+  for (size_t i = 0; i < m_listing.size(); ++i) {
     m_listing[i] = new EffectListing;
     QScrollArea* listingScroll = new QScrollArea;
     scrollAreas[i] = listingScroll;
