@@ -10,44 +10,66 @@
 #include "Common.hpp"
 #include "StatusBarWidget.hpp"
 
-const QString NaturalKeyNames[] = {QStringLiteral("C"), QStringLiteral("D"), QStringLiteral("E"), QStringLiteral("F"),
-                                   QStringLiteral("G"), QStringLiteral("A"), QStringLiteral("B")};
+const std::array<QString, 7> NaturalKeyNames{
+    QStringLiteral("C"), QStringLiteral("D"), QStringLiteral("E"), QStringLiteral("F"),
+    QStringLiteral("G"), QStringLiteral("A"), QStringLiteral("B"),
+};
 
-const QString SharpKeyNames[] = {QStringLiteral("Cs"), QStringLiteral("Ds"), QStringLiteral("Fs"), QStringLiteral("Gs"),
-                                 QStringLiteral("As")};
+const std::array<QString, 5> SharpKeyNames{
+    QStringLiteral("Cs"), QStringLiteral("Ds"), QStringLiteral("Fs"), QStringLiteral("Gs"), QStringLiteral("As"),
+};
 
-const QString KeyStrings[] = {QStringLiteral("C"),  QStringLiteral("C#"), QStringLiteral("D"),  QStringLiteral("D#"),
-                              QStringLiteral("E"),  QStringLiteral("F"),  QStringLiteral("F#"), QStringLiteral("G"),
-                              QStringLiteral("G#"), QStringLiteral("A"),  QStringLiteral("A#"), QStringLiteral("B")};
+const std::array<QString, 12> KeyStrings{
+    QStringLiteral("C"),  QStringLiteral("C#"), QStringLiteral("D"),  QStringLiteral("D#"),
+    QStringLiteral("E"),  QStringLiteral("F"),  QStringLiteral("F#"), QStringLiteral("G"),
+    QStringLiteral("G#"), QStringLiteral("A"),  QStringLiteral("A#"), QStringLiteral("B"),
+};
 
-const int NaturalKeyNumbers[] = {0, 2, 4, 5, 7, 9, 11};
+const std::array<int, 7> NaturalKeyNumbers{
+    0, 2, 4, 5, 7, 9, 11,
+};
 
-const int SharpKeyNumbers[] = {1, 3, 6, 8, 10};
+const std::array<int, 5> SharpKeyNumbers{
+    1, 3, 6, 8, 10,
+};
 
 KeyboardOctave::KeyboardOctave(int octave, const QString& svgPath, QWidget* parent)
 : QSvgWidget(svgPath, parent), m_octave(octave) {
-  for (int i = 0; i < 7; ++i)
-    if (renderer()->elementExists(NaturalKeyNames[i]))
-      m_natural[i] =
-          renderer()->matrixForElement(NaturalKeyNames[i]).mapRect(renderer()->boundsOnElement(NaturalKeyNames[i]));
+  for (size_t i = 0; i < NaturalKeyNames.size(); ++i) {
+    const auto& naturalKeyName = NaturalKeyNames[i];
 
-  for (int i = 0; i < 5; ++i)
-    if (renderer()->elementExists(SharpKeyNames[i]))
-      m_sharp[i] =
-          renderer()->matrixForElement(SharpKeyNames[i]).mapRect(renderer()->boundsOnElement(SharpKeyNames[i]));
+    if (renderer()->elementExists(naturalKeyName)) {
+      m_natural[i] = renderer()->matrixForElement(naturalKeyName).mapRect(renderer()->boundsOnElement(naturalKeyName));
+    }
+  }
+
+  for (size_t i = 0; i < SharpKeyNames.size(); ++i) {
+    const auto& sharpKeyName = SharpKeyNames[i];
+
+    if (renderer()->elementExists(sharpKeyName)) {
+      m_sharp[i] = renderer()->matrixForElement(sharpKeyName).mapRect(renderer()->boundsOnElement(sharpKeyName));
+    }
+  }
 
   /* The parent keyboard manages all mouse events */
   setAttribute(Qt::WA_TransparentForMouseEvents);
 }
 
 int KeyboardOctave::getKey(const QPoint& localPos) const {
-  QPointF localPoint = m_widgetToSvg.map(localPos);
-  for (int i = 0; i < 5; ++i)
-    if (m_sharp[i].contains(localPoint))
+  const QPointF localPoint = m_widgetToSvg.map(localPos);
+
+  for (size_t i = 0; i < m_sharp.size(); ++i) {
+    if (m_sharp[i].contains(localPoint)) {
       return SharpKeyNumbers[i];
-  for (int i = 0; i < 7; ++i)
-    if (m_natural[i].contains(localPoint))
+    }
+  }
+
+  for (size_t i = 0; i < m_natural.size(); ++i) {
+    if (m_natural[i].contains(localPoint)) {
       return NaturalKeyNumbers[i];
+    }
+  }
+
   return -1;
 }
 
@@ -58,8 +80,8 @@ KeyboardWidget::KeyboardWidget(QWidget* parent) : QWidget(parent) {
   layout->setContentsMargins(QMargins());
   layout->setSpacing(0);
 
-  for (int i = 0; i < 10; ++i) {
-    m_widgets[i] = new KeyboardOctave(i, QStringLiteral(":/bg/keyboard.svg"), this);
+  for (size_t i = 0; i < m_widgets.size() - 1; ++i) {
+    m_widgets[i] = new KeyboardOctave(int(i), QStringLiteral(":/bg/keyboard.svg"), this);
     m_widgets[i]->setGeometry(QRect(0, 0, 141, 50));
     m_widgets[i]->setSizePolicy(QSizePolicy(QSizePolicy::Fixed, QSizePolicy::Preferred));
     layout->addWidget(m_widgets[i]);
@@ -90,14 +112,19 @@ void KeyboardWidget::_startKey(int octave, int key) { emit notePressed(octave * 
 void KeyboardWidget::_stopKey() { emit noteReleased(); }
 
 void KeyboardWidget::_moveOnKey(int octave, int key) {
-  if (m_lastOctave != octave || m_lastKey != key) {
-    m_lastOctave = octave;
-    m_lastKey = key;
-    if (m_statusFocus)
-      m_statusFocus->setMessage(
-          QStringLiteral("%1%2 (%3)").arg(KeyStrings[key]).arg(octave - 1).arg(octave * 12 + key));
-    if (m_holding)
-      _startKey(octave, key);
+  if (m_lastOctave == octave && m_lastKey == key) {
+    return;
+  }
+
+  m_lastOctave = octave;
+  m_lastKey = key;
+
+  if (m_statusFocus) {
+    m_statusFocus->setMessage(QStringLiteral("%1%2 (%3)").arg(KeyStrings[key]).arg(octave - 1).arg(octave * 12 + key));
+  }
+
+  if (m_holding) {
+    _startKey(octave, key);
   }
 }
 

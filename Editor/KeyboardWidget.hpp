@@ -1,16 +1,18 @@
 #pragma once
 
+#include <array>
+
 #include <QSlider>
 #include <QString>
 #include <QSvgWidget>
 #include <QWheelEvent>
 #include <QWidget>
 
-extern const QString NaturalKeyNames[7];
-extern const QString SharpKeyNames[5];
-extern const QString KeyStrings[12];
-extern const int NaturalKeyNumbers[7];
-extern const int SharpKeyNumbers[5];
+extern const std::array<QString, 7> NaturalKeyNames;
+extern const std::array<QString, 5> SharpKeyNames;
+extern const std::array<QString, 12> KeyStrings;
+extern const std::array<int, 7> NaturalKeyNumbers;
+extern const std::array<int, 5> SharpKeyNumbers;
 
 class KeyboardWidget;
 class StatusBarFocus;
@@ -18,8 +20,8 @@ class StatusBarFocus;
 class KeyboardOctave : public QSvgWidget {
   Q_OBJECT
   int m_octave;
-  QRectF m_natural[7];
-  QRectF m_sharp[5];
+  std::array<QRectF, 7> m_natural;
+  std::array<QRectF, 5> m_sharp;
   QTransform m_widgetToSvg;
 
 public:
@@ -31,7 +33,7 @@ public:
 
 class KeyboardWidget : public QWidget {
   Q_OBJECT
-  KeyboardOctave* m_widgets[11];
+  std::array<KeyboardOctave*, 11> m_widgets{};
   StatusBarFocus* m_statusFocus = nullptr;
   int m_lastOctave = -1;
   int m_lastKey = -1;
