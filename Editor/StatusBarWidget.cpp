@@ -14,10 +14,9 @@ StatusBarWidget::StatusBarWidget(QWidget* parent)
   m_killButton.setVisible(false);
   m_killButton.setToolTip(tr("Immediately kill active voices"));
   m_voiceCount.setVisible(false);
-  m_volumeIcons[0] = QIcon(QStringLiteral(":/icons/IconVolume0.svg"));
-  m_volumeIcons[1] = QIcon(QStringLiteral(":/icons/IconVolume1.svg"));
-  m_volumeIcons[2] = QIcon(QStringLiteral(":/icons/IconVolume2.svg"));
-  m_volumeIcons[3] = QIcon(QStringLiteral(":/icons/IconVolume3.svg"));
+  for (size_t i = 0; i < m_volumeIcons.size(); i++) {
+    m_volumeIcons[i] = QIcon(QStringLiteral(":/icons/IconVolume%1.svg").arg(i));
+  }
   m_aIcon.setFixedSize(16, 16);
   m_aIcon.setPixmap(QIcon(QStringLiteral(":/icons/IconA.svg")).pixmap(16, 16));
   QString aTip = tr("Aux A send level for all voices");
@@ -62,11 +61,14 @@ void StatusBarWidget::setVoiceCount(int voices) {
 }
 
 void StatusBarWidget::volumeChanged(int vol) {
-  int idx = int(std::round(vol * (3.f / 100.f)));
-  if (idx != m_lastVolIdx) {
-    m_lastVolIdx = idx;
-    m_volumeIcon.setPixmap(m_volumeIcons[idx].pixmap(16, 16));
+  const int idx = int(std::round(vol * (3.f / 100.f)));
+
+  if (idx == m_lastVolIdx) {
+    return;
   }
+
+  m_lastVolIdx = idx;
+  m_volumeIcon.setPixmap(m_volumeIcons[idx].pixmap(16, 16));
 }
 
 void StatusBarFocus::setMessage(const QString& message) {
