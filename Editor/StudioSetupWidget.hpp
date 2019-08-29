@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <string>
 
 #include <QLabel>
@@ -16,8 +17,6 @@
 
 #include "EditorWidget.hpp"
 
-class EffectListing;
-
 namespace amuse {
 class EffectBaseTypeless;
 class Studio;
@@ -26,24 +25,15 @@ class Submix;
 enum class EffectType;
 } // namespace amuse
 
-struct EffectIntrospection {
-  struct Field {
-    enum class Type { Invalid, UInt32, UInt32x8, Float };
-    Type m_tp;
-    std::string_view m_name;
-    float m_min, m_max, m_default;
-  };
-  amuse::EffectType m_tp;
-  std::string_view m_name;
-  std::string_view m_description;
-  Field m_fields[7];
-};
+class EffectListing;
+
+struct EffectIntrospection;
 
 class Uint32X8Popup : public QFrame {
   Q_OBJECT
-  FieldSlider* m_sliders[8];
-
 public:
+  static constexpr int NumSliders = 8;
+
   explicit Uint32X8Popup(int min, int max, QWidget* parent = Q_NULLPTR);
   ~Uint32X8Popup() override;
 
@@ -54,6 +44,9 @@ private slots:
 
 signals:
   void valueChanged(int chanIdx, int val);
+
+private:
+  std::array<FieldSlider*, NumSliders> m_sliders;
 };
 
 class Uint32X8Button : public QPushButton {
@@ -187,7 +180,7 @@ class StudioSetupWidget : public QWidget {
   friend class EffectCatalogue;
   QSplitter* m_splitter;
   QTabWidget* m_tabs;
-  EffectListing* m_listing[2];
+  std::array<EffectListing*, 2> m_listing{};
   EffectCatalogue* m_catalogue;
   EffectWidget* m_draggedCmd = nullptr;
   EffectCatalogueItem* m_draggedItem = nullptr;
