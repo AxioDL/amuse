@@ -1,16 +1,21 @@
-#include <athena/FileWriter.hpp>
-#include <athena/FileReader.hpp>
 #include "ProjectModel.hpp"
-#include "Common.hpp"
-#include "athena/YAMLDocWriter.hpp"
-#include "athena/VectorWriter.hpp"
-#include "MainWindow.hpp"
-#include "EditorWidget.hpp"
-#include "amuse/SongConverter.hpp"
-#include "amuse/ContainerRegistry.hpp"
+
+#include <QClipboard>
 #include <QDate>
 #include <QMimeData>
-#include <QClipboard>
+
+#include "Common.hpp"
+#include "EditorWidget.hpp"
+#include "MainWindow.hpp"
+#include "NewSoundMacroDialog.hpp"
+
+#include <amuse/ContainerRegistry.hpp>
+#include <amuse/SongConverter.hpp>
+
+#include <athena/FileWriter.hpp>
+#include <athena/FileReader.hpp>
+#include <athena/YAMLDocWriter.hpp>
+#include <athena/VectorWriter.hpp>
 
 QIcon ProjectModel::GroupNode::Icon;
 QIcon ProjectModel::SongGroupNode::Icon;
@@ -496,6 +501,8 @@ ProjectModel::ProjectModel(const QString& path, QObject* parent)
   SongGroupNode::Icon = QIcon(QStringLiteral(":/icons/IconSongGroup.svg"));
   SoundGroupNode::Icon = QIcon(QStringLiteral(":/icons/IconSoundGroup.svg"));
 }
+
+ProjectModel::~ProjectModel() = default;
 
 bool ProjectModel::clearProjectData() {
   m_projectDatabase = amuse::ProjectDatabase();
@@ -1333,25 +1340,17 @@ ProjectModel::SongGroupNode* ProjectModel::newSongGroup(GroupNode* group, QStrin
 constexpr ProjectModel::INode::Type GetINodeType(ProjectModel::SoundMacroNode*) {
   return ProjectModel::INode::Type::SoundMacro;
 }
-constexpr ProjectModel::INode::Type GetINodeType(ProjectModel::ADSRNode*) {
-  return ProjectModel::INode::Type::ADSR;
-}
-constexpr ProjectModel::INode::Type GetINodeType(ProjectModel::CurveNode*) {
-  return ProjectModel::INode::Type::Curve;
-}
+constexpr ProjectModel::INode::Type GetINodeType(ProjectModel::ADSRNode*) { return ProjectModel::INode::Type::ADSR; }
+constexpr ProjectModel::INode::Type GetINodeType(ProjectModel::CurveNode*) { return ProjectModel::INode::Type::Curve; }
 constexpr ProjectModel::INode::Type GetINodeType(ProjectModel::KeymapNode*) {
   return ProjectModel::INode::Type::Keymap;
 }
-constexpr ProjectModel::INode::Type GetINodeType(ProjectModel::LayersNode*) {
-  return ProjectModel::INode::Type::Layer;
-}
+constexpr ProjectModel::INode::Type GetINodeType(ProjectModel::LayersNode*) { return ProjectModel::INode::Type::Layer; }
 constexpr ProjectModel::INode::Type GetINodeType(ProjectModel::SampleNode*) {
   return ProjectModel::INode::Type::Sample;
 }
 
-constexpr amuse::NameDB::Type GetNameDBType(ProjectModel::SoundMacroNode*) {
-  return amuse::NameDB::Type::SoundMacro;
-}
+constexpr amuse::NameDB::Type GetNameDBType(ProjectModel::SoundMacroNode*) { return amuse::NameDB::Type::SoundMacro; }
 constexpr amuse::NameDB::Type GetNameDBType(ProjectModel::ADSRNode*) { return amuse::NameDB::Type::Table; }
 constexpr amuse::NameDB::Type GetNameDBType(ProjectModel::CurveNode*) { return amuse::NameDB::Type::Table; }
 constexpr amuse::NameDB::Type GetNameDBType(ProjectModel::KeymapNode*) { return amuse::NameDB::Type::Keymap; }
@@ -2121,6 +2120,4 @@ amuse::SongId ProjectModel::exchangeSongId(amuse::SongId oldId, std::string_view
   return newId;
 }
 
-void ProjectModel::setIdDatabases(INode* context) const {
-  m_projectDatabase.setIdDatabases();
-}
+void ProjectModel::setIdDatabases(INode* context) const { m_projectDatabase.setIdDatabases(); }
