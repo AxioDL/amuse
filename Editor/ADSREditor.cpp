@@ -55,8 +55,8 @@ void ADSRView::paintEvent(QPaintEvent* ev) {
   painter.setPen(QPen(QColor(127, 127, 127), penWidth));
   painter.setFont(m_gridFont);
   const qreal yIncrement = (height() - 16.0) / 10.0;
-  for (int i = 0; i < 11; ++i) {
-    const qreal thisY = i * yIncrement;
+  for (size_t i = 0; i < m_percentTexts.size(); ++i) {
+    const qreal thisY = qreal(i) * yIncrement;
     const qreal textY = thisY - (i == 0 ? 2.0 : (i == 10 ? 16.0 : 8.0));
     painter.drawStaticText(QPointF(0.0, textY), m_percentTexts[i]);
     painter.drawLine(QPointF(30.0, thisY), QPointF(width(), thisY));
@@ -212,7 +212,7 @@ void ADSRView::mouseMoveEvent(QMouseEvent* ev) {
 }
 
 ADSRView::ADSRView(QWidget* parent) : QWidget(parent) {
-  for (int i = 0; i < 11; ++i) {
+  for (size_t i = 0; i < m_percentTexts.size(); ++i) {
     m_percentTexts[i].setText(QStringLiteral("%1%").arg(100 - i * 10));
     m_percentTexts[i].setTextOption(QTextOption(Qt::AlignVCenter | Qt::AlignRight));
     m_percentTexts[i].setTextWidth(28.0);

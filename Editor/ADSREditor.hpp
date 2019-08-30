@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <vector>
 
@@ -22,7 +23,7 @@ class ADSRView : public QWidget {
   friend class ADSRControls;
   amuse::ObjToken<ProjectModel::ADSRNode> m_node;
   QFont m_gridFont;
-  QStaticText m_percentTexts[11];
+  std::array<QStaticText, 11> m_percentTexts;
   std::vector<QStaticText> m_timeTexts;
   int m_dragPoint = -1;
   uint64_t m_cycleIdx = 0;
