@@ -19,8 +19,8 @@ Emitter::Emitter(Engine& engine, const AudioGroup& group, ObjToken<Voice> vox, f
 : Entity(engine, group, vox->getGroupId(), vox->getObjectId())
 , m_vox(vox)
 , m_maxDist(maxDist)
-, m_minVol(std::clamp(0.f, minVol, 1.f))
-, m_falloff(std::clamp(-1.f, falloff, 1.f))
+, m_minVol(std::clamp(minVol, 0.f, 1.f))
+, m_falloff(std::clamp(falloff, -1.f, 1.f))
 , m_doppler(doppler) {}
 
 void Emitter::_destroy() {
@@ -60,13 +60,13 @@ void Emitter::_update() {
   for (auto& listener : m_engine.m_activeListeners) {
     Vector3f listenerToEmitter;
     Delta(listenerToEmitter, m_pos, listener->m_pos);
-    float dist = Length(listenerToEmitter);
-    float panDist = Dot(listenerToEmitter, listener->m_right);
-    float frontPan = std::clamp(-1.f, panDist / listener->m_frontDiff, 1.f);
-    float backPan = std::clamp(-1.f, panDist / listener->m_backDiff, 1.f);
-    float spanDist = -Dot(listenerToEmitter, listener->m_heading);
-    float span =
-        std::clamp(-1.f, spanDist > 0.f ? spanDist / listener->m_backDiff : spanDist / listener->m_frontDiff, 1.f);
+    const float dist = Length(listenerToEmitter);
+    const float panDist = Dot(listenerToEmitter, listener->m_right);
+    const float frontPan = std::clamp(panDist / listener->m_frontDiff, -1.f, 1.f);
+    const float backPan = std::clamp(panDist / listener->m_backDiff, -1.f, 1.f);
+    const float spanDist = -Dot(listenerToEmitter, listener->m_heading);
+    const float span =
+        std::clamp(spanDist > 0.f ? spanDist / listener->m_backDiff : spanDist / listener->m_frontDiff, -1.f, 1.f);
 
     /* Calculate attenuation */
     float att = _attenuationCurve(dist);

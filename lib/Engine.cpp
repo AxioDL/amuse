@@ -251,7 +251,7 @@ ObjToken<Voice> Engine::fxStart(SFXId sfxId, float vol, float pan, ObjToken<Stud
 
   (*ret)->setVolume(vol);
   float evalPan = pan != 0.f ? pan : ((entry->panning - 64.f) / 63.f);
-  evalPan = std::clamp(-1.f, evalPan, 1.f);
+  evalPan = std::clamp(evalPan, -1.f, 1.f);
   (*ret)->setPan(evalPan);
   return *ret;
 }
@@ -273,7 +273,7 @@ ObjToken<Voice> Engine::fxStart(const AudioGroup* group, GroupId groupId, SFXId 
 
       (*ret)->setVolume(vol);
       float evalPan = pan != 0.f ? pan : ((entry.panning - 64.f) / 63.f);
-      evalPan = std::clamp(-1.f, evalPan, 1.f);
+      evalPan = std::clamp(evalPan, -1.f, 1.f);
       (*ret)->setPan(evalPan);
       return *ret;
     }

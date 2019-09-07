@@ -42,8 +42,9 @@ void Envelope::reset(const ADSRDLS* adsr, int8_t note, int8_t vel) {
 
 void Envelope::keyOff(const Voice& vox) {
   double releaseTime = m_releaseTime;
-  if (vox.m_state.m_useAdsrControllers)
-    releaseTime = MIDItoTIME[std::clamp(0, int(vox.getCtrlValue(vox.m_state.m_midiRelease)), 103)] / 1000.0;
+  if (vox.m_state.m_useAdsrControllers) {
+    releaseTime = MIDItoTIME[std::clamp(int(vox.getCtrlValue(vox.m_state.m_midiRelease)), 0, 103)] / 1000.0;
+  }
 
   m_phase = (releaseTime != 0.0) ? State::Release : State::Complete;
   m_curTime = 0.0;
@@ -64,8 +65,9 @@ float Envelope::advance(double dt, const Voice& vox) {
   switch (m_phase) {
   case State::Attack: {
     double attackTime = m_attackTime;
-    if (vox.m_state.m_useAdsrControllers)
-      attackTime = MIDItoTIME[std::clamp(0, int(vox.getCtrlValue(vox.m_state.m_midiAttack)), 103)] / 1000.0;
+    if (vox.m_state.m_useAdsrControllers) {
+      attackTime = MIDItoTIME[std::clamp(int(vox.getCtrlValue(vox.m_state.m_midiAttack)), 0, 103)] / 1000.0;
+    }
 
     if (attackTime == 0.0) {
       m_phase = State::Decay;
@@ -85,12 +87,14 @@ float Envelope::advance(double dt, const Voice& vox) {
   }
   case State::Decay: {
     double decayTime = m_decayTime;
-    if (vox.m_state.m_useAdsrControllers)
-      decayTime = MIDItoTIME[std::clamp(0, int(vox.getCtrlValue(vox.m_state.m_midiDecay)), 103)] / 1000.0;
+    if (vox.m_state.m_useAdsrControllers) {
+      decayTime = MIDItoTIME[std::clamp(int(vox.getCtrlValue(vox.m_state.m_midiDecay)), 0, 103)] / 1000.0;
+    }
 
     double sustainFactor = m_sustainFactor;
-    if (vox.m_state.m_useAdsrControllers)
-      sustainFactor = std::clamp(0, int(vox.getCtrlValue(vox.m_state.m_midiSustain)), 127) / 127.0;
+    if (vox.m_state.m_useAdsrControllers) {
+      sustainFactor = std::clamp(int(vox.getCtrlValue(vox.m_state.m_midiSustain)), 0, 127) / 127.0;
+    }
 
     if (decayTime == 0.0) {
       m_phase = State::Sustain;
@@ -110,15 +114,17 @@ float Envelope::advance(double dt, const Voice& vox) {
   }
   case State::Sustain: {
     double sustainFactor = m_sustainFactor;
-    if (vox.m_state.m_useAdsrControllers)
-      sustainFactor = std::clamp(0, int(vox.getCtrlValue(vox.m_state.m_midiSustain)), 127) / 127.0;
+    if (vox.m_state.m_useAdsrControllers) {
+      sustainFactor = std::clamp(int(vox.getCtrlValue(vox.m_state.m_midiSustain)), 0, 127) / 127.0;
+    }
 
     return sustainFactor;
   }
   case State::Release: {
     double releaseTime = m_releaseTime;
-    if (vox.m_state.m_useAdsrControllers)
-      releaseTime = MIDItoTIME[std::clamp(0, int(vox.getCtrlValue(vox.m_state.m_midiRelease)), 103)] / 1000.0;
+    if (vox.m_state.m_useAdsrControllers) {
+      releaseTime = MIDItoTIME[std::clamp(int(vox.getCtrlValue(vox.m_state.m_midiRelease)), 0, 103)] / 1000.0;
+    }
 
     if (releaseTime == 0.0) {
       m_phase = State::Complete;

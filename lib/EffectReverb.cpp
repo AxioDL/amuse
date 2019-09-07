@@ -57,14 +57,14 @@ void ReverbDelayLine::setdelay(int32_t delay) {
 }
 
 EffectReverbStd::EffectReverbStd(float coloration, float mix, float time, float damping, float preDelay)
-: x140_x1c8_coloration(std::clamp(0.f, coloration, 1.f))
-, x144_x1cc_mix(std::clamp(0.f, mix, 1.f))
-, x148_x1d0_time(std::clamp(0.01f, time, 10.f))
-, x14c_x1d4_damping(std::clamp(0.f, damping, 1.f))
-, x150_x1d8_preDelay(std::clamp(0.f, preDelay, 0.1f)) {}
+: x140_x1c8_coloration(std::clamp(coloration, 0.f, 1.f))
+, x144_x1cc_mix(std::clamp(mix, 0.f, 1.f))
+, x148_x1d0_time(std::clamp(time, 0.01f, 10.f))
+, x14c_x1d4_damping(std::clamp(damping, 0.f, 1.f))
+, x150_x1d8_preDelay(std::clamp(preDelay, 0.f, 0.1f)) {}
 
 EffectReverbHi::EffectReverbHi(float coloration, float mix, float time, float damping, float preDelay, float crosstalk)
-: EffectReverbStd(coloration, mix, time, damping, preDelay), x1dc_crosstalk(std::clamp(0.f, crosstalk, 1.0f)) {}
+: EffectReverbStd(coloration, mix, time, damping, preDelay), x1dc_crosstalk(std::clamp(crosstalk, 0.f, 1.0f)) {}
 
 template <typename T>
 EffectReverbStdImp<T>::EffectReverbStdImp(float coloration, float mix, float time, float damping, float preDelay,

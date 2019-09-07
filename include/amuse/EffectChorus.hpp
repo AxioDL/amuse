@@ -38,21 +38,21 @@ public:
   using ImpType = EffectChorusImp<T>;
 
   void setBaseDelay(uint32_t baseDelay) {
-    baseDelay = std::clamp(5u, baseDelay, 15u);
+    baseDelay = std::clamp(baseDelay, 5u, 15u);
     x90_baseDelay = baseDelay;
     m_dirty = true;
   }
   uint32_t getBaseDelay() const { return x90_baseDelay; }
 
   void setVariation(uint32_t variation) {
-    variation = std::clamp(0u, variation, 5u);
+    variation = std::clamp(variation, 0u, 5u);
     x94_variation = variation;
     m_dirty = true;
   }
   uint32_t getVariation() const { return x94_variation; }
 
   void setPeriod(uint32_t period) {
-    period = std::clamp(500u, period, 10000u);
+    period = std::clamp(period, 500u, 10000u);
     x98_period = period;
     m_dirty = true;
   }

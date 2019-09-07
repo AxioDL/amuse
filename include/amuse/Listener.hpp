@@ -19,10 +19,10 @@ class Listener {
 
 public:
   Listener(float volume, float frontDiff, float backDiff, float soundSpeed)
-  : m_volume(std::clamp(0.f, volume, 1.f)), m_frontDiff(frontDiff), m_backDiff(backDiff), m_soundSpeed(soundSpeed) {}
+  : m_volume(std::clamp(volume, 0.f, 1.f)), m_frontDiff(frontDiff), m_backDiff(backDiff), m_soundSpeed(soundSpeed) {}
   void setVectors(const float* pos, const float* dir, const float* heading, const float* up);
   void setVolume(float vol) {
-    m_volume = std::clamp(0.f, vol, 1.f);
+    m_volume = std::clamp(vol, 0.f, 1.f);
     m_dirty = true;
   }
 };

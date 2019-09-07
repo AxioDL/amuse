@@ -143,9 +143,9 @@ static const float rsmpTab12khz[] =
 /* clang-format on */
 
 EffectChorus::EffectChorus(uint32_t baseDelay, uint32_t variation, uint32_t period)
-: x90_baseDelay(std::clamp(5u, baseDelay, 15u))
-, x94_variation(std::clamp(0u, variation, 5u))
-, x98_period(std::clamp(500u, period, 10000u)) {}
+: x90_baseDelay(std::clamp(baseDelay, 5u, 15u))
+, x94_variation(std::clamp(variation, 0u, 5u))
+, x98_period(std::clamp(period, 500u, 10000u)) {}
 
 template <typename T>
 EffectChorusImp<T>::EffectChorusImp(uint32_t baseDelay, uint32_t variation, uint32_t period, double sampleRate)
