@@ -114,8 +114,8 @@ void Voice::_doKeyOff() {
 
 void Voice::_setTotalPitch(int32_t cents, bool slew) {
   // fprintf(stderr, "PITCH %d %d  \n", cents, slew);
-  int32_t interval = std::clamp(0, cents, 12700) - m_curSample->getPitch() * 100;
-  double ratio = std::exp2(interval / 1200.0) * m_dopplerRatio;
+  const int32_t interval = std::clamp(cents, 0, 12700) - m_curSample->getPitch() * 100;
+  const double ratio = std::exp2(interval / 1200.0) * m_dopplerRatio;
   m_sampleRate = m_curSample->m_sampleRate * ratio;
   m_backendVoice->setPitchRatio(ratio, slew);
 }
@@ -200,8 +200,8 @@ void Voice::_procSamplePre(int16_t& samp) {
     dt = m_sampleRate * 160;
     if (rem != 0) {
       /* Lerp within 160-sample block */
-      float t = rem / 160.f;
-      float l = std::clamp(0.f, m_lastLevel * (1.f - t) + m_nextLevel * t, 1.f);
+      const float t = rem / 160.f;
+      const float l = std::clamp(m_lastLevel * (1.f - t) + m_nextLevel * t, 0.f, 1.f);
 
       /* Apply total volume to sample using decibel scale */
       samp = ApplyVolume(m_lerpedCache.getVolume(l * m_engine.m_masterVolume, m_dlsVol), samp);
@@ -218,12 +218,13 @@ void Voice::_procSamplePre(int16_t& samp) {
   /* Process active envelope */
   if (m_envelopeTime >= 0.0) {
     m_envelopeTime += dt;
-    float start = m_envelopeStart;
-    float end = m_envelopeEnd;
-    float t = std::clamp(0.f, float(m_envelopeTime / m_envelopeDur), 1.f);
-    if (m_envelopeCurve && m_envelopeCurve->data.size() >= 128)
+    const float start = m_envelopeStart;
+    const float end = m_envelopeEnd;
+    float t = std::clamp(float(m_envelopeTime / m_envelopeDur), 0.f, 1.f);
+    if (m_envelopeCurve && m_envelopeCurve->data.size() >= 128) {
       t = m_envelopeCurve->data[t * 127.f] / 127.f;
-    m_envelopeVol = std::clamp(0.f, (start * (1.0f - t)) + (end * t), 1.f);
+    }
+    m_envelopeVol = std::clamp((start * (1.0f - t)) + (end * t), 0.f, 1.f);
 
     // printf("%d %f\n", m_vid, m_envelopeVol);
 
@@ -280,7 +281,7 @@ void Voice::_procSamplePre(int16_t& samp) {
     }
   }
 
-  m_nextLevel = std::clamp(0.f, m_nextLevel, 1.f);
+  m_nextLevel = std::clamp(m_nextLevel, 0.f, 1.f);
 
   /* Apply total volume to sample using decibel scale */
   samp = ApplyVolume(m_nextLevelCache.getVolume(m_nextLevel * m_engine.m_masterVolume, m_dlsVol), samp);
@@ -288,8 +289,8 @@ void Voice::_procSamplePre(int16_t& samp) {
 
 template <typename T>
 T Voice::_procSampleMaster(double time, T samp) {
-  float evalVol = m_state.m_volumeSel ? (m_state.m_volumeSel.evaluate(time, *this, m_state) / 127.f) : 1.f;
-  return ApplyVolume(m_masterCache.getVolume(std::clamp(0.f, evalVol, 1.f), m_dlsVol), samp);
+  const float evalVol = m_state.m_volumeSel ? (m_state.m_volumeSel.evaluate(time, *this, m_state) / 127.f) : 1.f;
+  return ApplyVolume(m_masterCache.getVolume(std::clamp(evalVol, 0.f, 1.f), m_dlsVol), samp);
 }
 
 template <typename T>
@@ -297,7 +298,7 @@ T Voice::_procSampleAuxA(double time, T samp) {
   float evalVol = m_state.m_volumeSel ? (m_state.m_volumeSel.evaluate(time, *this, m_state) / 127.f) : 1.f;
   evalVol *= m_state.m_reverbSel ? (m_state.m_reverbSel.evaluate(time, *this, m_state) / 127.f) : m_curReverbVol;
   evalVol += m_state.m_preAuxASel ? (m_state.m_preAuxASel.evaluate(time, *this, m_state) / 127.f) : 0.f;
-  return ApplyVolume(m_auxACache.getVolume(std::clamp(0.f, evalVol, 1.f), m_dlsVol), samp);
+  return ApplyVolume(m_auxACache.getVolume(std::clamp(evalVol, 0.f, 1.f), m_dlsVol), samp);
 }
 
 template <typename T>
@@ -305,7 +306,7 @@ T Voice::_procSampleAuxB(double time, T samp) {
   float evalVol = m_state.m_volumeSel ? (m_state.m_volumeSel.evaluate(time, *this, m_state) / 127.f) : 1.f;
   evalVol *= m_state.m_postAuxB ? (m_state.m_postAuxB.evaluate(time, *this, m_state) / 127.f) : m_curAuxBVol;
   evalVol += m_state.m_preAuxBSel ? (m_state.m_preAuxBSel.evaluate(time, *this, m_state) / 127.f) : 0.f;
-  return ApplyVolume(m_auxBCache.getVolume(std::clamp(0.f, evalVol, 1.f), m_dlsVol), samp);
+  return ApplyVolume(m_auxBCache.getVolume(std::clamp(evalVol, 0.f, 1.f), m_dlsVol), samp);
 }
 
 uint32_t Voice::_GetBlockSampleCount(SampleFormat fmt) {
@@ -343,7 +344,7 @@ void Voice::preSupplyAudio(double dt) {
   bool panDirty = false;
   if (m_state.m_panSel) {
     float evalPan = (m_state.m_panSel.evaluate(m_voiceTime, *this, m_state) - 64.f) / 63.f;
-    evalPan = std::clamp(-1.f, evalPan, 1.f);
+    evalPan = std::clamp(evalPan, -1.f, 1.f);
     if (evalPan != m_curPan) {
       m_curPan = evalPan;
       panDirty = true;
@@ -351,7 +352,7 @@ void Voice::preSupplyAudio(double dt) {
   }
   if (m_state.m_spanSel) {
     float evalSpan = (m_state.m_spanSel.evaluate(m_voiceTime, *this, m_state) - 64.f) / 63.f;
-    evalSpan = std::clamp(-1.f, evalSpan, 1.f);
+    evalSpan = std::clamp(evalSpan, -1.f, 1.f);
     if (evalSpan != m_curSpan) {
       m_curSpan = evalSpan;
       panDirty = true;
@@ -361,8 +362,8 @@ void Voice::preSupplyAudio(double dt) {
     _setPan(m_curPan);
 
   if (m_state.m_pitchWheelSel) {
-    float evalPWheel = (m_state.m_pitchWheelSel.evaluate(m_voiceTime, *this, m_state) - 64.f) / 63.f;
-    _setPitchWheel(std::clamp(-1.f, evalPWheel, 1.f));
+    const float evalPWheel = (m_state.m_pitchWheelSel.evaluate(m_voiceTime, *this, m_state) - 64.f) / 63.f;
+    _setPitchWheel(std::clamp(evalPWheel, -1.f, 1.f));
   }
 
   /* Process active pan-sweep */
@@ -370,9 +371,9 @@ void Voice::preSupplyAudio(double dt) {
   if (!m_panningQueue.empty()) {
     Panning& p = m_panningQueue.front();
     p.m_time += dt;
-    double start = (p.m_pos - 64) / 64.0;
-    double end = (p.m_pos + p.m_width - 64) / 64.0;
-    double t = std::clamp(0.0, p.m_time / p.m_dur, 1.0);
+    const double start = (p.m_pos - 64) / 64.0;
+    const double end = (p.m_pos + p.m_width - 64) / 64.0;
+    const double t = std::clamp(p.m_time / p.m_dur, 0.0, 1.0);
     _setPan(float((start * (1.0 - t)) + (end * t)));
     refresh = true;
 
@@ -385,9 +386,9 @@ void Voice::preSupplyAudio(double dt) {
   if (!m_spanningQueue.empty()) {
     Panning& s = m_spanningQueue.front();
     s.m_time += dt;
-    double start = (s.m_pos - 64) / 64.0;
-    double end = (s.m_pos + s.m_width - 64) / 64.0;
-    double t = std::clamp(0.0, s.m_time / s.m_dur, 1.0);
+    const double start = (s.m_pos - 64) / 64.0;
+    const double end = (s.m_pos + s.m_width - 64) / 64.0;
+    const double t = std::clamp(s.m_time / s.m_dur, 0.0, 1.0);
     _setSurroundPan(float((start * (1.0 - t)) + (end * t)));
     refresh = true;
 
@@ -402,7 +403,7 @@ void Voice::preSupplyAudio(double dt) {
   m_pitchDirty = false;
   if (m_portamentoTime >= 0.f) {
     m_portamentoTime += dt;
-    float t = std::clamp(0.f, m_portamentoTime / m_state.m_portamentoTime, 1.f);
+    const float t = std::clamp(m_portamentoTime / m_state.m_portamentoTime, 0.f, 1.f);
 
     newPitch = (m_curPitch * (1.0f - t)) + (m_portamentoTarget * t);
     refresh = true;
@@ -849,14 +850,15 @@ void Voice::startSample(SampleId sampId, int32_t offset) {
     m_backendVoice->resetSampleRate(m_curSample->m_sampleRate);
     m_needsSlew = false;
 
-    int32_t numSamples = m_curSample->getNumSamples();
+    const int32_t numSamples = m_curSample->getNumSamples();
     if (offset) {
       if (m_curSample->isLooped()) {
         if (offset > int32_t(m_curSample->m_loopStartSample))
           offset = ((offset - m_curSample->m_loopStartSample) % m_curSample->m_loopLengthSamples) +
                    m_curSample->m_loopStartSample;
-      } else
-        offset = std::clamp(0, offset, numSamples);
+      } else {
+        offset = std::clamp(offset, 0, numSamples);
+      }
     }
     m_curSamplePos = offset;
     m_prev1 = 0;
@@ -895,7 +897,7 @@ void Voice::setVolume(float vol) {
   if (m_destroyed)
     return;
 
-  m_targetUserVol = std::clamp(0.f, vol, 1.f);
+  m_targetUserVol = std::clamp(vol, 0.f, 1.f);
   for (ObjToken<Voice>& vox : m_childVoices)
     vox->setVolume(vol);
 }
@@ -1011,12 +1013,13 @@ void Voice::_panLaw(float coefs[8], float frontPan, float backPan, float totalSp
 }
 
 void Voice::_setPan(float pan) {
-  if (m_destroyed || m_emitter)
+  if (m_destroyed || m_emitter) {
     return;
+  }
 
-  m_curPan = std::clamp(-1.f, pan, 1.f);
-  float totalPan = std::clamp(-1.f, m_curPan, 1.f);
-  float totalSpan = std::clamp(-1.f, m_curSpan, 1.f);
+  m_curPan = std::clamp(pan, -1.f, 1.f);
+  const float totalPan = std::clamp(m_curPan, -1.f, 1.f);
+  const float totalSpan = std::clamp(m_curSpan, -1.f, 1.f);
   float coefs[8] = {};
   _panLaw(coefs, totalPan, totalPan, totalSpan);
   _setChannelCoefs(coefs);
@@ -1032,7 +1035,7 @@ void Voice::setPan(float pan) {
 }
 
 void Voice::_setSurroundPan(float span) {
-  m_curSpan = std::clamp(-1.f, span, 1.f);
+  m_curSpan = std::clamp(span, -1.f, 1.f);
   _setPan(m_curPan);
 }
 
@@ -1063,8 +1066,8 @@ void Voice::setChannelCoefs(const float coefs[8]) {
 void Voice::startEnvelope(double dur, float vol, const Curve* envCurve) {
   m_envelopeTime = 0.f;
   m_envelopeDur = dur;
-  m_envelopeStart = std::clamp(0.f, m_envelopeVol, 1.f);
-  m_envelopeEnd = std::clamp(0.f, vol, 1.f);
+  m_envelopeStart = std::clamp(m_envelopeVol, 0.f, 1.f);
+  m_envelopeEnd = std::clamp(vol, 0.f, 1.f);
   m_envelopeCurve = envCurve;
 }
 
@@ -1072,7 +1075,7 @@ void Voice::startFadeIn(double dur, float vol, const Curve* envCurve) {
   m_envelopeTime = 0.f;
   m_envelopeDur = dur;
   m_envelopeStart = 0.f;
-  m_envelopeEnd = std::clamp(0.f, vol, 1.f);
+  m_envelopeEnd = std::clamp(vol, 0.f, 1.f);
   m_envelopeCurve = envCurve;
 }
 
@@ -1134,21 +1137,25 @@ void Voice::setPitchSweep2(uint8_t times, int16_t add) {
 }
 
 void Voice::setReverbVol(float rvol) {
-  if (m_destroyed)
+  if (m_destroyed) {
     return;
+  }
 
-  m_curReverbVol = std::clamp(0.f, rvol, 1.f);
-  for (ObjToken<Voice>& vox : m_childVoices)
+  m_curReverbVol = std::clamp(rvol, 0.f, 1.f);
+  for (ObjToken<Voice>& vox : m_childVoices) {
     vox->setReverbVol(rvol);
+  }
 }
 
 void Voice::setAuxBVol(float bvol) {
-  if (m_destroyed)
+  if (m_destroyed) {
     return;
+  }
 
-  m_curAuxBVol = std::clamp(0.f, bvol, 1.f);
-  for (ObjToken<Voice>& vox : m_childVoices)
+  m_curAuxBVol = std::clamp(bvol, 0.f, 1.f);
+  for (ObjToken<Voice>& vox : m_childVoices) {
     vox->setAuxBVol(bvol);
+  }
 }
 
 void Voice::setAdsr(ObjectId adsrId, bool dls) {
@@ -1207,14 +1214,16 @@ void Voice::_setPitchWheel(float pitchWheel) {
 }
 
 void Voice::setPitchWheel(float pitchWheel) {
-  if (m_destroyed)
+  if (m_destroyed) {
     return;
+  }
 
-  m_curPitchWheel = std::clamp(-1.f, pitchWheel, 1.f);
+  m_curPitchWheel = std::clamp(pitchWheel, -1.f, 1.f);
   _setPitchWheel(m_curPitchWheel);
 
-  for (ObjToken<Voice>& vox : m_childVoices)
+  for (ObjToken<Voice>& vox : m_childVoices) {
     vox->setPitchWheel(pitchWheel);
+  }
 }
 
 void Voice::setPitchWheelRange(int8_t up, int8_t down) {
