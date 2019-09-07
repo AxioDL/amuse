@@ -51,7 +51,7 @@ class Sequencer : public Entity {
     ~ChannelState();
     ChannelState() = default;
     ChannelState(Sequencer& parent, uint8_t chanId);
-    operator bool() const { return m_parent != nullptr; }
+    explicit operator bool() const { return m_parent != nullptr; }
 
     /** Voices corresponding to currently-pressed keys in channel */
     std::unordered_map<uint8_t, ObjToken<Voice>> m_chanVoxs;

@@ -216,7 +216,7 @@ public:
   bool operator!=(const ObjTokenBase& other) const noexcept { return !operator==(other); }
   bool operator<(const ObjTokenBase& other) const noexcept { return m_obj < other.m_obj; }
   bool operator>(const ObjTokenBase& other) const noexcept { return m_obj > other.m_obj; }
-  operator bool() const noexcept { return m_obj != nullptr; }
+  explicit operator bool() const noexcept { return m_obj != nullptr; }
   void reset() noexcept {
     if (m_obj) {
       m_obj->decrement();

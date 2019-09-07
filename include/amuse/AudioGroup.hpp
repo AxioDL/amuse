@@ -26,7 +26,7 @@ protected:
 
 public:
   SystemString getSampleBasePath(SampleId sfxId) const;
-  operator bool() const { return m_valid; }
+  explicit operator bool() const { return m_valid; }
   AudioGroup() = default;
   explicit AudioGroup(const AudioGroupData& data) { assign(data); }
   explicit AudioGroup(SystemStringView groupPath) { assign(groupPath); }
