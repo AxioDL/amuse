@@ -1,5 +1,7 @@
 #include "amuse/Engine.hpp"
 
+#include <array>
+
 #include "amuse/AudioGroup.hpp"
 #include "amuse/AudioGroupData.hpp"
 #include "amuse/Common.hpp"
@@ -11,7 +13,7 @@
 
 namespace amuse {
 
-static const float FullLevels[8] = {1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f};
+constexpr std::array<float, 8> FullLevels{1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f};
 
 Engine::~Engine() {
   m_backend.setCallbackInterface(nullptr);

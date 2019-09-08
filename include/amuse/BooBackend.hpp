@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <list>
@@ -39,7 +40,7 @@ public:
   void resetSampleRate(double sampleRate) override;
 
   void resetChannelLevels() override;
-  void setChannelLevels(IBackendSubmix* submix, const float coefs[8], bool slew) override;
+  void setChannelLevels(IBackendSubmix* submix, const std::array<float, 8>& coefs, bool slew) override;
   void setPitchRatio(double ratio, bool slew) override;
   void start() override;
   void stop() override;
