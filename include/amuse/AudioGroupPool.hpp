@@ -36,7 +36,7 @@ struct AT_SPECIALIZE_PARMS(athena::Endian::Big, athena::Endian::Little) ObjectHe
   AT_DECL_DNA
   Value<atUint32, DNAEn> size;
   ObjectIdDNA<DNAEn> objectId;
-  Seek<2, athena::Current> pad;
+  Seek<2, athena::SeekOrigin::Current> pad;
 };
 
 struct SoundMacro {
@@ -908,7 +908,7 @@ struct SoundMacro {
     static const CmdIntrospection Introspective;
     Value<bool> varCtrlA;
     Value<atInt8> a;
-    Seek<1, athena::Current> pad;
+    Seek<1, athena::SeekOrigin::Current> pad;
     Value<atInt16> imm;
     bool Do(SoundMacroState& st, Voice& vox) const override;
     CmdOp Isa() const override { return CmdOp::SetVar; }
@@ -1100,7 +1100,7 @@ struct AT_SPECIALIZE_PARMS(athena::Endian::Big, athena::Endian::Little) KeymapDN
   Value<atInt8> transpose;
   Value<atInt8> pan; /* -128 for surround-channel only */
   Value<atInt8> prioOffset;
-  Seek<3, athena::Current> pad;
+  Seek<3, athena::SeekOrigin::Current> pad;
 };
 struct Keymap : BigDNA {
   AT_DECL_DNA_YAML
@@ -1142,7 +1142,7 @@ struct AT_SPECIALIZE_PARMS(athena::Endian::Big, athena::Endian::Little) LayerMap
   Value<atInt8> prioOffset;
   Value<atInt8> span;
   Value<atInt8> pan;
-  Seek<3, athena::Current> pad;
+  Seek<3, athena::SeekOrigin::Current> pad;
 };
 struct LayerMapping : BigDNA {
   AT_DECL_DNA_YAML

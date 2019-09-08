@@ -24,7 +24,7 @@ namespace amuse {
 
 static bool AtEnd32(athena::io::IStreamReader& r) {
   uint32_t v = r.readUint32Big();
-  r.seek(-4, athena::Current);
+  r.seek(-4, athena::SeekOrigin::Current);
   return v == 0xffffffff;
 }
 
@@ -55,7 +55,7 @@ AudioGroupSampleDirectory::AudioGroupSampleDirectory(athena::io::IStreamReader& 
 
   for (auto& p : m_entries) {
     if (p.second->m_data->m_adpcmParmOffset) {
-      r.seek(p.second->m_data->m_adpcmParmOffset, athena::Begin);
+      r.seek(p.second->m_data->m_adpcmParmOffset, athena::SeekOrigin::Begin);
       r.readUBytesToBuf(&p.second->m_data->m_ADPCMParms, sizeof(ADPCMParms::DSPParms));
       p.second->m_data->m_ADPCMParms.swapBigDSP();
     }
@@ -237,7 +237,7 @@ void AudioGroupSampleDirectory::EntryData::loadLooseWAV(SystemStringView wavPath
         m_looseData.reset(new uint8_t[chunkSize]);
         r.readUBytesToBuf(m_looseData.get(), chunkSize);
       }
-      r.seek(startPos + chunkSize, athena::Begin);
+      r.seek(startPos + chunkSize, athena::SeekOrigin::Begin);
     }
   }
 }
@@ -388,7 +388,7 @@ void AudioGroupSampleDirectory::EntryData::patchMetadataDSP(SystemStringView dsp
 
     athena::io::FileWriter w(dspPath, false);
     if (!w.hasError()) {
-      w.seek(0, athena::Begin);
+      w.seek(0, athena::SeekOrigin::Begin);
       head.write(w);
     }
   }
@@ -397,7 +397,7 @@ void AudioGroupSampleDirectory::EntryData::patchMetadataDSP(SystemStringView dsp
 void AudioGroupSampleDirectory::EntryData::patchMetadataVADPCM(SystemStringView vadpcmPath) {
   athena::io::FileWriter w(vadpcmPath, false);
   if (!w.hasError()) {
-    w.seek(0, athena::Begin);
+    w.seek(0, athena::SeekOrigin::Begin);
     VADPCMHeader header;
     header.m_pitchSampleRate = m_pitch << 24;
     header.m_pitchSampleRate |= m_sampleRate & 0xffff;
@@ -434,12 +434,12 @@ void AudioGroupSampleDirectory::EntryData::patchMetadataWAV(SystemStringView wav
               loopOffset = startPos + 36;
             ++readSec;
           }
-          r.seek(startPos + chunkSize, athena::Begin);
+          r.seek(startPos + chunkSize, athena::SeekOrigin::Begin);
         }
 
         if (smplOffset == -1 || loopOffset == -1) {
           /* Complete rewrite of RIFF layout - new smpl chunk */
-          r.seek(12, athena::Begin);
+          r.seek(12, athena::SeekOrigin::Begin);
           athena::io::FileWriter w(wavPath);
           if (!w.hasError()) {
             w.writeUint32Little(SBIG('RIFF'));
@@ -470,7 +470,7 @@ void AudioGroupSampleDirectory::EntryData::patchMetadataWAV(SystemStringView wav
                 loop.end = getLoopEndSample();
                 loop.write(w);
                 if (chunkMagic == SBIG('smpl')) {
-                  r.seek(chunkSize, athena::Current);
+                  r.seek(chunkSize, athena::SeekOrigin::Current);
                   continue;
                 }
               }
@@ -480,7 +480,7 @@ void AudioGroupSampleDirectory::EntryData::patchMetadataWAV(SystemStringView wav
             }
 
             atUint64 wavLen = w.position();
-            w.seek(4, athena::Begin);
+            w.seek(4, athena::SeekOrigin::Begin);
             w.writeUint32Little(wavLen - 8);
           }
           r.close();
@@ -489,7 +489,7 @@ void AudioGroupSampleDirectory::EntryData::patchMetadataWAV(SystemStringView wav
           r.close();
           athena::io::FileWriter w(wavPath, false);
           if (!w.hasError()) {
-            w.seek(smplOffset, athena::Begin);
+            w.seek(smplOffset, athena::SeekOrigin::Begin);
             WAVSampleChunk smpl;
             smpl.smplPeriod = 1000000000 / fmt.sampleRate;
             smpl.midiNote = m_pitch;
@@ -810,7 +810,7 @@ void AudioGroupSampleDirectory::_extractCompressed(SampleId id, const EntryData&
       samps += sampleCount;
     }
 
-    w.seek(0, athena::Begin);
+    w.seek(0, athena::SeekOrigin::Begin);
     header.write(w);
   } else {
     return;

@@ -88,7 +88,7 @@ struct IntrospectCmdOp {
 
 static bool AtEnd(athena::io::IStreamReader& r) {
   uint32_t v = r.readUint32Big();
-  r.seek(-4, athena::Current);
+  r.seek(-4, athena::SeekOrigin::Current);
   return v == 0xffffffff;
 }
 
@@ -100,7 +100,7 @@ AudioGroupPool AudioGroupPool::_AudioGroupPool(athena::io::IStreamReader& r) {
   head.read(r);
 
   if (head.soundMacrosOffset) {
-    r.seek(head.soundMacrosOffset, athena::Begin);
+    r.seek(head.soundMacrosOffset, athena::SeekOrigin::Begin);
     while (!AtEnd(r)) {
       ObjectHeader<DNAE> objHead;
       atInt64 startPos = r.position();
@@ -111,12 +111,12 @@ AudioGroupPool AudioGroupPool::_AudioGroupPool(athena::io::IStreamReader& r) {
       auto& macro = ret.m_soundMacros[objHead.objectId.id];
       macro = MakeObj<SoundMacro>();
       macro->template readCmds<DNAE>(r, objHead.size - 8);
-      r.seek(startPos + objHead.size, athena::Begin);
+      r.seek(startPos + objHead.size, athena::SeekOrigin::Begin);
     }
   }
 
   if (head.tablesOffset) {
-    r.seek(head.tablesOffset, athena::Begin);
+    r.seek(head.tablesOffset, athena::SeekOrigin::Begin);
     while (!AtEnd(r)) {
       ObjectHeader<DNAE> objHead;
       atInt64 startPos = r.position();
@@ -139,12 +139,12 @@ AudioGroupPool AudioGroupPool::_AudioGroupPool(athena::io::IStreamReader& r) {
         r.readUBytesToBuf(&static_cast<Curve&>(**ptr).data[0], objHead.size - 8);
         break;
       }
-      r.seek(startPos + objHead.size, athena::Begin);
+      r.seek(startPos + objHead.size, athena::SeekOrigin::Begin);
     }
   }
 
   if (head.keymapsOffset) {
-    r.seek(head.keymapsOffset, athena::Begin);
+    r.seek(head.keymapsOffset, athena::SeekOrigin::Begin);
     while (!AtEnd(r)) {
       ObjectHeader<DNAE> objHead;
       atInt64 startPos = r.position();
@@ -159,12 +159,12 @@ AudioGroupPool AudioGroupPool::_AudioGroupPool(athena::io::IStreamReader& r) {
         kmData.read(r);
         (*km)[i] = kmData;
       }
-      r.seek(startPos + objHead.size, athena::Begin);
+      r.seek(startPos + objHead.size, athena::SeekOrigin::Begin);
     }
   }
 
   if (head.layersOffset) {
-    r.seek(head.layersOffset, athena::Begin);
+    r.seek(head.layersOffset, athena::SeekOrigin::Begin);
     while (!AtEnd(r)) {
       ObjectHeader<DNAE> objHead;
       atInt64 startPos = r.position();
@@ -182,7 +182,7 @@ AudioGroupPool AudioGroupPool::_AudioGroupPool(athena::io::IStreamReader& r) {
         lmData.read(r);
         lm->push_back(lmData);
       }
-      r.seek(startPos + objHead.size, athena::Begin);
+      r.seek(startPos + objHead.size, athena::SeekOrigin::Begin);
     }
   }
 
@@ -1019,9 +1019,9 @@ std::vector<uint8_t> AudioGroupPool::toData() const {
       p.second->template writeCmds<DNAE>(fo);
       objHead.size = fo.position() - startPos;
       objHead.objectId = p.first;
-      fo.seek(startPos, athena::Begin);
+      fo.seek(startPos, athena::SeekOrigin::Begin);
       objHead.write(fo);
-      fo.seek(startPos + objHead.size, athena::Begin);
+      fo.seek(startPos + objHead.size, athena::SeekOrigin::Begin);
     }
     athena::io::Write<athena::io::PropType::None>::Do<decltype(term), DNAE>({}, term, fo);
   }
@@ -1049,9 +1049,9 @@ std::vector<uint8_t> AudioGroupPool::toData() const {
       }
       objHead.size = fo.position() - startPos;
       objHead.objectId = p.first;
-      fo.seek(startPos, athena::Begin);
+      fo.seek(startPos, athena::SeekOrigin::Begin);
       objHead.write(fo);
-      fo.seek(startPos + objHead.size, athena::Begin);
+      fo.seek(startPos + objHead.size, athena::SeekOrigin::Begin);
     }
     athena::io::Write<athena::io::PropType::None>::Do<decltype(term), DNAE>({}, term, fo);
   }
@@ -1068,9 +1068,9 @@ std::vector<uint8_t> AudioGroupPool::toData() const {
       }
       objHead.size = fo.position() - startPos;
       objHead.objectId = p.first;
-      fo.seek(startPos, athena::Begin);
+      fo.seek(startPos, athena::SeekOrigin::Begin);
       objHead.write(fo);
-      fo.seek(startPos + objHead.size, athena::Begin);
+      fo.seek(startPos + objHead.size, athena::SeekOrigin::Begin);
     }
     athena::io::Write<athena::io::PropType::None>::Do<decltype(term), DNAE>({}, term, fo);
   }
@@ -1089,14 +1089,14 @@ std::vector<uint8_t> AudioGroupPool::toData() const {
       }
       objHead.size = fo.position() - startPos;
       objHead.objectId = p.first;
-      fo.seek(startPos, athena::Begin);
+      fo.seek(startPos, athena::SeekOrigin::Begin);
       objHead.write(fo);
-      fo.seek(startPos + objHead.size, athena::Begin);
+      fo.seek(startPos + objHead.size, athena::SeekOrigin::Begin);
     }
     athena::io::Write<athena::io::PropType::None>::Do<decltype(term), DNAE>({}, term, fo);
   }
 
-  fo.seek(0, athena::Begin);
+  fo.seek(0, athena::SeekOrigin::Begin);
   head.write(fo);
 
   return fo.data();
