@@ -46,7 +46,7 @@ void AudioGroupSampleDirectory::ADPCMParms::swapBigVADPCM() {
 
 AudioGroupSampleDirectory::AudioGroupSampleDirectory(athena::io::IStreamReader& r, GCNDataTag) {
   while (!AtEnd32(r)) {
-    EntryDNA<athena::Big> ent;
+    EntryDNA<athena::Endian::Big> ent;
     ent.read(r);
     m_entries[ent.m_sfxId] = MakeObj<Entry>(ent);
     if (SampleId::CurNameDB)
@@ -66,14 +66,14 @@ AudioGroupSampleDirectory::AudioGroupSampleDirectory(athena::io::IStreamReader& 
                                                      bool absOffs, N64DataTag) {
   if (absOffs) {
     while (!AtEnd32(r)) {
-      MusyX1AbsSdirEntry<athena::Big> ent;
+      MusyX1AbsSdirEntry<athena::Endian::Big> ent;
       ent.read(r);
       m_entries[ent.m_sfxId] = MakeObj<Entry>(ent);
       SampleId::CurNameDB->registerPair(NameDB::generateName(ent.m_sfxId, NameDB::Type::Sample), ent.m_sfxId);
     }
   } else {
     while (!AtEnd32(r)) {
-      MusyX1SdirEntry<athena::Big> ent;
+      MusyX1SdirEntry<athena::Endian::Big> ent;
       ent.read(r);
       m_entries[ent.m_sfxId] = MakeObj<Entry>(ent);
       SampleId::CurNameDB->registerPair(NameDB::generateName(ent.m_sfxId, NameDB::Type::Sample), ent.m_sfxId);
@@ -89,7 +89,7 @@ AudioGroupSampleDirectory::AudioGroupSampleDirectory(athena::io::IStreamReader& 
 AudioGroupSampleDirectory::AudioGroupSampleDirectory(athena::io::IStreamReader& r, bool absOffs, PCDataTag) {
   if (absOffs) {
     while (!AtEnd32(r)) {
-      MusyX1AbsSdirEntry<athena::Little> ent;
+      MusyX1AbsSdirEntry<athena::Endian::Little> ent;
       ent.read(r);
       auto& store = m_entries[ent.m_sfxId];
       store = MakeObj<Entry>(ent);
@@ -98,7 +98,7 @@ AudioGroupSampleDirectory::AudioGroupSampleDirectory(athena::io::IStreamReader& 
     }
   } else {
     while (!AtEnd32(r)) {
-      MusyX1SdirEntry<athena::Little> ent;
+      MusyX1SdirEntry<athena::Endian::Little> ent;
       ent.read(r);
       auto& store = m_entries[ent.m_sfxId];
       store = MakeObj<Entry>(ent);
@@ -877,7 +877,7 @@ void AudioGroupSampleDirectory::reloadSampleData(SystemStringView groupPath) {
 
 std::pair<std::vector<uint8_t>, std::vector<uint8_t>>
 AudioGroupSampleDirectory::toGCNData(const AudioGroupDatabase& group) const {
-  constexpr athena::Endian DNAE = athena::Big;
+  constexpr athena::Endian DNAE = athena::Endian::Big;
 
   athena::io::VectorWriter fo;
   athena::io::VectorWriter sfo;

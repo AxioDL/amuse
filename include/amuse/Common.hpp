@@ -38,10 +38,10 @@ constexpr float NativeSampleRate = 32000.0f;
 namespace amuse {
 struct NameDB;
 
-using BigDNA = athena::io::DNA<athena::Big>;
-using LittleDNA = athena::io::DNA<athena::Little>;
-using BigDNAV = athena::io::DNAVYaml<athena::Big>;
-using LittleDNAV = athena::io::DNAVYaml<athena::Little>;
+using BigDNA = athena::io::DNA<athena::Endian::Big>;
+using LittleDNA = athena::io::DNA<athena::Endian::Little>;
+using BigDNAV = athena::io::DNAVYaml<athena::Endian::Big>;
+using LittleDNAV = athena::io::DNAVYaml<athena::Endian::Little>;
 
 /** Common ID structure statically tagging
  *  SoundMacros, Tables, Keymaps, Layers, Samples, SFX, Songs */

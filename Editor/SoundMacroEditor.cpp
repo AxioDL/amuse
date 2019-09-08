@@ -219,8 +219,8 @@ CommandWidget::CommandWidget(QWidget* parent, amuse::SoundMacro::ICmd* cmd, amus
           nf = new FieldProjectNode(collection, this);
           nf->setProperty("fieldIndex", f);
           nf->setProperty("fieldName", fieldName);
-          int index =
-              collection->indexOfId(amuse::AccessField<amuse::SoundMacroIdDNA<athena::Little>>(m_cmd, field).id);
+          const int index = collection->indexOfId(
+              amuse::AccessField<amuse::SoundMacroIdDNA<athena::Endian::Little>>(m_cmd, field).id);
           nf->setCurrentIndex(index < 0 ? 0 : index + 1);
           connect(nf, &FieldProjectNode::currentIndexChanged, this, &CommandWidget::nodeChanged);
           layout->addWidget(nf, 1, f);
@@ -231,7 +231,8 @@ CommandWidget::CommandWidget(QWidget* parent, amuse::SoundMacro::ICmd* cmd, amus
           sb->setFixedHeight(30);
           sb->setProperty("fieldIndex", f);
           sb->setProperty("fieldName", fieldName);
-          sb->m_spinBox.setValue(amuse::AccessField<amuse::SoundMacroStepDNA<athena::Little>>(m_cmd, field).step);
+          sb->m_spinBox.setValue(
+              amuse::AccessField<amuse::SoundMacroStepDNA<athena::Endian::Little>>(m_cmd, field).step);
           connect(sb, &FieldSoundMacroStep::valueChanged, this, &CommandWidget::numChanged);
           layout->addWidget(sb, 1, f);
           m_stepField = sb;
@@ -315,7 +316,7 @@ public:
     case amuse::SoundMacro::CmdIntrospection::Field::Type::SoundMacroStep:
     case amuse::SoundMacro::CmdIntrospection::Field::Type::TableId:
     case amuse::SoundMacro::CmdIntrospection::Field::Type::SampleId:
-      amuse::AccessField<amuse::SoundMacroIdDNA<athena::Little>>(m_cmd, m_field).id = uint16_t(m_undoVal);
+      amuse::AccessField<amuse::SoundMacroIdDNA<athena::Endian::Little>>(m_cmd, m_field).id = uint16_t(m_undoVal);
       break;
     default:
       break;
@@ -357,8 +358,8 @@ public:
     case amuse::SoundMacro::CmdIntrospection::Field::Type::SoundMacroStep:
     case amuse::SoundMacro::CmdIntrospection::Field::Type::TableId:
     case amuse::SoundMacro::CmdIntrospection::Field::Type::SampleId:
-      m_undoVal = amuse::AccessField<amuse::SoundMacroIdDNA<athena::Little>>(m_cmd, m_field).id.id;
-      amuse::AccessField<amuse::SoundMacroIdDNA<athena::Little>>(m_cmd, m_field).id = uint16_t(m_redoVal);
+      m_undoVal = amuse::AccessField<amuse::SoundMacroIdDNA<athena::Endian::Little>>(m_cmd, m_field).id.id;
+      amuse::AccessField<amuse::SoundMacroIdDNA<athena::Endian::Little>>(m_cmd, m_field).id = uint16_t(m_redoVal);
       break;
     default:
       break;

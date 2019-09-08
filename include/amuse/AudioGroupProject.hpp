@@ -60,7 +60,7 @@ struct SongGroupIndex : AudioGroupIndex {
   };
   struct PageEntry : BigDNA {
     AT_DECL_DNA_YAML
-    PageObjectIdDNA<athena::Big> objId;
+    PageObjectIdDNA<athena::Endian::Big> objId;
     Value<atUint8> priority = 0;
     Value<atUint8> maxVoices = 255;
 
@@ -134,7 +134,7 @@ struct SFXGroupIndex : AudioGroupIndex {
   };
   struct SFXEntry : BigDNA {
     AT_DECL_DNA_YAML
-    PageObjectIdDNA<athena::Big> objId;
+    PageObjectIdDNA<athena::Endian::Big> objId;
     Value<atUint8> priority = 0;
     Value<atUint8> maxVoices = 255;
     Value<atUint8> defVel = 127;

@@ -67,7 +67,7 @@ struct MakeDefaultCmdOp {
           case amuse::SoundMacro::CmdIntrospection::Field::Type::SoundMacroStep:
           case amuse::SoundMacro::CmdIntrospection::Field::Type::TableId:
           case amuse::SoundMacro::CmdIntrospection::Field::Type::SampleId:
-            AccessField<SoundMacroIdDNA<athena::Little>>(ret.get(), field).id = uint16_t(field.m_default);
+            AccessField<SoundMacroIdDNA<athena::Endian::Little>>(ret.get(), field).id = uint16_t(field.m_default);
             break;
           default:
             break;
@@ -188,8 +188,8 @@ AudioGroupPool AudioGroupPool::_AudioGroupPool(athena::io::IStreamReader& r) {
 
   return ret;
 }
-template AudioGroupPool AudioGroupPool::_AudioGroupPool<athena::Big>(athena::io::IStreamReader& r);
-template AudioGroupPool AudioGroupPool::_AudioGroupPool<athena::Little>(athena::io::IStreamReader& r);
+template AudioGroupPool AudioGroupPool::_AudioGroupPool<athena::Endian::Big>(athena::io::IStreamReader& r);
+template AudioGroupPool AudioGroupPool::_AudioGroupPool<athena::Endian::Little>(athena::io::IStreamReader& r);
 
 AudioGroupPool AudioGroupPool::CreateAudioGroupPool(const AudioGroupData& data) {
   if (data.getPoolSize() < 16)
@@ -197,9 +197,9 @@ AudioGroupPool AudioGroupPool::CreateAudioGroupPool(const AudioGroupData& data) 
   athena::io::MemoryReader r(data.getPool(), data.getPoolSize());
   switch (data.getDataFormat()) {
   case DataFormat::PC:
-    return _AudioGroupPool<athena::Little>(r);
+    return _AudioGroupPool<athena::Endian::Little>(r);
   default:
-    return _AudioGroupPool<athena::Big>(r);
+    return _AudioGroupPool<athena::Endian::Big>(r);
   }
 }
 
@@ -339,8 +339,8 @@ void SoundMacro::readCmds(athena::io::IStreamReader& r, uint32_t size) {
     m_cmds.push_back(CmdDo<MakeCmdOp, std::unique_ptr<ICmd>>(mr));
   }
 }
-template void SoundMacro::readCmds<athena::Big>(athena::io::IStreamReader& r, uint32_t size);
-template void SoundMacro::readCmds<athena::Little>(athena::io::IStreamReader& r, uint32_t size);
+template void SoundMacro::readCmds<athena::Endian::Big>(athena::io::IStreamReader& r, uint32_t size);
+template void SoundMacro::readCmds<athena::Endian::Little>(athena::io::IStreamReader& r, uint32_t size);
 
 template <athena::Endian DNAE>
 void SoundMacro::writeCmds(athena::io::IStreamWriter& w) const {
@@ -352,8 +352,8 @@ void SoundMacro::writeCmds(athena::io::IStreamWriter& w) const {
     athena::io::Write<athena::io::PropType::None>::Do<decltype(data), DNAE>({}, data, w);
   }
 }
-template void SoundMacro::writeCmds<athena::Big>(athena::io::IStreamWriter& w) const;
-template void SoundMacro::writeCmds<athena::Little>(athena::io::IStreamWriter& w) const;
+template void SoundMacro::writeCmds<athena::Endian::Big>(athena::io::IStreamWriter& w) const;
+template void SoundMacro::writeCmds<athena::Endian::Little>(athena::io::IStreamWriter& w) const;
 
 void SoundMacro::buildFromPrototype(const SoundMacro& other) {
   m_cmds.reserve(other.m_cmds.size());
@@ -1101,8 +1101,8 @@ std::vector<uint8_t> AudioGroupPool::toData() const {
 
   return fo.data();
 }
-template std::vector<uint8_t> AudioGroupPool::toData<athena::Big>() const;
-template std::vector<uint8_t> AudioGroupPool::toData<athena::Little>() const;
+template std::vector<uint8_t> AudioGroupPool::toData<athena::Endian::Big>() const;
+template std::vector<uint8_t> AudioGroupPool::toData<athena::Endian::Little>() const;
 
 template <>
 void amuse::Curve::Enumerate<LittleDNA::Read>(athena::io::IStreamReader& r) {
