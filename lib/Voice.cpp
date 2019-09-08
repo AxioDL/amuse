@@ -155,10 +155,11 @@ ObjToken<Voice> Voice::_findVoice(int vid, ObjToken<Voice> thisPtr) {
 }
 
 std::unique_ptr<int8_t[]>& Voice::_ensureCtrlVals() {
-  if (m_ctrlValsSelf)
+  if (m_ctrlValsSelf) {
     return m_ctrlValsSelf;
-  m_ctrlValsSelf.reset(new int8_t[128]);
-  memset(m_ctrlValsSelf.get(), 0, 128);
+  }
+
+  m_ctrlValsSelf = std::make_unique<int8_t[]>(128);
   return m_ctrlValsSelf;
 }
 
@@ -902,7 +903,9 @@ void Voice::setVolume(float vol) {
     vox->setVolume(vol);
 }
 
-void Voice::_panLaw(float coefs[8], float frontPan, float backPan, float totalSpan) const {
+std::array<float, 8> Voice::_panLaw(float frontPan, float backPan, float totalSpan) const {
+  std::array<float, 8> coefs{};
+
   /* -3dB panning law for various channel configs */
   switch (m_engine.m_channelSet) {
   case AudioChannelSet::Stereo:
@@ -1010,6 +1013,8 @@ void Voice::_panLaw(float coefs[8], float frontPan, float backPan, float totalSp
 
     break;
   }
+
+  return coefs;
 }
 
 void Voice::_setPan(float pan) {
@@ -1020,8 +1025,7 @@ void Voice::_setPan(float pan) {
   m_curPan = std::clamp(pan, -1.f, 1.f);
   const float totalPan = std::clamp(m_curPan, -1.f, 1.f);
   const float totalSpan = std::clamp(m_curSpan, -1.f, 1.f);
-  float coefs[8] = {};
-  _panLaw(coefs, totalPan, totalPan, totalSpan);
+  const auto coefs = _panLaw(totalPan, totalPan, totalSpan);
   _setChannelCoefs(coefs);
 }
 
@@ -1048,13 +1052,13 @@ void Voice::setSurroundPan(float span) {
     vox->setSurroundPan(span);
 }
 
-void Voice::_setChannelCoefs(const float coefs[8]) {
+void Voice::_setChannelCoefs(const std::array<float, 8>& coefs) {
   m_backendVoice->setChannelLevels(m_studio->getMaster().m_backendSubmix.get(), coefs, true);
   m_backendVoice->setChannelLevels(m_studio->getAuxA().m_backendSubmix.get(), coefs, true);
   m_backendVoice->setChannelLevels(m_studio->getAuxB().m_backendSubmix.get(), coefs, true);
 }
 
-void Voice::setChannelCoefs(const float coefs[8]) {
+void Voice::setChannelCoefs(const std::array<float, 8>& coefs) {
   if (m_destroyed)
     return;
 

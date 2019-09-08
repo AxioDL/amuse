@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+
 namespace amuse {
 class IBackendSubmix;
 
@@ -34,7 +36,7 @@ public:
   virtual void resetChannelLevels() = 0;
 
   /** Set channel-gains for audio source (AudioChannel enum for array index) */
-  virtual void setChannelLevels(IBackendSubmix* submix, const float coefs[8], bool slew) = 0;
+  virtual void setChannelLevels(IBackendSubmix* submix, const std::array<float, 8>& coefs, bool slew) = 0;
 
   /** Called by client to dynamically adjust the pitch of voices with dynamic pitch enabled */
   virtual void setPitchRatio(double ratio, bool slew) = 0;
