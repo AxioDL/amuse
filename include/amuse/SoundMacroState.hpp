@@ -78,7 +78,7 @@ struct SoundMacroState {
     float evaluate(double time, const Voice& vox, const SoundMacroState& st) const;
 
     /** Determine if able to use */
-    operator bool() const { return m_comps.size() != 0; }
+    explicit operator bool() const { return m_comps.size() != 0; }
   };
 
   Evaluator m_volumeSel;

@@ -89,7 +89,9 @@ public:
   size_t getSdirSize() const { return m_sdirSz; }
   size_t getSampSize() const { return m_sampSz; }
 
-  operator bool() const { return m_proj != nullptr && m_pool != nullptr && m_sdir != nullptr && m_samp != nullptr; }
+  explicit operator bool() const {
+    return m_proj != nullptr && m_pool != nullptr && m_sdir != nullptr && m_samp != nullptr;
+  }
 
   DataFormat getDataFormat() const { return m_fmt; }
   bool getAbsoluteProjOffsets() const { return m_absOffs; }
