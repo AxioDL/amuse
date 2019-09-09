@@ -163,19 +163,19 @@ constexpr SoundMacro::CmdIntrospection::Field::Type GetFieldType<atUint32>() {
   return SoundMacro::CmdIntrospection::Field::Type::UInt32;
 }
 template <>
-constexpr SoundMacro::CmdIntrospection::Field::Type GetFieldType<SoundMacroIdDNA<athena::Little>>() {
+constexpr SoundMacro::CmdIntrospection::Field::Type GetFieldType<SoundMacroIdDNA<athena::Endian::Little>>() {
   return SoundMacro::CmdIntrospection::Field::Type::SoundMacroId;
 }
 template <>
-constexpr SoundMacro::CmdIntrospection::Field::Type GetFieldType<SoundMacroStepDNA<athena::Little>>() {
+constexpr SoundMacro::CmdIntrospection::Field::Type GetFieldType<SoundMacroStepDNA<athena::Endian::Little>>() {
   return SoundMacro::CmdIntrospection::Field::Type::SoundMacroStep;
 }
 template <>
-constexpr SoundMacro::CmdIntrospection::Field::Type GetFieldType<TableIdDNA<athena::Little>>() {
+constexpr SoundMacro::CmdIntrospection::Field::Type GetFieldType<TableIdDNA<athena::Endian::Little>>() {
   return SoundMacro::CmdIntrospection::Field::Type::TableId;
 }
 template <>
-constexpr SoundMacro::CmdIntrospection::Field::Type GetFieldType<SampleIdDNA<athena::Little>>() {
+constexpr SoundMacro::CmdIntrospection::Field::Type GetFieldType<SampleIdDNA<athena::Endian::Little>>() {
   return SoundMacro::CmdIntrospection::Field::Type::SampleId;
 }
 
