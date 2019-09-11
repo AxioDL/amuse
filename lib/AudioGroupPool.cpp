@@ -37,41 +37,42 @@ struct MakeDefaultCmdOp {
   static std::unique_ptr<SoundMacro::ICmd> Do(R& r) {
     std::unique_ptr<SoundMacro::ICmd> ret = std::make_unique<Tp>();
     if (const SoundMacro::CmdIntrospection* introspection = SoundMacro::GetCmdIntrospection(r)) {
-      for (int f = 0; f < 7; ++f) {
-        const amuse::SoundMacro::CmdIntrospection::Field& field = introspection->m_fields[f];
-        if (!field.m_name.empty()) {
-          switch (field.m_tp) {
-          case amuse::SoundMacro::CmdIntrospection::Field::Type::Bool:
-            AccessField<bool>(ret.get(), field) = bool(field.m_default);
-            break;
-          case amuse::SoundMacro::CmdIntrospection::Field::Type::Int8:
-          case amuse::SoundMacro::CmdIntrospection::Field::Type::Choice:
-            AccessField<int8_t>(ret.get(), field) = int8_t(field.m_default);
-            break;
-          case amuse::SoundMacro::CmdIntrospection::Field::Type::UInt8:
-            AccessField<uint8_t>(ret.get(), field) = uint8_t(field.m_default);
-            break;
-          case amuse::SoundMacro::CmdIntrospection::Field::Type::Int16:
-            AccessField<int16_t>(ret.get(), field) = int16_t(field.m_default);
-            break;
-          case amuse::SoundMacro::CmdIntrospection::Field::Type::UInt16:
-            AccessField<uint16_t>(ret.get(), field) = uint16_t(field.m_default);
-            break;
-          case amuse::SoundMacro::CmdIntrospection::Field::Type::Int32:
-            AccessField<int32_t>(ret.get(), field) = int32_t(field.m_default);
-            break;
-          case amuse::SoundMacro::CmdIntrospection::Field::Type::UInt32:
-            AccessField<uint32_t>(ret.get(), field) = uint32_t(field.m_default);
-            break;
-          case amuse::SoundMacro::CmdIntrospection::Field::Type::SoundMacroId:
-          case amuse::SoundMacro::CmdIntrospection::Field::Type::SoundMacroStep:
-          case amuse::SoundMacro::CmdIntrospection::Field::Type::TableId:
-          case amuse::SoundMacro::CmdIntrospection::Field::Type::SampleId:
-            AccessField<SoundMacroIdDNA<athena::Endian::Little>>(ret.get(), field).id = uint16_t(field.m_default);
-            break;
-          default:
-            break;
-          }
+      for (const auto& field : introspection->m_fields) {
+        if (field.m_name.empty()) {
+          continue;
+        }
+
+        switch (field.m_tp) {
+        case amuse::SoundMacro::CmdIntrospection::Field::Type::Bool:
+          AccessField<bool>(ret.get(), field) = bool(field.m_default);
+          break;
+        case amuse::SoundMacro::CmdIntrospection::Field::Type::Int8:
+        case amuse::SoundMacro::CmdIntrospection::Field::Type::Choice:
+          AccessField<int8_t>(ret.get(), field) = int8_t(field.m_default);
+          break;
+        case amuse::SoundMacro::CmdIntrospection::Field::Type::UInt8:
+          AccessField<uint8_t>(ret.get(), field) = uint8_t(field.m_default);
+          break;
+        case amuse::SoundMacro::CmdIntrospection::Field::Type::Int16:
+          AccessField<int16_t>(ret.get(), field) = int16_t(field.m_default);
+          break;
+        case amuse::SoundMacro::CmdIntrospection::Field::Type::UInt16:
+          AccessField<uint16_t>(ret.get(), field) = uint16_t(field.m_default);
+          break;
+        case amuse::SoundMacro::CmdIntrospection::Field::Type::Int32:
+          AccessField<int32_t>(ret.get(), field) = int32_t(field.m_default);
+          break;
+        case amuse::SoundMacro::CmdIntrospection::Field::Type::UInt32:
+          AccessField<uint32_t>(ret.get(), field) = uint32_t(field.m_default);
+          break;
+        case amuse::SoundMacro::CmdIntrospection::Field::Type::SoundMacroId:
+        case amuse::SoundMacro::CmdIntrospection::Field::Type::SoundMacroStep:
+        case amuse::SoundMacro::CmdIntrospection::Field::Type::TableId:
+        case amuse::SoundMacro::CmdIntrospection::Field::Type::SampleId:
+          AccessField<SoundMacroIdDNA<athena::Endian::Little>>(ret.get(), field).id = uint16_t(field.m_default);
+          break;
+        default:
+          break;
         }
       }
     }
