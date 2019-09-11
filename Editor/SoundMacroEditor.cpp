@@ -239,14 +239,15 @@ CommandWidget::CommandWidget(QWidget* parent, amuse::SoundMacro::ICmd* cmd, amus
           break;
         }
         case amuse::SoundMacro::CmdIntrospection::Field::Type::Choice: {
-          FieldComboBox* cb = new FieldComboBox(this);
+          auto* const cb = new FieldComboBox(this);
           cb->setFixedHeight(30);
           cb->setProperty("fieldIndex", f);
           cb->setProperty("fieldName", fieldName);
-          for (int j = 0; j < 4; ++j) {
-            if (field.m_choices[j].empty())
+          for (const auto choice : field.m_choices) {
+            if (choice.empty()) {
               break;
-            cb->addItem(tr(field.m_choices[j].data()));
+            }
+            cb->addItem(tr(choice.data()));
           }
           cb->setCurrentIndex(int(amuse::AccessField<int8_t>(m_cmd, field)));
           connect(cb, qOverload<int>(&FieldComboBox::currentIndexChanged), this, &CommandWidget::numChanged);

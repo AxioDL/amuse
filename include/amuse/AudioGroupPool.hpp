@@ -150,12 +150,12 @@ struct SoundMacro {
       size_t m_offset;
       std::string_view m_name;
       int64_t m_min, m_max, m_default;
-      std::string_view m_choices[4];
+      std::array<std::string_view, 4> m_choices;
     };
     CmdType m_tp;
     std::string_view m_name;
     std::string_view m_description;
-    Field m_fields[7];
+    std::array<Field, 7> m_fields;
   };
 
   /** Base command interface. All versions of MusyX encode little-endian parameters */
