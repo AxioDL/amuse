@@ -81,6 +81,25 @@ target_compile_definitions(amuse-gui PRIVATE
   -DQT_USE_QSTRINGBUILDER 
 )
 
+if (MSVC)
+  target_compile_options(amuse-gui PRIVATE
+    # Enforce various standards compliant behavior.
+    /permissive-
+
+    # Enable standard volatile semantics.
+    /volatile:iso
+
+    # Reports the proper value for the __cplusplus preprocessor macro.
+    /Zc:__cplusplus
+
+    # Allow constexpr variables to have explicit external linkage.
+    /Zc:externConstexpr
+
+    # Assume that new throws exceptions, allowing better code generation.
+    /Zc:throwingNew
+  )
+endif()
+
 if(WIN32)
   target_sources(amuse-gui PRIVATE
     platforms/win/amuse-gui.rc
