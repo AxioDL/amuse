@@ -71,7 +71,7 @@ Sequencer::Sequencer(Engine& engine, const AudioGroup& group, GroupId groupId, c
     m_sfxMappings.push_back(sfx.second);
 }
 
-Sequencer::ChannelState::~ChannelState() {}
+Sequencer::ChannelState::~ChannelState() = default;
 
 Sequencer::ChannelState::ChannelState(Sequencer& parent, uint8_t chanId) : m_parent(&parent), m_chanId(chanId) {
   if (m_parent->m_songGroup) {
