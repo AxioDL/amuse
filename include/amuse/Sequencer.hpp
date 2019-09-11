@@ -45,7 +45,7 @@ class Sequencer : public Entity {
   /** State of a single MIDI channel */
   struct ChannelState {
     Sequencer* m_parent = nullptr;
-    uint8_t m_chanId;
+    uint8_t m_chanId = 0;
     const SongGroupIndex::MIDISetup* m_setup = nullptr; /* Channel defaults to program 0 if null */
     const SongGroupIndex::PageEntry* m_page = nullptr;
     ~ChannelState();
