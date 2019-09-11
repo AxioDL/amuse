@@ -20,7 +20,7 @@ Studio::Studio(Engine& engine, bool mainOut) : m_engine(engine), m_master(engine
 }
 
 void Studio::addStudioSend(ObjToken<Studio> studio, float dry, float auxA, float auxB) {
-  m_studiosOut.emplace_back(studio, dry, auxA, auxB);
+  m_studiosOut.emplace_back(std::move(studio), dry, auxA, auxB);
 
   /* Cyclic check */
   assert(!_cyclicCheck(this));
