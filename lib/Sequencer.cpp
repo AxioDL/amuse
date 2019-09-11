@@ -208,7 +208,7 @@ ObjToken<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velocity) {
   if (*ret) {
     (*ret)->m_sequencer = m_parent;
     m_chanVoxs[note] = *ret;
-    (*ret)->installCtrlValues(m_ctrlVals);
+    (*ret)->installCtrlValues(m_ctrlVals.data());
 
     ObjectId oid;
     bool res;

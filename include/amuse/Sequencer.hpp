@@ -57,14 +57,14 @@ class Sequencer : public Entity {
     std::unordered_map<uint8_t, ObjToken<Voice>> m_chanVoxs;
     std::unordered_set<ObjToken<Voice>> m_keyoffVoxs;
     ObjToken<Voice> m_lastVoice;
-    int8_t m_ctrlVals[128] = {};   /**< MIDI controller values */
-    float m_curPitchWheel = 0.f;   /**< MIDI pitch-wheel */
-    int8_t m_pitchWheelRange = -1; /**< Pitch wheel range settable by RPN 0 */
-    int8_t m_curProgram = 0;       /**< MIDI program number */
-    float m_curVol = 1.f;          /**< Current volume of channel */
-    float m_curPan = 0.f;          /**< Current panning of channel */
-    uint16_t m_rpn = 0;            /**< Current RPN (only pitch-range 0x0000 supported) */
-    double m_ticksPerSec = 1000.0; /**< Current ticks per second (tempo) for channel */
+    std::array<int8_t, 128> m_ctrlVals{}; /**< MIDI controller values */
+    float m_curPitchWheel = 0.f;          /**< MIDI pitch-wheel */
+    int8_t m_pitchWheelRange = -1;        /**< Pitch wheel range settable by RPN 0 */
+    int8_t m_curProgram = 0;              /**< MIDI program number */
+    float m_curVol = 1.f;                 /**< Current volume of channel */
+    float m_curPan = 0.f;                 /**< Current panning of channel */
+    uint16_t m_rpn = 0;                   /**< Current RPN (only pitch-range 0x0000 supported) */
+    double m_ticksPerSec = 1000.0;        /**< Current ticks per second (tempo) for channel */
 
     void _bringOutYourDead();
     size_t getVoiceCount() const;
