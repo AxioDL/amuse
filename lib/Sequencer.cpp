@@ -53,7 +53,7 @@ Sequencer::~Sequencer() {
 
 Sequencer::Sequencer(Engine& engine, const AudioGroup& group, GroupId groupId, const SongGroupIndex* songGroup,
                      SongId setupId, ObjToken<Studio> studio)
-: Entity(engine, group, groupId), m_songGroup(songGroup), m_studio(studio) {
+: Entity(engine, group, groupId), m_songGroup(songGroup), m_studio(std::move(studio)) {
   auto it = m_songGroup->m_midiSetups.find(setupId);
   if (it != m_songGroup->m_midiSetups.cend())
     m_midiSetup = it->second.data();
@@ -61,7 +61,7 @@ Sequencer::Sequencer(Engine& engine, const AudioGroup& group, GroupId groupId, c
 
 Sequencer::Sequencer(Engine& engine, const AudioGroup& group, GroupId groupId, const SFXGroupIndex* sfxGroup,
                      ObjToken<Studio> studio)
-: Entity(engine, group, groupId), m_sfxGroup(sfxGroup), m_studio(studio) {
+: Entity(engine, group, groupId), m_sfxGroup(sfxGroup), m_studio(std::move(studio)) {
   std::map<ObjectId, const SFXGroupIndex::SFXEntry*> sortSFX;
   for (const auto& sfx : sfxGroup->m_sfxEntries)
     sortSFX[sfx.first] = &sfx.second;
