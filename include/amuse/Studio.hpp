@@ -18,7 +18,7 @@ class Studio {
 
   std::list<StudioSend> m_studiosOut;
 #ifndef NDEBUG
-  bool _cyclicCheck(Studio* leaf);
+  bool _cyclicCheck(const Studio* leaf) const;
 #endif
 
 public:
