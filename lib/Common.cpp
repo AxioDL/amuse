@@ -49,52 +49,52 @@ bool Copy(const SystemChar* from, const SystemChar* to) {
   thread_local NameDB* type::CurNameDB = nullptr;                                                                      \
   template <>                                                                                                          \
   template <>                                                                                                          \
-  void type##DNA<athena::Little>::Enumerate<BigDNA::Read>(athena::io::IStreamReader & reader) {                        \
+  void type##DNA<athena::Endian::Little>::Enumerate<BigDNA::Read>(athena::io::IStreamReader& reader) {                 \
     id = reader.readUint16Little();                                                                                    \
   }                                                                                                                    \
   template <>                                                                                                          \
   template <>                                                                                                          \
-  void type##DNA<athena::Little>::Enumerate<BigDNA::Write>(athena::io::IStreamWriter & writer) {                       \
+  void type##DNA<athena::Endian::Little>::Enumerate<BigDNA::Write>(athena::io::IStreamWriter& writer) {                \
     writer.writeUint16Little(id.id);                                                                                   \
   }                                                                                                                    \
   template <>                                                                                                          \
   template <>                                                                                                          \
-  void type##DNA<athena::Little>::Enumerate<BigDNA::BinarySize>(size_t & sz) {                                         \
+  void type##DNA<athena::Endian::Little>::Enumerate<BigDNA::BinarySize>(size_t& sz) {                                  \
     sz += 2;                                                                                                           \
   }                                                                                                                    \
   template <>                                                                                                          \
   template <>                                                                                                          \
-  void type##DNA<athena::Little>::Enumerate<BigDNA::ReadYaml>(athena::io::YAMLDocReader & reader) {                    \
+  void type##DNA<athena::Endian::Little>::Enumerate<BigDNA::ReadYaml>(athena::io::YAMLDocReader& reader) {             \
     _read(reader);                                                                                                     \
   }                                                                                                                    \
   template <>                                                                                                          \
   template <>                                                                                                          \
-  void type##DNA<athena::Little>::Enumerate<BigDNA::WriteYaml>(athena::io::YAMLDocWriter & writer) {                   \
+  void type##DNA<athena::Endian::Little>::Enumerate<BigDNA::WriteYaml>(athena::io::YAMLDocWriter& writer) {            \
     _write(writer);                                                                                                    \
   }                                                                                                                    \
   template <>                                                                                                          \
   template <>                                                                                                          \
-  void type##DNA<athena::Big>::Enumerate<BigDNA::Read>(athena::io::IStreamReader & reader) {                           \
+  void type##DNA<athena::Endian::Big>::Enumerate<BigDNA::Read>(athena::io::IStreamReader& reader) {                    \
     id = reader.readUint16Big();                                                                                       \
   }                                                                                                                    \
   template <>                                                                                                          \
   template <>                                                                                                          \
-  void type##DNA<athena::Big>::Enumerate<BigDNA::Write>(athena::io::IStreamWriter & writer) {                          \
+  void type##DNA<athena::Endian::Big>::Enumerate<BigDNA::Write>(athena::io::IStreamWriter& writer) {                   \
     writer.writeUint16Big(id.id);                                                                                      \
   }                                                                                                                    \
   template <>                                                                                                          \
   template <>                                                                                                          \
-  void type##DNA<athena::Big>::Enumerate<BigDNA::BinarySize>(size_t & sz) {                                            \
+  void type##DNA<athena::Endian::Big>::Enumerate<BigDNA::BinarySize>(size_t& sz) {                                     \
     sz += 2;                                                                                                           \
   }                                                                                                                    \
   template <>                                                                                                          \
   template <>                                                                                                          \
-  void type##DNA<athena::Big>::Enumerate<BigDNA::ReadYaml>(athena::io::YAMLDocReader & reader) {                       \
+  void type##DNA<athena::Endian::Big>::Enumerate<BigDNA::ReadYaml>(athena::io::YAMLDocReader& reader) {                \
     _read(reader);                                                                                                     \
   }                                                                                                                    \
   template <>                                                                                                          \
   template <>                                                                                                          \
-  void type##DNA<athena::Big>::Enumerate<BigDNA::WriteYaml>(athena::io::YAMLDocWriter & writer) {                      \
+  void type##DNA<athena::Endian::Big>::Enumerate<BigDNA::WriteYaml>(athena::io::YAMLDocWriter& writer) {               \
     _write(writer);                                                                                                    \
   }                                                                                                                    \
   template <athena::Endian DNAE>                                                                                       \
@@ -122,8 +122,8 @@ bool Copy(const SystemChar* from, const SystemChar* to) {
   std::string_view type##DNA<DNAE>::DNAType() {                                                                        \
     return "amuse::" #type "DNA"sv;                                                                                    \
   }                                                                                                                    \
-  template struct type##DNA<athena::Big>;                                                                              \
-  template struct type##DNA<athena::Little>;
+  template struct type##DNA<athena::Endian::Big>;                                                                      \
+  template struct type##DNA<athena::Endian::Little>;
 
 DEFINE_ID_TYPE(ObjectId, "object")
 DEFINE_ID_TYPE(SoundMacroId, "SoundMacro")
@@ -137,52 +137,52 @@ DEFINE_ID_TYPE(GroupId, "group")
 
 template <>
 template <>
-void PageObjectIdDNA<athena::Little>::Enumerate<BigDNA::Read>(athena::io::IStreamReader& reader) {
+void PageObjectIdDNA<athena::Endian::Little>::Enumerate<BigDNA::Read>(athena::io::IStreamReader& reader) {
   id = reader.readUint16Little();
 }
 template <>
 template <>
-void PageObjectIdDNA<athena::Little>::Enumerate<BigDNA::Write>(athena::io::IStreamWriter& writer) {
+void PageObjectIdDNA<athena::Endian::Little>::Enumerate<BigDNA::Write>(athena::io::IStreamWriter& writer) {
   writer.writeUint16Little(id.id);
 }
 template <>
 template <>
-void PageObjectIdDNA<athena::Little>::Enumerate<BigDNA::BinarySize>(size_t& sz) {
+void PageObjectIdDNA<athena::Endian::Little>::Enumerate<BigDNA::BinarySize>(size_t& sz) {
   sz += 2;
 }
 template <>
 template <>
-void PageObjectIdDNA<athena::Little>::Enumerate<BigDNA::ReadYaml>(athena::io::YAMLDocReader& reader) {
+void PageObjectIdDNA<athena::Endian::Little>::Enumerate<BigDNA::ReadYaml>(athena::io::YAMLDocReader& reader) {
   _read(reader);
 }
 template <>
 template <>
-void PageObjectIdDNA<athena::Little>::Enumerate<BigDNA::WriteYaml>(athena::io::YAMLDocWriter& writer) {
+void PageObjectIdDNA<athena::Endian::Little>::Enumerate<BigDNA::WriteYaml>(athena::io::YAMLDocWriter& writer) {
   _write(writer);
 }
 template <>
 template <>
-void PageObjectIdDNA<athena::Big>::Enumerate<BigDNA::Read>(athena::io::IStreamReader& reader) {
+void PageObjectIdDNA<athena::Endian::Big>::Enumerate<BigDNA::Read>(athena::io::IStreamReader& reader) {
   id = reader.readUint16Big();
 }
 template <>
 template <>
-void PageObjectIdDNA<athena::Big>::Enumerate<BigDNA::Write>(athena::io::IStreamWriter& writer) {
+void PageObjectIdDNA<athena::Endian::Big>::Enumerate<BigDNA::Write>(athena::io::IStreamWriter& writer) {
   writer.writeUint16Big(id.id);
 }
 template <>
 template <>
-void PageObjectIdDNA<athena::Big>::Enumerate<BigDNA::BinarySize>(size_t& sz) {
+void PageObjectIdDNA<athena::Endian::Big>::Enumerate<BigDNA::BinarySize>(size_t& sz) {
   sz += 2;
 }
 template <>
 template <>
-void PageObjectIdDNA<athena::Big>::Enumerate<BigDNA::ReadYaml>(athena::io::YAMLDocReader& reader) {
+void PageObjectIdDNA<athena::Endian::Big>::Enumerate<BigDNA::ReadYaml>(athena::io::YAMLDocReader& reader) {
   _read(reader);
 }
 template <>
 template <>
-void PageObjectIdDNA<athena::Big>::Enumerate<BigDNA::WriteYaml>(athena::io::YAMLDocWriter& writer) {
+void PageObjectIdDNA<athena::Endian::Big>::Enumerate<BigDNA::WriteYaml>(athena::io::YAMLDocWriter& writer) {
   _write(writer);
 }
 template <athena::Endian DNAE>
@@ -232,65 +232,65 @@ template <athena::Endian DNAE>
 std::string_view PageObjectIdDNA<DNAE>::DNAType() {
   return "amuse::PageObjectIdDNA"sv;
 }
-template struct PageObjectIdDNA<athena::Big>;
-template struct PageObjectIdDNA<athena::Little>;
+template struct PageObjectIdDNA<athena::Endian::Big>;
+template struct PageObjectIdDNA<athena::Endian::Little>;
 
 template <>
 template <>
-void SoundMacroStepDNA<athena::Little>::Enumerate<BigDNA::Read>(athena::io::IStreamReader& reader) {
+void SoundMacroStepDNA<athena::Endian::Little>::Enumerate<BigDNA::Read>(athena::io::IStreamReader& reader) {
   step = reader.readUint16Little();
 }
 template <>
 template <>
-void SoundMacroStepDNA<athena::Little>::Enumerate<BigDNA::Write>(athena::io::IStreamWriter& writer) {
+void SoundMacroStepDNA<athena::Endian::Little>::Enumerate<BigDNA::Write>(athena::io::IStreamWriter& writer) {
   writer.writeUint16Little(step);
 }
 template <>
 template <>
-void SoundMacroStepDNA<athena::Little>::Enumerate<BigDNA::BinarySize>(size_t& sz) {
+void SoundMacroStepDNA<athena::Endian::Little>::Enumerate<BigDNA::BinarySize>(size_t& sz) {
   sz += 2;
 }
 template <>
 template <>
-void SoundMacroStepDNA<athena::Little>::Enumerate<BigDNA::ReadYaml>(athena::io::YAMLDocReader& reader) {
+void SoundMacroStepDNA<athena::Endian::Little>::Enumerate<BigDNA::ReadYaml>(athena::io::YAMLDocReader& reader) {
   step = reader.readUint16();
 }
 template <>
 template <>
-void SoundMacroStepDNA<athena::Little>::Enumerate<BigDNA::WriteYaml>(athena::io::YAMLDocWriter& writer) {
+void SoundMacroStepDNA<athena::Endian::Little>::Enumerate<BigDNA::WriteYaml>(athena::io::YAMLDocWriter& writer) {
   writer.writeUint16(step);
 }
 template <>
 template <>
-void SoundMacroStepDNA<athena::Big>::Enumerate<BigDNA::Read>(athena::io::IStreamReader& reader) {
+void SoundMacroStepDNA<athena::Endian::Big>::Enumerate<BigDNA::Read>(athena::io::IStreamReader& reader) {
   step = reader.readUint16Big();
 }
 template <>
 template <>
-void SoundMacroStepDNA<athena::Big>::Enumerate<BigDNA::Write>(athena::io::IStreamWriter& writer) {
+void SoundMacroStepDNA<athena::Endian::Big>::Enumerate<BigDNA::Write>(athena::io::IStreamWriter& writer) {
   writer.writeUint16Big(step);
 }
 template <>
 template <>
-void SoundMacroStepDNA<athena::Big>::Enumerate<BigDNA::BinarySize>(size_t& sz) {
+void SoundMacroStepDNA<athena::Endian::Big>::Enumerate<BigDNA::BinarySize>(size_t& sz) {
   sz += 2;
 }
 template <>
 template <>
-void SoundMacroStepDNA<athena::Big>::Enumerate<BigDNA::ReadYaml>(athena::io::YAMLDocReader& reader) {
+void SoundMacroStepDNA<athena::Endian::Big>::Enumerate<BigDNA::ReadYaml>(athena::io::YAMLDocReader& reader) {
   step = reader.readUint16();
 }
 template <>
 template <>
-void SoundMacroStepDNA<athena::Big>::Enumerate<BigDNA::WriteYaml>(athena::io::YAMLDocWriter& writer) {
+void SoundMacroStepDNA<athena::Endian::Big>::Enumerate<BigDNA::WriteYaml>(athena::io::YAMLDocWriter& writer) {
   writer.writeUint16(step);
 }
 template <athena::Endian DNAE>
 std::string_view SoundMacroStepDNA<DNAE>::DNAType() {
   return "amuse::SoundMacroStepDNA"sv;
 }
-template struct SoundMacroStepDNA<athena::Big>;
-template struct SoundMacroStepDNA<athena::Little>;
+template struct SoundMacroStepDNA<athena::Endian::Big>;
+template struct SoundMacroStepDNA<athena::Endian::Little>;
 
 ObjectId NameDB::generateId(Type tp) const {
   uint16_t maxMatch = 0;

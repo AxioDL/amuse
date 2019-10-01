@@ -38,10 +38,10 @@ constexpr float NativeSampleRate = 32000.0f;
 namespace amuse {
 struct NameDB;
 
-using BigDNA = athena::io::DNA<athena::Big>;
-using LittleDNA = athena::io::DNA<athena::Little>;
-using BigDNAV = athena::io::DNAVYaml<athena::Big>;
-using LittleDNAV = athena::io::DNAVYaml<athena::Little>;
+using BigDNA = athena::io::DNA<athena::Endian::Big>;
+using LittleDNA = athena::io::DNA<athena::Endian::Little>;
+using BigDNAV = athena::io::DNAVYaml<athena::Endian::Big>;
+using LittleDNAV = athena::io::DNAVYaml<athena::Endian::Little>;
 
 /** Common ID structure statically tagging
  *  SoundMacros, Tables, Keymaps, Layers, Samples, SFX, Songs */
@@ -216,7 +216,7 @@ public:
   bool operator!=(const ObjTokenBase& other) const noexcept { return !operator==(other); }
   bool operator<(const ObjTokenBase& other) const noexcept { return m_obj < other.m_obj; }
   bool operator>(const ObjTokenBase& other) const noexcept { return m_obj > other.m_obj; }
-  operator bool() const noexcept { return m_obj != nullptr; }
+  explicit operator bool() const noexcept { return m_obj != nullptr; }
   void reset() noexcept {
     if (m_obj) {
       m_obj->decrement();

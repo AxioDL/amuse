@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <cstdlib>
 #include <list>
@@ -146,7 +147,7 @@ class Voice : public Entity {
   float m_tremoloScale = 0.f;    /**< minimum volume factor produced via LFO */
   float m_tremoloModScale = 0.f; /**< minimum volume factor produced via LFO, scaled via mod wheel */
 
-  float m_lfoPeriods[2] = {};               /**< time-periods for LFO1 and LFO2 */
+  std::array<float, 2> m_lfoPeriods{};      /**< time-periods for LFO1 and LFO2 */
   std::unique_ptr<int8_t[]> m_ctrlValsSelf; /**< Self-owned MIDI Controller values */
   int8_t* m_extCtrlVals = nullptr;          /**< MIDI Controller values (external storage) */
 
@@ -186,10 +187,10 @@ class Voice : public Entity {
   ObjToken<Voice> _startChildMacro(ObjectId macroId, int macroStep, double ticksPerSec, uint8_t midiKey,
                                    uint8_t midiVel, uint8_t midiMod, bool pushPc = false);
 
-  void _panLaw(float coefsOut[8], float frontPan, float backPan, float totalSpan) const;
+  std::array<float, 8> _panLaw(float frontPan, float backPan, float totalSpan) const;
   void _setPan(float pan);
   void _setSurroundPan(float span);
-  void _setChannelCoefs(const float coefs[8]);
+  void _setChannelCoefs(const std::array<float, 8>& coefs);
   void _setPitchWheel(float pitchWheel);
   void _notifyCtrlChange(uint8_t ctrl, int8_t val);
 
@@ -261,7 +262,7 @@ public:
   void setSurroundPan(float span);
 
   /** Set current voice channel coefficients immediately */
-  void setChannelCoefs(const float coefs[8]);
+  void setChannelCoefs(const std::array<float, 8>& coefs);
 
   /** Start volume envelope to specified level */
   void startEnvelope(double dur, float vol, const Curve* envCurve);

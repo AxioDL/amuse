@@ -31,7 +31,7 @@ struct DSPADPCMHeader : BigDNA {
   Value<atInt16> x46_loop_hist1 = 0;
   Value<atInt16> x48_loop_hist2 = 0;
   Value<atUint8> m_pitch = 0; // Stash this in the padding
-  Seek<21, athena::Current> pad;
+  Seek<21, athena::SeekOrigin::Current> pad;
 };
 
 struct VADPCMHeader : BigDNA {
@@ -156,11 +156,11 @@ public:
   struct AT_SPECIALIZE_PARMS(athena::Endian::Big, athena::Endian::Little) EntryDNA : BigDNA {
     AT_DECL_DNA
     SampleIdDNA<DNAEn> m_sfxId;
-    Seek<2, athena::Current> pad;
+    Seek<2, athena::SeekOrigin::Current> pad;
     Value<atUint32, DNAEn> m_sampleOff;
     Value<atUint32, DNAEn> m_unk;
     Value<atUint8, DNAEn> m_pitch;
-    Seek<1, athena::Current> pad2;
+    Seek<1, athena::SeekOrigin::Current> pad2;
     Value<atUint16, DNAEn> m_sampleRate;
     Value<atUint32, DNAEn> m_numSamples; // Top 8 bits is SampleFormat
     Value<atUint32, DNAEn> m_loopStartSample;
@@ -177,7 +177,7 @@ public:
   struct AT_SPECIALIZE_PARMS(athena::Endian::Big, athena::Endian::Little) MusyX1SdirEntry : BigDNA {
     AT_DECL_DNA
     SampleIdDNA<DNAEn> m_sfxId;
-    Seek<2, athena::Current> pad;
+    Seek<2, athena::SeekOrigin::Current> pad;
     Value<atUint32, DNAEn> m_sampleOff;
     Value<atUint32, DNAEn> m_pitchSampleRate;
     Value<atUint32, DNAEn> m_numSamples;
@@ -188,7 +188,7 @@ public:
   struct AT_SPECIALIZE_PARMS(athena::Endian::Big, athena::Endian::Little) MusyX1AbsSdirEntry : BigDNA {
     AT_DECL_DNA
     SampleIdDNA<DNAEn> m_sfxId;
-    Seek<2, athena::Current> pad;
+    Seek<2, athena::SeekOrigin::Current> pad;
     Value<uint32_t, DNAEn> m_sampleOff;
     Value<uint32_t, DNAEn> m_unk;
     Value<uint32_t, DNAEn> m_pitchSampleRate;

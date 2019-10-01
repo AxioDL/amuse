@@ -67,18 +67,22 @@ static void VisitObjectFields(ProjectModel::SoundMacroNode* n,
         break;
       switch (field.m_tp) {
       case amuse::SoundMacro::CmdIntrospection::Field::Type::SoundMacroId:
-        if (!func(amuse::AccessField<amuse::SoundMacroIdDNA<athena::Little>>(p.get(), field).id,
-                  amuse::SoundMacroId::CurNameDB))
+        if (!func(amuse::AccessField<amuse::SoundMacroIdDNA<athena::Endian::Little>>(p.get(), field).id,
+                  amuse::SoundMacroId::CurNameDB)) {
           return;
+        }
         break;
       case amuse::SoundMacro::CmdIntrospection::Field::Type::TableId:
-        if (!func(amuse::AccessField<amuse::TableIdDNA<athena::Little>>(p.get(), field).id, amuse::TableId::CurNameDB))
+        if (!func(amuse::AccessField<amuse::TableIdDNA<athena::Endian::Little>>(p.get(), field).id,
+                  amuse::TableId::CurNameDB)) {
           return;
+        }
         break;
       case amuse::SoundMacro::CmdIntrospection::Field::Type::SampleId:
-        if (!func(amuse::AccessField<amuse::SampleIdDNA<athena::Little>>(p.get(), field).id,
-                  amuse::SampleId::CurNameDB))
+        if (!func(amuse::AccessField<amuse::SampleIdDNA<athena::Endian::Little>>(p.get(), field).id,
+                  amuse::SampleId::CurNameDB)) {
           return;
+        }
         break;
       default:
         break;
@@ -720,7 +724,7 @@ bool ProjectModel::exportGroup(const QString& path, const QString& groupName, UI
     fo.writeUBytes(proj.data(), proj.size());
   }
   {
-    auto pool = group.getPool().toData<athena::Big>();
+    auto pool = group.getPool().toData<athena::Endian::Big>();
     athena::io::FileWriter fo(QStringToSysString(basePath + QStringLiteral(".pool")));
     if (fo.hasError()) {
       messenger.critical(tr("Export Error"), tr("Unable to export %1.pool").arg(groupName));

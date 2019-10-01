@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cfloat>
 #include <cmath>
 
@@ -10,9 +11,9 @@
 namespace amuse {
 class Listener;
 
-using Vector3f = float[3];
+using Vector3f = std::array<float, 3>;
 
-inline float Dot(const Vector3f& a, const Vector3f& b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
+constexpr float Dot(const Vector3f& a, const Vector3f& b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
 
 inline float Length(const Vector3f& a) {
   if (std::fabs(a[0]) <= FLT_EPSILON && std::fabs(a[1]) <= FLT_EPSILON && std::fabs(a[2]) <= FLT_EPSILON)
@@ -20,14 +21,14 @@ inline float Length(const Vector3f& a) {
   return std::sqrt(Dot(a, a));
 }
 
-inline float Normalize(Vector3f& out) {
-  float dist = Length(out);
-  if (dist == 0.f)
-    return 0.f;
-  out[0] /= dist;
-  out[1] /= dist;
-  out[2] /= dist;
-  return dist;
+inline Vector3f Normalize(const Vector3f& in) {
+  const float dist = Length(in);
+
+  if (dist == 0.f) {
+    return {};
+  }
+
+  return {in[0] / dist, in[1] / dist, in[2] / dist};
 }
 
 /** Voice wrapper with positional-3D level control */
@@ -56,7 +57,7 @@ public:
 
   void setVectors(const float* pos, const float* dir);
   void setMaxVol(float maxVol) {
-    m_maxVol = std::clamp(0.f, maxVol, 1.f);
+    m_maxVol = std::clamp(maxVol, 0.f, 1.f);
     m_dirty = true;
   }
 

@@ -1,5 +1,7 @@
 #include "amuse/Engine.hpp"
 
+#include <array>
+
 #include "amuse/AudioGroup.hpp"
 #include "amuse/AudioGroupData.hpp"
 #include "amuse/Common.hpp"
@@ -11,7 +13,7 @@
 
 namespace amuse {
 
-static const float FullLevels[8] = {1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f};
+constexpr std::array<float, 8> FullLevels{1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f};
 
 Engine::~Engine() {
   m_backend.setCallbackInterface(nullptr);
@@ -251,7 +253,7 @@ ObjToken<Voice> Engine::fxStart(SFXId sfxId, float vol, float pan, ObjToken<Stud
 
   (*ret)->setVolume(vol);
   float evalPan = pan != 0.f ? pan : ((entry->panning - 64.f) / 63.f);
-  evalPan = std::clamp(-1.f, evalPan, 1.f);
+  evalPan = std::clamp(evalPan, -1.f, 1.f);
   (*ret)->setPan(evalPan);
   return *ret;
 }
@@ -273,7 +275,7 @@ ObjToken<Voice> Engine::fxStart(const AudioGroup* group, GroupId groupId, SFXId 
 
       (*ret)->setVolume(vol);
       float evalPan = pan != 0.f ? pan : ((entry.panning - 64.f) / 63.f);
-      evalPan = std::clamp(-1.f, evalPan, 1.f);
+      evalPan = std::clamp(evalPan, -1.f, 1.f);
       (*ret)->setPan(evalPan);
       return *ret;
     }

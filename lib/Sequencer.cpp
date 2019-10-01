@@ -53,7 +53,7 @@ Sequencer::~Sequencer() {
 
 Sequencer::Sequencer(Engine& engine, const AudioGroup& group, GroupId groupId, const SongGroupIndex* songGroup,
                      SongId setupId, ObjToken<Studio> studio)
-: Entity(engine, group, groupId), m_songGroup(songGroup), m_studio(studio) {
+: Entity(engine, group, groupId), m_songGroup(songGroup), m_studio(std::move(studio)) {
   auto it = m_songGroup->m_midiSetups.find(setupId);
   if (it != m_songGroup->m_midiSetups.cend())
     m_midiSetup = it->second.data();
@@ -61,7 +61,7 @@ Sequencer::Sequencer(Engine& engine, const AudioGroup& group, GroupId groupId, c
 
 Sequencer::Sequencer(Engine& engine, const AudioGroup& group, GroupId groupId, const SFXGroupIndex* sfxGroup,
                      ObjToken<Studio> studio)
-: Entity(engine, group, groupId), m_sfxGroup(sfxGroup), m_studio(studio) {
+: Entity(engine, group, groupId), m_sfxGroup(sfxGroup), m_studio(std::move(studio)) {
   std::map<ObjectId, const SFXGroupIndex::SFXEntry*> sortSFX;
   for (const auto& sfx : sfxGroup->m_sfxEntries)
     sortSFX[sfx.first] = &sfx.second;
@@ -71,7 +71,7 @@ Sequencer::Sequencer(Engine& engine, const AudioGroup& group, GroupId groupId, c
     m_sfxMappings.push_back(sfx.second);
 }
 
-Sequencer::ChannelState::~ChannelState() {}
+Sequencer::ChannelState::~ChannelState() = default;
 
 Sequencer::ChannelState::ChannelState(Sequencer& parent, uint8_t chanId) : m_parent(&parent), m_chanId(chanId) {
   if (m_parent->m_songGroup) {
@@ -208,7 +208,7 @@ ObjToken<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velocity) {
   if (*ret) {
     (*ret)->m_sequencer = m_parent;
     m_chanVoxs[note] = *ret;
-    (*ret)->installCtrlValues(m_ctrlVals);
+    (*ret)->installCtrlValues(m_ctrlVals.data());
 
     ObjectId oid;
     bool res;
@@ -246,11 +246,13 @@ ObjToken<Voice> Sequencer::ChannelState::keyOn(uint8_t note, uint8_t velocity) {
 }
 
 ObjToken<Voice> Sequencer::keyOn(uint8_t chan, uint8_t note, uint8_t velocity) {
-  if (chan > 15)
+  if (chan >= m_chanStates.size()) {
     return {};
+  }
 
-  if (!m_chanStates[chan])
+  if (!m_chanStates[chan]) {
     m_chanStates[chan] = ChannelState(*this, chan);
+  }
 
   return m_chanStates[chan].keyOn(note, velocity);
 }
@@ -268,8 +270,9 @@ void Sequencer::ChannelState::keyOff(uint8_t note, uint8_t velocity) {
 }
 
 void Sequencer::keyOff(uint8_t chan, uint8_t note, uint8_t velocity) {
-  if (chan > 15 || !m_chanStates[chan])
+  if (chan >= m_chanStates.size() || !m_chanStates[chan]) {
     return;
+  }
 
   m_chanStates[chan].keyOff(note, velocity);
 }
@@ -351,8 +354,9 @@ void Sequencer::ChannelState::prevProgram() {
 }
 
 void Sequencer::setCtrlValue(uint8_t chan, uint8_t ctrl, int8_t val) {
-  if (chan > 15)
+  if (chan >= m_chanStates.size()) {
     return;
+  }
 
   if (ctrl == 0x66) {
     fmt::print(fmt("Loop Start\n"));
@@ -360,8 +364,9 @@ void Sequencer::setCtrlValue(uint8_t chan, uint8_t ctrl, int8_t val) {
     fmt::print(fmt("Loop End\n"));
   }
 
-  if (!m_chanStates[chan])
+  if (!m_chanStates[chan]) {
     m_chanStates[chan] = ChannelState(*this, chan);
+  }
 
   m_chanStates[chan].setCtrlValue(ctrl, val);
 }
@@ -375,11 +380,13 @@ void Sequencer::ChannelState::setPitchWheel(float pitchWheel) {
 }
 
 void Sequencer::setPitchWheel(uint8_t chan, float pitchWheel) {
-  if (chan > 15)
+  if (chan >= m_chanStates.size()) {
     return;
+  }
 
-  if (!m_chanStates[chan])
+  if (!m_chanStates[chan]) {
     m_chanStates[chan] = ChannelState(*this, chan);
+  }
 
   m_chanStates[chan].setPitchWheel(pitchWheel);
 }
@@ -422,18 +429,22 @@ void Sequencer::allOff(bool now) {
 }
 
 void Sequencer::allOff(uint8_t chan, bool now) {
-  if (chan > 15 || !m_chanStates[chan])
+  if (chan >= m_chanStates.size() || !m_chanStates[chan]) {
     return;
+  }
 
   if (now) {
-    for (const auto& vox : m_chanStates[chan].m_chanVoxs)
+    for (const auto& vox : m_chanStates[chan].m_chanVoxs) {
       vox.second->kill();
-    for (const auto& vox : m_chanStates[chan].m_keyoffVoxs)
+    }
+    for (const auto& vox : m_chanStates[chan].m_keyoffVoxs) {
       vox->kill();
+    }
     m_chanStates[chan].m_chanVoxs.clear();
     m_chanStates[chan].m_keyoffVoxs.clear();
-  } else
+  } else {
     m_chanStates[chan].allOff();
+  }
 }
 
 void Sequencer::ChannelState::killKeygroup(uint8_t kg, bool now) {
@@ -575,12 +586,14 @@ void Sequencer::setVolume(float vol, float fadeTime) {
 }
 
 int8_t Sequencer::getChanProgram(int8_t chanId) const {
-  if (chanId > 15)
+  if (static_cast<size_t>(chanId) >= m_chanStates.size()) {
     return 0;
+  }
 
   if (!m_chanStates[chanId]) {
-    if (!m_midiSetup)
+    if (!m_midiSetup) {
       return 0;
+    }
     return m_midiSetup[chanId].programNo;
   }
 
@@ -588,31 +601,37 @@ int8_t Sequencer::getChanProgram(int8_t chanId) const {
 }
 
 bool Sequencer::setChanProgram(int8_t chanId, int8_t prog) {
-  if (chanId > 15)
+  if (static_cast<size_t>(chanId) >= m_chanStates.size()) {
     return false;
+  }
 
-  if (!m_chanStates[chanId])
+  if (!m_chanStates[chanId]) {
     m_chanStates[chanId] = ChannelState(*this, chanId);
+  }
 
   return m_chanStates[chanId].programChange(prog);
 }
 
 void Sequencer::nextChanProgram(int8_t chanId) {
-  if (chanId > 15)
+  if (static_cast<size_t>(chanId) >= m_chanStates.size()) {
     return;
+  }
 
-  if (!m_chanStates[chanId])
+  if (!m_chanStates[chanId]) {
     m_chanStates[chanId] = ChannelState(*this, chanId);
+  }
 
   return m_chanStates[chanId].nextProgram();
 }
 
 void Sequencer::prevChanProgram(int8_t chanId) {
-  if (chanId > 15)
+  if (static_cast<size_t>(chanId) >= m_chanStates.size()) {
     return;
+  }
 
-  if (!m_chanStates[chanId])
+  if (!m_chanStates[chanId]) {
     m_chanStates[chanId] = ChannelState(*this, chanId);
+  }
 
   return m_chanStates[chanId].prevProgram();
 }

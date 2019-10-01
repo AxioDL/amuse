@@ -5,22 +5,19 @@
 #include "amuse/Voice.hpp"
 
 namespace amuse {
-
-static void Delta(Vector3f& out, const Vector3f& a, const Vector3f& b) {
-  out[0] = a[0] - b[0];
-  out[1] = a[1] - b[1];
-  out[2] = a[2] - b[2];
+static constexpr Vector3f Delta(const Vector3f& a, const Vector3f& b) {
+  return {a[0] - b[0], a[1] - b[1], a[2] - b[2]};
 }
 
-Emitter::~Emitter() {}
+Emitter::~Emitter() = default;
 
 Emitter::Emitter(Engine& engine, const AudioGroup& group, ObjToken<Voice> vox, float maxDist, float minVol,
                  float falloff, bool doppler)
 : Entity(engine, group, vox->getGroupId(), vox->getObjectId())
 , m_vox(vox)
 , m_maxDist(maxDist)
-, m_minVol(std::clamp(0.f, minVol, 1.f))
-, m_falloff(std::clamp(-1.f, falloff, 1.f))
+, m_minVol(std::clamp(minVol, 0.f, 1.f))
+, m_falloff(std::clamp(falloff, -1.f, 1.f))
 , m_doppler(doppler) {}
 
 void Emitter::_destroy() {
@@ -54,19 +51,18 @@ void Emitter::_update() {
       return;
   }
 
-  float coefs[8] = {};
+  std::array<float, 8> coefs{};
   double avgDopplerRatio = 0.0;
 
   for (auto& listener : m_engine.m_activeListeners) {
-    Vector3f listenerToEmitter;
-    Delta(listenerToEmitter, m_pos, listener->m_pos);
-    float dist = Length(listenerToEmitter);
-    float panDist = Dot(listenerToEmitter, listener->m_right);
-    float frontPan = std::clamp(-1.f, panDist / listener->m_frontDiff, 1.f);
-    float backPan = std::clamp(-1.f, panDist / listener->m_backDiff, 1.f);
-    float spanDist = -Dot(listenerToEmitter, listener->m_heading);
-    float span =
-        std::clamp(-1.f, spanDist > 0.f ? spanDist / listener->m_backDiff : spanDist / listener->m_frontDiff, 1.f);
+    const Vector3f listenerToEmitter = Delta(m_pos, listener->m_pos);
+    const float dist = Length(listenerToEmitter);
+    const float panDist = Dot(listenerToEmitter, listener->m_right);
+    const float frontPan = std::clamp(panDist / listener->m_frontDiff, -1.f, 1.f);
+    const float backPan = std::clamp(panDist / listener->m_backDiff, -1.f, 1.f);
+    const float spanDist = -Dot(listenerToEmitter, listener->m_heading);
+    const float span =
+        std::clamp(spanDist > 0.f ? spanDist / listener->m_backDiff : spanDist / listener->m_frontDiff, -1.f, 1.f);
 
     /* Calculate attenuation */
     float att = _attenuationCurve(dist);
@@ -74,27 +70,25 @@ void Emitter::_update() {
     att = m_attCache.getVolume(att, false);
     if (att > FLT_EPSILON) {
       /* Apply pan law */
-      float thisCoefs[8] = {};
-      m_vox->_panLaw(thisCoefs, frontPan, backPan, span);
+      const std::array<float, 8> thisCoefs = m_vox->_panLaw(frontPan, backPan, span);
 
       /* Take maximum coefficient across listeners */
-      for (int i = 0; i < 8; ++i)
+      for (size_t i = 0; i < coefs.size(); ++i) {
         coefs[i] = std::max(coefs[i], thisCoefs[i] * att * listener->m_volume);
+      }
     }
 
     /* Calculate doppler */
     if (m_doppler) {
       /* Positive values indicate emitter and listener closing in */
-      Vector3f dirDelta;
-      Delta(dirDelta, m_dir, listener->m_dir);
-      Vector3f posDelta;
-      Delta(posDelta, listener->m_pos, m_pos);
-      Normalize(posDelta);
-      float deltaSpeed = Dot(dirDelta, posDelta);
-      if (listener->m_soundSpeed != 0.f)
+      const Vector3f dirDelta = Delta(m_dir, listener->m_dir);
+      const Vector3f posDelta = Normalize(Delta(listener->m_pos, m_pos));
+      const float deltaSpeed = Dot(dirDelta, posDelta);
+      if (listener->m_soundSpeed != 0.f) {
         avgDopplerRatio += 1.0 + deltaSpeed / listener->m_soundSpeed;
-      else
+      } else {
         avgDopplerRatio += 1.0;
+      }
     }
   }
 
@@ -110,7 +104,7 @@ void Emitter::_update() {
 }
 
 void Emitter::setVectors(const float* pos, const float* dir) {
-  for (int i = 0; i < 3; ++i) {
+  for (size_t i = 0; i < m_pos.size(); ++i) {
     m_pos[i] = pos[i];
     m_dir[i] = dir[i];
   }

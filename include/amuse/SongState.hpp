@@ -94,7 +94,7 @@ class SongState {
 
     Track() = default;
     Track(SongState& parent, uint8_t midiChan, uint32_t loopStart, const TrackRegion* regions, uint32_t tempo);
-    operator bool() const { return m_parent != nullptr; }
+    explicit operator bool() const { return m_parent != nullptr; }
     void setRegion(const TrackRegion* region);
     void advanceRegion();
     bool advance(Sequencer& seq, double dt);

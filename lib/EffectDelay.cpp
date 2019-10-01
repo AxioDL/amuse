@@ -10,9 +10,9 @@ namespace amuse {
 
 template <typename T>
 EffectDelayImp<T>::EffectDelayImp(uint32_t initDelay, uint32_t initFeedback, uint32_t initOutput, double sampleRate) {
-  initDelay = std::clamp(10u, initDelay, 5000u);
-  initFeedback = std::clamp(0u, initFeedback, 100u);
-  initOutput = std::clamp(0u, initOutput, 100u);
+  initDelay = std::clamp(initDelay, 10u, 5000u);
+  initFeedback = std::clamp(initFeedback, 0u, 100u);
+  initOutput = std::clamp(initOutput, 0u, 100u);
 
   for (int i = 0; i < 8; ++i) {
     x3c_delay[i] = initDelay;
@@ -26,9 +26,9 @@ EffectDelayImp<T>::EffectDelayImp(uint32_t initDelay, uint32_t initFeedback, uin
 template <typename T>
 EffectDelayImp<T>::EffectDelayImp(const EffectDelayInfo& info, double sampleRate) {
   for (int i = 0; i < 8; ++i) {
-    x3c_delay[i] = std::clamp(10u, info.delay[i], 5000u);
-    x48_feedback[i] = std::clamp(0u, info.feedback[i], 100u);
-    x54_output[i] = std::clamp(0u, info.output[i], 100u);
+    x3c_delay[i] = std::clamp(info.delay[i], 10u, 5000u);
+    x48_feedback[i] = std::clamp(info.feedback[i], 0u, 100u);
+    x54_output[i] = std::clamp(info.output[i], 0u, 100u);
   }
 
   _setup(sampleRate);

@@ -46,7 +46,7 @@ struct SongGroupIndex : AudioGroupIndex {
     Value<atUint8> priority;
     Value<atUint8> maxVoices;
     Value<atUint8> programNo;
-    Seek<1, athena::Current> pad;
+    Seek<1, athena::SeekOrigin::Current> pad;
   };
   template <athena::Endian DNAEn>
   struct AT_SPECIALIZE_PARMS(athena::Endian::Big, athena::Endian::Little) MusyX1PageEntryDNA : BigDNA {
@@ -56,11 +56,11 @@ struct SongGroupIndex : AudioGroupIndex {
     Value<atUint8> maxVoices;
     Value<atUint8> unk;
     Value<atUint8> programNo;
-    Seek<2, athena::Current> pad;
+    Seek<2, athena::SeekOrigin::Current> pad;
   };
   struct PageEntry : BigDNA {
     AT_DECL_DNA_YAML
-    PageObjectIdDNA<athena::Big> objId;
+    PageObjectIdDNA<athena::Endian::Big> objId;
     Value<atUint8> priority = 0;
     Value<atUint8> maxVoices = 255;
 
@@ -94,7 +94,7 @@ struct SongGroupIndex : AudioGroupIndex {
     Value<atUint8> panning;
     Value<atUint8> reverb;
     Value<atUint8> chorus;
-    Seek<3, athena::Current> pad;
+    Seek<3, athena::SeekOrigin::Current> pad;
   };
   struct MIDISetup : BigDNA {
     AT_DECL_DNA_YAML
@@ -130,11 +130,11 @@ struct SFXGroupIndex : AudioGroupIndex {
     Value<atUint8> defVel;
     Value<atUint8> panning;
     Value<atUint8> defKey;
-    Seek<1, athena::Current> pad;
+    Seek<1, athena::SeekOrigin::Current> pad;
   };
   struct SFXEntry : BigDNA {
     AT_DECL_DNA_YAML
-    PageObjectIdDNA<athena::Big> objId;
+    PageObjectIdDNA<athena::Endian::Big> objId;
     Value<atUint8> priority = 0;
     Value<atUint8> maxVoices = 255;
     Value<atUint8> defVel = 127;

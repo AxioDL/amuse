@@ -36,9 +36,9 @@ void BooBackendVoice::resetSampleRate(double sampleRate) { m_booVoice->resetSamp
 
 void BooBackendVoice::resetChannelLevels() { m_booVoice->resetChannelLevels(); }
 
-void BooBackendVoice::setChannelLevels(IBackendSubmix* submix, const float coefs[8], bool slew) {
-  BooBackendSubmix& smx = *reinterpret_cast<BooBackendSubmix*>(submix);
-  m_booVoice->setMonoChannelLevels(smx.m_booSubmix.get(), coefs, slew);
+void BooBackendVoice::setChannelLevels(IBackendSubmix* submix, const std::array<float, 8>& coefs, bool slew) {
+  auto& smx = *static_cast<BooBackendSubmix*>(submix);
+  m_booVoice->setMonoChannelLevels(smx.m_booSubmix.get(), coefs.data(), slew);
 }
 
 void BooBackendVoice::setPitchRatio(double ratio, bool slew) { m_booVoice->setPitchRatio(ratio, slew); }

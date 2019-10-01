@@ -75,22 +75,47 @@ add_library(amuse
   include/amuse/VolumeTable.hpp
 )
 
+target_atdna(amuse atdna_AudioGroupPool.cpp include/amuse/AudioGroupPool.hpp)
+target_atdna(amuse atdna_AudioGroupProject.cpp include/amuse/AudioGroupProject.hpp)
+target_atdna(amuse atdna_AudioGroupSampleDirectory.cpp include/amuse/AudioGroupSampleDirectory.hpp)
+
+target_include_directories(amuse PUBLIC include)
+target_link_libraries(amuse
+  athena-core
+  lzokay
+  ${ZLIB_LIBRARIES}
+)
+
 if(NX)
   target_sources(amuse PRIVATE include/switch_math.hpp)
 endif()
 
-target_atdna(amuse atdna_AudioGroupPool.cpp include/amuse/AudioGroupPool.hpp)
-target_atdna(amuse atdna_AudioGroupProject.cpp include/amuse/AudioGroupProject.hpp)
-target_atdna(amuse atdna_AudioGroupSampleDirectory.cpp include/amuse/AudioGroupSampleDirectory.hpp)
-target_include_directories(amuse PUBLIC include)
-target_link_libraries(amuse athena-core ${ZLIB_LIBRARIES} lzokay)
 if(TARGET boo)
   target_sources(amuse PRIVATE lib/BooBackend.cpp include/amuse/BooBackend.hpp)
   target_link_libraries(amuse boo)
 endif()
-if (NOT MSVC)
+
+if (MSVC)
+  target_compile_options(amuse PRIVATE
+    # Enforce various standards compliant behavior.
+    /permissive-
+
+    # Enable standard volatile semantics.
+    /volatile:iso
+
+    # Reports the proper value for the __cplusplus preprocessor macro.
+    /Zc:__cplusplus
+
+    # Allow constexpr variables to have explicit external linkage.
+    /Zc:externConstexpr
+
+    # Assume that new throws exceptions, allowing better code generation.
+    /Zc:throwingNew
+  )
+else()
   target_compile_options(amuse PRIVATE -Wno-unknown-pragmas)
 endif()
+
 if(COMMAND add_sanitizers)
   add_sanitizers(amuse)
 endif()
