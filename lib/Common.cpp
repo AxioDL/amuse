@@ -99,7 +99,7 @@ bool Copy(const SystemChar* from, const SystemChar* to) {
   }                                                                                                                    \
   template <athena::Endian DNAE>                                                                                       \
   void type##DNA<DNAE>::_read(athena::io::YAMLDocReader& r) {                                                          \
-    std::string name = r.readString(nullptr);                                                                          \
+    std::string name = r.readString();                                                                                 \
     if (!type::CurNameDB)                                                                                              \
       Log.report(logvisor::Fatal, fmt("Unable to resolve " typeName " name {}, no database present"), name);           \
     if (name.empty()) {                                                                                                \
@@ -116,11 +116,11 @@ bool Copy(const SystemChar* from, const SystemChar* to) {
       return;                                                                                                          \
     std::string_view name = type::CurNameDB->resolveNameFromId(id);                                                    \
     if (!name.empty())                                                                                                 \
-      w.writeString(nullptr, name);                                                                                    \
+      w.writeString(name);                                                                                             \
   }                                                                                                                    \
   template <athena::Endian DNAE>                                                                                       \
-  const char* type##DNA<DNAE>::DNAType() {                                                                             \
-    return "amuse::" #type "DNA";                                                                                      \
+  std::string_view type##DNA<DNAE>::DNAType() {                                                                        \
+    return "amuse::" #type "DNA"sv;                                                                                    \
   }                                                                                                                    \
   template struct type##DNA<athena::Big>;                                                                              \
   template struct type##DNA<athena::Little>;
@@ -187,7 +187,7 @@ void PageObjectIdDNA<athena::Big>::Enumerate<BigDNA::WriteYaml>(athena::io::YAML
 }
 template <athena::Endian DNAE>
 void PageObjectIdDNA<DNAE>::_read(athena::io::YAMLDocReader& r) {
-  std::string name = r.readString(nullptr);
+  std::string name = r.readString();
   if (!KeymapId::CurNameDB || !LayersId::CurNameDB)
     Log.report(logvisor::Fatal, fmt("Unable to resolve keymap or layers name {}, no database present"), name);
   if (name.empty()) {
@@ -217,20 +217,20 @@ void PageObjectIdDNA<DNAE>::_write(athena::io::YAMLDocWriter& w) {
   if (id.id & 0x8000) {
     std::string_view name = LayersId::CurNameDB->resolveNameFromId(id);
     if (!name.empty())
-      w.writeString(nullptr, name);
+      w.writeString(name);
   } else if (id.id & 0x4000) {
     std::string_view name = KeymapId::CurNameDB->resolveNameFromId(id);
     if (!name.empty())
-      w.writeString(nullptr, name);
+      w.writeString(name);
   } else {
     std::string_view name = SoundMacroId::CurNameDB->resolveNameFromId(id);
     if (!name.empty())
-      w.writeString(nullptr, name);
+      w.writeString(name);
   }
 }
 template <athena::Endian DNAE>
-const char* PageObjectIdDNA<DNAE>::DNAType() {
-  return "amuse::PageObjectIdDNA";
+std::string_view PageObjectIdDNA<DNAE>::DNAType() {
+  return "amuse::PageObjectIdDNA"sv;
 }
 template struct PageObjectIdDNA<athena::Big>;
 template struct PageObjectIdDNA<athena::Little>;
@@ -253,12 +253,12 @@ void SoundMacroStepDNA<athena::Little>::Enumerate<BigDNA::BinarySize>(size_t& sz
 template <>
 template <>
 void SoundMacroStepDNA<athena::Little>::Enumerate<BigDNA::ReadYaml>(athena::io::YAMLDocReader& reader) {
-  step = reader.readUint16(nullptr);
+  step = reader.readUint16();
 }
 template <>
 template <>
 void SoundMacroStepDNA<athena::Little>::Enumerate<BigDNA::WriteYaml>(athena::io::YAMLDocWriter& writer) {
-  writer.writeUint16(nullptr, step);
+  writer.writeUint16(step);
 }
 template <>
 template <>
@@ -278,16 +278,16 @@ void SoundMacroStepDNA<athena::Big>::Enumerate<BigDNA::BinarySize>(size_t& sz) {
 template <>
 template <>
 void SoundMacroStepDNA<athena::Big>::Enumerate<BigDNA::ReadYaml>(athena::io::YAMLDocReader& reader) {
-  step = reader.readUint16(nullptr);
+  step = reader.readUint16();
 }
 template <>
 template <>
 void SoundMacroStepDNA<athena::Big>::Enumerate<BigDNA::WriteYaml>(athena::io::YAMLDocWriter& writer) {
-  writer.writeUint16(nullptr, step);
+  writer.writeUint16(step);
 }
 template <athena::Endian DNAE>
-const char* SoundMacroStepDNA<DNAE>::DNAType() {
-  return "amuse::SoundMacroStepDNA";
+std::string_view SoundMacroStepDNA<DNAE>::DNAType() {
+  return "amuse::SoundMacroStepDNA"sv;
 }
 template struct SoundMacroStepDNA<athena::Big>;
 template struct SoundMacroStepDNA<athena::Little>;
@@ -411,14 +411,14 @@ void LittleUInt24::Enumerate<LittleDNA::BinarySize>(size_t& sz) {
 
 template <>
 void LittleUInt24::Enumerate<LittleDNA::ReadYaml>(athena::io::YAMLDocReader& reader) {
-  val = reader.readUint32(nullptr);
+  val = reader.readUint32();
 }
 
 template <>
 void LittleUInt24::Enumerate<LittleDNA::WriteYaml>(athena::io::YAMLDocWriter& writer) {
-  writer.writeUint32(nullptr, val);
+  writer.writeUint32(val);
 }
 
-const char* LittleUInt24::DNAType() { return "amuse::LittleUInt24"; }
+std::string_view LittleUInt24::DNAType() { return "amuse::LittleUInt24"sv; }
 
 } // namespace amuse

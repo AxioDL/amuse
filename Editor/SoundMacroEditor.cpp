@@ -207,7 +207,7 @@ CommandWidget::CommandWidget(QWidget* parent, amuse::SoundMacro::ICmd* cmd, amus
           if (field.m_tp == amuse::SoundMacro::CmdIntrospection::Field::Type::SoundMacroId) {
             collectionType = ProjectModel::INode::Type::SoundMacro;
           } else if (field.m_tp == amuse::SoundMacro::CmdIntrospection::Field::Type::TableId) {
-            if (!field.m_name.compare("ADSR"))
+            if (field.m_name == "ADSR")
               collectionType = ProjectModel::INode::Type::ADSR;
             else
               collectionType = ProjectModel::INode::Type::Curve;

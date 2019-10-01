@@ -651,7 +651,7 @@ void ProjectModel::saveSongsIndex() {
     QFileInfo songsFile(m_dir, QStringLiteral("!songs.yaml"));
     athena::io::YAMLDocWriter dw("amuse::Songs");
     for (auto& p : amuse::SortUnorderedMap(m_midiFiles))
-      dw.writeString(fmt::format(fmt("{}"), p.first).c_str(), p.second.get().m_path.toUtf8().data());
+      dw.writeString(fmt::format(fmt("{}"), p.first), p.second.get().m_path.toUtf8().data());
     athena::io::FileWriter w(QStringToSysString(songsFile.filePath()));
     if (!w.hasError())
       dw.finish(&w);
@@ -1592,7 +1592,7 @@ static void WriteMimeYAML(athena::io::YAMLDocWriter& w, ProjectModel::CurveNode*
 static void WriteMimeYAML(athena::io::YAMLDocWriter& w, ProjectModel::KeymapNode* n) {
   if (auto __v = w.enterSubVector("entries")) {
     for (const auto& km : *n->m_obj) {
-      if (auto __r2 = w.enterSubRecord(nullptr)) {
+      if (auto __r2 = w.enterSubRecord()) {
         w.setStyle(athena::io::YAMLNodeStyle::Flow);
         km.write(w);
       }
@@ -1602,7 +1602,7 @@ static void WriteMimeYAML(athena::io::YAMLDocWriter& w, ProjectModel::KeymapNode
 static void WriteMimeYAML(athena::io::YAMLDocWriter& w, ProjectModel::LayersNode* n) {
   if (auto __v = w.enterSubVector("entries")) {
     for (const auto& lm : *n->m_obj) {
-      if (auto __r2 = w.enterSubRecord(nullptr)) {
+      if (auto __r2 = w.enterSubRecord()) {
         w.setStyle(athena::io::YAMLNodeStyle::Flow);
         lm.write(w);
       }
@@ -1670,7 +1670,7 @@ EditorUndoCommand* ProjectModel::readMimeYAML<ProjectModel::KeymapNode>(athena::
   size_t entryCount;
   if (auto __v = r.enterSubVector("entries", entryCount)) {
     for (size_t i = 0; i < entryCount; ++i) {
-      if (auto __r2 = r.enterSubRecord(nullptr)) {
+      if (auto __r2 = r.enterSubRecord()) {
         (*dataNode)[i].read(r);
       }
     }
@@ -1686,7 +1686,7 @@ EditorUndoCommand* ProjectModel::readMimeYAML<ProjectModel::LayersNode>(athena::
   if (auto __v = r.enterSubVector("entries", entryCount)) {
     dataNode->resize(entryCount);
     for (size_t i = 0; i < entryCount; ++i) {
-      if (auto __r2 = r.enterSubRecord(nullptr)) {
+      if (auto __r2 = r.enterSubRecord()) {
         (*dataNode)[i].read(r);
       }
     }
@@ -1710,7 +1710,7 @@ template <class NT>
 QMimeData* MakeMimeData(NT* n, const QString& mimeType) {
   QMimeData* data = new QMimeData;
   athena::io::VectorWriter vw;
-  athena::io::YAMLDocWriter w(nullptr);
+  athena::io::YAMLDocWriter w;
   w.writeString("name", n->name().toStdString());
   WriteMimeYAML(w, n);
   w.finish(&vw);

@@ -211,7 +211,7 @@ AudioGroupPool AudioGroupPool::CreateAudioGroupPool(SystemStringView groupPath) 
 
   if (!fi.hasError()) {
     athena::io::YAMLDocReader r;
-    if (r.parse(&fi) && !r.readString("DNAType").compare("amuse::Pool")) {
+    if (r.parse(&fi) && r.readString("DNAType") == "amuse::Pool") {
       if (auto __r = r.enterSubRecord("soundMacros")) {
         for (const auto& sm : r.getCurNode()->m_mapChildren) {
           ObjectId macroId = SoundMacroId::CurNameDB->generateId(NameDB::Type::SoundMacro);
@@ -289,7 +289,7 @@ AudioGroupPool AudioGroupPool::CreateAudioGroupPool(SystemStringView groupPath) 
             auto& kmOut = ret.m_keymaps[KeymapId::CurNameDB->resolveIdFromName(k.first)];
             kmOut = MakeObj<std::array<Keymap, 128>>();
             for (size_t i = 0; i < mappingCount && i < 128; ++i)
-              if (auto __r2 = r.enterSubRecord(nullptr))
+              if (auto __r2 = r.enterSubRecord())
                 (*kmOut)[i].read(r);
           }
         }
@@ -304,7 +304,7 @@ AudioGroupPool AudioGroupPool::CreateAudioGroupPool(SystemStringView groupPath) 
             layOut = MakeObj<std::vector<LayerMapping>>();
             layOut->reserve(mappingCount);
             for (size_t lm = 0; lm < mappingCount; ++lm) {
-              if (auto __r2 = r.enterSubRecord(nullptr)) {
+              if (auto __r2 = r.enterSubRecord()) {
                 layOut->emplace_back();
                 layOut->back().read(r);
               }
@@ -363,7 +363,7 @@ void SoundMacro::buildFromPrototype(const SoundMacro& other) {
 
 void SoundMacro::toYAML(athena::io::YAMLDocWriter& w) const {
   for (const auto& c : m_cmds) {
-    if (auto __r2 = w.enterSubRecord(nullptr)) {
+    if (auto __r2 = w.enterSubRecord()) {
       w.setStyle(athena::io::YAMLNodeStyle::Flow);
       w.writeString("cmdOp", SoundMacro::CmdOpToStr(c->Isa()));
       c->write(w);
@@ -374,7 +374,7 @@ void SoundMacro::toYAML(athena::io::YAMLDocWriter& w) const {
 void SoundMacro::fromYAML(athena::io::YAMLDocReader& r, size_t cmdCount) {
   m_cmds.reserve(cmdCount);
   for (size_t c = 0; c < cmdCount; ++c)
-    if (auto __r2 = r.enterSubRecord(nullptr))
+    if (auto __r2 = r.enterSubRecord())
       m_cmds.push_back(SoundMacro::CmdDo<MakeCmdOp, std::unique_ptr<SoundMacro::ICmd>>(r));
 }
 
@@ -948,7 +948,7 @@ std::vector<uint8_t> AudioGroupPool::toYAML() const {
   if (!m_soundMacros.empty()) {
     if (auto __r = w.enterSubRecord("soundMacros")) {
       for (const auto& p : SortUnorderedMap(m_soundMacros)) {
-        if (auto __v = w.enterSubVector(SoundMacroId::CurNameDB->resolveNameFromId(p.first).data())) {
+        if (auto __v = w.enterSubVector(SoundMacroId::CurNameDB->resolveNameFromId(p.first))) {
           p.second.get()->toYAML(w);
         }
       }
@@ -958,7 +958,7 @@ std::vector<uint8_t> AudioGroupPool::toYAML() const {
   if (!m_tables.empty()) {
     if (auto __r = w.enterSubRecord("tables")) {
       for (const auto& p : SortUnorderedMap(m_tables)) {
-        if (auto __v = w.enterSubRecord(TableId::CurNameDB->resolveNameFromId(p.first).data())) {
+        if (auto __v = w.enterSubRecord(TableId::CurNameDB->resolveNameFromId(p.first))) {
           w.setStyle(athena::io::YAMLNodeStyle::Flow);
           (*p.second.get())->write(w);
         }
@@ -969,9 +969,9 @@ std::vector<uint8_t> AudioGroupPool::toYAML() const {
   if (!m_keymaps.empty()) {
     if (auto __r = w.enterSubRecord("keymaps")) {
       for (const auto& p : SortUnorderedMap(m_keymaps)) {
-        if (auto __v = w.enterSubVector(KeymapId::CurNameDB->resolveNameFromId(p.first).data())) {
+        if (auto __v = w.enterSubVector(KeymapId::CurNameDB->resolveNameFromId(p.first))) {
           for (const auto& km : *p.second.get()) {
-            if (auto __r2 = w.enterSubRecord(nullptr)) {
+            if (auto __r2 = w.enterSubRecord()) {
               w.setStyle(athena::io::YAMLNodeStyle::Flow);
               km.write(w);
             }
@@ -984,9 +984,9 @@ std::vector<uint8_t> AudioGroupPool::toYAML() const {
   if (!m_layers.empty()) {
     if (auto __r = w.enterSubRecord("layers")) {
       for (const auto& p : SortUnorderedMap(m_layers)) {
-        if (auto __v = w.enterSubVector(LayersId::CurNameDB->resolveNameFromId(p.first).data())) {
+        if (auto __v = w.enterSubVector(LayersId::CurNameDB->resolveNameFromId(p.first))) {
           for (const auto& lm : *p.second.get()) {
-            if (auto __r2 = w.enterSubRecord(nullptr)) {
+            if (auto __r2 = w.enterSubRecord()) {
               w.setStyle(athena::io::YAMLNodeStyle::Flow);
               lm.write(w);
             }
@@ -1129,6 +1129,6 @@ void amuse::Curve::Enumerate<LittleDNA::WriteYaml>(athena::io::YAMLDocWriter& w)
   w.enumerate("data", data);
 }
 
-const char* amuse::Curve::DNAType() { return "amuse::Curve"; }
+std::string_view amuse::Curve::DNAType() { return "amuse::Curve"sv; }
 
 } // namespace amuse

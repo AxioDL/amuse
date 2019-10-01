@@ -330,7 +330,7 @@ VstInt32 VSTBackend::setChunk(void* data, VstInt32 byteSize, bool) {
   for (auto& collection : m_filePresenter.m_audioGroupCollections) {
     size_t fileIdx = 0;
     for (auto& file : collection.second->m_groups) {
-      if (!file.second->m_path.compare(targetPath)) {
+      if (file.second->m_path == targetPath) {
         m_editor.selectCollection(LPARAM(0x80000000 | (colIdx << 16) | fileIdx));
         m_editor.selectGroup(groupIdx);
         m_editor.selectPage(pageIdx);
