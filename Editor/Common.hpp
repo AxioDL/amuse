@@ -48,10 +48,3 @@ QString ShowInGraphicalShellString();
 
 /* Used for generating transform matrices to map SVG coordinate space */
 QTransform RectToRect(const QRectF& from, const QRectF& to);
-
-namespace std {
-template <>
-struct hash<QString> {
-  std::size_t operator()(const QString& s) const noexcept { return qHash(s); }
-};
-} // namespace std
