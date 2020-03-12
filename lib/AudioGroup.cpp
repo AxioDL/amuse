@@ -237,7 +237,7 @@ void AudioGroupDatabase::importCHeader(std::string_view header) {
 }
 
 static void WriteDefineLine(std::stringstream& ret, std::string_view typeStr, std::string_view name, ObjectId id) {
-  fmt::print(ret, fmt("#define {}{} {}\n"), typeStr, name, id);
+  fmt::print(ret, fmt("#define {}{} 0x{}\n"), typeStr, name, id);
 }
 
 std::string AudioGroupDatabase::exportCHeader(std::string_view projectName, std::string_view groupName) const {
