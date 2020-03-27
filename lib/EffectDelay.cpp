@@ -50,8 +50,7 @@ void EffectDelayImp<T>::_update() {
     x18_currentFeedback[i] = x48_feedback[i] * 128 / 100;
     x24_currentOutput[i] = x54_output[i] * 128 / 100;
 
-    x30_chanLines[i].reset(new T[m_blockSamples * x0_currentSize[i]]);
-    memset(x30_chanLines[i].get(), 0, m_blockSamples * x0_currentSize[i] * sizeof(T));
+    x30_chanLines[i] = std::make_unique<T[]>(m_blockSamples * x0_currentSize[i]);
   }
 
   m_dirty = false;
