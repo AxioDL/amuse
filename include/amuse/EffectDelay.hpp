@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>
+#include <array>
 #include <cstdint>
 #include <memory>
 
@@ -13,24 +15,24 @@ class EffectDelayImp;
 
 /** Parameters needed to create EffectDelay */
 struct EffectDelayInfo {
-  uint32_t delay[8];         /**< [10, 5000] time in ms of each channel's delay */
-  uint32_t feedback[8] = {}; /**< [0, 100] percent to mix delayed signal with input signal */
-  uint32_t output[8] = {};   /**< [0, 100] total output percent */
+  std::array<uint32_t, NumChannels> delay; /**< [10, 5000] time in ms of each channel's delay */
+  std::array<uint32_t, NumChannels> feedback{}; /**< [0, 100] percent to mix delayed signal with input signal */
+  std::array<uint32_t, NumChannels> output{};   /**< [0, 100] total output percent */
 
   static uint32_t lerp(uint32_t v0, uint32_t v1, float t) { return (1.f - t) * v0 + t * v1; }
 
-  static void Interp3To8(uint32_t arr[8], uint32_t L, uint32_t R, uint32_t S) {
-    arr[int(AudioChannel::FrontLeft)] = L;
-    arr[int(AudioChannel::FrontRight)] = R;
-    arr[int(AudioChannel::RearLeft)] = lerp(L, S, 0.75f);
-    arr[int(AudioChannel::RearRight)] = lerp(R, S, 0.75f);
-    arr[int(AudioChannel::FrontCenter)] = lerp(L, R, 0.5f);
-    arr[int(AudioChannel::LFE)] = arr[int(AudioChannel::FrontCenter)];
-    arr[int(AudioChannel::SideLeft)] = lerp(L, S, 0.5f);
-    arr[int(AudioChannel::SideRight)] = lerp(R, S, 0.5f);
+  static void Interp3To8(std::array<uint32_t, 8>& arr, uint32_t L, uint32_t R, uint32_t S) {
+    arr[size_t(AudioChannel::FrontLeft)] = L;
+    arr[size_t(AudioChannel::FrontRight)] = R;
+    arr[size_t(AudioChannel::RearLeft)] = lerp(L, S, 0.75f);
+    arr[size_t(AudioChannel::RearRight)] = lerp(R, S, 0.75f);
+    arr[size_t(AudioChannel::FrontCenter)] = lerp(L, R, 0.5f);
+    arr[size_t(AudioChannel::LFE)] = arr[size_t(AudioChannel::FrontCenter)];
+    arr[size_t(AudioChannel::SideLeft)] = lerp(L, S, 0.5f);
+    arr[size_t(AudioChannel::SideRight)] = lerp(R, S, 0.5f);
   }
 
-  EffectDelayInfo() { std::fill_n(delay, 8, 10); }
+  EffectDelayInfo() { delay.fill(10); }
   EffectDelayInfo(uint32_t delayL, uint32_t delayR, uint32_t delayS, uint32_t feedbackL, uint32_t feedbackR,
                   uint32_t feedbackS, uint32_t outputL, uint32_t outputR, uint32_t outputS) {
     Interp3To8(delay, delayL, delayR, delayS);
@@ -42,18 +44,18 @@ struct EffectDelayInfo {
 /** Mixes the audio back into itself after specified delay */
 class EffectDelay {
 protected:
-  uint32_t x3c_delay[8];    /**< [10, 5000] time in ms of each channel's delay */
-  uint32_t x48_feedback[8]; /**< [0, 100] percent to mix delayed signal with input signal */
-  uint32_t x54_output[8];   /**< [0, 100] total output percent */
+  std::array<uint32_t, NumChannels> x3c_delay;    /**< [10, 5000] time in ms of each channel's delay */
+  std::array<uint32_t, NumChannels> x48_feedback; /**< [0, 100] percent to mix delayed signal with input signal */
+  std::array<uint32_t, NumChannels> x54_output;   /**< [0, 100] total output percent */
   bool m_dirty = true;      /**< needs update of internal parameter data */
+
 public:
   template <typename T>
   using ImpType = EffectDelayImp<T>;
 
   void setDelay(uint32_t delay) {
     delay = std::clamp(delay, 10u, 5000u);
-    for (int i = 0; i < 8; ++i)
-      x3c_delay[i] = delay;
+    x3c_delay.fill(delay);
     m_dirty = true;
   }
   void setChanDelay(int chanIdx, uint32_t delay) {
@@ -65,8 +67,7 @@ public:
 
   void setFeedback(uint32_t feedback) {
     feedback = std::clamp(feedback, 0u, 100u);
-    for (int i = 0; i < 8; ++i)
-      x48_feedback[i] = feedback;
+    x48_feedback.fill(feedback);
     m_dirty = true;
   }
 
@@ -79,8 +80,7 @@ public:
 
   void setOutput(uint32_t output) {
     output = std::clamp(output, 0u, 100u);
-    for (int i = 0; i < 8; ++i)
-      x54_output[i] = output;
+    x54_output.fill(output);
     m_dirty = true;
   }
 
@@ -92,7 +92,7 @@ public:
   uint32_t getChanOutput(int chanIdx) const { return x54_output[chanIdx]; }
 
   void setParams(const EffectDelayInfo& info) {
-    for (int i = 0; i < 8; ++i) {
+    for (size_t i = 0; i < NumChannels; ++i) {
       x3c_delay[i] = std::clamp(info.delay[i], 10u, 5000u);
       x48_feedback[i] = std::clamp(info.feedback[i], 0u, 100u);
       x54_output[i] = std::clamp(info.output[i], 0u, 100u);
@@ -104,12 +104,12 @@ public:
 /** Type-specific implementation of delay effect */
 template <typename T>
 class EffectDelayImp : public EffectBase<T>, public EffectDelay {
-  uint32_t x0_currentSize[8];      /**< per-channel delay-line buffer sizes */
-  uint32_t xc_currentPos[8];       /**< per-channel block-index */
-  uint32_t x18_currentFeedback[8]; /**< [0, 128] feedback attenuator */
-  uint32_t x24_currentOutput[8];   /**< [0, 128] total attenuator */
+  std::array<uint32_t, NumChannels> x0_currentSize;      /**< per-channel delay-line buffer sizes */
+  std::array<uint32_t, NumChannels> xc_currentPos;       /**< per-channel block-index */
+  std::array<uint32_t, NumChannels> x18_currentFeedback; /**< [0, 128] feedback attenuator */
+  std::array<uint32_t, NumChannels> x24_currentOutput;   /**< [0, 128] total attenuator */
 
-  std::unique_ptr<T[]> x30_chanLines[8]; /**< delay-line buffers for each channel */
+  std::array<std::unique_ptr<T[]>, NumChannels> x30_chanLines; /**< delay-line buffers for each channel */
 
   uint32_t m_sampsPerMs;   /**< canonical count of samples per ms for the current backend */
   uint32_t m_blockSamples; /**< count of samples in a 5ms block */

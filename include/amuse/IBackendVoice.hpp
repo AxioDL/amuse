@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cstddef>
 
 namespace amuse {
 class IBackendSubmix;
@@ -18,10 +19,12 @@ enum class AudioChannel {
   Unknown = 0xff
 };
 
+constexpr size_t NumChannels = 8;
+
 /** Same structure from boo, used to represent interleaved speaker layout */
 struct ChannelMap {
   unsigned m_channelCount = 0;
-  AudioChannel m_channels[8] = {};
+  AudioChannel m_channels[NumChannels] = {};
 };
 
 /** Client-implemented voice instance */

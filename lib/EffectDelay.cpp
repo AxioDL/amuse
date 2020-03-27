@@ -1,7 +1,6 @@
 #include "amuse/EffectDelay.hpp"
 
 #include <cmath>
-#include <cstring>
 
 #include "amuse/Common.hpp"
 #include "amuse/IBackendVoice.hpp"
@@ -14,18 +13,16 @@ EffectDelayImp<T>::EffectDelayImp(uint32_t initDelay, uint32_t initFeedback, uin
   initFeedback = std::clamp(initFeedback, 0u, 100u);
   initOutput = std::clamp(initOutput, 0u, 100u);
 
-  for (int i = 0; i < 8; ++i) {
-    x3c_delay[i] = initDelay;
-    x48_feedback[i] = initFeedback;
-    x54_output[i] = initOutput;
-  }
+  x3c_delay.fill(initDelay);
+  x48_feedback.fill(initFeedback);
+  x54_output.fill(initOutput);
 
   _setup(sampleRate);
 }
 
 template <typename T>
 EffectDelayImp<T>::EffectDelayImp(const EffectDelayInfo& info, double sampleRate) {
-  for (int i = 0; i < 8; ++i) {
+  for (size_t i = 0; i < NumChannels; ++i) {
     x3c_delay[i] = std::clamp(info.delay[i], 10u, 5000u);
     x48_feedback[i] = std::clamp(info.feedback[i], 0u, 100u);
     x54_output[i] = std::clamp(info.output[i], 0u, 100u);
@@ -44,7 +41,7 @@ void EffectDelayImp<T>::_setup(double sampleRate) {
 
 template <typename T>
 void EffectDelayImp<T>::_update() {
-  for (int i = 0; i < 8; ++i) {
+  for (size_t i = 0; i < NumChannels; ++i) {
     x0_currentSize[i] = ((x3c_delay[i] - 5) * m_sampsPerMs + 159) / 160;
     xc_currentPos[i] = 0;
     x18_currentFeedback[i] = x48_feedback[i] * 128 / 100;
