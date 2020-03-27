@@ -1,7 +1,6 @@
 #include "amuse/EffectChorus.hpp"
 
 #include <cmath>
-#include <cstring>
 
 #include "amuse/Common.hpp"
 #include "amuse/IBackendVoice.hpp"
@@ -9,8 +8,7 @@
 namespace amuse {
 
 /* clang-format off */
-static const float rsmpTab12khz[] =
-{
+constexpr std::array rsmpTab12khz{
     0.097504f, 0.802216f, 0.101593f, -0.000977f,
     0.093506f, 0.802032f, 0.105804f, -0.001038f,
     0.089600f, 0.801697f, 0.110107f, -0.001160f,
@@ -160,13 +158,14 @@ void EffectChorusImp<T>::_setup(double sampleRate) {
 
   delete[] x0_lastChans[0][0];
 
-  T* buf = new T[m_blockSamples * AMUSE_CHORUS_NUM_BLOCKS * 8];
-  memset(buf, 0, m_blockSamples * AMUSE_CHORUS_NUM_BLOCKS * 8 * sizeof(T));
-  size_t chanPitch = m_blockSamples * AMUSE_CHORUS_NUM_BLOCKS;
+  const size_t chanPitch = m_blockSamples * AMUSE_CHORUS_NUM_BLOCKS;
+  T* buf = new T[chanPitch * NumChannels]();
 
-  for (int c = 0; c < 8; ++c)
-    for (int i = 0; i < AMUSE_CHORUS_NUM_BLOCKS; ++i)
+  for (size_t c = 0; c < NumChannels; ++c) {
+    for (size_t i = 0; i < AMUSE_CHORUS_NUM_BLOCKS; ++i) {
       x0_lastChans[c][i] = buf + chanPitch * c + m_blockSamples * i;
+    }
+  }
 
   x6c_src.x88_trigger = chanPitch;
 
@@ -294,15 +293,17 @@ void EffectChorusImp<T>::applyEffect(T* audio, size_t frameCount, const ChannelM
   for (size_t f = 0; f < frameCount;) {
     uint8_t next = x24_currentLast + 1;
     uint8_t buf = next % 3;
-    T* bufs[8] = {
+    std::array<T*, 8> bufs{
         x0_lastChans[0][buf], x0_lastChans[1][buf], x0_lastChans[2][buf], x0_lastChans[3][buf],
         x0_lastChans[4][buf], x0_lastChans[5][buf], x0_lastChans[6][buf], x0_lastChans[7][buf],
     };
 
     T* inBuf = audio;
-    for (size_t s = 0; f < frameCount && s < m_blockSamples; ++s, ++f)
-      for (size_t c = 0; c < chanMap.m_channelCount && c < 8; ++c)
+    for (size_t s = 0; f < frameCount && s < m_blockSamples; ++s, ++f) {
+      for (size_t c = 0; c < chanMap.m_channelCount && c < NumChannels; ++c) {
         *bufs[c]++ = *inBuf++;
+      }
+    }
 
     x6c_src.x84_pitchHi = (x60_pitchOffset >> 16) + 1;
     x6c_src.x80_pitchLo = (x60_pitchOffset << 16);
@@ -315,13 +316,13 @@ void EffectChorusImp<T>::applyEffect(T* audio, size_t frameCount, const ChannelM
 
     T* outBuf = audio;
     size_t bs = std::min(remFrames, size_t(m_blockSamples));
-    for (size_t c = 0; c < chanMap.m_channelCount && c < 8; ++c) {
+    for (size_t c = 0; c < chanMap.m_channelCount && c < NumChannels; ++c) {
       x6c_src.x7c_posHi = x5c_currentPosHi;
       x6c_src.x78_posLo = x58_currentPosLo;
 
       x6c_src.x6c_dest = outBuf++;
       x6c_src.x70_smpBase = x0_lastChans[c][0];
-      x6c_src.x74_old = x28_oldChans[c];
+      x6c_src.x74_old = x28_oldChans[c].data();
 
       switch (x6c_src.x84_pitchHi) {
       case 0:

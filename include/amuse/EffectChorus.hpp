@@ -1,9 +1,11 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
 
 #include "amuse/Common.hpp"
 #include "amuse/EffectBase.hpp"
+#include "amuse/IBackendVoice.hpp"
 
 namespace amuse {
 template <typename T>
@@ -68,10 +70,11 @@ public:
 /** Type-specific implementation of chorus effect */
 template <typename T>
 class EffectChorusImp : public EffectBase<T>, public EffectChorus {
-  T* x0_lastChans[8][AMUSE_CHORUS_NUM_BLOCKS] = {}; /**< Evenly-allocated pointer-table for each channel's delay */
+  /** Evenly-allocated pointer-table for each channel's delay */
+  std::array<std::array<T*, AMUSE_CHORUS_NUM_BLOCKS>, NumChannels> x0_lastChans{};
 
   uint8_t x24_currentLast = 1; /**< Last 5ms block-idx to be processed */
-  T x28_oldChans[8][4] = {};   /**< Unprocessed history of previous 4 samples */
+  std::array<std::array<T, 4>, NumChannels> x28_oldChans{}; /**< Unprocessed history of previous 4 samples */
 
   uint32_t x58_currentPosLo = 0; /**< 16.7 fixed-point low-part of sample index */
   uint32_t x5c_currentPosHi = 0; /**< 16.7 fixed-point high-part of sample index */
@@ -93,7 +96,8 @@ class EffectChorusImp : public EffectBase<T>, public EffectChorus {
 
     void doSrc1(size_t blockSamples, size_t chanCount);
     void doSrc2(size_t blockSamples, size_t chanCount);
-  } x6c_src;
+  };
+  SrcInfo x6c_src;
 
   uint32_t m_sampsPerMs;   /**< canonical count of samples per ms for the current backend */
   uint32_t m_blockSamples; /**< count of samples in a 5ms block */
