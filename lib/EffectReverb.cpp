@@ -1,7 +1,7 @@
 #include "amuse/EffectReverb.hpp"
 
+#include <algorithm>
 #include <cmath>
-#include <cstring>
 
 #include "amuse/IBackendVoice.hpp"
 
@@ -10,23 +10,20 @@ namespace amuse {
 /* clang-format off */
 
 /* Comb-filter delays */
-static const size_t CTapDelays[] =
-{
+constexpr std::array<size_t, 3> CTapDelays{
     1789,
     1999,
     2333
 };
 
 /* All-pass-filter delays */
-static const size_t APTapDelays[] =
-{
+constexpr std::array<size_t, 2> APTapDelays{
     433,
-    149
+    149,
 };
 
 /* Per-channel low-pass delays (Hi-quality reverb only) */
-static const size_t LPTapDelays[] =
-{
+constexpr std::array<size_t, 8> LPTapDelays{
     47,
     73,
     67,
@@ -42,8 +39,7 @@ static const size_t LPTapDelays[] =
 void ReverbDelayLine::allocate(int32_t delay) {
   delay += 2;
   x8_length = delay;
-  xc_inputs.reset(new float[delay]);
-  memset(xc_inputs.get(), 0, x8_length * sizeof(float));
+  xc_inputs = std::make_unique<float[]>(delay);
   x10_lastInput = 0.f;
   setdelay(delay / 2);
   x0_inPoint = 0;
@@ -83,8 +79,8 @@ template <typename T>
 void EffectReverbStdImp<T>::_update() {
   float timeSamples = x148_x1d0_time * m_sampleRate;
   double rateRatio = m_sampleRate / NativeSampleRate;
-  for (int c = 0; c < 8; ++c) {
-    for (int t = 0; t < 2; ++t) {
+  for (size_t c = 0; c < NumChannels; ++c) {
+    for (size_t t = 0; t < x78_C[c].size(); ++t) {
       ReverbDelayLine& combLine = x78_C[c][t];
       size_t tapDelay = CTapDelays[t] * rateRatio;
       combLine.allocate(tapDelay);
@@ -92,7 +88,7 @@ void EffectReverbStdImp<T>::_update() {
       xf4_combCoef[c][t] = std::pow(10.f, tapDelay * -3.f / timeSamples);
     }
 
-    for (int t = 0; t < 2; ++t) {
+    for (size_t t = 0; t < x0_AP[c].size(); ++t) {
       ReverbDelayLine& allPassLine = x0_AP[c][t];
       size_t tapDelay = APTapDelays[t] * rateRatio;
       allPassLine.allocate(tapDelay);
@@ -111,17 +107,16 @@ void EffectReverbStdImp<T>::_update() {
 
   if (x150_x1d8_preDelay != 0.f) {
     x120_preDelayTime = m_sampleRate * x150_x1d8_preDelay;
-    for (int i = 0; i < 8; ++i) {
-      x124_preDelayLine[i].reset(new float[x120_preDelayTime]);
-      memset(x124_preDelayLine[i].get(), 0, x120_preDelayTime * sizeof(float));
+    for (size_t i = 0; i < NumChannels; ++i) {
+      x124_preDelayLine[i] = std::make_unique<float[]>(x120_preDelayTime);
       x130_preDelayPtr[i] = x124_preDelayLine[i].get();
     }
   } else {
     x120_preDelayTime = 0;
-    for (int i = 0; i < 8; ++i) {
-      x124_preDelayLine[i] = nullptr;
-      x130_preDelayPtr[i] = nullptr;
+    for (auto& delayLine : x124_preDelayLine) {
+      delayLine.reset();
     }
+    x130_preDelayPtr.fill(nullptr);
   }
 
   m_dirty = false;
@@ -132,23 +127,23 @@ void EffectReverbStdImp<T>::applyEffect(T* audio, size_t frameCount, const Chann
   if (m_dirty)
     _update();
 
-  float dampWet = x118_level * 0.6f;
-  float dampDry = 0.6f - dampWet;
+  const float dampWet = x118_level * 0.6f;
+  const float dampDry = 0.6f - dampWet;
 
   for (size_t f = 0; f < frameCount; f += 160) {
     for (unsigned c = 0; c < chanMap.m_channelCount; ++c) {
-      float* combCoefs = xf4_combCoef[c];
+      const auto& combCoefs = xf4_combCoef[c];
       float& lpLastOut = x10c_lpLastout[c];
       float* preDelayLine = x124_preDelayLine[c].get();
       float* preDelayPtr = x130_preDelayPtr[c];
       float* lastPreDelaySamp = &preDelayLine[x120_preDelayTime - 1];
 
-      ReverbDelayLine* linesC = x78_C[c];
-      ReverbDelayLine* linesAP = x0_AP[c];
+      auto& linesC = x78_C[c];
+      auto& linesAP = x0_AP[c];
 
-      int procSamples = std::min(size_t(160), frameCount - f);
+      const int procSamples = std::min(size_t(160), frameCount - f);
       for (int s = 0; s < procSamples; ++s) {
-        float sample = audio[s * chanMap.m_channelCount + c];
+        const float sample = audio[s * chanMap.m_channelCount + c];
 
         /* Pre-delay stage */
         float sample2 = sample;
@@ -188,7 +183,8 @@ void EffectReverbStdImp<T>::applyEffect(T* audio, size_t frameCount, const Chann
         /* All-pass filter stage */
         linesAP[0].xc_inputs[linesAP[0].x0_inPoint] =
             xf0_allPassCoef * linesAP[0].x10_lastInput + linesC[0].x10_lastInput + linesC[1].x10_lastInput;
-        float lowPass = -(xf0_allPassCoef * linesAP[0].xc_inputs[linesAP[0].x0_inPoint] - linesAP[0].x10_lastInput);
+        const float lowPass =
+            -(xf0_allPassCoef * linesAP[0].xc_inputs[linesAP[0].x0_inPoint] - linesAP[0].x10_lastInput);
         linesAP[0].x0_inPoint += 1;
 
         linesAP[0].x10_lastInput = linesAP[0].xc_inputs[linesAP[0].x4_outPoint];
@@ -202,7 +198,8 @@ void EffectReverbStdImp<T>::applyEffect(T* audio, size_t frameCount, const Chann
 
         lpLastOut = x11c_damping * lpLastOut + lowPass * 0.3f;
         linesAP[1].xc_inputs[linesAP[1].x0_inPoint] = xf0_allPassCoef * linesAP[1].x10_lastInput + lpLastOut;
-        float allPass = -(xf0_allPassCoef * linesAP[1].xc_inputs[linesAP[1].x0_inPoint] - linesAP[1].x10_lastInput);
+        const float allPass =
+            -(xf0_allPassCoef * linesAP[1].xc_inputs[linesAP[1].x0_inPoint] - linesAP[1].x10_lastInput);
         linesAP[1].x0_inPoint += 1;
 
         linesAP[1].x10_lastInput = linesAP[1].xc_inputs[linesAP[1].x4_outPoint];
@@ -238,26 +235,27 @@ void EffectReverbHiImp<T>::_setup(double sampleRate) {
 
 template <typename T>
 void EffectReverbHiImp<T>::_update() {
-  float timeSamples = x148_x1d0_time * m_sampleRate;
-  double rateRatio = m_sampleRate / NativeSampleRate;
-  for (int c = 0; c < 8; ++c) {
-    for (int t = 0; t < 3; ++t) {
+  const float timeSamples = x148_x1d0_time * m_sampleRate;
+  const double rateRatio = m_sampleRate / NativeSampleRate;
+
+  for (size_t c = 0; c < NumChannels; ++c) {
+    for (size_t t = 0; t < xb4_C[c].size(); ++t) {
       ReverbDelayLine& combLine = xb4_C[c][t];
-      size_t tapDelay = CTapDelays[t] * rateRatio;
+      const size_t tapDelay = CTapDelays[t] * rateRatio;
       combLine.allocate(tapDelay);
       combLine.setdelay(tapDelay);
       x16c_combCoef[c][t] = std::pow(10.f, tapDelay * -3.f / timeSamples);
     }
 
-    for (int t = 0; t < 2; ++t) {
+    for (size_t t = 0; t < x0_AP[c].size(); ++t) {
       ReverbDelayLine& allPassLine = x0_AP[c][t];
-      size_t tapDelay = APTapDelays[t] * rateRatio;
+      const size_t tapDelay = APTapDelays[t] * rateRatio;
       allPassLine.allocate(tapDelay);
       allPassLine.setdelay(tapDelay);
     }
 
     ReverbDelayLine& lpLine = x78_LP[c];
-    size_t tapDelay = LPTapDelays[c] * rateRatio;
+    const size_t tapDelay = LPTapDelays[c] * rateRatio;
     lpLine.allocate(tapDelay);
     lpLine.setdelay(tapDelay);
   }
@@ -273,17 +271,16 @@ void EffectReverbHiImp<T>::_update() {
 
   if (x150_x1d8_preDelay != 0.f) {
     x1a4_preDelayTime = m_sampleRate * x150_x1d8_preDelay;
-    for (int i = 0; i < 8; ++i) {
-      x1ac_preDelayLine[i].reset(new float[x1a4_preDelayTime]);
-      memset(x1ac_preDelayLine[i].get(), 0, x1a4_preDelayTime * sizeof(float));
+    for (size_t i = 0; i < NumChannels; ++i) {
+      x1ac_preDelayLine[i] = std::make_unique<float[]>(x1a4_preDelayTime);
       x1b8_preDelayPtr[i] = x1ac_preDelayLine[i].get();
     }
   } else {
     x1a4_preDelayTime = 0;
-    for (int i = 0; i < 8; ++i) {
-      x1ac_preDelayLine[i] = nullptr;
-      x1b8_preDelayPtr[i] = nullptr;
+    for (auto& delayLine : x1ac_preDelayLine) {
+      delayLine.reset();
     }
+    x1b8_preDelayPtr.fill(nullptr);
   }
 
   x1a8_internalCrosstalk = x1dc_crosstalk;
@@ -292,25 +289,25 @@ void EffectReverbHiImp<T>::_update() {
 
 template <typename T>
 void EffectReverbHiImp<T>::_handleReverb(T* audio, int c, int chanCount, int sampleCount) {
-  float dampWet = x19c_level * 0.6f;
-  float dampDry = 0.6f - dampWet;
+  const float dampWet = x19c_level * 0.6f;
+  const float dampDry = 0.6f - dampWet;
 
-  float* combCoefs = x16c_combCoef[c];
+  const auto& combCoefs = x16c_combCoef[c];
   float& lpLastOut = x190_lpLastout[c];
   float* preDelayLine = x1ac_preDelayLine[c].get();
   float* preDelayPtr = x1b8_preDelayPtr[c];
   float* lastPreDelaySamp = &preDelayLine[x1a4_preDelayTime - 1];
 
-  ReverbDelayLine* linesC = xb4_C[c];
-  ReverbDelayLine* linesAP = x0_AP[c];
+  auto& linesC = xb4_C[c];
+  auto& linesAP = x0_AP[c];
   ReverbDelayLine& lineLP = x78_LP[c];
 
-  float allPassCoef = x168_allPassCoef;
-  float damping = x1a0_damping;
-  int32_t preDelayTime = x1a4_preDelayTime;
+  const float allPassCoef = x168_allPassCoef;
+  const float damping = x1a0_damping;
+  const int32_t preDelayTime = x1a4_preDelayTime;
 
   for (int s = 0; s < sampleCount; ++s) {
-    float sample = audio[s * chanCount + c];
+    const float sample = audio[s * chanCount + c];
 
     /* Pre-delay stage */
     float sample2 = sample;
@@ -367,7 +364,7 @@ void EffectReverbHiImp<T>::_handleReverb(T* audio, int c, int chanCount, int sam
         allPassCoef * linesAP[1].x10_lastInput -
         (allPassCoef * linesAP[0].xc_inputs[linesAP[0].x0_inPoint] - linesAP[0].x10_lastInput);
 
-    float lowPass = -(allPassCoef * linesAP[1].xc_inputs[linesAP[1].x0_inPoint] - linesAP[1].x10_lastInput);
+    const float lowPass = -(allPassCoef * linesAP[1].xc_inputs[linesAP[1].x0_inPoint] - linesAP[1].x10_lastInput);
     linesAP[0].x0_inPoint += 1;
     linesAP[1].x0_inPoint += 1;
 
@@ -391,7 +388,7 @@ void EffectReverbHiImp<T>::_handleReverb(T* audio, int c, int chanCount, int sam
 
     lpLastOut = damping * lpLastOut + lowPass * 0.3f;
     lineLP.xc_inputs[lineLP.x0_inPoint] = allPassCoef * lineLP.x10_lastInput + lpLastOut;
-    float allPass = -(allPassCoef * lineLP.xc_inputs[lineLP.x0_inPoint] - lineLP.x10_lastInput);
+    const float allPass = -(allPassCoef * lineLP.xc_inputs[lineLP.x0_inPoint] - lineLP.x10_lastInput);
     lineLP.x0_inPoint += 1;
 
     lineLP.x10_lastInput = lineLP.xc_inputs[lineLP.x4_outPoint];

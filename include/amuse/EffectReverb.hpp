@@ -1,10 +1,12 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <memory>
 
 #include "amuse/Common.hpp"
 #include "amuse/EffectBase.hpp"
+#include "amuse/IBackendVoice.hpp"
 
 namespace amuse {
 
@@ -144,16 +146,20 @@ public:
 /** Standard-quality 2-stage reverb */
 template <typename T>
 class EffectReverbStdImp : public EffectBase<T>, public EffectReverbStd {
-  ReverbDelayLine x0_AP[8][2] = {};              /**< All-pass delay lines */
-  ReverbDelayLine x78_C[8][2] = {};              /**< Comb delay lines */
-  float xf0_allPassCoef = 0.f;                   /**< All-pass mix coefficient */
-  float xf4_combCoef[8][2] = {};                 /**< Comb mix coefficients */
-  float x10c_lpLastout[8] = {};                  /**< Last low-pass results */
-  float x118_level = 0.f;                        /**< Internal wet/dry mix factor */
-  float x11c_damping = 0.f;                      /**< Low-pass damping */
-  int32_t x120_preDelayTime = 0;                 /**< Sample count of pre-delay */
-  std::unique_ptr<float[]> x124_preDelayLine[8]; /**< Dedicated pre-delay buffers */
-  float* x130_preDelayPtr[8] = {};               /**< Current pre-delay pointers */
+  using CombCoeffArray = std::array<std::array<float, 2>, NumChannels>;
+  using ReverbDelayArray = std::array<std::array<ReverbDelayLine, 2>, NumChannels>;
+  using PreDelayArray = std::array<std::unique_ptr<float[]>, NumChannels>;
+
+  ReverbDelayArray x0_AP{};                           /**< All-pass delay lines */
+  ReverbDelayArray x78_C{};                           /**< Comb delay lines */
+  float xf0_allPassCoef = 0.f;                        /**< All-pass mix coefficient */
+  CombCoeffArray xf4_combCoef{};                      /**< Comb mix coefficients */
+  std::array<float, NumChannels> x10c_lpLastout{};    /**< Last low-pass results */
+  float x118_level = 0.f;                             /**< Internal wet/dry mix factor */
+  float x11c_damping = 0.f;                           /**< Low-pass damping */
+  int32_t x120_preDelayTime = 0;                      /**< Sample count of pre-delay */
+  PreDelayArray x124_preDelayLine;                    /**< Dedicated pre-delay buffers */
+  std::array<float*, NumChannels> x130_preDelayPtr{}; /**< Current pre-delay pointers */
 
   double m_sampleRate; /**< copy of sample rate */
   void _setup(double sampleRate);
@@ -173,17 +179,23 @@ public:
 /** High-quality 3-stage reverb with per-channel low-pass and crosstalk */
 template <typename T>
 class EffectReverbHiImp : public EffectBase<T>, public EffectReverbHi {
-  ReverbDelayLine x0_AP[8][2] = {};              /**< All-pass delay lines */
-  ReverbDelayLine x78_LP[8] = {};                /**< Per-channel low-pass delay-lines */
-  ReverbDelayLine xb4_C[8][3] = {};              /**< Comb delay lines */
-  float x168_allPassCoef = 0.f;                  /**< All-pass mix coefficient */
-  float x16c_combCoef[8][3] = {};                /**< Comb mix coefficients */
-  float x190_lpLastout[8] = {};                  /**< Last low-pass results */
-  float x19c_level = 0.f;                        /**< Internal wet/dry mix factor */
-  float x1a0_damping = 0.f;                      /**< Low-pass damping */
-  int32_t x1a4_preDelayTime = 0;                 /**< Sample count of pre-delay */
-  std::unique_ptr<float[]> x1ac_preDelayLine[8]; /**< Dedicated pre-delay buffers */
-  float* x1b8_preDelayPtr[8] = {};               /**< Current pre-delay pointers */
+  using AllPassDelayLines = std::array<std::array<ReverbDelayLine, 2>, NumChannels>;
+  using CombCoefficients = std::array<std::array<float, 3>, NumChannels>;
+  using CombDelayLines = std::array<std::array<ReverbDelayLine, 3>, NumChannels>;
+  using LowPassDelayLines = std::array<ReverbDelayLine, 8>;
+  using PreDelayLines = std::array<std::unique_ptr<float[]>, 8>;
+
+  AllPassDelayLines x0_AP{};                          /**< All-pass delay lines */
+  LowPassDelayLines x78_LP{};                         /**< Per-channel low-pass delay-lines */
+  CombDelayLines xb4_C{};                             /**< Comb delay lines */
+  float x168_allPassCoef = 0.f;                       /**< All-pass mix coefficient */
+  CombCoefficients x16c_combCoef{};                   /**< Comb mix coefficients */
+  std::array<float, 8> x190_lpLastout{};              /**< Last low-pass results */
+  float x19c_level = 0.f;                             /**< Internal wet/dry mix factor */
+  float x1a0_damping = 0.f;                           /**< Low-pass damping */
+  int32_t x1a4_preDelayTime = 0;                      /**< Sample count of pre-delay */
+  PreDelayLines x1ac_preDelayLine;                    /**< Dedicated pre-delay buffers */
+  std::array<float*, NumChannels> x1b8_preDelayPtr{}; /**< Current pre-delay pointers */
   float x1a8_internalCrosstalk = 0.f;
 
   double m_sampleRate; /**< copy of sample rate */
