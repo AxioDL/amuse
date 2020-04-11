@@ -655,7 +655,7 @@ void ProjectModel::saveSongsIndex() {
     QFileInfo songsFile(m_dir, QStringLiteral("!songs.yaml"));
     athena::io::YAMLDocWriter dw("amuse::Songs");
     for (auto& p : amuse::SortUnorderedMap(m_midiFiles))
-      dw.writeString(fmt::format(fmt("{}"), p.first), p.second.get().m_path.toUtf8().data());
+      dw.writeString(fmt::format(FMT_STRING("{}"), p.first), p.second.get().m_path.toUtf8().data());
     athena::io::FileWriter w(QStringToSysString(songsFile.filePath()));
     if (!w.hasError())
       dw.finish(&w);
@@ -2102,6 +2102,7 @@ void ProjectModel::deallocateSongId(amuse::SongId oldId) {
 amuse::SongId ProjectModel::exchangeSongId(amuse::SongId oldId, std::string_view newName) {
   m_projectDatabase.setIdDatabases();
   amuse::SongId newId;
+  // TODO: Heterogeneous lookup when C++20 available
   auto search = amuse::SongId::CurNameDB->m_stringToId.find(newName.data());
   if (search == amuse::SongId::CurNameDB->m_stringToId.cend()) {
     newId = amuse::SongId::CurNameDB->generateId(amuse::NameDB::Type::Song);

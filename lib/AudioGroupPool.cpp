@@ -323,7 +323,7 @@ int SoundMacro::assertPC(int pc) const {
   if (pc < 0)
     return -1;
   if (size_t(pc) >= m_cmds.size()) {
-    fmt::print(stderr, fmt("SoundMacro PC bounds exceeded [{}/{}]\n"), pc, int(m_cmds.size()));
+    fmt::print(stderr, FMT_STRING("SoundMacro PC bounds exceeded [{}/{}]\n"), pc, int(m_cmds.size()));
     abort();
   }
   return pc;
@@ -1107,17 +1107,17 @@ template std::vector<uint8_t> AudioGroupPool::toData<athena::Endian::Little>() c
 
 template <>
 void amuse::Curve::Enumerate<LittleDNA::Read>(athena::io::IStreamReader& r) {
-  Log.report(logvisor::Fatal, fmt("Curve binary DNA read not supported"));
+  Log.report(logvisor::Fatal, FMT_STRING("Curve binary DNA read not supported"));
 }
 
 template <>
 void amuse::Curve::Enumerate<LittleDNA::Write>(athena::io::IStreamWriter& w) {
-  Log.report(logvisor::Fatal, fmt("Curve binary DNA write not supported"));
+  Log.report(logvisor::Fatal, FMT_STRING("Curve binary DNA write not supported"));
 }
 
 template <>
 void amuse::Curve::Enumerate<LittleDNA::BinarySize>(size_t& sz) {
-  Log.report(logvisor::Fatal, fmt("Curve binary DNA size not supported"));
+  Log.report(logvisor::Fatal, FMT_STRING("Curve binary DNA size not supported"));
 }
 
 template <>

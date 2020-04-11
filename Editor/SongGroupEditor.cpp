@@ -875,6 +875,7 @@ bool SetupListModel::setData(const QModelIndex& index, const QVariant& value, in
   g_MainWindow->projectModel()->setIdDatabases(m_node.get());
   auto utf8key = value.toString().toUtf8();
   std::unordered_map<std::string, amuse::ObjectId>::iterator idIt;
+  // TODO: Heterogeneous lookup when C++20 available
   if ((idIt = amuse::SongId::CurNameDB->m_stringToId.find(utf8key.data())) !=
       amuse::SongId::CurNameDB->m_stringToId.cend()) {
     if (idIt->second == entry->first)

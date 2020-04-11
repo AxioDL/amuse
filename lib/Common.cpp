@@ -101,7 +101,7 @@ bool Copy(const SystemChar* from, const SystemChar* to) {
   void type##DNA<DNAE>::_read(athena::io::YAMLDocReader& r) {                                                          \
     std::string name = r.readString();                                                                                 \
     if (!type::CurNameDB)                                                                                              \
-      Log.report(logvisor::Fatal, fmt("Unable to resolve " typeName " name {}, no database present"), name);           \
+      Log.report(logvisor::Fatal, FMT_STRING("Unable to resolve " typeName " name {}, no database present"), name);           \
     if (name.empty()) {                                                                                                \
       id.id = 0xffff;                                                                                                  \
       return;                                                                                                          \
@@ -111,7 +111,7 @@ bool Copy(const SystemChar* from, const SystemChar* to) {
   template <athena::Endian DNAE>                                                                                       \
   void type##DNA<DNAE>::_write(athena::io::YAMLDocWriter& w) {                                                         \
     if (!type::CurNameDB)                                                                                              \
-      Log.report(logvisor::Fatal, fmt("Unable to resolve " typeName " ID {}, no database present"), id);               \
+      Log.report(logvisor::Fatal, FMT_STRING("Unable to resolve " typeName " ID {}, no database present"), id);               \
     if (id.id == 0xffff)                                                                                               \
       return;                                                                                                          \
     std::string_view name = type::CurNameDB->resolveNameFromId(id);                                                    \
@@ -189,7 +189,7 @@ template <athena::Endian DNAE>
 void PageObjectIdDNA<DNAE>::_read(athena::io::YAMLDocReader& r) {
   std::string name = r.readString();
   if (!KeymapId::CurNameDB || !LayersId::CurNameDB)
-    Log.report(logvisor::Fatal, fmt("Unable to resolve keymap or layers name {}, no database present"), name);
+    Log.report(logvisor::Fatal, FMT_STRING("Unable to resolve keymap or layers name {}, no database present"), name);
   if (name.empty()) {
     id.id = 0xffff;
     return;
@@ -200,7 +200,7 @@ void PageObjectIdDNA<DNAE>::_read(athena::io::YAMLDocReader& r) {
     if (search == LayersId::CurNameDB->m_stringToId.cend()) {
       search = SoundMacroId::CurNameDB->m_stringToId.find(name);
       if (search == SoundMacroId::CurNameDB->m_stringToId.cend()) {
-        Log.report(logvisor::Error, fmt("Unable to resolve name {}"), name);
+        Log.report(logvisor::Error, FMT_STRING("Unable to resolve name {}"), name);
         id.id = 0xffff;
         return;
       }
@@ -211,7 +211,7 @@ void PageObjectIdDNA<DNAE>::_read(athena::io::YAMLDocReader& r) {
 template <athena::Endian DNAE>
 void PageObjectIdDNA<DNAE>::_write(athena::io::YAMLDocWriter& w) {
   if (!KeymapId::CurNameDB || !LayersId::CurNameDB)
-    Log.report(logvisor::Fatal, fmt("Unable to resolve keymap or layers ID {}, no database present"), id);
+    Log.report(logvisor::Fatal, FMT_STRING("Unable to resolve keymap or layers ID {}, no database present"), id);
   if (id.id == 0xffff)
     return;
   if (id.id & 0x8000) {
@@ -307,23 +307,23 @@ ObjectId NameDB::generateId(Type tp) const {
 std::string NameDB::generateName(ObjectId id, Type tp) {
   switch (tp) {
   case Type::SoundMacro:
-    return fmt::format(fmt("macro{}"), id);
+    return fmt::format(FMT_STRING("macro{}"), id);
   case Type::Table:
-    return fmt::format(fmt("table{}"), id);
+    return fmt::format(FMT_STRING("table{}"), id);
   case Type::Keymap:
-    return fmt::format(fmt("keymap{}"), id);
+    return fmt::format(FMT_STRING("keymap{}"), id);
   case Type::Layer:
-    return fmt::format(fmt("layers{}"), id);
+    return fmt::format(FMT_STRING("layers{}"), id);
   case Type::Song:
-    return fmt::format(fmt("song{}"), id);
+    return fmt::format(FMT_STRING("song{}"), id);
   case Type::SFX:
-    return fmt::format(fmt("sfx{}"), id);
+    return fmt::format(FMT_STRING("sfx{}"), id);
   case Type::Group:
-    return fmt::format(fmt("group{}"), id);
+    return fmt::format(FMT_STRING("group{}"), id);
   case Type::Sample:
-    return fmt::format(fmt("sample{}"), id);
+    return fmt::format(FMT_STRING("sample{}"), id);
   default:
-    return fmt::format(fmt("obj{}"), id);
+    return fmt::format(FMT_STRING("obj{}"), id);
   }
 }
 
@@ -338,7 +338,7 @@ std::string_view NameDB::registerPair(std::string_view str, ObjectId id) {
 std::string_view NameDB::resolveNameFromId(ObjectId id) const {
   auto search = m_idToString.find(id);
   if (search == m_idToString.cend()) {
-    Log.report(logvisor::Error, fmt("Unable to resolve ID {}"), id);
+    Log.report(logvisor::Error, FMT_STRING("Unable to resolve ID {}"), id);
     return ""sv;
   }
   return search->second;
@@ -347,7 +347,7 @@ std::string_view NameDB::resolveNameFromId(ObjectId id) const {
 ObjectId NameDB::resolveIdFromName(std::string_view str) const {
   auto search = m_stringToId.find(std::string(str));
   if (search == m_stringToId.cend()) {
-    Log.report(logvisor::Error, fmt("Unable to resolve name {}"), str);
+    Log.report(logvisor::Error, FMT_STRING("Unable to resolve name {}"), str);
     return {};
   }
   return search->second;

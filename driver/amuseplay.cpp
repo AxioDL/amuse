@@ -84,7 +84,7 @@ struct AppCallback : boo::IApplicationCallback {
       voxCount = m_seq->getVoiceCount();
       program = m_seq->getChanProgram(m_chanId);
     }
-    fmt::print(fmt(
+    fmt::print(FMT_STRING(
         "\r                                                                                "
         "\r  {} Setup {}, Chan {}, Prog {}, Octave: {}, Vel: {}, VOL: {}%\r"),
         voxCount, m_setupId, m_chanId, program, m_octave, m_velocity, int(std::rint(m_volume * 100)));
@@ -107,7 +107,7 @@ struct AppCallback : boo::IApplicationCallback {
   }
 
   void SongLoop(const amuse::SongGroupIndex& index) {
-    fmt::print(fmt(
+    fmt::print(FMT_STRING(
         "░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░\n"
         "░░░   ████ ████  ┃  ████ ████ ████   ┃   ████ ████  ░░░\n"
         "░░░   ████ ████  ┃  ████ ████ ████   ┃   ████ ████  ░░░\n"
@@ -206,7 +206,7 @@ struct AppCallback : boo::IApplicationCallback {
         "\r  %c SFX %d, VOL: %d%% POS: (%f,%f)\r",
         playing ? '>' : ' ', m_sfxId, int(std::rint(m_volume * 100)), m_pos[0], m_pos[1]);
 #else
-    fmt::print(fmt(
+    fmt::print(FMT_STRING(
         "\r                                                                                "
         "\r  {:c} SFX {}, VOL: {}%\r"),
         playing ? '>' : ' ', m_sfxId, int(std::rint(m_volume * 100)));
@@ -234,7 +234,7 @@ struct AppCallback : boo::IApplicationCallback {
   }
 
   void SFXLoop(const amuse::SFXGroupIndex& index) {
-    fmt::print(fmt("<space>: keyon/keyoff, <left/right>: cycle SFX, <up/down>: volume, <Q>: quit\n"));
+    fmt::print(FMT_STRING("<space>: keyon/keyoff, <left/right>: cycle SFX, <up/down>: volume, <Q>: quit\n"));
 
     m_seq = m_engine->seqPlay(m_groupId, 0, nullptr);
 
@@ -578,21 +578,21 @@ struct AppCallback : boo::IApplicationCallback {
 
     /* Load data */
     if (m_argc < 2) {
-      Log.report(logvisor::Error, fmt("needs group path argument"));
+      Log.report(logvisor::Error, FMT_STRING("needs group path argument"));
       return 1;
     }
 
     amuse::ContainerRegistry::Type cType = amuse::ContainerRegistry::DetectContainerType(m_argv[1]);
     if (cType == amuse::ContainerRegistry::Type::Invalid) {
-      Log.report(logvisor::Error, fmt("invalid/no data at path argument"));
+      Log.report(logvisor::Error, FMT_STRING("invalid/no data at path argument"));
       return 1;
     }
-    Log.report(logvisor::Info, fmt(_SYS_STR("Found '%s' Audio Group data")), amuse::ContainerRegistry::TypeToName(cType));
+    Log.report(logvisor::Info, FMT_STRING(_SYS_STR("Found '%s' Audio Group data")), amuse::ContainerRegistry::TypeToName(cType));
 
     std::vector<std::pair<amuse::SystemString, amuse::IntrusiveAudioGroupData>> data =
         amuse::ContainerRegistry::LoadContainer(m_argv[1]);
     if (data.empty()) {
-      Log.report(logvisor::Error, fmt("invalid/no data at path argument"));
+      Log.report(logvisor::Error, FMT_STRING("invalid/no data at path argument"));
       return 1;
     }
 
@@ -635,7 +635,7 @@ struct AppCallback : boo::IApplicationCallback {
           bool prompt = true;
           while (true) {
             if (prompt) {
-              fmt::print(fmt("Play Song? (Y/N): "));
+              fmt::print(FMT_STRING("Play Song? (Y/N): "));
               prompt = false;
             }
             char userSel;
@@ -656,7 +656,7 @@ struct AppCallback : boo::IApplicationCallback {
           /* Get song selection from user */
           if (songs.size() > 1) {
             /* Ask user to specify which song */
-            fmt::print(fmt("Multiple Songs discovered:\n"));
+            fmt::print(FMT_STRING("Multiple Songs discovered:\n"));
             int idx = 0;
             for (const auto& pair : songs) {
               const amuse::ContainerRegistry::SongData& sngData = pair.second;
@@ -674,13 +674,13 @@ struct AppCallback : boo::IApplicationCallback {
                     break;
                 }
               }
-              fmt::print(fmt(_SYS_STR("    {} {} (Group {}, Setup {})\n")), idx++, pair.first, grpId, setupId);
+              fmt::print(FMT_STRING(_SYS_STR("    {} {} (Group {}, Setup {})\n")), idx++, pair.first, grpId, setupId);
             }
 
             int userSel = 0;
-            fmt::print(fmt("Enter Song Number: "));
+            fmt::print(FMT_STRING("Enter Song Number: "));
             if (scanf("%d", &userSel) <= 0) {
-              Log.report(logvisor::Error, fmt("unable to parse prompt"));
+              Log.report(logvisor::Error, FMT_STRING("unable to parse prompt"));
               return 1;
             }
 
@@ -689,7 +689,7 @@ struct AppCallback : boo::IApplicationCallback {
               m_groupId = m_arrData->m_groupId;
               m_setupId = m_arrData->m_setupId;
             } else {
-              Log.report(logvisor::Error, fmt("unable to find Song {}"), userSel);
+              Log.report(logvisor::Error, FMT_STRING("unable to find Song {}"), userSel);
               return 1;
             }
           } else if (songs.size() == 1) {
@@ -721,26 +721,26 @@ struct AppCallback : boo::IApplicationCallback {
         else if (allSFXGroups.find(m_groupId) != allSFXGroups.end())
           m_sfxGroup = true;
         else {
-          Log.report(logvisor::Error, fmt("unable to find Group {}"), m_groupId);
+          Log.report(logvisor::Error, FMT_STRING("unable to find Group {}"), m_groupId);
           return 1;
         }
       } else if (totalGroups > 1) {
         /* Ask user to specify which group in project */
-        fmt::print(fmt("Multiple Audio Groups discovered:\n"));
+        fmt::print(FMT_STRING("Multiple Audio Groups discovered:\n"));
         for (const auto& pair : allSFXGroups) {
-          fmt::print(fmt(_SYS_STR("    {} {} (SFXGroup)  {} sfx-entries\n")), pair.first,
+          fmt::print(FMT_STRING(_SYS_STR("    {} {} (SFXGroup)  {} sfx-entries\n")), pair.first,
                      pair.second.first->first, pair.second.second->m_sfxEntries.size());
         }
         for (const auto& pair : allSongGroups) {
-          fmt::print(fmt(_SYS_STR("    {} {} (SongGroup)  {} normal-pages, {} drum-pages, {} MIDI-setups\n")),
+          fmt::print(FMT_STRING(_SYS_STR("    {} {} (SongGroup)  {} normal-pages, {} drum-pages, {} MIDI-setups\n")),
                      pair.first, pair.second.first->first, pair.second.second->m_normPages.size(),
                      pair.second.second->m_drumPages.size(), pair.second.second->m_midiSetups.size());
         }
 
         int userSel = 0;
-        fmt::print(fmt("Enter Group Number: "));
+        fmt::print(FMT_STRING("Enter Group Number: "));
         if (scanf("%d", &userSel) <= 0) {
-          Log.report(logvisor::Error, fmt("unable to parse prompt"));
+          Log.report(logvisor::Error, FMT_STRING("unable to parse prompt"));
           return 1;
         }
 
@@ -751,7 +751,7 @@ struct AppCallback : boo::IApplicationCallback {
           m_groupId = userSel;
           m_sfxGroup = true;
         } else {
-          Log.report(logvisor::Error, fmt("unable to find Group {}"), userSel);
+          Log.report(logvisor::Error, FMT_STRING("unable to find Group {}"), userSel);
           return 1;
         }
       } else if (totalGroups == 1) {
@@ -766,7 +766,7 @@ struct AppCallback : boo::IApplicationCallback {
           m_sfxGroup = true;
         }
       } else {
-        Log.report(logvisor::Error, fmt("empty project"));
+        Log.report(logvisor::Error, FMT_STRING("empty project"));
         return 1;
       }
 
@@ -787,7 +787,7 @@ struct AppCallback : boo::IApplicationCallback {
       }
 
       if (!selData) {
-        Log.report(logvisor::Error, fmt("unable to select audio group data"));
+        Log.report(logvisor::Error, FMT_STRING("unable to select audio group data"));
         return 1;
       }
 
@@ -799,7 +799,7 @@ struct AppCallback : boo::IApplicationCallback {
       /* Load group into engine */
       const amuse::AudioGroup* group = m_engine->addAudioGroup(*selData);
       if (!group) {
-        Log.report(logvisor::Error, fmt("unable to add audio group"));
+        Log.report(logvisor::Error, FMT_STRING("unable to add audio group"));
         return 1;
       }
 
@@ -813,7 +813,7 @@ struct AppCallback : boo::IApplicationCallback {
       m_seq.reset();
       m_engine.reset();
       m_booBackend.reset();
-      fmt::print(fmt("\n\n"));
+      fmt::print(FMT_STRING("\n\n"));
     }
 
     return 0;
@@ -909,7 +909,7 @@ int main(int argc, const boo::SystemChar** argv)
   AppCallback app(argc, argv);
   int ret = boo::ApplicationRun(boo::IApplication::EPlatformType::Auto, app, _SYS_STR("amuseplay"),
                                 _SYS_STR("Amuse Player"), argc, argv, {}, 1, 1, false);
-  fmt::print(fmt("IM DYING!!\n"));
+  fmt::print(FMT_STRING("IM DYING!!\n"));
   return ret;
 }
 

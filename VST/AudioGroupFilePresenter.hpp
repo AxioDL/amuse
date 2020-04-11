@@ -29,9 +29,9 @@ struct AudioGroupDataCollection {
     uint32_t absOffs;
     uint32_t active;
     MetaData(amuse::DataFormat fmtIn, uint32_t absOffsIn, uint32_t activeIn)
-    : fmt(fmtIn), absOffs(absOffsIn), active(activeIn) {}
+    : FMT_STRING(fmtIn), absOffs(absOffsIn), active(activeIn) {}
     MetaData(athena::io::FileReader& r)
-    : fmt(amuse::DataFormat(r.readUint32Little())), absOffs(r.readUint32Little()), active(r.readUint32Little()) {}
+    : FMT_STRING(amuse::DataFormat(r.readUint32Little())), absOffs(r.readUint32Little()), active(r.readUint32Little()) {}
   };
   std::optional<MetaData> m_metaData;
 

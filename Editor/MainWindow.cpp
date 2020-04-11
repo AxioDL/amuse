@@ -198,7 +198,7 @@ MainWindow::MainWindow(QWidget* parent)
 MainWindow::~MainWindow() {
   m_backgroundThread.quit();
   m_backgroundThread.wait();
-  fmt::print(fmt("IM DYING\n"));
+  fmt::print(FMT_STRING("IM DYING\n"));
 }
 
 void MainWindow::connectMessenger(UIMessenger* messenger, Qt::ConnectionType type) {

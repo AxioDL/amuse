@@ -359,9 +359,9 @@ void Sequencer::setCtrlValue(uint8_t chan, uint8_t ctrl, int8_t val) {
   }
 
   if (ctrl == 0x66) {
-    fmt::print(fmt("Loop Start\n"));
+    fmt::print(FMT_STRING("Loop Start\n"));
   } else if (ctrl == 0x67) {
-    fmt::print(fmt("Loop End\n"));
+    fmt::print(FMT_STRING("Loop End\n"));
   }
 
   if (!m_chanStates[chan]) {

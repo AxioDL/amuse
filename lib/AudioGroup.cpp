@@ -120,7 +120,7 @@ void AudioGroupDatabase::_recursiveRenameMacro(SoundMacroId id, std::string_view
     if (!strncmp(SoundMacroId::CurNameDB->resolveNameFromId(id).data(), "macro", 5)) {
       std::string macroName("macro"sv);
       if (macroIdx)
-        macroName += fmt::format(fmt("{}"), macroIdx);
+        macroName += fmt::format(FMT_STRING("{}"), macroIdx);
       macroName += '_';
       macroName += str;
       ++macroIdx;
@@ -134,7 +134,7 @@ void AudioGroupDatabase::_recursiveRenameMacro(SoundMacroId id, std::string_view
           if (!strncmp(SampleId::CurNameDB->resolveNameFromId(ss->sample.id).data(), "sample", 6)) {
             std::string sampleName("sample"sv);
             if (sampleIdx)
-              sampleName += fmt::format(fmt("{}"), sampleIdx);
+              sampleName += fmt::format(FMT_STRING("{}"), sampleIdx);
             sampleName += '_';
             sampleName += macroName;
             ++sampleIdx;
@@ -237,7 +237,7 @@ void AudioGroupDatabase::importCHeader(std::string_view header) {
 }
 
 static void WriteDefineLine(std::stringstream& ret, std::string_view typeStr, std::string_view name, ObjectId id) {
-  fmt::print(ret, fmt("#define {}{} 0x{}\n"), typeStr, name, id);
+  fmt::print(ret, FMT_STRING("#define {}{} 0x{}\n"), typeStr, name, id);
 }
 
 std::string AudioGroupDatabase::exportCHeader(std::string_view projectName, std::string_view groupName) const {
