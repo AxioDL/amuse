@@ -378,7 +378,7 @@ constexpr T ClampFull(float in) noexcept {
 
     if (in < MIN)
       return MIN;
-    else if (in > MAX)
+    else if (in > static_cast<float>(MAX))
       return MAX;
     else
       return in;
