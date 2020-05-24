@@ -157,7 +157,7 @@ if(TARGET boo AND NOT WINDOWS_STORE AND NOT NX)
   endif()
 
   # Editor
-  find_package(Qt5 COMPONENTS Widgets)
+  find_package(Qt5 COMPONENTS Widgets PATHS /usr/local/opt/qt)
   if (Qt5Widgets_FOUND)
     message(STATUS "Qt5 found, amuse-gui will be built")
     add_subdirectory(Editor)
