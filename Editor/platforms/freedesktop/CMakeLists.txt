@@ -1,4 +1,4 @@
-include_directories(${LIBPNG_INCLUDE_DIR})
+include_directories(${PNG_INCLUDE_DIR})
 add_executable(amuse-mkqticon mkqticon.c)
 target_link_libraries(amuse-mkqticon ${PNG_LIB} ${ZLIB_LIBRARIES})
 
