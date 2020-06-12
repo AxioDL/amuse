@@ -1,6 +1,6 @@
 include_directories(${PNG_INCLUDE_DIR})
 add_executable(amuse-mkqticon mkqticon.c)
-target_link_libraries(amuse-mkqticon ${PNG_LIB} ${ZLIB_LIBRARIES})
+target_link_libraries(amuse-mkqticon ${PNG_LIBRARIES} ${ZLIB_LIBRARIES})
 
 macro(declare_qticon_target)
 add_custom_command(OUTPUT ${amuse_BINARY_DIR}/Editor/platforms/freedesktop/mainicon_qt.bin
