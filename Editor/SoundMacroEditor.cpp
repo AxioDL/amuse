@@ -811,7 +811,7 @@ CatalogueItem::CatalogueItem(amuse::SoundMacro::CmdOp op, const QString& name, c
 CatalogueItem::CatalogueItem(const CatalogueItem& other, QWidget* parent) : QWidget(parent), m_op(other.getCmdOp()) {
   QHBoxLayout* layout = new QHBoxLayout;
   QHBoxLayout* oldLayout = static_cast<QHBoxLayout*>(other.layout());
-  m_iconLab.setPixmap(*static_cast<QLabel*>(oldLayout->itemAt(0)->widget())->pixmap());
+  m_iconLab.setPixmap(static_cast<QLabel*>(oldLayout->itemAt(0)->widget())->pixmap(Qt::ReturnByValue));
   layout->addWidget(&m_iconLab);
   m_label.setText(static_cast<QLabel*>(oldLayout->itemAt(1)->widget())->text());
   layout->addWidget(&m_label);

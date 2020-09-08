@@ -519,8 +519,9 @@ bool MainWindow::_setEditor(EditorWidget* editor, bool appendNav) {
   m_interactiveSeq.reset();
   if (editor != m_ui.editorContents->currentWidget() && m_ui.editorContents->currentWidget() != m_faceSvg)
     getEditorWidget()->unloadData();
-  if (appendNav && m_navIt != m_navList.end())
-    m_navList.erase(m_navIt + 1, m_navList.end());
+  if (appendNav && m_navIt != m_navList.end()) {
+      m_navList.erase(std::next(m_navIt, 1), m_navList.end());
+  }
   if (!editor || !editor->valid()) {
     m_ui.editorContents->setCurrentWidget(m_faceSvg);
     updateWindowTitle();
@@ -1484,12 +1485,12 @@ void MainWindow::newLayersAction() {
 }
 
 void MainWindow::updateNavigationButtons() {
-  m_goForward->setDisabled(m_navIt == m_navList.end() || m_navIt + 1 == m_navList.end());
+  m_goForward->setDisabled(m_navIt == m_navList.end() || std::next(m_navIt, 1) == m_navList.end());
   m_goBack->setDisabled(m_navIt == m_navList.begin());
 }
 
 void MainWindow::goForward() {
-  if (m_navIt == m_navList.end() || m_navIt + 1 == m_navList.end())
+  if (m_navIt == m_navList.end() || std::next(m_navIt, 1) == m_navList.end())
     return;
   ++m_navIt;
   openEditor(*m_navIt, false);

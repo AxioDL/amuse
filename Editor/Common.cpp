@@ -73,8 +73,8 @@ void ShowInGraphicalShell(QWidget* parent, const QString& pathIn) {
   // we cannot select a file here, because no file browser really supports it...
   const QString folder = fileInfo.isDir() ? fileInfo.absoluteFilePath() : fileInfo.filePath();
   QProcess browserProc;
-  const QString browserArgs = QStringLiteral("xdg-open \"%1\"").arg(QFileInfo(folder).path());
-  browserProc.startDetached(browserArgs);
+  const QStringList browserArgs = QStringList() << QStringLiteral("%1").arg(QFileInfo(folder).path());
+  browserProc.startDetached(QStringLiteral("xdg-open"), browserArgs);
 #endif
 }
 

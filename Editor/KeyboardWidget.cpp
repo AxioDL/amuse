@@ -39,7 +39,7 @@ KeyboardOctave::KeyboardOctave(int octave, const QString& svgPath, QWidget* pare
     const auto& naturalKeyName = NaturalKeyNames[i];
 
     if (renderer()->elementExists(naturalKeyName)) {
-      m_natural[i] = renderer()->matrixForElement(naturalKeyName).mapRect(renderer()->boundsOnElement(naturalKeyName));
+      m_natural[i] = renderer()->transformForElement(naturalKeyName).mapRect(renderer()->boundsOnElement(naturalKeyName));
     }
   }
 
@@ -47,7 +47,7 @@ KeyboardOctave::KeyboardOctave(int octave, const QString& svgPath, QWidget* pare
     const auto& sharpKeyName = SharpKeyNames[i];
 
     if (renderer()->elementExists(sharpKeyName)) {
-      m_sharp[i] = renderer()->matrixForElement(sharpKeyName).mapRect(renderer()->boundsOnElement(sharpKeyName));
+      m_sharp[i] = renderer()->transformForElement(sharpKeyName).mapRect(renderer()->boundsOnElement(sharpKeyName));
     }
   }
 
