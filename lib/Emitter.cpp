@@ -67,7 +67,11 @@ void Emitter::_update() {
     /* Calculate attenuation */
     float att = _attenuationCurve(dist);
     att = (m_maxVol - m_minVol) * att + m_minVol;
-    att = m_attCache.getVolume(att, false);
+    //if (!std::isnan(att)) {
+      att = m_attCache.getVolume(att, false);
+    //} else {
+    //att = 0.f;
+    //}
     if (att > FLT_EPSILON) {
       /* Apply pan law */
       const std::array<float, 8> thisCoefs = m_vox->_panLaw(frontPan, backPan, span);
@@ -105,8 +109,16 @@ void Emitter::_update() {
 
 void Emitter::setVectors(const float* pos, const float* dir) {
   for (size_t i = 0; i < m_pos.size(); ++i) {
-    m_pos[i] = pos[i];
-    m_dir[i] = dir[i];
+    if (!std::isnan(pos[i])) {
+      m_pos[i] = pos[i];
+    } else {
+      m_pos[i] = 0.f;
+    }
+    if (!std::isnan(dir[i])) {
+      m_dir[i] = dir[i];
+    } else {
+      m_dir[i] = 0.f;
+    }
   }
   m_dirty = true;
 }
