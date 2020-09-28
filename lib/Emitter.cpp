@@ -67,11 +67,7 @@ void Emitter::_update() {
     /* Calculate attenuation */
     float att = _attenuationCurve(dist);
     att = (m_maxVol - m_minVol) * att + m_minVol;
-    //if (!std::isnan(att)) {
-      att = m_attCache.getVolume(att, false);
-    //} else {
-    //att = 0.f;
-    //}
+    att = m_attCache.getVolume(att, false);
     if (att > FLT_EPSILON) {
       /* Apply pan law */
       const std::array<float, 8> thisCoefs = m_vox->_panLaw(frontPan, backPan, span);
