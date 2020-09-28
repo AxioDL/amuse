@@ -49,10 +49,7 @@ struct ReverbDelayLine {
   void setdelay(int32_t delay);
 };
 
-template <typename T>
 class EffectReverbStdImp;
-
-template <typename T>
 class EffectReverbHiImp;
 
 /** Reverb effect with configurable reflection filtering */
@@ -66,15 +63,12 @@ protected:
   float x150_x1d8_preDelay;   /**< [0.0, 0.1] time in seconds before initial reflection heard */
   bool m_dirty = true;        /**< needs update of internal parameter data */
 
-  template <typename T>
   friend class EffectReverbStdImp;
-  template <typename T>
   friend class EffectReverbHiImp;
   EffectReverbStd(float coloration, float mix, float time, float damping, float preDelay);
 
 public:
-  template <typename T>
-  using ImpType = EffectReverbStdImp<T>;
+  using ImpType = EffectReverbStdImp;
 
   void setColoration(float coloration) {
     x140_x1c8_coloration = std::clamp(coloration, 0.f, 1.f);
@@ -119,13 +113,11 @@ public:
 class EffectReverbHi : public EffectReverbStd {
   float x1dc_crosstalk; /**< [0.0, 1.0] factor defining how much reflections are allowed to bleed to other channels */
 
-  template <typename T>
   friend class EffectReverbHiImp;
   EffectReverbHi(float coloration, float mix, float time, float damping, float preDelay, float crosstalk);
 
 public:
-  template <typename T>
-  using ImpType = EffectReverbHiImp<T>;
+  using ImpType = EffectReverbHiImp;
 
   void setCrosstalk(float crosstalk) {
     x1dc_crosstalk = std::clamp(crosstalk, 0.f, 1.f);
@@ -144,8 +136,7 @@ public:
 };
 
 /** Standard-quality 2-stage reverb */
-template <typename T>
-class EffectReverbStdImp : public EffectBase<T>, public EffectReverbStd {
+class EffectReverbStdImp : public EffectBase, public EffectReverbStd {
   using CombCoeffArray = std::array<std::array<float, 2>, NumChannels>;
   using ReverbDelayArray = std::array<std::array<ReverbDelayLine, 2>, NumChannels>;
   using PreDelayArray = std::array<std::unique_ptr<float[]>, NumChannels>;
@@ -170,15 +161,14 @@ public:
   EffectReverbStdImp(const EffectReverbStdInfo& info, double sampleRate)
   : EffectReverbStdImp(info.coloration, info.mix, info.time, info.damping, info.preDelay, sampleRate) {}
 
-  void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap) override;
+  void applyEffect(float* audio, size_t frameCount, const ChannelMap& chanMap) override;
   void resetOutputSampleRate(double sampleRate) override { _setup(sampleRate); }
 
   EffectType Isa() const override { return EffectType::ReverbStd; }
 };
 
 /** High-quality 3-stage reverb with per-channel low-pass and crosstalk */
-template <typename T>
-class EffectReverbHiImp : public EffectBase<T>, public EffectReverbHi {
+class EffectReverbHiImp : public EffectBase, public EffectReverbHi {
   using AllPassDelayLines = std::array<std::array<ReverbDelayLine, 2>, NumChannels>;
   using CombCoefficients = std::array<std::array<float, 3>, NumChannels>;
   using CombDelayLines = std::array<std::array<ReverbDelayLine, 3>, NumChannels>;
@@ -201,8 +191,8 @@ class EffectReverbHiImp : public EffectBase<T>, public EffectReverbHi {
   double m_sampleRate; /**< copy of sample rate */
   void _setup(double sampleRate);
   void _update();
-  void _handleReverb(T* audio, int chanIdx, int chanCount, int sampleCount);
-  void _doCrosstalk(T* audio, float wet, float dry, int chanCount, int sampleCount);
+  void _handleReverb(float* audio, int chanIdx, int chanCount, int sampleCount);
+  void _doCrosstalk(float* audio, float wet, float dry, int chanCount, int sampleCount);
 
 public:
   EffectReverbHiImp(float coloration, float mix, float time, float damping, float preDelay, float crosstalk,
@@ -210,7 +200,7 @@ public:
   EffectReverbHiImp(const EffectReverbHiInfo& info, double sampleRate)
   : EffectReverbHiImp(info.coloration, info.mix, info.time, info.damping, info.preDelay, info.crosstalk, sampleRate) {}
 
-  void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap) override;
+  void applyEffect(float* audio, size_t frameCount, const ChannelMap& chanMap) override;
   void resetOutputSampleRate(double sampleRate) override { _setup(sampleRate); }
 
   EffectType Isa() const override { return EffectType::ReverbHi; }

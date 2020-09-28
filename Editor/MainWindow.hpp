@@ -27,7 +27,7 @@ namespace amuse {
 class Engine;
 }
 
-namespace boo {
+namespace boo2 {
 struct IAudioVoiceEngine;
 }
 

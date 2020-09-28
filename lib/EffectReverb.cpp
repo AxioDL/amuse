@@ -62,21 +62,18 @@ EffectReverbStd::EffectReverbStd(float coloration, float mix, float time, float 
 EffectReverbHi::EffectReverbHi(float coloration, float mix, float time, float damping, float preDelay, float crosstalk)
 : EffectReverbStd(coloration, mix, time, damping, preDelay), x1dc_crosstalk(std::clamp(crosstalk, 0.f, 1.0f)) {}
 
-template <typename T>
-EffectReverbStdImp<T>::EffectReverbStdImp(float coloration, float mix, float time, float damping, float preDelay,
+EffectReverbStdImp::EffectReverbStdImp(float coloration, float mix, float time, float damping, float preDelay,
                                           double sampleRate)
 : EffectReverbStd(coloration, mix, time, damping, preDelay) {
   _setup(sampleRate);
 }
 
-template <typename T>
-void EffectReverbStdImp<T>::_setup(double sampleRate) {
+void EffectReverbStdImp::_setup(double sampleRate) {
   m_sampleRate = sampleRate;
   _update();
 }
 
-template <typename T>
-void EffectReverbStdImp<T>::_update() {
+void EffectReverbStdImp::_update() {
   float timeSamples = x148_x1d0_time * m_sampleRate;
   double rateRatio = m_sampleRate / NativeSampleRate;
   for (size_t c = 0; c < NumChannels; ++c) {
@@ -122,8 +119,7 @@ void EffectReverbStdImp<T>::_update() {
   m_dirty = false;
 }
 
-template <typename T>
-void EffectReverbStdImp<T>::applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap) {
+void EffectReverbStdImp::applyEffect(float* audio, size_t frameCount, const ChannelMap& chanMap) {
   if (m_dirty)
     _update();
 
@@ -212,7 +208,7 @@ void EffectReverbStdImp<T>::applyEffect(T* audio, size_t frameCount, const Chann
           linesAP[1].x4_outPoint = 0;
 
         /* Mix out */
-        audio[s * chanMap.m_channelCount + c] = ClampFull<T>(dampWet * allPass + dampDry * sample);
+        audio[s * chanMap.m_channelCount + c] = dampWet * allPass + dampDry * sample;
       }
       x130_preDelayPtr[c] = preDelayPtr;
     }
@@ -220,21 +216,18 @@ void EffectReverbStdImp<T>::applyEffect(T* audio, size_t frameCount, const Chann
   }
 }
 
-template <typename T>
-EffectReverbHiImp<T>::EffectReverbHiImp(float coloration, float mix, float time, float damping, float preDelay,
+EffectReverbHiImp::EffectReverbHiImp(float coloration, float mix, float time, float damping, float preDelay,
                                         float crosstalk, double sampleRate)
 : EffectReverbHi(coloration, mix, time, damping, preDelay, crosstalk) {
   _setup(sampleRate);
 }
 
-template <typename T>
-void EffectReverbHiImp<T>::_setup(double sampleRate) {
+void EffectReverbHiImp::_setup(double sampleRate) {
   m_sampleRate = sampleRate;
   _update();
 }
 
-template <typename T>
-void EffectReverbHiImp<T>::_update() {
+void EffectReverbHiImp::_update() {
   const float timeSamples = x148_x1d0_time * m_sampleRate;
   const double rateRatio = m_sampleRate / NativeSampleRate;
 
@@ -287,8 +280,7 @@ void EffectReverbHiImp<T>::_update() {
   m_dirty = false;
 }
 
-template <typename T>
-void EffectReverbHiImp<T>::_handleReverb(T* audio, int c, int chanCount, int sampleCount) {
+void EffectReverbHiImp::_handleReverb(float* audio, int c, int chanCount, int sampleCount) {
   const float dampWet = x19c_level * 0.6f;
   const float dampDry = 0.6f - dampWet;
 
@@ -401,28 +393,26 @@ void EffectReverbHiImp<T>::_handleReverb(T* audio, int c, int chanCount, int sam
       lineLP.x4_outPoint = 0;
 
     /* Mix out */
-    audio[s * chanCount + c] = ClampFull<T>(dampWet * allPass + dampDry * sample);
+    audio[s * chanCount + c] = dampWet * allPass + dampDry * sample;
   }
 
   x1b8_preDelayPtr[c] = preDelayPtr;
 }
 
-template <typename T>
-void EffectReverbHiImp<T>::_doCrosstalk(T* audio, float wet, float dry, int chanCount, int sampleCount) {
+void EffectReverbHiImp::_doCrosstalk(float* audio, float wet, float dry, int chanCount, int sampleCount) {
   for (int i = 0; i < sampleCount; ++i) {
-    T* base = &audio[chanCount * i];
+    auto* base = &audio[chanCount * i];
     float allWet = 0;
     for (int c = 0; c < chanCount; ++c) {
       allWet += base[c] * wet;
       base[c] *= dry;
     }
     for (int c = 0; c < chanCount; ++c)
-      base[c] = ClampFull<T>(base[c] + allWet);
+      base[c] = base[c] + allWet;
   }
 }
 
-template <typename T>
-void EffectReverbHiImp<T>::applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap) {
+void EffectReverbHiImp::applyEffect(float* audio, size_t frameCount, const ChannelMap& chanMap) {
   if (m_dirty)
     _update();
 
@@ -439,11 +429,4 @@ void EffectReverbHiImp<T>::applyEffect(T* audio, size_t frameCount, const Channe
   }
 }
 
-template class EffectReverbStdImp<int16_t>;
-template class EffectReverbStdImp<int32_t>;
-template class EffectReverbStdImp<float>;
-
-template class EffectReverbHiImp<int16_t>;
-template class EffectReverbHiImp<int32_t>;
-template class EffectReverbHiImp<float>;
 } // namespace amuse

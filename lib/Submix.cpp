@@ -29,23 +29,13 @@ EffectReverbHi& Submix::makeReverbHi(float coloration, float mix, float time, fl
 
 EffectReverbHi& Submix::makeReverbHi(const EffectReverbHiInfo& info) { return makeEffect<EffectReverbHi>(info); }
 
-void Submix::applyEffect(int16_t* audio, size_t frameCount, const ChannelMap& chanMap) const {
-  for (const std::unique_ptr<EffectBaseTypeless>& effect : m_effectStack)
-    ((EffectBase<int16_t>&)*effect).applyEffect(audio, frameCount, chanMap);
-}
-
-void Submix::applyEffect(int32_t* audio, size_t frameCount, const ChannelMap& chanMap) const {
-  for (const std::unique_ptr<EffectBaseTypeless>& effect : m_effectStack)
-    ((EffectBase<int32_t>&)*effect).applyEffect(audio, frameCount, chanMap);
-}
-
 void Submix::applyEffect(float* audio, size_t frameCount, const ChannelMap& chanMap) const {
-  for (const std::unique_ptr<EffectBaseTypeless>& effect : m_effectStack)
-    ((EffectBase<float>&)*effect).applyEffect(audio, frameCount, chanMap);
+  for (const std::unique_ptr<EffectBase>& effect : m_effectStack)
+    effect->applyEffect(audio, frameCount, chanMap);
 }
 
 void Submix::resetOutputSampleRate(double sampleRate) {
-  for (const std::unique_ptr<EffectBaseTypeless>& effect : m_effectStack)
+  for (const std::unique_ptr<EffectBase>& effect : m_effectStack)
     effect->resetOutputSampleRate(sampleRate);
 }
 } // namespace amuse

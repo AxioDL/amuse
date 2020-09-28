@@ -8,7 +8,6 @@
 #include "amuse/IBackendVoice.hpp"
 
 namespace amuse {
-template <typename T>
 class EffectChorusImp;
 
 #define AMUSE_CHORUS_NUM_BLOCKS 3
@@ -31,13 +30,11 @@ class EffectChorus {
   uint32_t x98_period;    /**< [500, 10000] time (in ms) of one delay-shift cycle */
   bool m_dirty = true;    /**< needs update of internal parameter data */
 
-  template <typename T>
   friend class EffectChorusImp;
   EffectChorus(uint32_t baseDelay, uint32_t variation, uint32_t period);
 
 public:
-  template <typename T>
-  using ImpType = EffectChorusImp<T>;
+  using ImpType = EffectChorusImp;
 
   void setBaseDelay(uint32_t baseDelay) {
     baseDelay = std::clamp(baseDelay, 5u, 15u);
@@ -68,13 +65,12 @@ public:
 };
 
 /** Type-specific implementation of chorus effect */
-template <typename T>
-class EffectChorusImp : public EffectBase<T>, public EffectChorus {
+class EffectChorusImp : public EffectBase, public EffectChorus {
   /** Evenly-allocated pointer-table for each channel's delay */
-  std::array<std::array<T*, AMUSE_CHORUS_NUM_BLOCKS>, NumChannels> x0_lastChans{};
+  std::array<std::array<float*, AMUSE_CHORUS_NUM_BLOCKS>, NumChannels> x0_lastChans{};
 
   uint8_t x24_currentLast = 1; /**< Last 5ms block-idx to be processed */
-  std::array<std::array<T, 4>, NumChannels> x28_oldChans{}; /**< Unprocessed history of previous 4 samples */
+  std::array<std::array<float, 4>, NumChannels> x28_oldChans{}; /**< Unprocessed history of previous 4 samples */
 
   uint32_t x58_currentPosLo = 0; /**< 16.7 fixed-point low-part of sample index */
   uint32_t x5c_currentPosHi = 0; /**< 16.7 fixed-point high-part of sample index */
@@ -84,9 +80,9 @@ class EffectChorusImp : public EffectBase<T>, public EffectChorus {
   uint32_t x68_pitchOffsetPeriod;      /**< intermediate block window quantity for calculating SRC state */
 
   struct SrcInfo {
-    T* x6c_dest;             /**< selected channel's live buffer */
-    T* x70_smpBase;          /**< selected channel's delay buffer */
-    T* x74_old;              /**< selected channel's 4-sample history buffer */
+    float* x6c_dest;             /**< selected channel's live buffer */
+    float* x70_smpBase;          /**< selected channel's delay buffer */
+    float* x74_old;              /**< selected channel's 4-sample history buffer */
     uint32_t x78_posLo;      /**< 16.7 fixed-point low-part of sample index */
     uint32_t x7c_posHi;      /**< 16.7 fixed-point high-part of sample index */
     uint32_t x80_pitchLo;    /**< 16.7 fixed-point low-part of sample-rate conversion differential */
@@ -111,7 +107,7 @@ public:
   EffectChorusImp(const EffectChorusInfo& info, double sampleRate)
   : EffectChorusImp(info.baseDelay, info.variation, info.period, sampleRate) {}
 
-  void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap) override;
+  void applyEffect(float* audio, size_t frameCount, const ChannelMap& chanMap) override;
   void resetOutputSampleRate(double sampleRate) override { _setup(sampleRate); }
 
   EffectType Isa() const override { return EffectType::Chorus; }

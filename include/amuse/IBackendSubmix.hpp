@@ -2,8 +2,6 @@
 
 namespace amuse {
 
-enum class SubmixFormat { Int16, Int32, Float };
-
 /** Client-implemented submix instance */
 class IBackendSubmix {
 public:
@@ -14,8 +12,5 @@ public:
 
   /** Amuse gets fixed sample rate of submix this way */
   virtual double getSampleRate() const = 0;
-
-  /** Amuse gets fixed sample format of submix this way */
-  virtual SubmixFormat getSampleFormat() const = 0;
 };
 } // namespace amuse

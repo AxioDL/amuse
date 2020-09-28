@@ -368,23 +368,6 @@ inline int CompareCaseInsensitive(const SystemChar* a, const SystemChar* b) {
 #endif
 }
 
-template <typename T>
-constexpr T ClampFull(float in) noexcept {
-  if (std::is_floating_point<T>()) {
-    return in;
-  } else {
-    constexpr T MAX = std::numeric_limits<T>::max();
-    constexpr T MIN = std::numeric_limits<T>::min();
-
-    if (in < MIN)
-      return MIN;
-    else if (in > MAX)
-      return MAX;
-    else
-      return in;
-  }
-}
-
 #ifndef M_PIF
 #define M_PIF 3.14159265358979323846f /* pi */
 #endif

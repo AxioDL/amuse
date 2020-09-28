@@ -6,11 +6,11 @@
 
 namespace amuse {
 
-void BooBackendVoice::VoiceCallback::preSupplyAudio(boo::IAudioVoice&, double dt) {
+void BooBackendVoice::VoiceCallback::preSupplyAudio(boo2::IAudioVoice&, double dt) {
   m_parent.m_clientVox.preSupplyAudio(dt);
 }
 
-size_t BooBackendVoice::VoiceCallback::supplyAudio(boo::IAudioVoice&, size_t frames, int16_t* data) {
+size_t BooBackendVoice::VoiceCallback::supplyAudio(boo2::IAudioVoice&, size_t frames, int16_t* data) {
   return m_parent.m_clientVox.supplyAudio(frames, data);
 }
 
@@ -29,7 +29,7 @@ void BooBackendVoice::VoiceCallback::routeAudio(size_t frames, size_t channels, 
   m_parent.m_clientVox.routeAudio(frames, dt, busId, in, out);
 }
 
-BooBackendVoice::BooBackendVoice(boo::IAudioVoiceEngine& engine, Voice& clientVox, double sampleRate, bool dynamicPitch)
+BooBackendVoice::BooBackendVoice(boo2::IAudioVoiceEngine& engine, Voice& clientVox, double sampleRate, bool dynamicPitch)
 : m_clientVox(clientVox), m_cb(*this), m_booVoice(engine.allocateNewMonoVoice(sampleRate, &m_cb, dynamicPitch)) {}
 
 void BooBackendVoice::resetSampleRate(double sampleRate) { m_booVoice->resetSampleRate(sampleRate); }
@@ -49,17 +49,7 @@ void BooBackendVoice::stop() { m_booVoice->stop(); }
 
 bool BooBackendSubmix::SubmixCallback::canApplyEffect() const { return m_parent.m_clientSmx.canApplyEffect(); }
 
-void BooBackendSubmix::SubmixCallback::applyEffect(int16_t* audio, size_t frameCount, const boo::ChannelMap& chanMap,
-                                                   double) const {
-  return m_parent.m_clientSmx.applyEffect(audio, frameCount, reinterpret_cast<const ChannelMap&>(chanMap));
-}
-
-void BooBackendSubmix::SubmixCallback::applyEffect(int32_t* audio, size_t frameCount, const boo::ChannelMap& chanMap,
-                                                   double) const {
-  return m_parent.m_clientSmx.applyEffect(audio, frameCount, reinterpret_cast<const ChannelMap&>(chanMap));
-}
-
-void BooBackendSubmix::SubmixCallback::applyEffect(float* audio, size_t frameCount, const boo::ChannelMap& chanMap,
+void BooBackendSubmix::SubmixCallback::applyEffect(float* audio, size_t frameCount, const boo2::ChannelMap& chanMap,
                                                    double) const {
   return m_parent.m_clientSmx.applyEffect(audio, frameCount, reinterpret_cast<const ChannelMap&>(chanMap));
 }
@@ -68,7 +58,7 @@ void BooBackendSubmix::SubmixCallback::resetOutputSampleRate(double sampleRate) 
   m_parent.m_clientSmx.resetOutputSampleRate(sampleRate);
 }
 
-BooBackendSubmix::BooBackendSubmix(boo::IAudioVoiceEngine& engine, Submix& clientSmx, bool mainOut, int busId)
+BooBackendSubmix::BooBackendSubmix(boo2::IAudioVoiceEngine& engine, Submix& clientSmx, bool mainOut, int busId)
 : m_clientSmx(clientSmx), m_cb(*this), m_booSubmix(engine.allocateNewSubmix(mainOut, &m_cb, busId)) {}
 
 void BooBackendSubmix::setSendLevel(IBackendSubmix* submix, float level, bool slew) {
@@ -77,8 +67,6 @@ void BooBackendSubmix::setSendLevel(IBackendSubmix* submix, float level, bool sl
 }
 
 double BooBackendSubmix::getSampleRate() const { return m_booSubmix->getSampleRate(); }
-
-SubmixFormat BooBackendSubmix::getSampleFormat() const { return SubmixFormat(m_booSubmix->getSampleFormat()); }
 
 BooBackendMIDIReader::~BooBackendMIDIReader() {}
 
@@ -247,7 +235,7 @@ void BooBackendMIDIReader::stopSeq() {}
 
 void BooBackendMIDIReader::reset() {}
 
-BooBackendVoiceAllocator::BooBackendVoiceAllocator(boo::IAudioVoiceEngine& booEngine) : m_booEngine(booEngine) {
+BooBackendVoiceAllocator::BooBackendVoiceAllocator(boo2::IAudioVoiceEngine& booEngine) : m_booEngine(booEngine) {
   booEngine.setCallbackInterface(this);
 }
 
@@ -274,12 +262,12 @@ AudioChannelSet BooBackendVoiceAllocator::getAvailableSet() { return AudioChanne
 
 void BooBackendVoiceAllocator::setVolume(float vol) { m_booEngine.setVolume(vol); }
 
-void BooBackendVoiceAllocator::on5MsInterval(boo::IAudioVoiceEngine& engine, double dt) {
+void BooBackendVoiceAllocator::on5MsInterval(boo2::IAudioVoiceEngine& engine, double dt) {
   if (m_cbInterface)
     m_cbInterface->_on5MsInterval(*this, dt);
 }
 
-void BooBackendVoiceAllocator::onPumpCycleComplete(boo::IAudioVoiceEngine& engine) {
+void BooBackendVoiceAllocator::onPumpCycleComplete(boo2::IAudioVoiceEngine& engine) {
   if (m_cbInterface)
     m_cbInterface->_onPumpCycleComplete(*this);
 }

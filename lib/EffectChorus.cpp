@@ -145,21 +145,19 @@ EffectChorus::EffectChorus(uint32_t baseDelay, uint32_t variation, uint32_t peri
 , x94_variation(std::clamp(variation, 0u, 5u))
 , x98_period(std::clamp(period, 500u, 10000u)) {}
 
-template <typename T>
-EffectChorusImp<T>::EffectChorusImp(uint32_t baseDelay, uint32_t variation, uint32_t period, double sampleRate)
+EffectChorusImp::EffectChorusImp(uint32_t baseDelay, uint32_t variation, uint32_t period, double sampleRate)
 : EffectChorus(baseDelay, variation, period) {
   _setup(sampleRate);
 }
 
-template <typename T>
-void EffectChorusImp<T>::_setup(double sampleRate) {
+void EffectChorusImp::_setup(double sampleRate) {
   m_sampsPerMs = std::ceil(sampleRate / 1000.0);
   m_blockSamples = m_sampsPerMs * 5;
 
   delete[] x0_lastChans[0][0];
 
   const size_t chanPitch = m_blockSamples * AMUSE_CHORUS_NUM_BLOCKS;
-  T* buf = new T[chanPitch * NumChannels]();
+  auto* buf = new float[chanPitch * NumChannels]();
 
   for (size_t c = 0; c < NumChannels; ++c) {
     for (size_t i = 0; i < AMUSE_CHORUS_NUM_BLOCKS; ++i) {
@@ -172,8 +170,7 @@ void EffectChorusImp<T>::_setup(double sampleRate) {
   m_dirty = true;
 }
 
-template <typename T>
-void EffectChorusImp<T>::_update() {
+void EffectChorusImp::_update() {
   size_t chanPitch = m_blockSamples * AMUSE_CHORUS_NUM_BLOCKS;
   size_t fifteenSamps = 15 * m_sampsPerMs;
 
@@ -189,19 +186,17 @@ void EffectChorusImp<T>::_update() {
   m_dirty = false;
 }
 
-template <typename T>
-EffectChorusImp<T>::~EffectChorusImp() {
+EffectChorusImp::~EffectChorusImp() {
   delete[] x0_lastChans[0][0];
 }
 
-template <typename T>
-void EffectChorusImp<T>::SrcInfo::doSrc1(size_t blockSamples, size_t chanCount) {
+void EffectChorusImp::SrcInfo::doSrc1(size_t blockSamples, size_t chanCount) {
   float old1 = x74_old[0];
   float old2 = x74_old[1];
   float old3 = x74_old[2];
   float cur = x70_smpBase[x7c_posHi];
 
-  T* dest = x6c_dest;
+  auto* dest = x6c_dest;
   for (size_t i = 0; i < blockSamples; ++i) {
     const float* selTab = &rsmpTab12khz[x78_posLo >> 23 & 0x1fc];
 
@@ -212,7 +207,7 @@ void EffectChorusImp<T>::SrcInfo::doSrc1(size_t blockSamples, size_t chanCount) 
       ++x7c_posHi;
       if (x7c_posHi == x88_trigger)
         x7c_posHi = x8c_target;
-      *dest = ClampFull<T>(selTab[0] * old1 + selTab[1] * old2 + selTab[2] * old3 + selTab[3] * cur);
+      *dest = selTab[0] * old1 + selTab[1] * old2 + selTab[2] * old3 + selTab[3] * cur;
       dest += chanCount;
       old1 = old2;
       old2 = old3;
@@ -220,7 +215,7 @@ void EffectChorusImp<T>::SrcInfo::doSrc1(size_t blockSamples, size_t chanCount) 
       cur = x70_smpBase[x7c_posHi];
     } else {
       x78_posLo = ovrTest;
-      *dest = ClampFull<T>(selTab[0] * old1 + selTab[1] * old2 + selTab[2] * old3 + selTab[3] * cur);
+      *dest = selTab[0] * old1 + selTab[1] * old2 + selTab[2] * old3 + selTab[3] * cur;
       dest += chanCount;
     }
   }
@@ -230,14 +225,13 @@ void EffectChorusImp<T>::SrcInfo::doSrc1(size_t blockSamples, size_t chanCount) 
   x74_old[2] = old3;
 }
 
-template <typename T>
-void EffectChorusImp<T>::SrcInfo::doSrc2(size_t blockSamples, size_t chanCount) {
+void EffectChorusImp::SrcInfo::doSrc2(size_t blockSamples, size_t chanCount) {
   float old1 = x74_old[0];
   float old2 = x74_old[1];
   float old3 = x74_old[2];
   float cur = x70_smpBase[x7c_posHi];
 
-  T* dest = x6c_dest;
+  auto* dest = x6c_dest;
   for (size_t i = 0; i < blockSamples; ++i) {
     const float* selTab = &rsmpTab12khz[x78_posLo >> 23 & 0x1fc];
     ++x7c_posHi;
@@ -258,14 +252,14 @@ void EffectChorusImp<T>::SrcInfo::doSrc2(size_t blockSamples, size_t chanCount) 
       if (x7c_posHi == x88_trigger)
         x7c_posHi = x8c_target;
 
-      *dest = ClampFull<T>(selTab[0] * old1 + selTab[1] * old2 + selTab[2] * old3 + selTab[3] * cur);
+      *dest = selTab[0] * old1 + selTab[1] * old2 + selTab[2] * old3 + selTab[3] * cur;
       dest += chanCount;
 
       cur = x70_smpBase[x7c_posHi];
     } else {
       x78_posLo = ovrTest;
 
-      *dest = ClampFull<T>(selTab[0] * old1 + selTab[1] * old2 + selTab[2] * old3 + selTab[3] * cur);
+      *dest = selTab[0] * old1 + selTab[1] * old2 + selTab[2] * old3 + selTab[3] * cur;
       dest += chanCount;
 
       old1 = old2;
@@ -284,8 +278,7 @@ void EffectChorusImp<T>::SrcInfo::doSrc2(size_t blockSamples, size_t chanCount) 
   x74_old[2] = old3;
 }
 
-template <typename T>
-void EffectChorusImp<T>::applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap) {
+void EffectChorusImp::applyEffect(float* audio, size_t frameCount, const ChannelMap& chanMap) {
   if (m_dirty)
     _update();
 
@@ -293,12 +286,12 @@ void EffectChorusImp<T>::applyEffect(T* audio, size_t frameCount, const ChannelM
   for (size_t f = 0; f < frameCount;) {
     uint8_t next = x24_currentLast + 1;
     uint8_t buf = next % 3;
-    std::array<T*, 8> bufs{
+    std::array<float*, 8> bufs{
         x0_lastChans[0][buf], x0_lastChans[1][buf], x0_lastChans[2][buf], x0_lastChans[3][buf],
         x0_lastChans[4][buf], x0_lastChans[5][buf], x0_lastChans[6][buf], x0_lastChans[7][buf],
     };
 
-    T* inBuf = audio;
+    auto* inBuf = audio;
     for (size_t s = 0; f < frameCount && s < m_blockSamples; ++s, ++f) {
       for (size_t c = 0; c < chanMap.m_channelCount && c < NumChannels; ++c) {
         *bufs[c]++ = *inBuf++;
@@ -314,7 +307,7 @@ void EffectChorusImp<T>::applyEffect(T* audio, size_t frameCount, const ChannelM
       x60_pitchOffset = -x60_pitchOffset;
     }
 
-    T* outBuf = audio;
+    auto* outBuf = audio;
     size_t bs = std::min(remFrames, size_t(m_blockSamples));
     for (size_t c = 0; c < chanMap.m_channelCount && c < NumChannels; ++c) {
       x6c_src.x7c_posHi = x5c_currentPosHi;
@@ -348,7 +341,4 @@ void EffectChorusImp<T>::applyEffect(T* audio, size_t frameCount, const ChannelM
   }
 }
 
-template class EffectChorusImp<int16_t>;
-template class EffectChorusImp<int32_t>;
-template class EffectChorusImp<float>;
 } // namespace amuse

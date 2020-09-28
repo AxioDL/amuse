@@ -10,7 +10,6 @@
 #include "amuse/IBackendVoice.hpp"
 
 namespace amuse {
-template <typename T>
 class EffectDelayImp;
 
 /** Parameters needed to create EffectDelay */
@@ -50,8 +49,7 @@ protected:
   bool m_dirty = true;      /**< needs update of internal parameter data */
 
 public:
-  template <typename T>
-  using ImpType = EffectDelayImp<T>;
+  using ImpType = EffectDelayImp;
 
   void setDelay(uint32_t delay) {
     delay = std::clamp(delay, 10u, 5000u);
@@ -102,14 +100,13 @@ public:
 };
 
 /** Type-specific implementation of delay effect */
-template <typename T>
-class EffectDelayImp : public EffectBase<T>, public EffectDelay {
+class EffectDelayImp : public EffectBase, public EffectDelay {
   std::array<uint32_t, NumChannels> x0_currentSize;      /**< per-channel delay-line buffer sizes */
   std::array<uint32_t, NumChannels> xc_currentPos;       /**< per-channel block-index */
   std::array<uint32_t, NumChannels> x18_currentFeedback; /**< [0, 128] feedback attenuator */
   std::array<uint32_t, NumChannels> x24_currentOutput;   /**< [0, 128] total attenuator */
 
-  std::array<std::unique_ptr<T[]>, NumChannels> x30_chanLines; /**< delay-line buffers for each channel */
+  std::array<std::unique_ptr<float[]>, NumChannels> x30_chanLines; /**< delay-line buffers for each channel */
 
   uint32_t m_sampsPerMs;   /**< canonical count of samples per ms for the current backend */
   uint32_t m_blockSamples; /**< count of samples in a 5ms block */
@@ -120,7 +117,7 @@ public:
   EffectDelayImp(uint32_t initDelay, uint32_t initFeedback, uint32_t initOutput, double sampleRate);
   EffectDelayImp(const EffectDelayInfo& info, double sampleRate);
 
-  void applyEffect(T* audio, size_t frameCount, const ChannelMap& chanMap) override;
+  void applyEffect(float* audio, size_t frameCount, const ChannelMap& chanMap) override;
   void resetOutputSampleRate(double sampleRate) override { _setup(sampleRate); }
 
   EffectType Isa() const override { return EffectType::Delay; }

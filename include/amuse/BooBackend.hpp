@@ -13,10 +13,10 @@
 #include "amuse/IBackendSubmix.hpp"
 #include "amuse/IBackendVoiceAllocator.hpp"
 
-#include <boo/audiodev/IAudioSubmix.hpp>
-#include <boo/audiodev/IAudioVoiceEngine.hpp>
-#include <boo/audiodev/IMIDIReader.hpp>
-#include <boo/audiodev/MIDIDecoder.hpp>
+#include "boo2/audiodev/IAudioSubmix.hpp"
+#include "boo2/audiodev/IAudioVoiceEngine.hpp"
+#include "boo2/audiodev/IMIDIReader.hpp"
+#include "boo2/audiodev/MIDIDecoder.hpp"
 
 namespace amuse {
 
@@ -24,19 +24,19 @@ namespace amuse {
 class BooBackendVoice : public IBackendVoice {
   friend class BooBackendVoiceAllocator;
   Voice& m_clientVox;
-  struct VoiceCallback : boo::IAudioVoiceCallback {
+  struct VoiceCallback : boo2::IAudioVoiceCallback {
     BooBackendVoice& m_parent;
-    void preSupplyAudio(boo::IAudioVoice& voice, double dt) override;
-    size_t supplyAudio(boo::IAudioVoice& voice, size_t frames, int16_t* data) override;
+    void preSupplyAudio(boo2::IAudioVoice& voice, double dt) override;
+    size_t supplyAudio(boo2::IAudioVoice& voice, size_t frames, int16_t* data) override;
     void routeAudio(size_t frames, size_t channels, double dt, int busId, int16_t* in, int16_t* out) override;
     void routeAudio(size_t frames, size_t channels, double dt, int busId, int32_t* in, int32_t* out) override;
     void routeAudio(size_t frames, size_t channels, double dt, int busId, float* in, float* out) override;
     VoiceCallback(BooBackendVoice& parent) : m_parent(parent) {}
   } m_cb;
-  boo::ObjToken<boo::IAudioVoice> m_booVoice;
+  boo2::ObjToken<boo2::IAudioVoice> m_booVoice;
 
 public:
-  BooBackendVoice(boo::IAudioVoiceEngine& engine, Voice& clientVox, double sampleRate, bool dynamicPitch);
+  BooBackendVoice(boo2::IAudioVoiceEngine& engine, Voice& clientVox, double sampleRate, bool dynamicPitch);
   void resetSampleRate(double sampleRate) override;
 
   void resetChannelLevels() override;
@@ -51,35 +51,30 @@ class BooBackendSubmix : public IBackendSubmix {
   friend class BooBackendVoiceAllocator;
   friend class BooBackendVoice;
   Submix& m_clientSmx;
-  struct SubmixCallback : boo::IAudioSubmixCallback {
+  struct SubmixCallback : boo2::IAudioSubmixCallback {
     BooBackendSubmix& m_parent;
     bool canApplyEffect() const override;
-    void applyEffect(int16_t* audio, size_t frameCount, const boo::ChannelMap& chanMap,
-                     double sampleRate) const override;
-    void applyEffect(int32_t* audio, size_t frameCount, const boo::ChannelMap& chanMap,
-                     double sampleRate) const override;
-    void applyEffect(float* audio, size_t frameCount, const boo::ChannelMap& chanMap, double sampleRate) const override;
+    void applyEffect(float* audio, size_t frameCount, const boo2::ChannelMap& chanMap, double sampleRate) const override;
     void resetOutputSampleRate(double sampleRate) override;
     SubmixCallback(BooBackendSubmix& parent) : m_parent(parent) {}
   } m_cb;
-  boo::ObjToken<boo::IAudioSubmix> m_booSubmix;
+  boo2::ObjToken<boo2::IAudioSubmix> m_booSubmix;
 
 public:
-  BooBackendSubmix(boo::IAudioVoiceEngine& engine, Submix& clientSmx, bool mainOut, int busId);
+  BooBackendSubmix(boo2::IAudioVoiceEngine& engine, Submix& clientSmx, bool mainOut, int busId);
   void setSendLevel(IBackendSubmix* submix, float level, bool slew) override;
   double getSampleRate() const override;
-  SubmixFormat getSampleFormat() const override;
 };
 
 /** Backend MIDI event reader for controlling sequencer with external hardware / software */
-class BooBackendMIDIReader : public IMIDIReader, public boo::IMIDIReader {
+class BooBackendMIDIReader : public IMIDIReader, public boo2::IMIDIReader {
   friend class BooBackendVoiceAllocator;
 
 protected:
   Engine& m_engine;
-  std::unordered_map<std::string, std::unique_ptr<boo::IMIDIIn>> m_midiIns;
-  std::unique_ptr<boo::IMIDIIn> m_virtualIn;
-  boo::MIDIDecoder m_decoder;
+  std::unordered_map<std::string, std::unique_ptr<boo2::IMIDIIn>> m_midiIns;
+  std::unique_ptr<boo2::IMIDIIn> m_virtualIn;
+  boo2::MIDIDecoder m_decoder;
 
   bool m_useLock;
   std::list<std::pair<double, std::vector<uint8_t>>> m_queue;
@@ -127,15 +122,15 @@ public:
 };
 
 /** Backend voice allocator implementation for boo mixer */
-class BooBackendVoiceAllocator : public IBackendVoiceAllocator, public boo::IAudioVoiceEngineCallback {
+class BooBackendVoiceAllocator : public IBackendVoiceAllocator, public boo2::IAudioVoiceEngineCallback {
   friend class BooBackendMIDIReader;
 
 protected:
-  boo::IAudioVoiceEngine& m_booEngine;
+  boo2::IAudioVoiceEngine& m_booEngine;
   Engine* m_cbInterface = nullptr;
 
 public:
-  BooBackendVoiceAllocator(boo::IAudioVoiceEngine& booEngine);
+  BooBackendVoiceAllocator(boo2::IAudioVoiceEngine& booEngine);
   std::unique_ptr<IBackendVoice> allocateVoice(Voice& clientVox, double sampleRate, bool dynamicPitch) override;
   std::unique_ptr<IBackendSubmix> allocateSubmix(Submix& clientSmx, bool mainOut, int busId) override;
   std::vector<std::pair<std::string, std::string>> enumerateMIDIDevices() override;
@@ -143,7 +138,7 @@ public:
   void setCallbackInterface(Engine* engine) override;
   AudioChannelSet getAvailableSet() override;
   void setVolume(float vol) override;
-  void on5MsInterval(boo::IAudioVoiceEngine& engine, double dt) override;
-  void onPumpCycleComplete(boo::IAudioVoiceEngine& engine) override;
+  void on5MsInterval(boo2::IAudioVoiceEngine& engine, double dt) override;
+  void onPumpCycleComplete(boo2::IAudioVoiceEngine& engine) override;
 };
 } // namespace amuse

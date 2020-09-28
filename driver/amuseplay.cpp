@@ -854,7 +854,7 @@ void EventCallback::specialKeyDown(boo::ESpecialKey key, boo::EModifierKey mods,
     m_app.m_engine->setVolume(m_app.m_volume);
     m_app.m_updateDisp = true;
     break;
-  case boo::ESpecialKey::Esc:
+  case boo2::Keycode::ESC:
     m_app.m_breakout = true;
     break;
   default:

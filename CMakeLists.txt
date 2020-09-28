@@ -77,12 +77,8 @@ add_library(amuse
   include/amuse/VolumeTable.hpp
 )
 
-target_atdna(amuse atdna_AudioGroupPool.cpp include/amuse/AudioGroupPool.hpp)
-target_atdna(amuse atdna_AudioGroupProject.cpp include/amuse/AudioGroupProject.hpp)
-target_atdna(amuse atdna_AudioGroupSampleDirectory.cpp include/amuse/AudioGroupSampleDirectory.hpp)
-
 target_include_directories(amuse PUBLIC include)
-target_link_libraries(amuse
+target_link_libraries(amuse PUBLIC
   athena-core
   lzokay
   ${ZLIB_LIBRARIES}
@@ -92,10 +88,14 @@ if(NX)
   target_sources(amuse PRIVATE include/switch_math.hpp)
 endif()
 
-if(TARGET boo)
+if(TARGET boo2)
   target_sources(amuse PRIVATE lib/BooBackend.cpp include/amuse/BooBackend.hpp)
-  target_link_libraries(amuse boo)
+  target_link_libraries(amuse PUBLIC boo2)
 endif()
+
+target_atdna(amuse atdna_AudioGroupPool.cpp include/amuse/AudioGroupPool.hpp)
+target_atdna(amuse atdna_AudioGroupProject.cpp include/amuse/AudioGroupProject.hpp)
+target_atdna(amuse atdna_AudioGroupSampleDirectory.cpp include/amuse/AudioGroupSampleDirectory.hpp)
 
 if (MSVC)
   target_compile_options(amuse PRIVATE

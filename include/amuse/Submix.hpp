@@ -23,36 +23,23 @@ class Submix {
   friend class Sequencer;
   Engine& m_root;
   std::unique_ptr<IBackendSubmix> m_backendSubmix;                /**< Handle to client-implemented backend submix */
-  std::vector<std::unique_ptr<EffectBaseTypeless>> m_effectStack; /**< Ordered list of effects to apply to submix */
+  std::vector<std::unique_ptr<EffectBase>> m_effectStack; /**< Ordered list of effects to apply to submix */
 
 public:
   Submix(Engine& engine);
 
   /** Construct new effect */
   template <class T, class... Args>
-  std::unique_ptr<EffectBaseTypeless> _makeEffect(Args... args) {
-    switch (m_backendSubmix->getSampleFormat()) {
-    case SubmixFormat::Int16: {
-      using ImpType = typename T::template ImpType<int16_t>;
-      return std::make_unique<ImpType>(args..., m_backendSubmix->getSampleRate());
-    }
-    case SubmixFormat::Int32:
-    default: {
-      using ImpType = typename T::template ImpType<int32_t>;
-      return std::make_unique<ImpType>(args..., m_backendSubmix->getSampleRate());
-    }
-    case SubmixFormat::Float: {
-      using ImpType = typename T::template ImpType<float>;
-      return std::make_unique<ImpType>(args..., m_backendSubmix->getSampleRate());
-    }
-    }
+  std::unique_ptr<EffectBase> _makeEffect(Args... args) {
+    using ImpType = typename T::ImpType;
+    return std::make_unique<ImpType>(args..., m_backendSubmix->getSampleRate());
   }
 
   /** Add new effect to effect stack and assume ownership */
   template <class T, class... Args>
   T& makeEffect(Args... args) {
     m_effectStack.push_back(_makeEffect<T>(args...));
-    return static_cast<typename T::template ImpType<float>&>(*m_effectStack.back());
+    return static_cast<typename T::ImpType&>(*m_effectStack.back());
   }
 
   /** Add new chorus effect to effect stack and assume ownership */
@@ -86,12 +73,6 @@ public:
   bool canApplyEffect() const { return m_effectStack.size() != 0; }
 
   /** in/out transformation entry for audio effect */
-  void applyEffect(int16_t* audio, size_t frameCount, const ChannelMap& chanMap) const;
-
-  /** in/out transformation entry for audio effect */
-  void applyEffect(int32_t* audio, size_t frameCount, const ChannelMap& chanMap) const;
-
-  /** in/out transformation entry for audio effect */
   void applyEffect(float* audio, size_t frameCount, const ChannelMap& chanMap) const;
 
   /** advice effects of changing sample rate */
@@ -99,6 +80,6 @@ public:
 
   Engine& getEngine() { return m_root; }
 
-  std::vector<std::unique_ptr<EffectBaseTypeless>>& getEffectStack() { return m_effectStack; }
+  std::vector<std::unique_ptr<EffectBase>>& getEffectStack() { return m_effectStack; }
 };
 } // namespace amuse
