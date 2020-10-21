@@ -514,18 +514,18 @@ void AudioGroupSampleDirectory::EntryData::patchMetadataWAV(SystemStringView wav
 
 /* File timestamps reflect actual audio content, not loop/pitch data */
 static void SetAudioFileTime(const SystemString& path, const Sstat& stat) {
+#ifndef __SWITCH__
 #if _WIN32
   __utimbuf64 times = {stat.st_atime, stat.st_mtime};
   _wutime64(path.c_str(), &times);
 #else
 #if __APPLE__
   struct timespec times[] = {stat.st_atimespec, stat.st_mtimespec};
-#elif __SWITCH__
-  struct timespec times[] = {stat.st_atime, stat.st_mtime};
 #else
   struct timespec times[] = {stat.st_atim, stat.st_mtim};
 #endif
   utimensat(AT_FDCWD, path.c_str(), times, 0);
+#endif
 #endif
 }
 
@@ -718,7 +718,7 @@ void AudioGroupSampleDirectory::_extractCompressed(SampleId id, const EntryData&
 #endif
 
   uint32_t numSamples = ent.getNumSamples();
-  atUint64 dataLen;
+  atUint64 dataLen = 0;
   if (fmt == SampleFormat::DSP || fmt == SampleFormat::DSP_DRUM) {
     DSPADPCMHeader header;
     header.x0_num_samples = numSamples;
