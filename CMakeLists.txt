@@ -77,16 +77,18 @@ add_library(amuse
   include/amuse/VolumeTable.hpp
 )
 
-target_atdna(amuse atdna_AudioGroupPool.cpp include/amuse/AudioGroupPool.hpp)
-target_atdna(amuse atdna_AudioGroupProject.cpp include/amuse/AudioGroupProject.hpp)
-target_atdna(amuse atdna_AudioGroupSampleDirectory.cpp include/amuse/AudioGroupSampleDirectory.hpp)
-
 target_include_directories(amuse PUBLIC include)
 target_link_libraries(amuse
   athena-core
   lzokay
+  logvisor
+  fmt
   ${ZLIB_LIBRARIES}
 )
+
+target_atdna(amuse atdna_AudioGroupPool.cpp include/amuse/AudioGroupPool.hpp)
+target_atdna(amuse atdna_AudioGroupProject.cpp include/amuse/AudioGroupProject.hpp)
+target_atdna(amuse atdna_AudioGroupSampleDirectory.cpp include/amuse/AudioGroupSampleDirectory.hpp)
 
 if(NX)
   target_sources(amuse PRIVATE include/switch_math.hpp)
