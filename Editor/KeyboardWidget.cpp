@@ -151,7 +151,7 @@ void KeyboardWidget::mouseReleaseEvent(QMouseEvent* event) {
   m_holding = false;
 }
 
-void KeyboardWidget::enterEvent(QEvent* event) {
+void KeyboardWidget::enterEvent(QEnterEvent* event) {
   if (m_statusFocus)
     m_statusFocus->enter();
 }
@@ -179,7 +179,7 @@ KeyboardSlider::KeyboardSlider(QWidget* parent) : QSlider(parent) {}
 
 KeyboardSlider::~KeyboardSlider() = default;
 
-void KeyboardSlider::enterEvent(QEvent* event) {
+void KeyboardSlider::enterEvent(QEnterEvent* event) {
   if (m_statusFocus)
     m_statusFocus->enter();
 }

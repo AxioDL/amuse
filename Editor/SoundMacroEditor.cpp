@@ -514,7 +514,10 @@ void SoundMacroListing::startAutoscroll(QWidget* source, QMouseEvent* event, int
     m_autoscrollTimer = startTimer(50);
   m_autoscrollDelta = delta;
   m_autoscrollSource = source;
-  m_autoscrollEvent = *event;
+  if (m_autoscrollEvent) {
+    delete m_autoscrollEvent;
+  }
+  m_autoscrollEvent = event->clone();
 }
 
 void SoundMacroListing::stopAutoscroll() {
@@ -523,6 +526,9 @@ void SoundMacroListing::stopAutoscroll() {
     m_autoscrollTimer = -1;
   }
   m_autoscrollDelta = 0;
+  if (m_autoscrollEvent) {
+    delete m_autoscrollEvent;
+  }
   m_autoscrollSource = nullptr;
 }
 
@@ -534,7 +540,7 @@ void SoundMacroListing::timerEvent(QTimerEvent* event) {
     int valueDelta = bar->value() - oldValue;
     if (valueDelta != 0) {
       if (m_autoscrollSource)
-        QApplication::sendEvent(m_autoscrollSource, &m_autoscrollEvent);
+        QApplication::sendEvent(m_autoscrollSource, m_autoscrollEvent);
       update();
     }
   }

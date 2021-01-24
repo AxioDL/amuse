@@ -229,7 +229,7 @@ class ListingDeleteButton : public QPushButton {
   Q_OBJECT
 public:
   explicit ListingDeleteButton(QWidget* parent = Q_NULLPTR);
-  void enterEvent(QEvent* event) override;
+  void enterEvent(QEnterEvent* event) override;
   void leaveEvent(QEvent* event) override;
 };
 

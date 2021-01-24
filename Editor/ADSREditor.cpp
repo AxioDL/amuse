@@ -153,9 +153,9 @@ void ADSRView::mousePressEvent(QMouseEvent* ev) {
       QPointF((width() - 30.0) * ((adTime + 1.0) / totalTime) + 30.0, sustainY),
   };
   const qreal dists[] = {
-      PointDistance(ev->localPos(), points[0]),
-      PointDistance(ev->localPos(), points[1]),
-      PointDistance(ev->localPos(), points[2]),
+      PointDistance(ev->position(), points[0]),
+      PointDistance(ev->position(), points[1]),
+      PointDistance(ev->position(), points[2]),
   };
 
   int minDist = 0;
@@ -196,16 +196,16 @@ void ADSRView::mouseMoveEvent(QMouseEvent* ev) {
   qreal totalTime = adTime + 1.0 + relTime;
 
   if (m_dragPoint == 0) {
-    const qreal newAttack = std::max(0.0, (ev->localPos().x() - 30.0) / (width() - 30.0) * totalTime);
+    const qreal newAttack = std::max(0.0, (ev->position().x() - 30.0) / (width() - 30.0) * totalTime);
     const qreal delta = newAttack - aTime;
     ctrls->setAttackAndDecay(newAttack, std::max(0.0, ctrls->m_decay->value() - delta), m_cycleIdx);
   } else if (m_dragPoint == 1) {
-    const qreal newDecay = std::max(0.0, (ev->localPos().x() - 30.0) * totalTime / (width() - 30.0) - aTime);
-    const qreal newSustain = (-ev->localPos().y() + (height() - 16.0)) / (height() - 16.0);
+    const qreal newDecay = std::max(0.0, (ev->position().x() - 30.0) * totalTime / (width() - 30.0) - aTime);
+    const qreal newSustain = (-ev->position().y() + (height() - 16.0)) / (height() - 16.0);
     ctrls->setDecayAndSustain(newDecay, newSustain * 100.0, m_cycleIdx);
   } else if (m_dragPoint == 2) {
     const qreal newRelease =
-        std::max(0.0, (width() - 30.0) * (adTime + 1.0) / (ev->localPos().x() - 30.0) - (adTime + 1.0));
+        std::max(0.0, (width() - 30.0) * (adTime + 1.0) / (ev->position().x() - 30.0) - (adTime + 1.0));
     ctrls->setRelease(newRelease, m_cycleIdx);
     ctrls->m_release->setValue(newRelease);
   }

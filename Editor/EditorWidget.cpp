@@ -226,7 +226,7 @@ AddRemoveButtons::AddRemoveButtons(QWidget* parent)
 static QIcon ListingDeleteIcon;
 static QIcon ListingDeleteHoveredIcon;
 
-void ListingDeleteButton::enterEvent(QEvent* event) { setIcon(ListingDeleteHoveredIcon); }
+void ListingDeleteButton::enterEvent(QEnterEvent* event) { setIcon(ListingDeleteHoveredIcon); }
 
 void ListingDeleteButton::leaveEvent(QEvent* event) { setIcon(ListingDeleteIcon); }
 
@@ -264,7 +264,7 @@ bool BaseObjectDelegate::editorEvent(QEvent* event, QAbstractItemModel* model, c
       connect(findUsagesAction, &QAction::triggered, this, &BaseObjectDelegate::doFindUsages);
       menu->addAction(findUsagesAction);
 
-      menu->popup(ev->globalPos());
+      menu->popup(ev->globalPosition().toPoint());
     }
   }
   return false;

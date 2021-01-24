@@ -29,6 +29,8 @@
 #include <amuse/Engine.hpp>
 #include <boo/audiodev/IAudioVoiceEngine.hpp>
 
+#include <cmath>
+
 MainWindow::MainWindow(QWidget* parent)
 : QMainWindow(parent)
 , m_navIt(m_navList.begin())
@@ -261,7 +263,7 @@ void MainWindow::updateWindowTitle() {
 void MainWindow::updateRecentFileActions() {
   const QSettings settings;
   const QStringList files = settings.value(QStringLiteral("recentFileList")).toStringList();
-  const int numRecentFiles = std::min(files.size(), int(MaxRecentFiles));
+  const int numRecentFiles = std::min(files.size(), qsizetype(MaxRecentFiles));
 
   for (int i = 0; i < numRecentFiles; ++i) {
     const QString text = QStringLiteral("&%1 %2").arg(i + 1).arg(QDir(files[i]).dirName());
@@ -1190,7 +1192,7 @@ bool TreeDelegate::editorEvent(QEvent* event, QAbstractItemModel* __model, const
       connect(renameAction, &QAction::triggered, this, &TreeDelegate::doRename);
       menu->addAction(renameAction);
 
-      menu->popup(ev->globalPos());
+      menu->popup(ev->globalPosition().toPoint());
     }
   }
 

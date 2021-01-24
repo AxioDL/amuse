@@ -390,7 +390,7 @@ bool MIDIFileDelegate::editorEvent(QEvent* event, QAbstractItemModel* model, con
       connect(sngAction, &QAction::triggered, this, &MIDIFileDelegate::doExportSNG);
       menu->addAction(sngAction);
 
-      menu->popup(ev->globalPos());
+      menu->popup(ev->globalPosition().toPoint());
     }
   }
   return false;

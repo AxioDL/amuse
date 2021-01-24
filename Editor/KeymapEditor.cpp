@@ -138,7 +138,7 @@ int KeymapView::getKey(const QPoint& localPos) const {
 }
 
 void KeymapView::mouseMoveEvent(QMouseEvent* ev) {
-  const int octave = ev->x() / 280;
+  const int octave = ev->position().x() / 280;
   const int key = getKey(ev->pos() - QPoint(octave * 280, height() / 2 - 100));
 
   if (octave >= 0 && key >= 0) {

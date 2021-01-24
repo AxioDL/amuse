@@ -5,7 +5,6 @@
 #include <memory>
 
 #include <QFileDialog>
-#include <QLinkedList>
 #include <QMainWindow>
 #include <QMessageBox>
 #include <QStyledItemDelegate>
