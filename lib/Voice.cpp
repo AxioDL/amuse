@@ -186,7 +186,7 @@ static T ApplyVolume(float vol, T samp) {
 }
 
 void Voice::_procSamplePre(int16_t& samp) {
-  double dt;
+  double dt = 0.0;
 
   /* Block linearized will use a larger `dt` for amplitude sampling;
    * significantly reducing the processing expense */
