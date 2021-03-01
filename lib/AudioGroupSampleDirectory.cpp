@@ -718,7 +718,7 @@ void AudioGroupSampleDirectory::_extractCompressed(SampleId id, const EntryData&
 #endif
 
   uint32_t numSamples = ent.getNumSamples();
-  atUint64 dataLen;
+  atUint64 dataLen = 0;
   if (fmt == SampleFormat::DSP || fmt == SampleFormat::DSP_DRUM) {
     DSPADPCMHeader header;
     header.x0_num_samples = numSamples;
