@@ -243,7 +243,7 @@ CommandWidget::CommandWidget(QWidget* parent, amuse::SoundMacro::ICmd* cmd, amus
           cb->setFixedHeight(30);
           cb->setProperty("fieldIndex", f);
           cb->setProperty("fieldName", fieldName);
-          for (const auto choice : field.m_choices) {
+          for (const auto& choice : field.m_choices) {
             if (choice.empty()) {
               break;
             }
