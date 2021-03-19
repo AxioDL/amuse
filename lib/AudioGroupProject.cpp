@@ -57,8 +57,11 @@ static void ReadRangedObjectIds(NameDB* db, athena::io::IStreamReader& r, NameDB
 
 template <athena::Endian DNAE, class T>
 static void WriteRangedObjectIds(athena::io::IStreamWriter& w, const T& list) {
-  if (list.cbegin() == list.cend())
+  if (list.cbegin() == list.cend()) {
+    uint16_t term = 0xffff;
+    athena::io::Write<athena::io::PropType::None>::Do<decltype(term), DNAE>({}, term, w);
     return;
+  }
   bool inRange = false;
   uint16_t lastId = list.cbegin()->first.id & 0x3fff;
   for (auto it = list.cbegin() + 1; it != list.cend(); ++it) {
