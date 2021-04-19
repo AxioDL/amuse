@@ -5,7 +5,6 @@
 #include <memory>
 
 #include <QFileDialog>
-#include <QLinkedList>
 #include <QMainWindow>
 #include <QMessageBox>
 #include <QStyledItemDelegate>
@@ -113,8 +112,8 @@ class MainWindow : public QMainWindow {
   Ui::MainWindow m_ui;
   QAction* m_goBack;
   QAction* m_goForward;
-  QLinkedList<ProjectModel::INode*> m_navList;
-  QLinkedList<ProjectModel::INode*>::iterator m_navIt;
+  std::list<ProjectModel::INode*> m_navList;
+  std::list<ProjectModel::INode*>::iterator m_navIt;
   QAction* m_clearRecentFileAct;
   QAction* m_recentFileActs[MaxRecentFiles];
   TreeDelegate m_treeDelegate;

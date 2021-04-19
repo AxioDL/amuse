@@ -390,7 +390,7 @@ bool MIDIFileDelegate::editorEvent(QEvent* event, QAbstractItemModel* model, con
       connect(sngAction, &QAction::triggered, this, &MIDIFileDelegate::doExportSNG);
       menu->addAction(sngAction);
 
-      menu->popup(ev->globalPos());
+      menu->popup(ev->globalPosition().toPoint());
     }
   }
   return false;
@@ -1172,7 +1172,7 @@ void PageTableView::deleteSelection() {
 
   std::vector<std::pair<uint8_t, amuse::SongGroupIndex::PageEntry>> data;
   data.reserve(list.size());
-  for (const QModelIndex idx : list) {
+  for (const QModelIndex& idx : list) {
     data.emplace_back(model()->data(idx).toInt() - 1, amuse::SongGroupIndex::PageEntry{});
   }
 

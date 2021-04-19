@@ -39,7 +39,7 @@ KeyboardOctave::KeyboardOctave(int octave, const QString& svgPath, QWidget* pare
     const auto& naturalKeyName = NaturalKeyNames[i];
 
     if (renderer()->elementExists(naturalKeyName)) {
-      m_natural[i] = renderer()->matrixForElement(naturalKeyName).mapRect(renderer()->boundsOnElement(naturalKeyName));
+      m_natural[i] = renderer()->transformForElement(naturalKeyName).mapRect(renderer()->boundsOnElement(naturalKeyName));
     }
   }
 
@@ -47,7 +47,7 @@ KeyboardOctave::KeyboardOctave(int octave, const QString& svgPath, QWidget* pare
     const auto& sharpKeyName = SharpKeyNames[i];
 
     if (renderer()->elementExists(sharpKeyName)) {
-      m_sharp[i] = renderer()->matrixForElement(sharpKeyName).mapRect(renderer()->boundsOnElement(sharpKeyName));
+      m_sharp[i] = renderer()->transformForElement(sharpKeyName).mapRect(renderer()->boundsOnElement(sharpKeyName));
     }
   }
 
@@ -151,7 +151,7 @@ void KeyboardWidget::mouseReleaseEvent(QMouseEvent* event) {
   m_holding = false;
 }
 
-void KeyboardWidget::enterEvent(QEvent* event) {
+void KeyboardWidget::enterEvent(QEnterEvent* event) {
   if (m_statusFocus)
     m_statusFocus->enter();
 }
@@ -179,7 +179,7 @@ KeyboardSlider::KeyboardSlider(QWidget* parent) : QSlider(parent) {}
 
 KeyboardSlider::~KeyboardSlider() = default;
 
-void KeyboardSlider::enterEvent(QEvent* event) {
+void KeyboardSlider::enterEvent(QEnterEvent* event) {
   if (m_statusFocus)
     m_statusFocus->enter();
 }

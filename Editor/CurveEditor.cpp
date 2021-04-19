@@ -137,11 +137,11 @@ void CurveView::mouseMoveEvent(QMouseEvent* ev) {
   }
 
   const qreal xIncrement = (width() - 30.0) / 127.0;
-  const int idx = int(std::round((ev->localPos().x() - 30.0) / xIncrement));
+  const int idx = int(std::round((ev->position().x() - 30.0) / xIncrement));
   if (idx < 0 || idx > 127) {
     return;
   }
-  const int val = 127 - std::clamp(0, int(std::round(ev->localPos().y() / (height() - 16.0) * 127.0)), 127);
+  const int val = 127 - std::clamp(0, int(std::round(ev->position().y() / (height() - 16.0) * 127.0)), 127);
 
   CurveEditUndoCommand::RedoData newData;
   auto& curve = static_cast<amuse::Curve&>(table);

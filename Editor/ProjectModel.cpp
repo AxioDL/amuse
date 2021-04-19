@@ -22,7 +22,7 @@ QIcon ProjectModel::SongGroupNode::Icon;
 QIcon ProjectModel::SoundGroupNode::Icon;
 
 OutlineFilterProxyModel::OutlineFilterProxyModel(ProjectModel* source)
-: QSortFilterProxyModel(source), m_usageKey({}, Qt::CaseInsensitive) {
+: QSortFilterProxyModel(source), m_usageKey({}, QRegularExpression::CaseInsensitiveOption) {
   setSourceModel(source);
   setRecursiveFilteringEnabled(true);
   setFilterCaseSensitivity(Qt::CaseInsensitive);
@@ -31,10 +31,10 @@ OutlineFilterProxyModel::OutlineFilterProxyModel(ProjectModel* source)
 void OutlineFilterProxyModel::setFilterRegExp(const QString& pattern) {
   if (pattern.startsWith(QStringLiteral("usages:"))) {
     m_usageKey.setPattern(pattern.mid(7));
-    QSortFilterProxyModel::setFilterRegExp(QString());
+    QSortFilterProxyModel::setFilterRegularExpression(QString());
   } else {
     m_usageKey.setPattern(QString());
-    QSortFilterProxyModel::setFilterRegExp(pattern);
+    QSortFilterProxyModel::setFilterRegularExpression(pattern);
   }
 }
 
@@ -498,8 +498,12 @@ ProjectModel::BasePoolObjectNode* ProjectModel::CollectionNode::nodeOfId(amuse::
 }
 
 ProjectModel::ProjectModel(const QString& path, QObject* parent)
-: QAbstractItemModel(parent), m_dir(path), m_outlineProxy(this), m_nullProxy(this), m_pageObjectProxy(this) {
-  m_root = amuse::MakeObj<RootNode>();
+: QAbstractItemModel(parent)
+, m_dir(path)
+, m_root(amuse::MakeObj<RootNode>())
+, m_outlineProxy(this)
+, m_nullProxy(this)
+, m_pageObjectProxy(this) {
 
   GroupNode::Icon = QIcon(QStringLiteral(":/icons/IconGroup.svg"));
   SongGroupNode::Icon = QIcon(QStringLiteral(":/icons/IconSongGroup.svg"));

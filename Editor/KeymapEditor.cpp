@@ -138,7 +138,7 @@ int KeymapView::getKey(const QPoint& localPos) const {
 }
 
 void KeymapView::mouseMoveEvent(QMouseEvent* ev) {
-  const int octave = ev->x() / 280;
+  const int octave = ev->position().x() / 280;
   const int key = getKey(ev->pos() - QPoint(octave * 280, height() / 2 - 100));
 
   if (octave >= 0 && key >= 0) {
@@ -174,7 +174,7 @@ KeymapView::KeymapView(QWidget* parent)
 
     if (m_octaveRenderer.elementExists(naturalKeyName)) {
       m_natural[i] =
-          m_octaveRenderer.matrixForElement(naturalKeyName).mapRect(m_octaveRenderer.boundsOnElement(naturalKeyName));
+          m_octaveRenderer.transformForElement(naturalKeyName).mapRect(m_octaveRenderer.boundsOnElement(naturalKeyName));
     }
   }
 
@@ -183,7 +183,7 @@ KeymapView::KeymapView(QWidget* parent)
 
     if (m_octaveRenderer.elementExists(sharpKeyName)) {
       m_sharp[i] =
-          m_octaveRenderer.matrixForElement(sharpKeyName).mapRect(m_octaveRenderer.boundsOnElement(sharpKeyName));
+          m_octaveRenderer.transformForElement(sharpKeyName).mapRect(m_octaveRenderer.boundsOnElement(sharpKeyName));
     }
   }
 

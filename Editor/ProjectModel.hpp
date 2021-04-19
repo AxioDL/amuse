@@ -38,7 +38,7 @@ enum AmuseItemEditFlags {
 
 class OutlineFilterProxyModel : public QSortFilterProxyModel {
   Q_OBJECT
-  QRegExp m_usageKey;
+  QRegularExpression m_usageKey;
 
 public:
   explicit OutlineFilterProxyModel(ProjectModel* source);
@@ -91,10 +91,6 @@ public:
 
 private:
   QDir m_dir;
-  OutlineFilterProxyModel m_outlineProxy;
-  NullItemProxyModel m_nullProxy;
-  PageObjectProxyModel m_pageObjectProxy;
-
   amuse::ProjectDatabase m_projectDatabase;
   std::unordered_map<QString, std::unique_ptr<amuse::AudioGroupDatabase>> m_groups;
 
@@ -379,6 +375,11 @@ public:
   void _resetSongRefCount();
   QString MakeDedupedSubprojectName(const QString& origName);
   static QString MakeDedupedName(const QString& origName, amuse::NameDB* db);
+
+private:
+  OutlineFilterProxyModel m_outlineProxy;
+  NullItemProxyModel m_nullProxy;
+  PageObjectProxyModel m_pageObjectProxy;
 
 public:
   explicit ProjectModel(const QString& path, QObject* parent = Q_NULLPTR);

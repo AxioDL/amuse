@@ -7,13 +7,13 @@ set(CMAKE_AUTOUIC ON)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-find_package(Qt5 COMPONENTS LinguistTools Network Qml Svg Widgets Xml REQUIRED)
+find_package(Qt6 COMPONENTS LinguistTools Network Qml SvgWidgets Widgets Xml REQUIRED)
 
 configure_file(resources/translation_res.qrc translation_res.qrc @ONLY)
 set(TRANSLATIONS
   resources/lang_de.ts
 )
-QT5_CREATE_TRANSLATION(QM_FILES ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../lib ${TRANSLATIONS})
+QT6_CREATE_TRANSLATION(QM_FILES ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../lib ${TRANSLATIONS})
 
 add_executable(amuse-gui WIN32 MACOSX_BUNDLE
   ADSREditor.cpp
@@ -137,11 +137,11 @@ set_target_properties(amuse-gui PROPERTIES
 target_link_libraries(amuse-gui
   ${PLAT_LIBS}
 
-  Qt5::Network
-  Qt5::Qml
-  Qt5::Svg
-  Qt5::Widgets
-  Qt5::Xml
+  Qt6::Network
+  Qt6::Qml
+  Qt6::SvgWidgets
+  Qt6::Widgets
+  Qt6::Xml
 
   amuse
   athena-core

@@ -15,6 +15,13 @@
 #include "amuse/Studio.hpp"
 
 namespace amuse {
+constexpr float convertMusyXPanToAmusePan(uint32_t pan) {
+  //  Amuse expects pan values to be between [-1,1] while MusyX expects pan to be between [0,127], we need to make sure
+  //  to map the values properly, we do this by subtracting the center value and then dividing, thus forcing [0, 127] into
+  //  [-1,1], we must also make sure clamp the result so we don't over or underflow.
+  return std::clamp(static_cast<float>(pan - 64) / 63.f, -1.f, 1.f);
+}
+
 class IBackendVoice;
 struct Keymap;
 struct LayerMapping;

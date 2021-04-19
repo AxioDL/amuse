@@ -105,8 +105,16 @@ void Emitter::_update() {
 
 void Emitter::setVectors(const float* pos, const float* dir) {
   for (size_t i = 0; i < m_pos.size(); ++i) {
-    m_pos[i] = pos[i];
-    m_dir[i] = dir[i];
+    if (!std::isnan(pos[i])) {
+      m_pos[i] = pos[i];
+    } else {
+      m_pos[i] = 0.f;
+    }
+    if (!std::isnan(dir[i])) {
+      m_dir[i] = dir[i];
+    } else {
+      m_dir[i] = 0.f;
+    }
   }
   m_dirty = true;
 }

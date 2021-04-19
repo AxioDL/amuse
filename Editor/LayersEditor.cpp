@@ -519,7 +519,7 @@ void LayersTableView::deleteSelection() {
 
   std::vector<std::pair<amuse::LayerMapping, int>> data;
   data.reserve(list.size());
-  for (const QModelIndex idx : list) {
+  for (const QModelIndex& idx : list) {
     data.emplace_back(amuse::LayerMapping{}, idx.row());
   }
 

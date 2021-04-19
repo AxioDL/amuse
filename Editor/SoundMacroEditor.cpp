@@ -243,7 +243,7 @@ CommandWidget::CommandWidget(QWidget* parent, amuse::SoundMacro::ICmd* cmd, amus
           cb->setFixedHeight(30);
           cb->setProperty("fieldIndex", f);
           cb->setProperty("fieldName", fieldName);
-          for (const auto choice : field.m_choices) {
+          for (const auto& choice : field.m_choices) {
             if (choice.empty()) {
               break;
             }
@@ -514,7 +514,10 @@ void SoundMacroListing::startAutoscroll(QWidget* source, QMouseEvent* event, int
     m_autoscrollTimer = startTimer(50);
   m_autoscrollDelta = delta;
   m_autoscrollSource = source;
-  m_autoscrollEvent = *event;
+  if (m_autoscrollEvent) {
+    delete m_autoscrollEvent;
+  }
+  m_autoscrollEvent = event->clone();
 }
 
 void SoundMacroListing::stopAutoscroll() {
@@ -523,6 +526,9 @@ void SoundMacroListing::stopAutoscroll() {
     m_autoscrollTimer = -1;
   }
   m_autoscrollDelta = 0;
+  if (m_autoscrollEvent) {
+    delete m_autoscrollEvent;
+  }
   m_autoscrollSource = nullptr;
 }
 
@@ -534,7 +540,7 @@ void SoundMacroListing::timerEvent(QTimerEvent* event) {
     int valueDelta = bar->value() - oldValue;
     if (valueDelta != 0) {
       if (m_autoscrollSource)
-        QApplication::sendEvent(m_autoscrollSource, &m_autoscrollEvent);
+        QApplication::sendEvent(m_autoscrollSource, m_autoscrollEvent);
       update();
     }
   }
@@ -811,7 +817,7 @@ CatalogueItem::CatalogueItem(amuse::SoundMacro::CmdOp op, const QString& name, c
 CatalogueItem::CatalogueItem(const CatalogueItem& other, QWidget* parent) : QWidget(parent), m_op(other.getCmdOp()) {
   QHBoxLayout* layout = new QHBoxLayout;
   QHBoxLayout* oldLayout = static_cast<QHBoxLayout*>(other.layout());
-  m_iconLab.setPixmap(*static_cast<QLabel*>(oldLayout->itemAt(0)->widget())->pixmap());
+  m_iconLab.setPixmap(static_cast<QLabel*>(oldLayout->itemAt(0)->widget())->pixmap(Qt::ReturnByValue));
   layout->addWidget(&m_iconLab);
   m_label.setText(static_cast<QLabel*>(oldLayout->itemAt(1)->widget())->text());
   layout->addWidget(&m_label);

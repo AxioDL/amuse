@@ -29,6 +29,8 @@
 #include <amuse/Engine.hpp>
 #include <boo/audiodev/IAudioVoiceEngine.hpp>
 
+#include <cmath>
+
 MainWindow::MainWindow(QWidget* parent)
 : QMainWindow(parent)
 , m_navIt(m_navList.begin())
@@ -261,7 +263,7 @@ void MainWindow::updateWindowTitle() {
 void MainWindow::updateRecentFileActions() {
   const QSettings settings;
   const QStringList files = settings.value(QStringLiteral("recentFileList")).toStringList();
-  const int numRecentFiles = std::min(files.size(), int(MaxRecentFiles));
+  const int numRecentFiles = std::min(files.size(), qsizetype(MaxRecentFiles));
 
   for (int i = 0; i < numRecentFiles; ++i) {
     const QString text = QStringLiteral("&%1 %2").arg(i + 1).arg(QDir(files[i]).dirName());
@@ -519,8 +521,9 @@ bool MainWindow::_setEditor(EditorWidget* editor, bool appendNav) {
   m_interactiveSeq.reset();
   if (editor != m_ui.editorContents->currentWidget() && m_ui.editorContents->currentWidget() != m_faceSvg)
     getEditorWidget()->unloadData();
-  if (appendNav && m_navIt != m_navList.end())
-    m_navList.erase(m_navIt + 1, m_navList.end());
+  if (appendNav && m_navIt != m_navList.end()) {
+      m_navList.erase(std::next(m_navIt, 1), m_navList.end());
+  }
   if (!editor || !editor->valid()) {
     m_ui.editorContents->setCurrentWidget(m_faceSvg);
     updateWindowTitle();
@@ -1189,7 +1192,7 @@ bool TreeDelegate::editorEvent(QEvent* event, QAbstractItemModel* __model, const
       connect(renameAction, &QAction::triggered, this, &TreeDelegate::doRename);
       menu->addAction(renameAction);
 
-      menu->popup(ev->globalPos());
+      menu->popup(ev->globalPosition().toPoint());
     }
   }
 
@@ -1484,12 +1487,12 @@ void MainWindow::newLayersAction() {
 }
 
 void MainWindow::updateNavigationButtons() {
-  m_goForward->setDisabled(m_navIt == m_navList.end() || m_navIt + 1 == m_navList.end());
+  m_goForward->setDisabled(m_navIt == m_navList.end() || std::next(m_navIt, 1) == m_navList.end());
   m_goBack->setDisabled(m_navIt == m_navList.begin());
 }
 
 void MainWindow::goForward() {
-  if (m_navIt == m_navList.end() || m_navIt + 1 == m_navList.end())
+  if (m_navIt == m_navList.end() || std::next(m_navIt, 1) == m_navList.end())
     return;
   ++m_navIt;
   openEditor(*m_navIt, false);

@@ -115,7 +115,7 @@ class SoundMacroListing : public QWidget {
   int m_autoscrollTimer = -1;
   int m_autoscrollDelta = 0;
   QWidget* m_autoscrollSource = nullptr;
-  QMouseEvent m_autoscrollEvent = {{}, {}, {}, {}, {}};
+  QMouseEvent* m_autoscrollEvent = nullptr;
   void startAutoscroll(QWidget* source, QMouseEvent* event, int delta);
   void stopAutoscroll();
   bool beginDrag(CommandWidget* widget);

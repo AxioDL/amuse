@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.10 FATAL_ERROR) # because of c++17
 
 project(amuse)
 
+if(POLICY CMP0072)
+  cmake_policy(SET CMP0072 NEW)
+endif()
+
 if (NOT MSVC)
   set(CMAKE_CXX_STANDARD 20)
   set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -81,8 +85,14 @@ target_include_directories(amuse PUBLIC include)
 target_link_libraries(amuse PUBLIC
   athena-core
   lzokay
+  logvisor
+  fmt
   ${ZLIB_LIBRARIES}
 )
+
+target_atdna(amuse atdna_AudioGroupPool.cpp include/amuse/AudioGroupPool.hpp)
+target_atdna(amuse atdna_AudioGroupProject.cpp include/amuse/AudioGroupProject.hpp)
+target_atdna(amuse atdna_AudioGroupSampleDirectory.cpp include/amuse/AudioGroupSampleDirectory.hpp)
 
 if(NX)
   target_sources(amuse PRIVATE include/switch_math.hpp)
@@ -157,11 +167,11 @@ if(TARGET boo AND NOT WINDOWS_STORE AND NOT NX)
   endif()
 
   # Editor
-  find_package(Qt5 COMPONENTS Widgets)
-  if (Qt5Widgets_FOUND)
-    message(STATUS "Qt5 found, amuse-gui will be built")
+  find_package(Qt6 COMPONENTS Widgets PATHS /usr/local/opt/qt)
+  if (Qt6Widgets_FOUND)
+    message(STATUS "Qt6 found, amuse-gui will be built")
     add_subdirectory(Editor)
   else()
-    message(STATUS "Qt5 not found, amuse-gui will not be built")
+    message(STATUS "Qt6 not found, amuse-gui will not be built")
   endif()
 endif()

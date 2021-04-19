@@ -54,7 +54,7 @@ public:
   void mouseMoveEvent(QMouseEvent* event) override;
   void mousePressEvent(QMouseEvent* event) override;
   void mouseReleaseEvent(QMouseEvent* event) override;
-  void enterEvent(QEvent* event) override;
+  void enterEvent(QEnterEvent* event) override;
   void leaveEvent(QEvent* event) override;
   void wheelEvent(QWheelEvent* event) override;
   void showEvent(QShowEvent* event) override;
@@ -74,7 +74,7 @@ public:
   explicit KeyboardSlider(QWidget* parent = Q_NULLPTR);
   ~KeyboardSlider() override;
 
-  void enterEvent(QEvent* event) override;
+  void enterEvent(QEnterEvent* event) override;
   void leaveEvent(QEvent* event) override;
   void setStatusFocus(StatusBarFocus* statusFocus);
   void sliderChange(SliderChange change) override;

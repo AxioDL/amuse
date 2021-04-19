@@ -496,7 +496,10 @@ void EffectListing::startAutoscroll(QWidget* source, QMouseEvent* event, int del
     m_autoscrollTimer = startTimer(50);
   m_autoscrollDelta = delta;
   m_autoscrollSource = source;
-  m_autoscrollEvent = *event;
+  if (m_autoscrollEvent != nullptr) {
+    delete m_autoscrollEvent;
+  }
+  m_autoscrollEvent = event->clone();
 }
 
 void EffectListing::stopAutoscroll() {
@@ -505,6 +508,9 @@ void EffectListing::stopAutoscroll() {
     m_autoscrollTimer = -1;
   }
   m_autoscrollDelta = 0;
+  if (m_autoscrollEvent != nullptr) {
+    delete m_autoscrollEvent;
+  }
   m_autoscrollSource = nullptr;
 }
 
@@ -516,7 +522,7 @@ void EffectListing::timerEvent(QTimerEvent* event) {
     int valueDelta = bar->value() - oldValue;
     if (valueDelta != 0) {
       if (m_autoscrollSource)
-        QApplication::sendEvent(m_autoscrollSource, &m_autoscrollEvent);
+        QApplication::sendEvent(m_autoscrollSource, m_autoscrollEvent);
       update();
     }
   }
@@ -740,7 +746,7 @@ EffectCatalogueItem::EffectCatalogueItem(const EffectCatalogueItem& other, QWidg
 : QWidget(parent), m_type(other.getType()) {
   QHBoxLayout* layout = new QHBoxLayout;
   QHBoxLayout* oldLayout = static_cast<QHBoxLayout*>(other.layout());
-  m_iconLab.setPixmap(*static_cast<QLabel*>(oldLayout->itemAt(0)->widget())->pixmap());
+  m_iconLab.setPixmap(static_cast<QLabel*>(oldLayout->itemAt(0)->widget())->pixmap(Qt::ReturnByValue));
   layout->addWidget(&m_iconLab);
   m_label.setText(static_cast<QLabel*>(oldLayout->itemAt(1)->widget())->text());
   layout->addWidget(&m_label);
