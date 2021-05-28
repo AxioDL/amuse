@@ -1,11 +1,11 @@
 #!/bin/sh
 git clone https://github.com/AxioDL/boo.git
-pushd boo
+cd boo
 git submodule update --recursive --init
-popd
+cd ..
 
 git clone https://github.com/libAthena/athena.git
-pushd athena
+cd athena
 git submodule update --recursive --init
-popd
+cd ..
 
