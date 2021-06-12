@@ -8,7 +8,7 @@
 namespace amuse {
 
 /* clang-format off */
-constexpr std::array rsmpTab12khz{
+constexpr std::array<float, 512> rsmpTab12khz{
     0.097504f, 0.802216f, 0.101593f, -0.000977f,
     0.093506f, 0.802032f, 0.105804f, -0.001038f,
     0.089600f, 0.801697f, 0.110107f, -0.001160f,
