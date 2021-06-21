@@ -498,6 +498,7 @@ void EffectListing::startAutoscroll(QWidget* source, QMouseEvent* event, int del
   m_autoscrollSource = source;
   if (m_autoscrollEvent != nullptr) {
     delete m_autoscrollEvent;
+    m_autoscrollEvent = nullptr;
   }
   m_autoscrollEvent = event->clone();
 }
@@ -510,6 +511,7 @@ void EffectListing::stopAutoscroll() {
   m_autoscrollDelta = 0;
   if (m_autoscrollEvent != nullptr) {
     delete m_autoscrollEvent;
+    m_autoscrollEvent = nullptr;
   }
   m_autoscrollSource = nullptr;
 }

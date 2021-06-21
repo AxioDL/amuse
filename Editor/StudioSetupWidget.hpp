@@ -46,7 +46,7 @@ signals:
   void valueChanged(int chanIdx, int val);
 
 private:
-  std::array<FieldSlider*, NumSliders> m_sliders;
+  std::array<FieldSlider*, NumSliders> m_sliders {};
 };
 
 class Uint32X8Button : public QPushButton {

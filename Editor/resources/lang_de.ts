@@ -1893,72 +1893,72 @@
 <context>
     <name>SoundMacroCatalogue</name>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="832"/>
+        <location filename="../SoundMacroEditor.cpp" line="834"/>
         <source>Control</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="832"/>
+        <location filename="../SoundMacroEditor.cpp" line="834"/>
         <source>Pitch</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="833"/>
+        <location filename="../SoundMacroEditor.cpp" line="835"/>
         <source>Sample</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="833"/>
+        <location filename="../SoundMacroEditor.cpp" line="835"/>
         <source>Setup</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="834"/>
+        <location filename="../SoundMacroEditor.cpp" line="836"/>
         <source>Special</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="834"/>
+        <location filename="../SoundMacroEditor.cpp" line="836"/>
         <source>Structure</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="835"/>
+        <location filename="../SoundMacroEditor.cpp" line="837"/>
         <source>Volume</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="838"/>
+        <location filename="../SoundMacroEditor.cpp" line="840"/>
         <source>Commands to control the voice</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="839"/>
+        <location filename="../SoundMacroEditor.cpp" line="841"/>
         <source>Commands to control the voice&apos;s pitch</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="840"/>
+        <location filename="../SoundMacroEditor.cpp" line="842"/>
         <source>Commands to control the voice&apos;s sample playback</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="841"/>
+        <location filename="../SoundMacroEditor.cpp" line="843"/>
         <source>Commands to setup the voice&apos;s mixing process</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="842"/>
+        <location filename="../SoundMacroEditor.cpp" line="844"/>
         <source>Miscellaneous commands</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="843"/>
+        <location filename="../SoundMacroEditor.cpp" line="845"/>
         <source>Commands to control macro branching</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="844"/>
+        <location filename="../SoundMacroEditor.cpp" line="846"/>
         <source>Commands to control the voice&apos;s volume</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1974,17 +1974,17 @@
 <context>
     <name>SoundMacroListing</name>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="575"/>
+        <location filename="../SoundMacroEditor.cpp" line="577"/>
         <source>Reorder %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="687"/>
+        <location filename="../SoundMacroEditor.cpp" line="689"/>
         <source>Insert %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../SoundMacroEditor.cpp" line="732"/>
+        <location filename="../SoundMacroEditor.cpp" line="734"/>
         <source>Delete %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2015,17 +2015,17 @@
 <context>
     <name>StudioSetupWidget</name>
     <message>
-        <location filename="../StudioSetupWidget.cpp" line="933"/>
+        <location filename="../StudioSetupWidget.cpp" line="935"/>
         <source>Studio Setup</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../StudioSetupWidget.cpp" line="950"/>
+        <location filename="../StudioSetupWidget.cpp" line="952"/>
         <source>Aux A</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../StudioSetupWidget.cpp" line="951"/>
+        <location filename="../StudioSetupWidget.cpp" line="953"/>
         <source>Aux B</source>
         <translation type="unfinished"></translation>
     </message>
