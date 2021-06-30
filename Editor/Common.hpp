@@ -37,8 +37,8 @@ signals:
                                        QMessageBox::StandardButton defaultButton = QMessageBox::NoButton);
 };
 
-boo::SystemString QStringToSysString(const QString& str);
-QString SysStringToQString(const boo::SystemString& str);
+std::string QStringToUTF8(const QString& str);
+QString UTF8ToQString(const std::string& str);
 
 bool MkPath(const QString& path, UIMessenger& messenger);
 bool MkPath(const QDir& dir, const QString& file, UIMessenger& messenger);

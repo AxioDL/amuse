@@ -21,26 +21,26 @@ protected:
   AudioGroupPool m_pool;
   AudioGroupSampleDirectory m_sdir;
   const unsigned char* m_samp = nullptr;
-  SystemString m_groupPath; /* Typically only set by editor */
+  std::string m_groupPath; /* Typically only set by editor */
   bool m_valid;
 
 public:
-  SystemString getSampleBasePath(SampleId sfxId) const;
+  std::string getSampleBasePath(SampleId sfxId) const;
   explicit operator bool() const { return m_valid; }
   AudioGroup() = default;
   explicit AudioGroup(const AudioGroupData& data) { assign(data); }
-  explicit AudioGroup(SystemStringView groupPath) { assign(groupPath); }
-  explicit AudioGroup(const AudioGroup& data, SystemStringView groupPath) { assign(data, groupPath); }
+  explicit AudioGroup(std::string_view groupPath) { assign(groupPath); }
+  explicit AudioGroup(const AudioGroup& data, std::string_view groupPath) { assign(data, groupPath); }
 
   void assign(const AudioGroupData& data);
-  void assign(SystemStringView groupPath);
-  void assign(const AudioGroup& data, SystemStringView groupPath);
-  void setGroupPath(SystemStringView groupPath) { m_groupPath = groupPath; }
+  void assign(std::string_view groupPath);
+  void assign(const AudioGroup& data, std::string_view groupPath);
+  void setGroupPath(std::string_view groupPath) { m_groupPath = groupPath; }
 
   const SampleEntry* getSample(SampleId sfxId) const;
   std::pair<ObjToken<SampleEntryData>, const unsigned char*> getSampleData(SampleId sfxId,
                                                                            const SampleEntry* sample) const;
-  SampleFileState getSampleFileState(SampleId sfxId, const SampleEntry* sample, SystemString* pathOut = nullptr) const;
+  SampleFileState getSampleFileState(SampleId sfxId, const SampleEntry* sample, std::string* pathOut = nullptr) const;
   void patchSampleMetadata(SampleId sfxId, const SampleEntry* sample) const;
   void makeWAVVersion(SampleId sfxId, const SampleEntry* sample) const;
   void makeCompressedVersion(SampleId sfxId, const SampleEntry* sample) const;
@@ -61,16 +61,16 @@ public:
   explicit AudioGroupDatabase(const AudioGroupData& data) {
     assign(data);
   }
-  explicit AudioGroupDatabase(SystemStringView groupPath) {
+  explicit AudioGroupDatabase(std::string_view groupPath) {
     assign(groupPath);
   }
-  explicit AudioGroupDatabase(const AudioGroupDatabase& data, SystemStringView groupPath) {
+  explicit AudioGroupDatabase(const AudioGroupDatabase& data, std::string_view groupPath) {
     assign(data, groupPath);
   }
 
   void renameSample(SampleId id, std::string_view str);
   void deleteSample(SampleId id);
-  void copySampleInto(const SystemString& basePath, const SystemString& newBasePath);
+  void copySampleInto(const std::string& basePath, const std::string& newBasePath);
 
   void importCHeader(std::string_view header);
   std::string exportCHeader(std::string_view projectName, std::string_view groupName) const;

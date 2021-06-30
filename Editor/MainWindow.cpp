@@ -200,7 +200,6 @@ MainWindow::MainWindow(QWidget* parent)
 MainWindow::~MainWindow() {
   m_backgroundThread.quit();
   m_backgroundThread.wait();
-  fmt::print(FMT_STRING("IM DYING\n"));
 }
 
 void MainWindow::connectMessenger(UIMessenger* messenger, Qt::ConnectionType type) {
@@ -910,7 +909,7 @@ void MainWindow::_importAction(const QString& path) {
     return;
 
   /* Validate input file */
-  amuse::ContainerRegistry::Type tp = amuse::ContainerRegistry::DetectContainerType(QStringToSysString(path).c_str());
+  amuse::ContainerRegistry::Type tp = amuse::ContainerRegistry::DetectContainerType(QStringToUTF8(path).c_str());
   if (tp == amuse::ContainerRegistry::Type::Invalid) {
     QString msg = QString(tr("The file at '%1' could not be interpreted as a MusyX container.")).arg(path);
     m_mainMessenger.critical(tr("Unsupported MusyX Container"), msg);
@@ -967,12 +966,12 @@ void MainWindow::_importAction(const QString& path) {
             const QStringList files = dir.entryList(filters, QDir::Files);
 
             for (const QString& fPath : files) {
-              auto data = amuse::ContainerRegistry::LoadContainer(QStringToSysString(dir.filePath(fPath)).c_str());
+              auto data = amuse::ContainerRegistry::LoadContainer(QStringToUTF8(dir.filePath(fPath)).c_str());
               for (auto& p : data) {
-                task.setLabelText(tr("Importing %1").arg(SysStringToQString(p.first)));
+                task.setLabelText(tr("Importing %1").arg(UTF8ToQString(p.first)));
                 if (task.isCanceled())
                   return;
-                if (!model->importGroupData(SysStringToQString(p.first), p.second, importMode, task.uiMessenger()))
+                if (!model->importGroupData(UTF8ToQString(p.first), p.second, importMode, task.uiMessenger()))
                   return;
               }
             }
@@ -1000,14 +999,14 @@ void MainWindow::_importAction(const QString& path) {
   startBackgroundTask(
       TaskImport, tr("Importing"), tr("Scanning Project"), [model, path, importMode](BackgroundTask& task) {
         /* Handle single container */
-        auto data = amuse::ContainerRegistry::LoadContainer(QStringToSysString(path).c_str());
+        auto data = amuse::ContainerRegistry::LoadContainer(QStringToUTF8(path).c_str());
         task.setMaximum(int(data.size()));
         int curVal = 0;
         for (auto& p : data) {
-          task.setLabelText(tr("Importing %1").arg(SysStringToQString(p.first)));
+          task.setLabelText(tr("Importing %1").arg(UTF8ToQString(p.first)));
           if (task.isCanceled())
             return;
-          if (!model->importGroupData(SysStringToQString(p.first), p.second, importMode, task.uiMessenger()))
+          if (!model->importGroupData(UTF8ToQString(p.first), p.second, importMode, task.uiMessenger()))
             return;
           task.setValue(++curVal);
         }

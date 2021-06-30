@@ -190,7 +190,7 @@ class AudioGroupProject {
 public:
   AudioGroupProject() = default;
   static AudioGroupProject CreateAudioGroupProject(const AudioGroupData& data);
-  static AudioGroupProject CreateAudioGroupProject(SystemStringView groupPath);
+  static AudioGroupProject CreateAudioGroupProject(std::string_view groupPath);
   static AudioGroupProject CreateAudioGroupProject(const AudioGroupProject& oldProj);
   static void BootstrapObjectIDs(const AudioGroupData& data);
 

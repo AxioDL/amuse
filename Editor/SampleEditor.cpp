@@ -579,7 +579,7 @@ void SampleControls::updateFileState() {
   SampleEditor* editor = qobject_cast<SampleEditor*>(parentWidget());
   ProjectModel::SampleNode* node = static_cast<ProjectModel::SampleNode*>(editor->currentNode());
 
-  amuse::SystemString path;
+  std::string path;
   amuse::SampleFileState state = g_MainWindow->projectModel()->getGroupNode(node)->getAudioGroup()->getSampleFileState(
       node->id(), node->m_obj.get(), &path);
   disconnect(m_makeOtherConn);
@@ -623,7 +623,7 @@ void SampleControls::updateFileState() {
   m_loopEnd->setEnabled(data->isLooped());
 
   if (!path.empty()) {
-    m_path = SysStringToQString(path);
+    m_path = UTF8ToQString(path);
     m_showInBrowser->setDisabled(false);
   } else {
     m_path = QString();

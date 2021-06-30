@@ -5,6 +5,10 @@
 
 #include <map>
 
+#if _WIN32
+#include <nowide/args.hpp>
+#endif
+
 #define EMITTER_TEST 0
 
 static logvisor::Module Log("amuseplay");
@@ -31,7 +35,7 @@ public:
 
 struct AppCallback : boo::IApplicationCallback {
   int m_argc;
-  const boo::SystemChar** m_argv;
+  char** m_argv;
 
   /* Boo window and events */
   EventCallback m_eventRec;
@@ -560,7 +564,7 @@ struct AppCallback : boo::IApplicationCallback {
 
   int appMain(boo::IApplication* app) override {
     /* Event window */
-    m_win = app->newWindow(_SYS_STR("amuseplay"));
+    m_win = app->newWindow("amuseplay");
     m_win->setCallback(&m_events);
     m_win->setWindowFrame(100, 100, 100, 100);
     m_win->setStyle(~boo::EWindowStyle::Resize);
@@ -587,9 +591,9 @@ struct AppCallback : boo::IApplicationCallback {
       Log.report(logvisor::Error, FMT_STRING("invalid/no data at path argument"));
       return 1;
     }
-    Log.report(logvisor::Info, FMT_STRING(_SYS_STR("Found '%s' Audio Group data")), amuse::ContainerRegistry::TypeToName(cType));
+    Log.report(logvisor::Info, FMT_STRING("Found '%s' Audio Group data"), amuse::ContainerRegistry::TypeToName(cType));
 
-    std::vector<std::pair<amuse::SystemString, amuse::IntrusiveAudioGroupData>> data =
+    std::vector<std::pair<std::string, amuse::IntrusiveAudioGroupData>> data =
         amuse::ContainerRegistry::LoadContainer(m_argv[1]);
     if (data.empty()) {
       Log.report(logvisor::Error, FMT_STRING("invalid/no data at path argument"));
@@ -597,10 +601,10 @@ struct AppCallback : boo::IApplicationCallback {
     }
 
     std::list<amuse::AudioGroupProject> m_projs;
-    std::map<amuse::GroupId, std::pair<std::pair<amuse::SystemString, amuse::IntrusiveAudioGroupData>*,
+    std::map<amuse::GroupId, std::pair<std::pair<std::string, amuse::IntrusiveAudioGroupData>*,
                                        amuse::ObjToken<amuse::SongGroupIndex>>>
         allSongGroups;
-    std::map<amuse::GroupId, std::pair<std::pair<amuse::SystemString, amuse::IntrusiveAudioGroupData>*,
+    std::map<amuse::GroupId, std::pair<std::pair<std::string, amuse::IntrusiveAudioGroupData>*,
                                        amuse::ObjToken<amuse::SFXGroupIndex>>>
         allSFXGroups;
     size_t totalGroups = 0;
@@ -623,7 +627,7 @@ struct AppCallback : boo::IApplicationCallback {
       m_setupId = -1;
 
       /* Attempt loading song */
-      std::vector<std::pair<amuse::SystemString, amuse::ContainerRegistry::SongData>> songs;
+      std::vector<std::pair<std::string, amuse::ContainerRegistry::SongData>> songs;
       if (m_argc > 2)
         songs = amuse::ContainerRegistry::LoadSongs(m_argv[2]);
       else
@@ -674,7 +678,7 @@ struct AppCallback : boo::IApplicationCallback {
                     break;
                 }
               }
-              fmt::print(FMT_STRING(_SYS_STR("    {} {} (Group {}, Setup {})\n")), idx++, pair.first, grpId, setupId);
+              fmt::print(FMT_STRING("    {} {} (Group {}, Setup {})\n"), idx++, pair.first, grpId, setupId);
             }
 
             int userSel = 0;
@@ -728,11 +732,11 @@ struct AppCallback : boo::IApplicationCallback {
         /* Ask user to specify which group in project */
         fmt::print(FMT_STRING("Multiple Audio Groups discovered:\n"));
         for (const auto& pair : allSFXGroups) {
-          fmt::print(FMT_STRING(_SYS_STR("    {} {} (SFXGroup)  {} sfx-entries\n")), pair.first,
+          fmt::print(FMT_STRING("    {} {} (SFXGroup)  {} sfx-entries\n"), pair.first,
                      pair.second.first->first, pair.second.second->m_sfxEntries.size());
         }
         for (const auto& pair : allSongGroups) {
-          fmt::print(FMT_STRING(_SYS_STR("    {} {} (SongGroup)  {} normal-pages, {} drum-pages, {} MIDI-setups\n")),
+          fmt::print(FMT_STRING("    {} {} (SongGroup)  {} normal-pages, {} drum-pages, {} MIDI-setups\n"),
                      pair.first, pair.second.first->first, pair.second.second->m_normPages.size(),
                      pair.second.second->m_drumPages.size(), pair.second.second->m_midiSetups.size());
         }
@@ -821,7 +825,7 @@ struct AppCallback : boo::IApplicationCallback {
 
   void appQuitting(boo::IApplication*) override { m_running = false; }
 
-  AppCallback(int argc, const boo::SystemChar** argv)
+  AppCallback(int argc, char** argv)
   : m_argc(argc), m_argv(argv), m_eventRec(*this), m_events(m_eventRec) {}
 };
 
@@ -898,37 +902,23 @@ void EventCallback::mouseMove(const boo::SWindowCoord& coord) {
   }
 }
 
-#if _WIN32
-int wmain(int argc, const boo::SystemChar** argv)
-#else
-int main(int argc, const boo::SystemChar** argv)
-#endif
-{
+int main(int argc, char** argv) {
   logvisor::RegisterConsoleLogger();
   logvisor::RegisterStandardExceptions();
   AppCallback app(argc, argv);
-  int ret = boo::ApplicationRun(boo::IApplication::EPlatformType::Auto, app, _SYS_STR("amuseplay"),
-                                _SYS_STR("Amuse Player"), argc, argv, {}, 1, 1, false);
-  fmt::print(FMT_STRING("IM DYING!!\n"));
+  int ret = boo::ApplicationRun(boo::IApplication::EPlatformType::Auto, app, "amuseplay",
+                                "Amuse Player", argc, argv, {}, 1, 1, false);
   return ret;
 }
 
 #if _WIN32
 #include <shellapi.h>
-int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR lpCmdLine, int) {
-  int argc = 0;
-  const boo::SystemChar** argv;
-  if (lpCmdLine[0])
-    argv = (const wchar_t**)(CommandLineToArgvW(lpCmdLine, &argc));
-  static boo::SystemChar selfPath[1024];
-  GetModuleFileNameW(nullptr, selfPath, 1024);
-  static const boo::SystemChar* booArgv[32] = {};
-  booArgv[0] = selfPath;
-  for (int i = 0; i < argc; ++i)
-    booArgv[i + 1] = argv[i];
 
+int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR lpCmdLine, int) {
+  int argc = 0;
+  char** argv = nullptr;
+  nowide::args _(argc, argv);
   logvisor::CreateWin32Console();
-  SetConsoleOutputCP(65001);
-  return wmain(argc + 1, booArgv);
+  return main(argc, argv);
 }
 #endif

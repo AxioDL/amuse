@@ -383,10 +383,10 @@ void SFXGroupIndex::fromYAML(athena::io::YAMLDocReader& r) {
     }
 }
 
-AudioGroupProject AudioGroupProject::CreateAudioGroupProject(SystemStringView groupPath) {
+AudioGroupProject AudioGroupProject::CreateAudioGroupProject(std::string_view groupPath) {
   AudioGroupProject ret;
-  SystemString projPath(groupPath);
-  projPath += _SYS_STR("/!project.yaml");
+  std::string projPath(groupPath);
+  projPath += "/!project.yaml";
   athena::io::FileReader fi(projPath, 32 * 1024, false);
 
   if (!fi.hasError()) {

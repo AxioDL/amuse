@@ -204,10 +204,10 @@ AudioGroupPool AudioGroupPool::CreateAudioGroupPool(const AudioGroupData& data) 
   }
 }
 
-AudioGroupPool AudioGroupPool::CreateAudioGroupPool(SystemStringView groupPath) {
+AudioGroupPool AudioGroupPool::CreateAudioGroupPool(std::string_view groupPath) {
   AudioGroupPool ret;
-  SystemString poolPath(groupPath);
-  poolPath += _SYS_STR("/!pool.yaml");
+  std::string poolPath(groupPath);
+  poolPath += "/!pool.yaml";
   athena::io::FileReader fi(poolPath, 32 * 1024, false);
 
   if (!fi.hasError()) {

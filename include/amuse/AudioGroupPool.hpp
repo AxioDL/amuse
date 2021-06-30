@@ -1196,7 +1196,7 @@ class AudioGroupPool {
 public:
   AudioGroupPool() = default;
   static AudioGroupPool CreateAudioGroupPool(const AudioGroupData& data);
-  static AudioGroupPool CreateAudioGroupPool(SystemStringView groupPath);
+  static AudioGroupPool CreateAudioGroupPool(std::string_view groupPath);
 
   const std::unordered_map<SoundMacroId, ObjToken<SoundMacro>>& soundMacros() const { return m_soundMacros; }
   const std::unordered_map<TableId, ObjToken<std::unique_ptr<ITable>>>& tables() const { return m_tables; }

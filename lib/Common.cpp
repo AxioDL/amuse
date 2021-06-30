@@ -12,9 +12,11 @@ using namespace std::literals;
 namespace amuse {
 static logvisor::Module Log("amuse");
 
-bool Copy(const SystemChar* from, const SystemChar* to) {
+bool Copy(const char* from, const char* to) {
 #if _WIN32
-  return CopyFileW(from, to, FALSE) != 0;
+  const nowide::wstackstring wfrom(from);
+  const nowide::wstackstring wto(to);
+  return CopyFileW(wfrom.get(), wto.get(), FALSE) != 0;
 #else
   FILE* fi = fopen(from, "rb");
   if (!fi)

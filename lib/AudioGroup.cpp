@@ -19,7 +19,7 @@ void AudioGroup::assign(const AudioGroupData& data) {
   m_sdir = AudioGroupSampleDirectory::CreateAudioGroupSampleDirectory(data);
   m_samp = data.getSamp();
 }
-void AudioGroup::assign(SystemStringView groupPath) {
+void AudioGroup::assign(std::string_view groupPath) {
   /* Reverse order when loading intermediates */
   m_groupPath = groupPath;
   m_sdir = AudioGroupSampleDirectory::CreateAudioGroupSampleDirectory(groupPath);
@@ -27,7 +27,7 @@ void AudioGroup::assign(SystemStringView groupPath) {
   m_proj = AudioGroupProject::CreateAudioGroupProject(groupPath);
   m_samp = nullptr;
 }
-void AudioGroup::assign(const AudioGroup& data, SystemStringView groupPath) {
+void AudioGroup::assign(const AudioGroup& data, std::string_view groupPath) {
   /* Reverse order when loading intermediates */
   m_groupPath = groupPath;
   m_sdir = AudioGroupSampleDirectory::CreateAudioGroupSampleDirectory(groupPath);
@@ -43,27 +43,23 @@ const SampleEntry* AudioGroup::getSample(SampleId sfxId) const {
   return search->second.get();
 }
 
-SystemString AudioGroup::getSampleBasePath(SampleId sfxId) const {
-#if _WIN32
-  return m_groupPath + _SYS_STR('/') + athena::utility::utf8ToWide(SampleId::CurNameDB->resolveNameFromId(sfxId));
-#else
-  return m_groupPath + _SYS_STR('/') + SampleId::CurNameDB->resolveNameFromId(sfxId).data();
-#endif
+std::string AudioGroup::getSampleBasePath(SampleId sfxId) const {
+  return m_groupPath + '/' + SampleId::CurNameDB->resolveNameFromId(sfxId).data();
 }
 
 std::pair<ObjToken<SampleEntryData>, const unsigned char*> AudioGroup::getSampleData(SampleId sfxId,
                                                                                      const SampleEntry* sample) const {
   if (sample->m_data->m_looseData) {
-    SystemString basePath = getSampleBasePath(sfxId);
+    std::string basePath = getSampleBasePath(sfxId);
     const_cast<SampleEntry*>(sample)->loadLooseData(basePath);
     return {sample->m_data, sample->m_data->m_looseData.get()};
   }
   return {sample->m_data, m_samp + sample->m_data->m_sampleOff};
 }
 
-SampleFileState AudioGroup::getSampleFileState(SampleId sfxId, const SampleEntry* sample, SystemString* pathOut) const {
+SampleFileState AudioGroup::getSampleFileState(SampleId sfxId, const SampleEntry* sample, std::string* pathOut) const {
   if (sample->m_data->m_looseData) {
-    SystemString basePath = getSampleBasePath(sfxId);
+    std::string basePath = getSampleBasePath(sfxId);
     return sample->getFileState(basePath, pathOut);
   }
   if (sample->m_data->isFormatDSP() || sample->m_data->getSampleFormat() == SampleFormat::N64)
@@ -73,7 +69,7 @@ SampleFileState AudioGroup::getSampleFileState(SampleId sfxId, const SampleEntry
 
 void AudioGroup::patchSampleMetadata(SampleId sfxId, const SampleEntry* sample) const {
   if (sample->m_data->m_looseData) {
-    SystemString basePath = getSampleBasePath(sfxId);
+    std::string basePath = getSampleBasePath(sfxId);
     sample->patchSampleMetadata(basePath);
   }
 }
@@ -91,25 +87,25 @@ void AudioGroup::makeCompressedVersion(SampleId sfxId, const SampleEntry* sample
 }
 
 void AudioGroupDatabase::renameSample(SampleId id, std::string_view str) {
-  SystemString oldBasePath = getSampleBasePath(id);
+  std::string oldBasePath = getSampleBasePath(id);
   SampleId::CurNameDB->rename(id, str);
-  SystemString newBasePath = getSampleBasePath(id);
-  Rename((oldBasePath + _SYS_STR(".wav")).c_str(), (newBasePath + _SYS_STR(".wav")).c_str());
-  Rename((oldBasePath + _SYS_STR(".dsp")).c_str(), (newBasePath + _SYS_STR(".dsp")).c_str());
-  Rename((oldBasePath + _SYS_STR(".vadpcm")).c_str(), (newBasePath + _SYS_STR(".vadpcm")).c_str());
+  std::string newBasePath = getSampleBasePath(id);
+  Rename((oldBasePath + ".wav").c_str(), (newBasePath + ".wav").c_str());
+  Rename((oldBasePath + ".dsp").c_str(), (newBasePath + ".dsp").c_str());
+  Rename((oldBasePath + ".vadpcm").c_str(), (newBasePath + ".vadpcm").c_str());
 }
 
 void AudioGroupDatabase::deleteSample(SampleId id) {
-  SystemString basePath = getSampleBasePath(id);
-  Unlink((basePath + _SYS_STR(".wav")).c_str());
-  Unlink((basePath + _SYS_STR(".dsp")).c_str());
-  Unlink((basePath + _SYS_STR(".vadpcm")).c_str());
+  std::string basePath = getSampleBasePath(id);
+  Unlink((basePath + ".wav").c_str());
+  Unlink((basePath + ".dsp").c_str());
+  Unlink((basePath + ".vadpcm").c_str());
 }
 
-void AudioGroupDatabase::copySampleInto(const SystemString& basePath, const SystemString& newBasePath) {
-  Copy((basePath + _SYS_STR(".wav")).c_str(), (newBasePath + _SYS_STR(".wav")).c_str());
-  Copy((basePath + _SYS_STR(".dsp")).c_str(), (newBasePath + _SYS_STR(".dsp")).c_str());
-  Copy((basePath + _SYS_STR(".vadpcm")).c_str(), (newBasePath + _SYS_STR(".vadpcm")).c_str());
+void AudioGroupDatabase::copySampleInto(const std::string& basePath, const std::string& newBasePath) {
+  Copy((basePath + ".wav").c_str(), (newBasePath + ".wav").c_str());
+  Copy((basePath + ".dsp").c_str(), (newBasePath + ".dsp").c_str());
+  Copy((basePath + ".vadpcm").c_str(), (newBasePath + ".vadpcm").c_str());
 }
 
 void AudioGroupDatabase::_recursiveRenameMacro(SoundMacroId id, std::string_view str, int& macroIdx,

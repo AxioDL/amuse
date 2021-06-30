@@ -5,6 +5,7 @@
 #include <dirent.h>
 #endif
 
+#include <ranges>
 #include <sys/stat.h>
 
 #if !defined(S_ISREG) && defined(S_IFMT) && defined(S_IFREG)
@@ -21,124 +22,154 @@
 
 namespace amuse {
 
-DirectoryEnumerator::DirectoryEnumerator(SystemStringView path, Mode mode, bool sizeSort, bool reverse, bool noHidden) {
+DirectoryEnumerator::DirectoryEnumerator(std::string_view path, Mode mode, bool sizeSort, bool reverse, bool noHidden) {
   Sstat theStat;
-  if (Stat(path.data(), &theStat) || !S_ISDIR(theStat.st_mode))
+  if (Stat(path.data(), &theStat) || !S_ISDIR(theStat.st_mode)) {
     return;
+  }
 
 #if _WIN32
-  SystemString wc(path);
-  wc += _SYS_STR("/*");
+  std::wstring wc = nowide::widen(path);
+  wc += L"/*";
   WIN32_FIND_DATAW d;
   HANDLE dir = FindFirstFileW(wc.c_str(), &d);
-  if (dir == INVALID_HANDLE_VALUE)
+  if (dir == INVALID_HANDLE_VALUE) {
     return;
+  }
   switch (mode) {
   case Mode::Native:
     do {
-      if (!wcscmp(d.cFileName, _SYS_STR(".")) || !wcscmp(d.cFileName, _SYS_STR("..")))
+      if (!wcscmp(d.cFileName, L".") || !wcscmp(d.cFileName, L"..")) {
         continue;
-      if (noHidden && (d.cFileName[0] == L'.' || (d.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) != 0))
+      }
+      if (noHidden && (d.cFileName[0] == L'.' || (d.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) != 0)) {
         continue;
-      SystemString fp(path);
-      fp += _SYS_STR('/');
-      fp += d.cFileName;
+      }
+      std::string fileName = nowide::narrow(d.cFileName);
+      std::string fp(path);
+      fp += '/';
+      fp += fileName;
       Sstat st;
-      if (Stat(fp.c_str(), &st))
+      if (Stat(fp.c_str(), &st)) {
         continue;
+      }
 
       size_t sz = 0;
       bool isDir = false;
-      if (S_ISDIR(st.st_mode))
+      if (S_ISDIR(st.st_mode)) {
         isDir = true;
-      else if (S_ISREG(st.st_mode))
+      } else if (S_ISREG(st.st_mode)) {
         sz = st.st_size;
-      else
+      } else {
         continue;
+      }
 
-      m_entries.emplace_back(fp, d.cFileName, sz, isDir);
+      m_entries.emplace_back(fp, fileName, sz, isDir);
     } while (FindNextFileW(dir, &d));
     break;
   case Mode::DirsThenFilesSorted:
   case Mode::DirsSorted: {
-    std::map<SystemString, Entry, CaseInsensitiveCompare> sort;
+    std::map<std::string, Entry, CaseInsensitiveCompare> sort;
     do {
-      if (!wcscmp(d.cFileName, _SYS_STR(".")) || !wcscmp(d.cFileName, _SYS_STR("..")))
+      if (!wcscmp(d.cFileName, L".") || !wcscmp(d.cFileName, L"..")) {
         continue;
-      if (noHidden && (d.cFileName[0] == L'.' || (d.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) != 0))
+      }
+      if (noHidden && (d.cFileName[0] == L'.' || (d.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) != 0)) {
         continue;
-      SystemString fp(path);
-      fp += _SYS_STR('/');
-      fp += d.cFileName;
+      }
+      std::string fileName = nowide::narrow(d.cFileName);
+      std::string fp(path);
+      fp += '/';
+      fp += fileName;
       Sstat st;
-      if (Stat(fp.c_str(), &st) || !S_ISDIR(st.st_mode))
+      if (Stat(fp.c_str(), &st) || !S_ISDIR(st.st_mode)) {
         continue;
-      sort.emplace(std::make_pair(d.cFileName, Entry(fp, d.cFileName, 0, true)));
+      }
+      sort.emplace(fileName, Entry{fp, fileName, 0, true});
     } while (FindNextFileW(dir, &d));
 
     m_entries.reserve(sort.size());
-    if (reverse)
-      for (auto it = sort.crbegin(); it != sort.crend(); ++it)
-        m_entries.push_back(std::move(it->second));
-    else
-      for (auto& e : sort)
-        m_entries.push_back(std::move(e.second));
+    if (reverse) {
+      for (auto& it : std::ranges::reverse_view(sort)) {
+        m_entries.emplace_back(std::move(it.second));
+      }
+    } else {
+      for (auto& e : sort) {
+        m_entries.emplace_back(std::move(e.second));
+      }
+    }
 
-    if (mode == Mode::DirsSorted)
+    if (mode == Mode::DirsSorted) {
       break;
+    }
     FindClose(dir);
     dir = FindFirstFileW(wc.c_str(), &d);
   }
   case Mode::FilesSorted: {
-    if (mode == Mode::FilesSorted)
+    if (mode == Mode::FilesSorted) {
       m_entries.clear();
+    }
 
     if (sizeSort) {
       std::multimap<size_t, Entry> sort;
       do {
-        if (!wcscmp(d.cFileName, _SYS_STR(".")) || !wcscmp(d.cFileName, _SYS_STR("..")))
+        if (!wcscmp(d.cFileName, L".") || !wcscmp(d.cFileName, L"..")) {
           continue;
-        if (noHidden && (d.cFileName[0] == L'.' || (d.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) != 0))
+        }
+        if (noHidden && (d.cFileName[0] == L'.' || (d.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) != 0)) {
           continue;
-        SystemString fp(path);
-        fp += _SYS_STR('/');
-        fp += d.cFileName;
+        }
+        std::string fileName = nowide::narrow(d.cFileName);
+        std::string fp(path);
+        fp += '/';
+        fp += fileName;
         Sstat st;
-        if (Stat(fp.c_str(), &st) || !S_ISREG(st.st_mode))
+        if (Stat(fp.c_str(), &st) || !S_ISREG(st.st_mode)) {
           continue;
-        sort.emplace(std::make_pair(st.st_size, Entry(fp, d.cFileName, st.st_size, false)));
+        }
+        sort.emplace(st.st_size, Entry{fp, fileName, static_cast<size_t>(st.st_size), false});
       } while (FindNextFileW(dir, &d));
 
-      m_entries.reserve(sort.size());
-      if (reverse)
-        for (auto it = sort.crbegin(); it != sort.crend(); ++it)
-          m_entries.push_back(std::move(it->second));
-      else
-        for (auto& e : sort)
-          m_entries.push_back(std::move(e.second));
+      m_entries.reserve(m_entries.size() + sort.size());
+      if (reverse) {
+        for (auto& it : std::ranges::reverse_view(sort)) {
+          m_entries.emplace_back(std::move(it.second));
+        }
+      } else {
+        for (auto& e : sort) {
+          m_entries.emplace_back(std::move(e.second));
+        }
+      }
     } else {
-      std::map<SystemString, Entry, CaseInsensitiveCompare> sort;
+      std::map<std::string, Entry, CaseInsensitiveCompare> sort;
       do {
-        if (!wcscmp(d.cFileName, _SYS_STR(".")) || !wcscmp(d.cFileName, _SYS_STR("..")))
+        if (!wcscmp(d.cFileName, L".") || !wcscmp(d.cFileName, L"..")) {
           continue;
-        if (noHidden && (d.cFileName[0] == L'.' || (d.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) != 0))
+        }
+        if (noHidden && (d.cFileName[0] == L'.' || (d.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) != 0)) {
           continue;
-        SystemString fp(path);
-        fp += _SYS_STR('/');
-        fp += d.cFileName;
+        }
+        std::string fileName = nowide::narrow(d.cFileName);
+        std::string fp(path);
+        fp += '/';
+        fp += fileName;
         Sstat st;
-        if (Stat(fp.c_str(), &st) || !S_ISREG(st.st_mode))
+        if (Stat(fp.c_str(), &st) || !S_ISREG(st.st_mode)) {
           continue;
-        sort.emplace(std::make_pair(d.cFileName, Entry(fp, d.cFileName, st.st_size, false)));
+        }
+        sort.emplace(fileName, Entry{fp, fileName, static_cast<size_t>(st.st_size), false});
       } while (FindNextFileW(dir, &d));
 
-      m_entries.reserve(sort.size());
-      if (reverse)
-        for (auto it = sort.crbegin(); it != sort.crend(); ++it)
-          m_entries.push_back(std::move(it->second));
-      else
-        for (auto& e : sort)
-          m_entries.push_back(std::move(e.second));
+      m_entries.reserve(m_entries.size() + sort.size());
+      if (reverse) {
+        for (auto& e : std::ranges::reverse_view(sort)) {
+          m_entries.emplace_back(std::move(e.second));
+        }
+      } else {
+        for (auto& e : sort) {
+          m_entries.emplace_back(std::move(e.second));
+        }
+      }
     }
 
     break;
@@ -159,7 +190,7 @@ DirectoryEnumerator::DirectoryEnumerator(SystemStringView path, Mode mode, bool 
         continue;
       if (noHidden && d->d_name[0] == '.')
         continue;
-      SystemString fp(path);
+      std::string fp(path);
       fp += '/';
       fp += d->d_name;
       Sstat st;
@@ -180,13 +211,13 @@ DirectoryEnumerator::DirectoryEnumerator(SystemStringView path, Mode mode, bool 
     break;
   case Mode::DirsThenFilesSorted:
   case Mode::DirsSorted: {
-    std::map<SystemString, Entry, CaseInsensitiveCompare> sort;
+    std::map<std::string, Entry, CaseInsensitiveCompare> sort;
     while ((d = readdir(dir))) {
       if (!strcmp(d->d_name, ".") || !strcmp(d->d_name, ".."))
         continue;
       if (noHidden && d->d_name[0] == '.')
         continue;
-      SystemString fp(path);
+      std::string fp(path);
       fp += '/';
       fp += d->d_name;
       Sstat st;
@@ -219,7 +250,7 @@ DirectoryEnumerator::DirectoryEnumerator(SystemStringView path, Mode mode, bool 
           continue;
         if (noHidden && d->d_name[0] == '.')
           continue;
-        SystemString fp(path);
+        std::string fp(path);
         fp += '/';
         fp += d->d_name;
         Sstat st;
@@ -236,13 +267,13 @@ DirectoryEnumerator::DirectoryEnumerator(SystemStringView path, Mode mode, bool 
         for (auto& e : sort)
           m_entries.push_back(std::move(e.second));
     } else {
-      std::map<SystemString, Entry, CaseInsensitiveCompare> sort;
+      std::map<std::string, Entry, CaseInsensitiveCompare> sort;
       while ((d = readdir(dir))) {
         if (!strcmp(d->d_name, ".") || !strcmp(d->d_name, ".."))
           continue;
         if (noHidden && d->d_name[0] == '.')
           continue;
-        SystemString fp(path);
+        std::string fp(path);
         fp += '/';
         fp += d->d_name;
         Sstat st;

@@ -285,13 +285,13 @@ public:
       return ret;
     }
 
-    void loadLooseDSP(SystemStringView dspPath);
-    void loadLooseVADPCM(SystemStringView vadpcmPath);
-    void loadLooseWAV(SystemStringView wavPath);
+    void loadLooseDSP(std::string_view dspPath);
+    void loadLooseVADPCM(std::string_view vadpcmPath);
+    void loadLooseWAV(std::string_view wavPath);
 
-    void patchMetadataDSP(SystemStringView dspPath);
-    void patchMetadataVADPCM(SystemStringView vadpcmPath);
-    void patchMetadataWAV(SystemStringView wavPath);
+    void patchMetadataDSP(std::string_view dspPath);
+    void patchMetadataVADPCM(std::string_view vadpcmPath);
+    void patchMetadataWAV(std::string_view wavPath);
   };
   /* This double-wrapper allows Voices to keep a strong reference on
    * a single instance of loaded loose data without being unexpectedly
@@ -315,16 +315,16 @@ public:
       return m_data->toDNA<DNAEn>(id);
     }
 
-    void loadLooseData(SystemStringView basePath);
-    SampleFileState getFileState(SystemStringView basePath, SystemString* pathOut = nullptr) const;
-    void patchSampleMetadata(SystemStringView basePath) const;
+    void loadLooseData(std::string_view basePath);
+    SampleFileState getFileState(std::string_view basePath, std::string* pathOut = nullptr) const;
+    void patchSampleMetadata(std::string_view basePath) const;
   };
 
 private:
   std::unordered_map<SampleId, ObjToken<Entry>> m_entries;
-  static void _extractWAV(SampleId id, const EntryData& ent, amuse::SystemStringView destDir,
+  static void _extractWAV(SampleId id, const EntryData& ent, std::string_view destDir,
                           const unsigned char* samp);
-  static void _extractCompressed(SampleId id, const EntryData& ent, amuse::SystemStringView destDir,
+  static void _extractCompressed(SampleId id, const EntryData& ent, std::string_view destDir,
                                  const unsigned char* samp, bool compressWAV = false);
 
 public:
@@ -333,17 +333,17 @@ public:
   AudioGroupSampleDirectory(athena::io::IStreamReader& r, const unsigned char* sampData, bool absOffs, N64DataTag);
   AudioGroupSampleDirectory(athena::io::IStreamReader& r, bool absOffs, PCDataTag);
   static AudioGroupSampleDirectory CreateAudioGroupSampleDirectory(const AudioGroupData& data);
-  static AudioGroupSampleDirectory CreateAudioGroupSampleDirectory(SystemStringView groupPath);
+  static AudioGroupSampleDirectory CreateAudioGroupSampleDirectory(std::string_view groupPath);
 
   const std::unordered_map<SampleId, ObjToken<Entry>>& sampleEntries() const { return m_entries; }
   std::unordered_map<SampleId, ObjToken<Entry>>& sampleEntries() { return m_entries; }
 
-  void extractWAV(SampleId id, amuse::SystemStringView destDir, const unsigned char* samp) const;
-  void extractAllWAV(amuse::SystemStringView destDir, const unsigned char* samp) const;
-  void extractCompressed(SampleId id, amuse::SystemStringView destDir, const unsigned char* samp) const;
-  void extractAllCompressed(amuse::SystemStringView destDir, const unsigned char* samp) const;
+  void extractWAV(SampleId id, std::string_view destDir, const unsigned char* samp) const;
+  void extractAllWAV(std::string_view destDir, const unsigned char* samp) const;
+  void extractCompressed(SampleId id, std::string_view destDir, const unsigned char* samp) const;
+  void extractAllCompressed(std::string_view destDir, const unsigned char* samp) const;
 
-  void reloadSampleData(SystemStringView groupPath);
+  void reloadSampleData(std::string_view groupPath);
 
   std::pair<std::vector<uint8_t>, std::vector<uint8_t>> toGCNData(const AudioGroupDatabase& group) const;
 
