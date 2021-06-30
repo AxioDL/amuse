@@ -5,7 +5,9 @@
 #include <dirent.h>
 #endif
 
+#ifdef __cpp_lib_ranges
 #include <ranges>
+#endif
 #include <sys/stat.h>
 
 #if !defined(S_ISREG) && defined(S_IFMT) && defined(S_IFREG)

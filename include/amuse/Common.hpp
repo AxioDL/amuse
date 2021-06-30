@@ -338,7 +338,7 @@ static inline int Stat(const char* path, Sstat* statout) {
   return _wstat64(wpath.get(), statout);
 }
 #else
-static inline int Mkdir(const char* path, mode_t mode) { return CreateDirectoryA(path, mode); }
+static inline int Mkdir(const char* path, mode_t mode) { return mkdir(path, mode); }
 
 typedef struct stat Sstat;
 static inline int Stat(const char* path, Sstat* statout) { return stat(path, statout); }
