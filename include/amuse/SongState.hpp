@@ -74,8 +74,8 @@ class SongState {
     uint32_t m_curTick = 0;       /**< Current playback position for this track */
     uint32_t m_loopStartTick = 0; /**< Tick to loop back to */
     /** Current pointer to tempo control, iterated over playback */
-    const TempoChange* m_tempoPtr;
-    uint32_t m_tempo; /**< Current tempo (beats per minute) */
+    const TempoChange* m_tempoPtr = nullptr;
+    uint32_t m_tempo = 0; /**< Current tempo (beats per minute) */
 
     const unsigned char* m_data = nullptr;           /**< Pointer to upcoming command data */
     const unsigned char* m_pitchWheelData = nullptr; /**< Pointer to upcoming pitch data */

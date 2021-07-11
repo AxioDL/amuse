@@ -17,10 +17,10 @@ bool Copy(const SystemChar* from, const SystemChar* to) {
   return CopyFileW(from, to, FALSE) != 0;
 #else
   FILE* fi = fopen(from, "rb");
-  if (!fi)
+  if (fi == nullptr)
     return false;
   FILE* fo = fopen(to, "wb");
-  if (!fo) {
+  if (fo == nullptr) {
     fclose(fi);
     return false;
   }
@@ -30,7 +30,7 @@ bool Copy(const SystemChar* from, const SystemChar* to) {
     fwrite(buf.get(), 1, readSz, fo);
   fclose(fi);
   fclose(fo);
-  struct stat theStat;
+  struct stat theStat{};
   if (::stat(from, &theStat))
     return true;
 #if __APPLE__
@@ -294,13 +294,16 @@ template struct SoundMacroStepDNA<athena::Endian::Little>;
 
 ObjectId NameDB::generateId(Type tp) const {
   uint16_t maxMatch = 0;
-  if (tp == Type::Layer)
+  if (tp == Type::Layer) {
     maxMatch = 0x8000;
-  else if (tp == Type::Keymap)
+  } else if (tp == Type::Keymap) {
     maxMatch = 0x4000;
-  for (const auto& p : m_idToString)
-    if (p.first.id >= maxMatch)
+  }
+  for (const auto& p : m_idToString) {
+    if (p.first.id >= maxMatch) {
       maxMatch = p.first.id + 1;
+    }
+  }
   return maxMatch;
 }
 

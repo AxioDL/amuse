@@ -9,8 +9,8 @@
 
 #include "amuse/Common.hpp"
 
-#include <zlib.h>
 #include <lzokay.hpp>
+#include <zlib.h>
 
 #if __SWITCH__
 /*-
