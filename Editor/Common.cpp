@@ -7,20 +7,12 @@
 #include <QProcess>
 #include <QTransform>
 
-boo::SystemString QStringToSysString(const QString& str) {
-#ifdef _WIN32
-  return (wchar_t*)str.utf16();
-#else
+std::string QStringToUTF8(const QString& str) {
   return str.toUtf8().toStdString();
-#endif
 }
 
-QString SysStringToQString(const boo::SystemString& str) {
-#ifdef _WIN32
-  return QString::fromStdWString(str);
-#else
+QString UTF8ToQString(const std::string& str) {
   return QString::fromStdString(str);
-#endif
 }
 
 bool MkPath(const QString& path, UIMessenger& messenger) {

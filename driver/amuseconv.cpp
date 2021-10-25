@@ -5,6 +5,10 @@
 #include <cstdio>
 #include <cstring>
 
+#if _WIN32
+#include <nowide/args.hpp>
+#endif
+
 static logvisor::Module Log("amuseconv");
 
 enum ConvType { ConvN64, ConvGCN, ConvPC };
@@ -12,37 +16,37 @@ enum ConvType { ConvN64, ConvGCN, ConvPC };
 static void ReportConvType(ConvType tp) {
   switch (tp) {
   case ConvN64:
-    Log.report(logvisor::Info, FMT_STRING(_SYS_STR("using N64 format")));
+    Log.report(logvisor::Info, FMT_STRING("using N64 format"));
     break;
   case ConvPC:
-    Log.report(logvisor::Info, FMT_STRING(_SYS_STR("using PC format")));
+    Log.report(logvisor::Info, FMT_STRING("using PC format"));
     break;
   case ConvGCN:
   default:
-    Log.report(logvisor::Info, FMT_STRING(_SYS_STR("using GameCube format")));
+    Log.report(logvisor::Info, FMT_STRING("using GameCube format"));
     break;
   }
 }
 
-static bool BuildAudioGroup(amuse::SystemStringView groupBase, amuse::SystemStringView targetPath) { return true; }
+static bool BuildAudioGroup(std::string_view groupBase, std::string_view targetPath) { return true; }
 
-static bool ExtractAudioGroup(amuse::SystemStringView inPath, amuse::SystemStringView targetPath) {
+static bool ExtractAudioGroup(std::string_view inPath, std::string_view targetPath) {
   amuse::ContainerRegistry::Type type;
   auto groups = amuse::ContainerRegistry::LoadContainer(inPath.data(), type);
 
   if (groups.size()) {
-    Log.report(logvisor::Info, FMT_STRING(_SYS_STR("Found '{}'")), amuse::ContainerRegistry::TypeToName(type));
+    Log.report(logvisor::Info, FMT_STRING("Found '{}'"), amuse::ContainerRegistry::TypeToName(type));
 
     amuse::Mkdir(targetPath.data(), 0755);
-    Log.report(logvisor::Info, FMT_STRING(_SYS_STR("Established directory at {}")), targetPath);
+    Log.report(logvisor::Info, FMT_STRING("Established directory at {}"), targetPath);
 
     for (auto& group : groups) {
-      Log.report(logvisor::Info, FMT_STRING(_SYS_STR("Extracting {}")), group.first);
+      Log.report(logvisor::Info, FMT_STRING("Extracting {}"), group.first);
     }
   }
 
   auto songs = amuse::ContainerRegistry::LoadSongs(inPath.data());
-  amuse::SystemString songsDir = amuse::SystemString(targetPath) + _SYS_STR("/midifiles");
+  std::string songsDir = std::string(targetPath) + "/midifiles";
   bool madeDir = false;
   for (auto& pair : songs) {
     if (!madeDir) {
@@ -51,10 +55,10 @@ static bool ExtractAudioGroup(amuse::SystemStringView inPath, amuse::SystemStrin
       madeDir = true;
     }
 
-    amuse::SystemString songPath = songsDir + _SYS_STR('/') + pair.first + _SYS_STR(".mid");
-    FILE* fp = amuse::FOpen(songPath.c_str(), _SYS_STR("wb"));
+    std::string songPath = songsDir + '/' + pair.first + ".mid";
+    FILE* fp = amuse::FOpen(songPath.c_str(), "wb");
     if (fp) {
-      Log.report(logvisor::Info, FMT_STRING(_SYS_STR("Extracting {}")), pair.first);
+      Log.report(logvisor::Info, FMT_STRING("Extracting {}"), pair.first);
       int extractedVersion;
       bool isBig;
       std::vector<uint8_t> mid = amuse::SongConverter::SongToMIDI(pair.second.m_data.get(), extractedVersion, isBig);
@@ -66,8 +70,8 @@ static bool ExtractAudioGroup(amuse::SystemStringView inPath, amuse::SystemStrin
   return true;
 }
 
-static bool BuildSNG(amuse::SystemStringView inPath, amuse::SystemStringView targetPath, int version, bool big) {
-  FILE* fp = amuse::FOpen(inPath.data(), _SYS_STR("rb"));
+static bool BuildSNG(std::string_view inPath, std::string_view targetPath, int version, bool big) {
+  FILE* fp = amuse::FOpen(inPath.data(), "rb");
   if (!fp)
     return false;
 
@@ -82,15 +86,15 @@ static bool BuildSNG(amuse::SystemStringView inPath, amuse::SystemStringView tar
   if (out.empty())
     return false;
 
-  fp = amuse::FOpen(targetPath.data(), _SYS_STR("wb"));
+  fp = amuse::FOpen(targetPath.data(), "wb");
   fwrite(out.data(), 1, out.size(), fp);
   fclose(fp);
 
   return true;
 }
 
-static bool ExtractSNG(amuse::SystemStringView inPath, amuse::SystemStringView targetPath) {
-  FILE* fp = amuse::FOpen(inPath.data(), _SYS_STR("rb"));
+static bool ExtractSNG(std::string_view inPath, std::string_view targetPath) {
+  FILE* fp = amuse::FOpen(inPath.data(), "rb");
   if (!fp)
     return false;
 
@@ -107,19 +111,18 @@ static bool ExtractSNG(amuse::SystemStringView inPath, amuse::SystemStringView t
   if (out.empty())
     return false;
 
-  fp = amuse::FOpen(targetPath.data(), _SYS_STR("wb"));
+  fp = amuse::FOpen(targetPath.data(), "wb");
   fwrite(out.data(), 1, out.size(), fp);
   fclose(fp);
 
   return true;
 }
 
+int main(int argc, char** argv) {
 #if _WIN32
-int wmain(int argc, const amuse::SystemChar** argv)
-#else
-int main(int argc, const amuse::SystemChar** argv)
+  nowide::args _(argc, argv);
 #endif
-{
+
   logvisor::RegisterConsoleLogger();
 
   if (argc < 3) {
@@ -129,32 +132,32 @@ int main(int argc, const amuse::SystemChar** argv)
 
   ConvType type = ConvGCN;
   if (argc >= 4) {
-    if (!amuse::CompareCaseInsensitive(argv[3], _SYS_STR("n64")))
+    if (!amuse::CompareCaseInsensitive(argv[3], "n64"))
       type = ConvN64;
-    else if (!amuse::CompareCaseInsensitive(argv[3], _SYS_STR("gcn")))
+    else if (!amuse::CompareCaseInsensitive(argv[3], "gcn"))
       type = ConvGCN;
-    else if (!amuse::CompareCaseInsensitive(argv[3], _SYS_STR("pc")))
+    else if (!amuse::CompareCaseInsensitive(argv[3], "pc"))
       type = ConvPC;
     else {
-      Log.report(logvisor::Error, FMT_STRING(_SYS_STR("unrecognized format: {}")), argv[3]);
+      Log.report(logvisor::Error, FMT_STRING("unrecognized format: {}"), argv[3]);
       return 1;
     }
   }
 
   bool good = false;
-  FILE* fin = amuse::FOpen(argv[1], _SYS_STR("rb"));
+  FILE* fin = amuse::FOpen(argv[1], "rb");
   if (fin) {
     fclose(fin);
-    amuse::SystemString barePath(argv[1]);
-    size_t dotPos = barePath.rfind(_SYS_STR('.'));
-    const amuse::SystemChar* dot = barePath.c_str() + dotPos;
-    if (dotPos != amuse::SystemString::npos) {
-      if (!amuse::CompareCaseInsensitive(dot, _SYS_STR(".mid")) ||
-          !amuse::CompareCaseInsensitive(dot, _SYS_STR(".midi"))) {
+    std::string barePath(argv[1]);
+    size_t dotPos = barePath.rfind('.');
+    const char* dot = barePath.c_str() + dotPos;
+    if (dotPos != std::string::npos) {
+      if (!amuse::CompareCaseInsensitive(dot, ".mid") ||
+          !amuse::CompareCaseInsensitive(dot, ".midi")) {
         ReportConvType(type);
         good = BuildSNG(barePath, argv[2], 1, true);
-      } else if (!amuse::CompareCaseInsensitive(dot, _SYS_STR(".son")) ||
-                 !amuse::CompareCaseInsensitive(dot, _SYS_STR(".sng"))) {
+      } else if (!amuse::CompareCaseInsensitive(dot, ".son") ||
+                 !amuse::CompareCaseInsensitive(dot, ".sng")) {
         good = ExtractSNG(argv[1], argv[2]);
       } else {
         good = ExtractAudioGroup(argv[1], argv[2]);
@@ -163,9 +166,9 @@ int main(int argc, const amuse::SystemChar** argv)
   } else {
     amuse::Sstat theStat;
     if (!amuse::Stat(argv[1], &theStat) && S_ISDIR(theStat.st_mode)) {
-      amuse::SystemString projectPath(argv[1]);
-      projectPath += _SYS_STR("/project.yaml");
-      fin = amuse::FOpen(projectPath.c_str(), _SYS_STR("rb"));
+      std::string projectPath(argv[1]);
+      projectPath += "/project.yaml";
+      fin = amuse::FOpen(projectPath.c_str(), "rb");
       if (fin) {
         fclose(fin);
         ReportConvType(type);
@@ -175,7 +178,7 @@ int main(int argc, const amuse::SystemChar** argv)
   }
 
   if (!good) {
-    Log.report(logvisor::Error, FMT_STRING(_SYS_STR("unable to convert {} to {}")), argv[1], argv[2]);
+    Log.report(logvisor::Error, FMT_STRING("unable to convert {} to {}"), argv[1], argv[2]);
     return 1;
   }
 

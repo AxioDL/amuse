@@ -270,7 +270,7 @@ void VSTEditor::addAction() {
       return;
     }
 
-    SystemString name(amuse::ContainerRegistry::TypeToName(containerType));
+    std::string name(amuse::ContainerRegistry::TypeToName(containerType));
     if (containerType == amuse::ContainerRegistry::Type::Raw4) {
       size_t dotpos = path.rfind(L'.');
       if (dotpos != std::string::npos)

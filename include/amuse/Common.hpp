@@ -22,6 +22,7 @@
 #define WIN32_LEAN_AND_MEAN 1
 #endif
 #include <Windows.h>
+#include <nowide/stackstring.hpp>
 #endif
 
 #if __SWITCH__
@@ -325,44 +326,37 @@ inline typename std::enable_if_t<!std::is_base_of_v<IObj, Tp>, ObjToken<Tp>> Mak
 #endif
 #endif
 
-#ifdef _WIN32
-using SystemString = std::wstring;
-using SystemStringView = std::wstring_view;
-using SystemChar = wchar_t;
-#ifndef _SYS_STR
-#define _SYS_STR(val) L##val
-#endif
-typedef struct _stat Sstat;
-inline int Mkdir(const wchar_t* path, int) { return _wmkdir(path); }
-inline int Stat(const wchar_t* path, Sstat* statout) { return _wstat(path, statout); }
+#if _WIN32
+static inline int Mkdir(const char* path, int) {
+  const nowide::wstackstring str(path);
+  return _wmkdir(str.get());
+}
+
+using Sstat = struct ::_stat64;
+static inline int Stat(const char* path, Sstat* statout) {
+  const nowide::wstackstring wpath(path);
+  return _wstat64(wpath.get(), statout);
+}
 #else
-using SystemString = std::string;
-using SystemStringView = std::string_view;
-using SystemChar = char;
-#ifndef _SYS_STR
-#define _SYS_STR(val) val
-#endif
+static inline int Mkdir(const char* path, mode_t mode) { return mkdir(path, mode); }
+
 typedef struct stat Sstat;
-inline int Mkdir(const char* path, mode_t mode) { return mkdir(path, mode); }
-inline int Stat(const char* path, Sstat* statout) { return stat(path, statout); }
+static inline int Stat(const char* path, Sstat* statout) { return stat(path, statout); }
 #endif
 
-inline int Rename(const SystemChar* oldpath, const SystemChar* newpath) {
+inline int Rename(const char* oldpath, const char* newpath) {
 #if _WIN32
-  // return _wrename(oldpath, newpath);
-  return MoveFileExW(oldpath, newpath, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) == 0;
+  const nowide::wstackstring woldpath(oldpath);
+  const nowide::wstackstring wnewpath(newpath);
+  return MoveFileExW(woldpath.get(), wnewpath.get(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) == 0;
 #else
   return rename(oldpath, newpath);
 #endif
 }
 
+inline int CompareCaseInsensitive(const char* a, const char* b) {
 #if _WIN32
-inline int CompareCaseInsensitive(const char* a, const char* b) { return _stricmp(a, b); }
-#endif
-
-inline int CompareCaseInsensitive(const SystemChar* a, const SystemChar* b) {
-#if _WIN32
-  return _wcsicmp(a, b);
+  return _stricmp(a, b);
 #else
   return strcasecmp(a, b);
 #endif
@@ -389,20 +383,12 @@ constexpr T ClampFull(float in) noexcept {
 #define M_PIF 3.14159265358979323846f /* pi */
 #endif
 
-inline const SystemChar* StrRChr(const SystemChar* str, SystemChar ch) {
-#if _WIN32
-  return wcsrchr(str, ch);
-#else
+inline const char* StrRChr(const char* str, char ch) {
   return strrchr(str, ch);
-#endif
 }
 
-inline SystemChar* StrRChr(SystemChar* str, SystemChar ch) {
-#if _WIN32
-  return wcsrchr(str, ch);
-#else
+inline char* StrRChr(char* str, char ch) {
   return strrchr(str, ch);
-#endif
 }
 
 inline int FSeek(FILE* fp, int64_t offset, int whence) {
@@ -425,9 +411,11 @@ inline int64_t FTell(FILE* fp) {
 #endif
 }
 
-inline FILE* FOpen(const SystemChar* path, const SystemChar* mode) {
+inline FILE* FOpen(const char* path, const char* mode) {
 #if _WIN32
-  FILE* fp = _wfopen(path, mode);
+  const nowide::wstackstring wpath(path);
+  const nowide::wshort_stackstring wmode(mode);
+  FILE* fp = _wfopen(wpath.get(), wmode.get());
   if (!fp)
     return nullptr;
 #else
@@ -438,15 +426,16 @@ inline FILE* FOpen(const SystemChar* path, const SystemChar* mode) {
   return fp;
 }
 
-inline void Unlink(const SystemChar* file) {
+inline void Unlink(const char* file) {
 #if _WIN32
-  _wunlink(file);
+  const nowide::wstackstring wfile(file);
+  _wunlink(wfile.get());
 #else
   unlink(file);
 #endif
 }
 
-bool Copy(const SystemChar* from, const SystemChar* to);
+bool Copy(const char* from, const char* to);
 
 #undef bswap16
 #undef bswap32

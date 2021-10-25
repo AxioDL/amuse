@@ -155,7 +155,7 @@ void AudioGroupSampleDirectory::EntryData::setLoopStartSample(atUint32 sample) {
   }
 }
 
-void AudioGroupSampleDirectory::EntryData::loadLooseDSP(SystemStringView dspPath) {
+void AudioGroupSampleDirectory::EntryData::loadLooseDSP(std::string_view dspPath) {
   athena::io::FileReader r(dspPath);
   if (!r.hasError()) {
     DSPADPCMHeader header;
@@ -181,7 +181,7 @@ void AudioGroupSampleDirectory::EntryData::loadLooseDSP(SystemStringView dspPath
   }
 }
 
-void AudioGroupSampleDirectory::EntryData::loadLooseVADPCM(SystemStringView vadpcmPath) {
+void AudioGroupSampleDirectory::EntryData::loadLooseVADPCM(std::string_view vadpcmPath) {
   athena::io::FileReader r(vadpcmPath);
   if (!r.hasError()) {
     VADPCMHeader header;
@@ -202,7 +202,7 @@ void AudioGroupSampleDirectory::EntryData::loadLooseVADPCM(SystemStringView vadp
   }
 }
 
-void AudioGroupSampleDirectory::EntryData::loadLooseWAV(SystemStringView wavPath) {
+void AudioGroupSampleDirectory::EntryData::loadLooseWAV(std::string_view wavPath) {
   athena::io::FileReader r(wavPath);
   if (!r.hasError()) {
     atUint32 riffMagic = r.readUint32Little();
@@ -242,10 +242,10 @@ void AudioGroupSampleDirectory::EntryData::loadLooseWAV(SystemStringView wavPath
   }
 }
 
-void AudioGroupSampleDirectory::Entry::loadLooseData(SystemStringView basePath) {
-  SystemString wavPath = SystemString(basePath) + _SYS_STR(".wav");
-  SystemString dspPath = SystemString(basePath) + _SYS_STR(".dsp");
-  SystemString vadpcmPath = SystemString(basePath) + _SYS_STR(".vadpcm");
+void AudioGroupSampleDirectory::Entry::loadLooseData(std::string_view basePath) {
+  std::string wavPath = std::string(basePath) + ".wav";
+  std::string dspPath = std::string(basePath) + ".dsp";
+  std::string vadpcmPath = std::string(basePath) + ".vadpcm";
   Sstat wavStat, dspStat, vadpcmStat;
   bool wavValid = !Stat(wavPath.c_str(), &wavStat) && S_ISREG(wavStat.st_mode);
   bool dspValid = !Stat(dspPath.c_str(), &dspStat) && S_ISREG(dspStat.st_mode);
@@ -287,10 +287,10 @@ void AudioGroupSampleDirectory::Entry::loadLooseData(SystemStringView basePath) 
   }
 }
 
-SampleFileState AudioGroupSampleDirectory::Entry::getFileState(SystemStringView basePath, SystemString* pathOut) const {
-  SystemString wavPath = SystemString(basePath) + _SYS_STR(".wav");
-  SystemString dspPath = SystemString(basePath) + _SYS_STR(".dsp");
-  SystemString vadpcmPath = SystemString(basePath) + _SYS_STR(".vadpcm");
+SampleFileState AudioGroupSampleDirectory::Entry::getFileState(std::string_view basePath, std::string* pathOut) const {
+  std::string wavPath = std::string(basePath) + ".wav";
+  std::string dspPath = std::string(basePath) + ".dsp";
+  std::string vadpcmPath = std::string(basePath) + ".vadpcm";
   Sstat wavStat, dspStat, vadpcmStat;
   bool wavValid = !Stat(wavPath.c_str(), &wavStat) && S_ISREG(wavStat.st_mode);
   bool dspValid = !Stat(dspPath.c_str(), &dspStat) && S_ISREG(dspStat.st_mode);
@@ -351,7 +351,7 @@ SampleFileState AudioGroupSampleDirectory::Entry::getFileState(SystemStringView 
   return SampleFileState::WAVNoCompressed;
 }
 
-void AudioGroupSampleDirectory::EntryData::patchMetadataDSP(SystemStringView dspPath) {
+void AudioGroupSampleDirectory::EntryData::patchMetadataDSP(std::string_view dspPath) {
   athena::io::FileReader r(dspPath);
   if (!r.hasError()) {
     DSPADPCMHeader head;
@@ -394,7 +394,7 @@ void AudioGroupSampleDirectory::EntryData::patchMetadataDSP(SystemStringView dsp
   }
 }
 
-void AudioGroupSampleDirectory::EntryData::patchMetadataVADPCM(SystemStringView vadpcmPath) {
+void AudioGroupSampleDirectory::EntryData::patchMetadataVADPCM(std::string_view vadpcmPath) {
   athena::io::FileWriter w(vadpcmPath, false);
   if (!w.hasError()) {
     w.seek(0, athena::SeekOrigin::Begin);
@@ -408,7 +408,7 @@ void AudioGroupSampleDirectory::EntryData::patchMetadataVADPCM(SystemStringView 
   }
 }
 
-void AudioGroupSampleDirectory::EntryData::patchMetadataWAV(SystemStringView wavPath) {
+void AudioGroupSampleDirectory::EntryData::patchMetadataWAV(std::string_view wavPath) {
   athena::io::FileReader r(wavPath);
   if (!r.hasError()) {
     atUint32 riffMagic = r.readUint32Little();
@@ -513,10 +513,11 @@ void AudioGroupSampleDirectory::EntryData::patchMetadataWAV(SystemStringView wav
 }
 
 /* File timestamps reflect actual audio content, not loop/pitch data */
-static void SetAudioFileTime(const SystemString& path, const Sstat& stat) {
+static void SetAudioFileTime(const std::string& path, const Sstat& stat) {
 #if _WIN32
   __utimbuf64 times = {stat.st_atime, stat.st_mtime};
-  _wutime64(path.c_str(), &times);
+  const nowide::wstackstring wpath(path);
+  _wutime64(wpath.get(), &times);
 #else
 #if __APPLE__
   struct timespec times[] = {stat.st_atimespec, stat.st_mtimespec};
@@ -529,10 +530,10 @@ static void SetAudioFileTime(const SystemString& path, const Sstat& stat) {
 #endif
 }
 
-void AudioGroupSampleDirectory::Entry::patchSampleMetadata(SystemStringView basePath) const {
-  SystemString wavPath = SystemString(basePath) + _SYS_STR(".wav");
-  SystemString dspPath = SystemString(basePath) + _SYS_STR(".dsp");
-  SystemString vadpcmPath = SystemString(basePath) + _SYS_STR(".vadpcm");
+void AudioGroupSampleDirectory::Entry::patchSampleMetadata(std::string_view basePath) const {
+  std::string wavPath = std::string(basePath) + ".wav";
+  std::string dspPath = std::string(basePath) + ".dsp";
+  std::string vadpcmPath = std::string(basePath) + ".vadpcm";
   Sstat wavStat, dspStat, vadpcmStat;
   bool wavValid = !Stat(wavPath.c_str(), &wavStat) && S_ISREG(wavStat.st_mode);
   bool dspValid = !Stat(dspPath.c_str(), &dspStat) && S_ISREG(dspStat.st_mode);
@@ -556,32 +557,28 @@ void AudioGroupSampleDirectory::Entry::patchSampleMetadata(SystemStringView base
   }
 }
 
-AudioGroupSampleDirectory AudioGroupSampleDirectory::CreateAudioGroupSampleDirectory(SystemStringView groupPath) {
+AudioGroupSampleDirectory AudioGroupSampleDirectory::CreateAudioGroupSampleDirectory(std::string_view groupPath) {
   AudioGroupSampleDirectory ret;
 
   DirectoryEnumerator de(groupPath, DirectoryEnumerator::Mode::FilesSorted);
   for (const DirectoryEnumerator::Entry& ent : de) {
     if (ent.m_name.size() < 4)
       continue;
-    SystemString baseName;
-    SystemString basePath;
-    if (!CompareCaseInsensitive(ent.m_name.data() + ent.m_name.size() - 4, _SYS_STR(".dsp")) ||
-        !CompareCaseInsensitive(ent.m_name.data() + ent.m_name.size() - 4, _SYS_STR(".wav"))) {
-      baseName = SystemString(ent.m_name.begin(), ent.m_name.begin() + ent.m_name.size() - 4);
-      basePath = SystemString(ent.m_path.begin(), ent.m_path.begin() + ent.m_path.size() - 4);
+    std::string baseName;
+    std::string basePath;
+    if (!CompareCaseInsensitive(ent.m_name.data() + ent.m_name.size() - 4, ".dsp") ||
+        !CompareCaseInsensitive(ent.m_name.data() + ent.m_name.size() - 4, ".wav")) {
+      baseName = std::string(ent.m_name.begin(), ent.m_name.begin() + ent.m_name.size() - 4);
+      basePath = std::string(ent.m_path.begin(), ent.m_path.begin() + ent.m_path.size() - 4);
     } else if (ent.m_name.size() > 7 &&
-               !CompareCaseInsensitive(ent.m_name.data() + ent.m_name.size() - 7, _SYS_STR(".vadpcm"))) {
-      baseName = SystemString(ent.m_name.begin(), ent.m_name.begin() + ent.m_name.size() - 7);
-      basePath = SystemString(ent.m_path.begin(), ent.m_path.begin() + ent.m_path.size() - 7);
+               !CompareCaseInsensitive(ent.m_name.data() + ent.m_name.size() - 7, ".vadpcm")) {
+      baseName = std::string(ent.m_name.begin(), ent.m_name.begin() + ent.m_name.size() - 7);
+      basePath = std::string(ent.m_path.begin(), ent.m_path.begin() + ent.m_path.size() - 7);
     } else
       continue;
 
     ObjectId sampleId = SampleId::CurNameDB->generateId(NameDB::Type::Sample);
-#ifdef _WIN32
-    SampleId::CurNameDB->registerPair(athena::utility::wideToUtf8(baseName), sampleId);
-#else
     SampleId::CurNameDB->registerPair(baseName, sampleId);
-#endif
 
     auto& entry = ret.m_entries[sampleId];
     entry = MakeObj<Entry>();
@@ -591,18 +588,14 @@ AudioGroupSampleDirectory AudioGroupSampleDirectory::CreateAudioGroupSampleDirec
   return ret;
 }
 
-void AudioGroupSampleDirectory::_extractWAV(SampleId id, const EntryData& ent, amuse::SystemStringView destDir,
+void AudioGroupSampleDirectory::_extractWAV(SampleId id, const EntryData& ent, std::string_view destDir,
                                             const unsigned char* samp) {
-  SystemString path(destDir);
-  path += _SYS_STR("/");
-#ifdef _WIN32
-  path += athena::utility::utf8ToWide(SampleId::CurNameDB->resolveNameFromId(id));
-#else
+  std::string path(destDir);
+  path += "/";
   path += SampleId::CurNameDB->resolveNameFromId(id);
-#endif
-  SystemString dspPath = path;
-  path += _SYS_STR(".wav");
-  dspPath += _SYS_STR(".dsp");
+  std::string dspPath = path;
+  path += ".wav";
+  dspPath += ".dsp";
   athena::io::FileWriter w(path);
 
   SampleFormat fmt = SampleFormat(ent.m_numSamples >> 24);
@@ -688,7 +681,7 @@ void AudioGroupSampleDirectory::_extractWAV(SampleId id, const EntryData& ent, a
   }
 }
 
-void AudioGroupSampleDirectory::extractWAV(SampleId id, amuse::SystemStringView destDir,
+void AudioGroupSampleDirectory::extractWAV(SampleId id, std::string_view destDir,
                                            const unsigned char* samp) const {
   auto search = m_entries.find(id);
   if (search == m_entries.cend())
@@ -696,12 +689,12 @@ void AudioGroupSampleDirectory::extractWAV(SampleId id, amuse::SystemStringView 
   _extractWAV(id, *search->second->m_data, destDir, samp + search->second->m_data->m_sampleOff);
 }
 
-void AudioGroupSampleDirectory::extractAllWAV(amuse::SystemStringView destDir, const unsigned char* samp) const {
+void AudioGroupSampleDirectory::extractAllWAV(std::string_view destDir, const unsigned char* samp) const {
   for (const auto& ent : m_entries)
     _extractWAV(ent.first, *ent.second->m_data, destDir, samp + ent.second->m_data->m_sampleOff);
 }
 
-void AudioGroupSampleDirectory::_extractCompressed(SampleId id, const EntryData& ent, amuse::SystemStringView destDir,
+void AudioGroupSampleDirectory::_extractCompressed(SampleId id, const EntryData& ent, std::string_view destDir,
                                                    const unsigned char* samp, bool compressWAV) {
   SampleFormat fmt = ent.getSampleFormat();
   if (!compressWAV && (fmt == SampleFormat::PCM || fmt == SampleFormat::PCM_PC)) {
@@ -709,13 +702,9 @@ void AudioGroupSampleDirectory::_extractCompressed(SampleId id, const EntryData&
     return;
   }
 
-  amuse::SystemString path(destDir);
-  path += _SYS_STR("/");
-#ifdef _WIN32
-  path += athena::utility::utf8ToWide(SampleId::CurNameDB->resolveNameFromId(id));
-#else
+  std::string path(destDir);
+  path += "/";
   path += SampleId::CurNameDB->resolveNameFromId(id);
-#endif
 
   uint32_t numSamples = ent.getNumSamples();
   atUint64 dataLen = 0;
@@ -738,13 +727,13 @@ void AudioGroupSampleDirectory::_extractCompressed(SampleId id, const EntryData&
     header.x44_loop_ps = ent.m_ADPCMParms.dsp.m_lps;
     header.m_pitch = ent.m_pitch;
 
-    path += _SYS_STR(".dsp");
+    path += ".dsp";
     athena::io::FileWriter w(path);
     header.write(w);
     dataLen = (header.x4_num_nibbles + 1) / 2;
     w.writeUBytes(samp, dataLen);
   } else if (fmt == SampleFormat::N64) {
-    path += _SYS_STR(".vadpcm");
+    path += ".vadpcm";
     athena::io::FileWriter w(path);
     VADPCMHeader header;
     header.m_pitchSampleRate = ent.m_pitch << 24;
@@ -780,7 +769,7 @@ void AudioGroupSampleDirectory::_extractCompressed(SampleId id, const EntryData&
     }
     DSPCorrelateCoefs(samps, numSamples, header.x1c_coef);
 
-    path += _SYS_STR(".dsp");
+    path += ".dsp";
     athena::io::FileWriter w(path);
     header.write(w);
 
@@ -827,7 +816,7 @@ void AudioGroupSampleDirectory::_extractCompressed(SampleId id, const EntryData&
   }
 }
 
-void AudioGroupSampleDirectory::extractCompressed(SampleId id, amuse::SystemStringView destDir,
+void AudioGroupSampleDirectory::extractCompressed(SampleId id, std::string_view destDir,
                                                   const unsigned char* samp) const {
   auto search = m_entries.find(id);
   if (search == m_entries.cend())
@@ -835,38 +824,32 @@ void AudioGroupSampleDirectory::extractCompressed(SampleId id, amuse::SystemStri
   _extractCompressed(id, *search->second->m_data, destDir, samp + search->second->m_data->m_sampleOff);
 }
 
-void AudioGroupSampleDirectory::extractAllCompressed(amuse::SystemStringView destDir, const unsigned char* samp) const {
+void AudioGroupSampleDirectory::extractAllCompressed(std::string_view destDir, const unsigned char* samp) const {
   for (const auto& ent : m_entries)
     _extractCompressed(ent.first, *ent.second->m_data, destDir, samp + ent.second->m_data->m_sampleOff);
 }
 
-void AudioGroupSampleDirectory::reloadSampleData(SystemStringView groupPath) {
+void AudioGroupSampleDirectory::reloadSampleData(std::string_view groupPath) {
   DirectoryEnumerator de(groupPath, DirectoryEnumerator::Mode::FilesSorted);
   for (const DirectoryEnumerator::Entry& ent : de) {
     if (ent.m_name.size() < 4)
       continue;
-    SystemString baseName;
-    SystemString basePath;
-    if (!CompareCaseInsensitive(ent.m_name.data() + ent.m_name.size() - 4, _SYS_STR(".dsp")) ||
-        !CompareCaseInsensitive(ent.m_name.data() + ent.m_name.size() - 4, _SYS_STR(".wav"))) {
-      baseName = SystemString(ent.m_name.begin(), ent.m_name.begin() + ent.m_name.size() - 4);
-      basePath = SystemString(ent.m_path.begin(), ent.m_path.begin() + ent.m_path.size() - 4);
+    std::string baseName;
+    std::string basePath;
+    if (!CompareCaseInsensitive(ent.m_name.data() + ent.m_name.size() - 4, ".dsp") ||
+        !CompareCaseInsensitive(ent.m_name.data() + ent.m_name.size() - 4, ".wav")) {
+      baseName = std::string(ent.m_name.begin(), ent.m_name.begin() + ent.m_name.size() - 4);
+      basePath = std::string(ent.m_path.begin(), ent.m_path.begin() + ent.m_path.size() - 4);
     } else if (ent.m_name.size() > 7 &&
-               !CompareCaseInsensitive(ent.m_name.data() + ent.m_name.size() - 7, _SYS_STR(".vadpcm"))) {
-      baseName = SystemString(ent.m_name.begin(), ent.m_name.begin() + ent.m_name.size() - 7);
-      basePath = SystemString(ent.m_path.begin(), ent.m_path.begin() + ent.m_path.size() - 7);
+               !CompareCaseInsensitive(ent.m_name.data() + ent.m_name.size() - 7, ".vadpcm")) {
+      baseName = std::string(ent.m_name.begin(), ent.m_name.begin() + ent.m_name.size() - 7);
+      basePath = std::string(ent.m_path.begin(), ent.m_path.begin() + ent.m_path.size() - 7);
     } else
       continue;
 
-#ifdef _WIN32
-    std::string baseNameStd = athena::utility::wideToUtf8(baseName);
-#else
-    std::string& baseNameStd = baseName;
-#endif
-
-    if (SampleId::CurNameDB->m_stringToId.find(baseNameStd) == SampleId::CurNameDB->m_stringToId.end()) {
+    if (SampleId::CurNameDB->m_stringToId.find(baseName) == SampleId::CurNameDB->m_stringToId.end()) {
       ObjectId sampleId = SampleId::CurNameDB->generateId(NameDB::Type::Sample);
-      SampleId::CurNameDB->registerPair(baseNameStd, sampleId);
+      SampleId::CurNameDB->registerPair(baseName, sampleId);
 
       auto& entry = m_entries[sampleId];
       entry = MakeObj<Entry>();
@@ -887,8 +870,8 @@ AudioGroupSampleDirectory::toGCNData(const AudioGroupDatabase& group) const {
   size_t sampleOffset = 0;
   size_t adpcmOffset = 0;
   for (const auto& ent : SortUnorderedMap(m_entries)) {
-    amuse::SystemString path = group.getSampleBasePath(ent.first);
-    path += _SYS_STR(".dsp");
+    std::string path = group.getSampleBasePath(ent.first);
+    path += ".dsp";
     SampleFileState state = group.getSampleFileState(ent.first, ent.second.get().get(), &path);
     switch (state) {
     case SampleFileState::MemoryOnlyWAV:

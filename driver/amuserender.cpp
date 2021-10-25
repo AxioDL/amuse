@@ -19,6 +19,7 @@ static logvisor::Module Log("amuserender");
 
 #if _WIN32
 #include <DbgHelp.h>
+#include <nowide/args.hpp>
 #pragma comment(lib, "Dbghelp.lib")
 
 #include <signal.h>
@@ -68,45 +69,15 @@ static void abortHandler(int signum) {
 static bool g_BreakLoop = false;
 static void SIGINTHandler(int sig) { g_BreakLoop = true; }
 
-#if _WIN32
-int wmain(int argc, const boo::SystemChar** argv)
-#else
-int main(int argc, const boo::SystemChar** argv)
-#endif
-{
+int main(int argc, char** argv) {
   logvisor::RegisterConsoleLogger();
 
-  std::vector<boo::SystemString> m_args;
+  std::vector<std::string> m_args;
   m_args.reserve(argc);
   double rate = NativeSampleRate;
   int chCount = 2;
   double volume = 1.0;
   for (int i = 1; i < argc; ++i) {
-#if _WIN32
-    if (!wcsncmp(argv[i], L"-r", 2)) {
-      if (argv[i][2])
-        rate = wcstod(&argv[i][2], nullptr);
-      else if (argc > (i + 1)) {
-        rate = wcstod(argv[i + 1], nullptr);
-        ++i;
-      }
-    } else if (!wcsncmp(argv[i], L"-c", 2)) {
-      if (argv[i][2])
-        chCount = wcstoul(&argv[i][2], nullptr, 0);
-      else if (argc > (i + 1)) {
-        chCount = wcstoul(argv[i + 1], nullptr, 0);
-        ++i;
-      }
-    } else if (!wcsncmp(argv[i], L"-v", 2)) {
-      if (argv[i][2])
-        volume = wcstod(&argv[i][2], nullptr);
-      else if (argc > (i + 1)) {
-        volume = wcstod(argv[i + 1], nullptr);
-        ++i;
-      }
-    } else
-      m_args.push_back(argv[i]);
-#else
     if (!strncmp(argv[i], "-r", 2)) {
       if (argv[i][2])
         rate = strtod(&argv[i][2], nullptr);
@@ -130,7 +101,6 @@ int main(int argc, const boo::SystemChar** argv)
       }
     } else
       m_args.push_back(argv[i]);
-#endif
   }
 
   /* Load data */
@@ -146,9 +116,9 @@ int main(int argc, const boo::SystemChar** argv)
     Log.report(logvisor::Error, FMT_STRING("invalid/no data at path argument"));
     return 1;
   }
-  Log.report(logvisor::Info, FMT_STRING(_SYS_STR("Found '{}' Audio Group data")), amuse::ContainerRegistry::TypeToName(cType));
+  Log.report(logvisor::Info, FMT_STRING("Found '{}' Audio Group data"), amuse::ContainerRegistry::TypeToName(cType));
 
-  std::vector<std::pair<amuse::SystemString, amuse::IntrusiveAudioGroupData>> data =
+  std::vector<std::pair<std::string, amuse::IntrusiveAudioGroupData>> data =
       amuse::ContainerRegistry::LoadContainer(m_args[0].c_str());
   if (data.empty()) {
     Log.report(logvisor::Error, FMT_STRING("invalid/no data at path argument"));
@@ -157,16 +127,16 @@ int main(int argc, const boo::SystemChar** argv)
 
   int m_groupId = -1;
   int m_setupId = -1;
-  const amuse::SystemString* m_groupName = nullptr;
-  const amuse::SystemString* m_songName = nullptr;
+  const std::string* m_groupName = nullptr;
+  const std::string* m_songName = nullptr;
   amuse::ContainerRegistry::SongData* m_arrData = nullptr;
   bool m_sfxGroup = false;
 
   std::list<amuse::AudioGroupProject> m_projs;
-  std::map<amuse::GroupId, std::pair<std::pair<amuse::SystemString, amuse::IntrusiveAudioGroupData>*,
+  std::map<amuse::GroupId, std::pair<std::pair<std::string, amuse::IntrusiveAudioGroupData>*,
                            amuse::ObjToken<amuse::SongGroupIndex>>>
       allSongGroups;
-  std::map<amuse::GroupId, std::pair<std::pair<amuse::SystemString, amuse::IntrusiveAudioGroupData>*,
+  std::map<amuse::GroupId, std::pair<std::pair<std::string, amuse::IntrusiveAudioGroupData>*,
                            amuse::ObjToken<amuse::SFXGroupIndex>>>
       allSFXGroups;
   size_t totalGroups = 0;
@@ -185,7 +155,7 @@ int main(int argc, const boo::SystemChar** argv)
   }
 
   /* Attempt loading song */
-  std::vector<std::pair<amuse::SystemString, amuse::ContainerRegistry::SongData>> songs;
+  std::vector<std::pair<std::string, amuse::ContainerRegistry::SongData>> songs;
   if (m_args.size() > 1)
     songs = amuse::ContainerRegistry::LoadSongs(m_args[1].c_str());
   else
@@ -236,7 +206,7 @@ int main(int argc, const boo::SystemChar** argv)
                 break;
             }
           }
-          fmt::print(FMT_STRING(_SYS_STR("    {} {} (Group {}, Setup {})\n")), idx++, pair.first, grpId, setupId);
+          fmt::print(FMT_STRING("    {} {} (Group {}, Setup {})\n"), idx++, pair.first, grpId, setupId);
         }
 
         int userSel = 0;
@@ -297,11 +267,11 @@ int main(int argc, const boo::SystemChar** argv)
     /* Ask user to specify which group in project */
     fmt::print(FMT_STRING("Multiple Audio Groups discovered:\n"));
     for (const auto& pair : allSFXGroups) {
-      fmt::print(FMT_STRING(_SYS_STR("    {} {} (SFXGroup)  {} sfx-entries\n")), pair.first,
+      fmt::print(FMT_STRING("    {} {} (SFXGroup)  {} sfx-entries\n"), pair.first,
                  pair.second.first->first, pair.second.second->m_sfxEntries.size());
     }
     for (const auto& pair : allSongGroups) {
-      fmt::print(FMT_STRING(_SYS_STR("    {} {} (SongGroup)  {} normal-pages, {} drum-pages, {} MIDI-setups\n")),
+      fmt::print(FMT_STRING("    {} {} (SongGroup)  {} normal-pages, {} drum-pages, {} MIDI-setups\n"),
                  pair.first, pair.second.first->first, pair.second.second->m_normPages.size(),
                  pair.second.second->m_drumPages.size(), pair.second.second->m_midiSetups.size());
     }
@@ -392,8 +362,8 @@ int main(int argc, const boo::SystemChar** argv)
   }
 
   /* WAV out path */
-  amuse::SystemString pathOut = fmt::format(FMT_STRING(_SYS_STR("{}-{}.wav")), *m_groupName, *m_songName);
-  Log.report(logvisor::Info, FMT_STRING(_SYS_STR("Writing to {}")), pathOut);
+  std::string pathOut = fmt::format(FMT_STRING("{}-{}.wav"), *m_groupName, *m_songName);
+  Log.report(logvisor::Info, FMT_STRING("Writing to {}"), pathOut);
 
   /* Build voice engine */
   std::unique_ptr<boo::IAudioVoiceEngine> voxEngine = boo::NewWAVAudioVoiceEngine(pathOut.c_str(), rate, chCount);
@@ -425,25 +395,17 @@ int main(int argc, const boo::SystemChar** argv)
 
 #if _WIN32
 #include <shellapi.h>
-int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR lpCmdLine, int) {
+
+int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR lpCmdLine, int) {
   signal(SIGABRT, abortHandler);
   signal(SIGSEGV, abortHandler);
   signal(SIGILL, abortHandler);
   signal(SIGFPE, abortHandler);
 
   int argc = 0;
-  const boo::SystemChar** argv;
-  if (lpCmdLine[0])
-    argv = (const wchar_t**)(CommandLineToArgvW(lpCmdLine, &argc));
-  static boo::SystemChar selfPath[1024];
-  GetModuleFileNameW(nullptr, selfPath, 1024);
-  static const boo::SystemChar* booArgv[32] = {};
-  booArgv[0] = selfPath;
-  for (int i = 0; i < argc; ++i)
-    booArgv[i + 1] = argv[i];
-
+  char** argv = nullptr;
+  nowide::args _(argc, argv);
   logvisor::CreateWin32Console();
-  SetConsoleOutputCP(65001);
-  return wmain(argc + 1, booArgv);
+  return main(argc, argv);
 }
 #endif

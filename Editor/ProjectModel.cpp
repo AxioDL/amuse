@@ -524,7 +524,7 @@ bool ProjectModel::clearProjectData() {
 bool ProjectModel::openGroupData(QString groupName, UIMessenger& messenger) {
   m_projectDatabase.setIdDatabases();
   const QString path = QFileInfo(m_dir, groupName).filePath();
-  m_groups.emplace(std::move(groupName), std::make_unique<amuse::AudioGroupDatabase>(QStringToSysString(path)));
+  m_groups.emplace(std::move(groupName), std::make_unique<amuse::AudioGroupDatabase>(QStringToUTF8(path)));
 
   m_needsReset = true;
   return true;
@@ -550,7 +550,7 @@ void ProjectModel::openSongsData() {
   m_midiFiles.clear();
   QFileInfo songsFile(m_dir, QStringLiteral("!songs.yaml"));
   if (songsFile.exists()) {
-    athena::io::FileReader r(QStringToSysString(songsFile.filePath()));
+    athena::io::FileReader r(QStringToUTF8(songsFile.filePath()));
     if (!r.hasError()) {
       athena::io::YAMLDocReader dr;
       if (dr.parse(&r)) {
@@ -573,15 +573,15 @@ void ProjectModel::openSongsData() {
 }
 
 void ProjectModel::importSongsData(const QString& path) {
-  std::vector<std::pair<amuse::SystemString, amuse::ContainerRegistry::SongData>> songs =
-      amuse::ContainerRegistry::LoadSongs(QStringToSysString(path).c_str());
+  std::vector<std::pair<std::string, amuse::ContainerRegistry::SongData>> songs =
+      amuse::ContainerRegistry::LoadSongs(QStringToUTF8(path).c_str());
 
   for (const auto& song : songs) {
     int version;
     bool isBig;
     auto midiData = amuse::SongConverter::SongToMIDI(song.second.m_data.get(), version, isBig);
     if (!midiData.empty()) {
-      QFileInfo fi(m_dir, SysStringToQString(song.first + _SYS_STR(".mid")));
+      QFileInfo fi(m_dir, UTF8ToQString(song.first + ".mid"));
       QFile f(fi.filePath());
       if (f.open(QFile::WriteOnly)) {
         f.write((const char*)midiData.data(), midiData.size());
@@ -599,7 +599,7 @@ bool ProjectModel::reloadSampleData(const QString& groupName, UIMessenger&) {
   QString path = QFileInfo(m_dir, groupName).filePath();
   auto search = m_groups.find(groupName);
   if (search != m_groups.end())
-    search->second->getSdir().reloadSampleData(QStringToSysString(path));
+    search->second->getSdir().reloadSampleData(QStringToUTF8(path));
 
   m_needsReset = true;
   return true;
@@ -618,7 +618,7 @@ bool ProjectModel::importGroupData(const QString& groupName, const amuse::AudioG
   if (!MkPath(dir.path(), messenger))
     return false;
 
-  amuse::SystemString sysDir = QStringToSysString(dir.path());
+  std::string sysDir = QStringToUTF8(dir.path());
   grp.setGroupPath(sysDir);
   switch (mode) {
   case ImportMode::Original:
@@ -637,14 +637,14 @@ bool ProjectModel::importGroupData(const QString& groupName, const amuse::AudioG
 
   {
     auto proj = grp.getProj().toYAML();
-    athena::io::FileWriter fo(QStringToSysString(QFileInfo(dir, QStringLiteral("!project.yaml")).filePath()));
+    athena::io::FileWriter fo(QStringToUTF8(QFileInfo(dir, QStringLiteral("!project.yaml")).filePath()));
     if (fo.hasError())
       return false;
     fo.writeUBytes(proj.data(), proj.size());
   }
   {
     auto pool = grp.getPool().toYAML();
-    athena::io::FileWriter fo(QStringToSysString(QFileInfo(dir, QStringLiteral("!pool.yaml")).filePath()));
+    athena::io::FileWriter fo(QStringToUTF8(QFileInfo(dir, QStringLiteral("!pool.yaml")).filePath()));
     if (fo.hasError())
       return false;
     fo.writeUBytes(pool.data(), pool.size());
@@ -660,7 +660,7 @@ void ProjectModel::saveSongsIndex() {
     athena::io::YAMLDocWriter dw("amuse::Songs");
     for (auto& p : amuse::SortUnorderedMap(m_midiFiles))
       dw.writeString(fmt::format(FMT_STRING("{}"), p.first), p.second.get().m_path.toUtf8().data());
-    athena::io::FileWriter w(QStringToSysString(songsFile.filePath()));
+    athena::io::FileWriter w(QStringToUTF8(songsFile.filePath()));
     if (!w.hasError())
       dw.finish(&w);
   }
@@ -678,14 +678,14 @@ bool ProjectModel::saveToFile(UIMessenger& messenger) {
       return false;
     {
       auto proj = g.second->getProj().toYAML();
-      athena::io::FileWriter fo(QStringToSysString(QFileInfo(dir, QStringLiteral("!project.yaml")).filePath()));
+      athena::io::FileWriter fo(QStringToUTF8(QFileInfo(dir, QStringLiteral("!project.yaml")).filePath()));
       if (fo.hasError())
         return false;
       fo.writeUBytes(proj.data(), proj.size());
     }
     {
       auto pool = g.second->getPool().toYAML();
-      athena::io::FileWriter fo(QStringToSysString(QFileInfo(dir, QStringLiteral("!pool.yaml")).filePath()));
+      athena::io::FileWriter fo(QStringToUTF8(QFileInfo(dir, QStringLiteral("!pool.yaml")).filePath()));
       if (fo.hasError())
         return false;
       fo.writeUBytes(pool.data(), pool.size());
@@ -720,7 +720,7 @@ bool ProjectModel::exportGroup(const QString& path, const QString& groupName, UI
   QString basePath = QFileInfo(QDir(path), groupName).filePath();
   {
     auto proj = group.getProj().toGCNData(group.getPool(), group.getSdir());
-    athena::io::FileWriter fo(QStringToSysString(basePath + QStringLiteral(".proj")));
+    athena::io::FileWriter fo(QStringToUTF8(basePath + QStringLiteral(".proj")));
     if (fo.hasError()) {
       messenger.critical(tr("Export Error"), tr("Unable to export %1.proj").arg(groupName));
       return false;
@@ -729,7 +729,7 @@ bool ProjectModel::exportGroup(const QString& path, const QString& groupName, UI
   }
   {
     auto pool = group.getPool().toData<athena::Endian::Big>();
-    athena::io::FileWriter fo(QStringToSysString(basePath + QStringLiteral(".pool")));
+    athena::io::FileWriter fo(QStringToUTF8(basePath + QStringLiteral(".pool")));
     if (fo.hasError()) {
       messenger.critical(tr("Export Error"), tr("Unable to export %1.pool").arg(groupName));
       return false;
@@ -739,7 +739,7 @@ bool ProjectModel::exportGroup(const QString& path, const QString& groupName, UI
   {
     auto sdirSamp = group.getSdir().toGCNData(group);
     {
-      athena::io::FileWriter fo(QStringToSysString(basePath + QStringLiteral(".sdir")));
+      athena::io::FileWriter fo(QStringToUTF8(basePath + QStringLiteral(".sdir")));
       if (fo.hasError()) {
         messenger.critical(tr("Export Error"), tr("Unable to export %1.sdir").arg(groupName));
         return false;
@@ -747,7 +747,7 @@ bool ProjectModel::exportGroup(const QString& path, const QString& groupName, UI
       fo.writeUBytes(sdirSamp.first.data(), sdirSamp.first.size());
     }
     {
-      athena::io::FileWriter fo(QStringToSysString(basePath + QStringLiteral(".samp")));
+      athena::io::FileWriter fo(QStringToUTF8(basePath + QStringLiteral(".samp")));
       if (fo.hasError()) {
         messenger.critical(tr("Export Error"), tr("Unable to export %1.samp").arg(groupName));
         return false;
@@ -1229,7 +1229,7 @@ ProjectModel::GroupNode* ProjectModel::newSubproject(QString name) {
   }
 
   const QString path = QFileInfo(m_dir, name).filePath();
-  auto data = std::make_unique<amuse::AudioGroupDatabase>(QStringToSysString(path));
+  auto data = std::make_unique<amuse::AudioGroupDatabase>(QStringToUTF8(path));
   auto node = amuse::MakeObj<GroupNode>(std::move(name));
   _buildGroupNodeCollections(*node);
   g_MainWindow->pushUndoCommand(new GroupNodeAddUndoCommand(tr("Add Subproject %1"), std::move(data), node.get()));
@@ -1755,7 +1755,7 @@ QMimeData* ProjectModel::mimeData(const QModelIndexList& indexes) const {
     return MakeMimeData(static_cast<LayersNode*>(n), QStringLiteral("application/x-amuse-layers"));
   case INode::Type::Sample: {
     GroupNode* gn = getGroupNode(n);
-    QString path = SysStringToQString(gn->getAudioGroup()->getSampleBasePath(static_cast<SampleNode*>(n)->id()));
+    QString path = UTF8ToQString(gn->getAudioGroup()->getSampleBasePath(static_cast<SampleNode*>(n)->id()));
     QMimeData* data = new QMimeData;
     data->setData(QStringLiteral("application/x-amuse-samplepath"), path.toUtf8());
     return data;
@@ -1783,7 +1783,7 @@ bool ProjectModel::dropMimeData(const QMimeData* data, Qt::DropAction action, in
       QFile::copy(QFileInfo(oldDir, ent).filePath(), QFileInfo(newDir, ent).filePath());
     }
 
-    auto dataNode = std::make_unique<amuse::AudioGroupDatabase>(QStringToSysString(newDir.path()));
+    auto dataNode = std::make_unique<amuse::AudioGroupDatabase>(QStringToUTF8(newDir.path()));
     const auto node = amuse::MakeObj<GroupNode>(newName);
     _buildGroupNode(*node, *dataNode);
     g_MainWindow->pushUndoCommand(
@@ -1817,9 +1817,9 @@ bool ProjectModel::dropMimeData(const QMimeData* data, Qt::DropAction action, in
     const QString newName =
         MakeDedupedName(QFileInfo(QString::fromUtf8(path)).completeBaseName(), amuse::SampleId::CurNameDB);
     const QString newBasePath = QFileInfo(QFileInfo(m_dir, gn->name()).filePath(), newName).filePath();
-    const amuse::SystemString newBasePathStr = QStringToSysString(newBasePath);
+    const std::string newBasePathStr = QStringToUTF8(newBasePath);
 
-    gn->getAudioGroup()->copySampleInto(QStringToSysString(QString::fromUtf8(path)), newBasePathStr);
+    gn->getAudioGroup()->copySampleInto(QStringToUTF8(QString::fromUtf8(path)), newBasePathStr);
     auto dataNode = amuse::MakeObj<amuse::SampleEntry>();
     dataNode->loadLooseData(newBasePathStr);
     const auto node = amuse::MakeObj<SampleNode>(newName, dataNode);
@@ -1917,7 +1917,7 @@ QModelIndex ProjectModel::duplicate(const QModelIndex& index) {
       QFile::copy(QFileInfo(oldDir, ent).filePath(), QFileInfo(newDir, ent).filePath());
     }
 
-    auto data = std::make_unique<amuse::AudioGroupDatabase>(*cn->getAudioGroup(), QStringToSysString(newDir.path()));
+    auto data = std::make_unique<amuse::AudioGroupDatabase>(*cn->getAudioGroup(), QStringToUTF8(newDir.path()));
     auto node = amuse::MakeObj<GroupNode>(newName);
     _buildGroupNode(*node, *data);
     cmd = new GroupNodeAddUndoCommand(tr("Add Subproject %1"), std::move(data), node.get());
