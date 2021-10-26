@@ -5,9 +5,6 @@
 #include <dirent.h>
 #endif
 
-#ifdef __cpp_lib_ranges
-#include <ranges>
-#endif
 #include <sys/stat.h>
 
 #if !defined(S_ISREG) && defined(S_IFMT) && defined(S_IFREG)
@@ -92,8 +89,8 @@ DirectoryEnumerator::DirectoryEnumerator(std::string_view path, Mode mode, bool 
 
     m_entries.reserve(sort.size());
     if (reverse) {
-      for (auto& it : std::ranges::reverse_view(sort)) {
-        m_entries.emplace_back(std::move(it.second));
+      for (auto it = sort.crbegin(); it != sort.crend(); ++it) {
+        m_entries.emplace_back(std::move(it->second));
       }
     } else {
       for (auto& e : sort) {
@@ -134,8 +131,8 @@ DirectoryEnumerator::DirectoryEnumerator(std::string_view path, Mode mode, bool 
 
       m_entries.reserve(m_entries.size() + sort.size());
       if (reverse) {
-        for (auto& it : std::ranges::reverse_view(sort)) {
-          m_entries.emplace_back(std::move(it.second));
+        for (auto it = sort.crbegin(); it != sort.crend(); ++it) {
+          m_entries.emplace_back(std::move(it->second));
         }
       } else {
         for (auto& e : sort) {
@@ -164,8 +161,8 @@ DirectoryEnumerator::DirectoryEnumerator(std::string_view path, Mode mode, bool 
 
       m_entries.reserve(m_entries.size() + sort.size());
       if (reverse) {
-        for (auto& e : std::ranges::reverse_view(sort)) {
-          m_entries.emplace_back(std::move(e.second));
+        for (auto it = sort.crbegin(); it != sort.crend(); ++it) {
+          m_entries.emplace_back(std::move(it->second));
         }
       } else {
         for (auto& e : sort) {
