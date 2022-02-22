@@ -3,6 +3,14 @@
 #ifndef _WIN32
 #include <cstdio>
 #include <memory>
+#else
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN 1
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <Windows.h>
 #endif
 
 #include <logvisor/logvisor.hpp>
@@ -46,6 +54,14 @@ bool Copy(const char* from, const char* to) {
   return true;
 #endif
 }
+
+#if _WIN32
+int Rename(const char* oldpath, const char* newpath) {
+  const nowide::wstackstring woldpath(oldpath);
+  const nowide::wstackstring wnewpath(newpath);
+  return MoveFileExW(woldpath.get(), wnewpath.get(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) == 0;
+}
+#endif
 
 #define DEFINE_ID_TYPE(type, typeName)                                                                                 \
   thread_local NameDB* type::CurNameDB = nullptr;                                                                      \

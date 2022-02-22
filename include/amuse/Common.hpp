@@ -18,10 +18,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #else
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN 1
-#endif
-#include <Windows.h>
 #include <nowide/stackstring.hpp>
 #endif
 
@@ -344,15 +340,11 @@ typedef struct stat Sstat;
 static inline int Stat(const char* path, Sstat* statout) { return stat(path, statout); }
 #endif
 
-inline int Rename(const char* oldpath, const char* newpath) {
 #if _WIN32
-  const nowide::wstackstring woldpath(oldpath);
-  const nowide::wstackstring wnewpath(newpath);
-  return MoveFileExW(woldpath.get(), wnewpath.get(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) == 0;
+int Rename(const char* oldpath, const char* newpath);
 #else
-  return rename(oldpath, newpath);
+inline int Rename(const char* oldpath, const char* newpath) { return rename(oldpath, newpath); }
 #endif
-}
 
 inline int CompareCaseInsensitive(const char* a, const char* b) {
 #if _WIN32
