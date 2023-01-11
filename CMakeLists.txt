@@ -21,6 +21,8 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/boo AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}
   add_subdirectory(athena)
 endif()
 
+option(AMUSE_BUILD_EDITOR "Build Amuse with editor enabled (includes VST)" OFF)
+
 add_library(amuse
   lib/AudioGroup.cpp
   lib/AudioGroupData.cpp
@@ -164,10 +166,14 @@ if(TARGET boo AND NOT WINDOWS_STORE AND NOT NX)
 
   # Editor
   find_package(Qt6 COMPONENTS Widgets PATHS /usr/local/opt/qt)
-  if (Qt6Widgets_FOUND)
+  if (Qt6Widgets_FOUND AND AMUSE_BUILD_EDITOR)
     message(STATUS "Qt6 found, amuse-gui will be built")
     add_subdirectory(Editor)
   else()
-    message(STATUS "Qt6 not found, amuse-gui will not be built")
+    if (NOT AMUSE_BUILD_EDITOR)
+      message(STATUS "amuse-gui has been disabled and will not be built, to enable pass `-DAMUSE_BUILD_EDITOR=ON` to cmake")
+    else()
+      message(STATUS "Qt6 not found, amuse-gui will not be built")
+    endif()
   endif()
 endif()
