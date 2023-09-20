@@ -4,7 +4,6 @@
 #include <QTranslator>
 #include "MainWindow.hpp"
 #include "SongGroupEditor.hpp"
-#include "boo/IApplication.hpp"
 #include <QResource>
 #include <QCommandLineParser>
 #include <logvisor/logvisor.hpp>
@@ -33,24 +32,6 @@ static QIcon MakeAppIcon() {
 
   return ret;
 }
-
-/* This is for adapting the get*Name methods */
-class BooInterface : public boo::IApplication {
-  std::vector<std::string> m_args;
-  void _deletedWindow(boo::IWindow* window) override {}
-
-public:
-  EPlatformType getPlatformType() const override { return EPlatformType::Qt; }
-
-  int run() override { return 0; }
-  std::string_view getUniqueName() const override { return "amuse-gui"sv; }
-  std::string_view getFriendlyName() const override { return "Amuse"sv; }
-  std::string_view getProcessName() const override { return "amuse-gui"sv; }
-  const std::vector<std::string>& getArgs() const override { return m_args; }
-
-  /* Constructors/initializers for sub-objects */
-  std::shared_ptr<boo::IWindow> newWindow(std::string_view title) override { return {}; }
-};
 
 MainWindow* g_MainWindow = nullptr;
 
@@ -96,9 +77,6 @@ int main(int argc, char* argv[]) {
 
   logvisor::RegisterConsoleLogger();
   logvisor::RegisterStandardExceptions();
-
-  BooInterface booApp;
-  boo::APP = &booApp;
 
   Q_INIT_RESOURCE(translation_res);
   QTranslator translator;

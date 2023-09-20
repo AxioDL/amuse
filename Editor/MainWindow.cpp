@@ -185,7 +185,7 @@ MainWindow::MainWindow(QWidget* parent)
   connect(qApp, &QApplication::focusChanged, this, &MainWindow::onFocusChanged);
   connect(QGuiApplication::clipboard(), &QClipboard::dataChanged, this, &MainWindow::onClipboardChanged);
 
-  m_voxEngine = boo::NewAudioVoiceEngine();
+  m_voxEngine = boo::NewAudioVoiceEngine("amuse-gui", "Amuse Gui");
   m_voxAllocator = std::make_unique<VoiceAllocator>(*m_voxEngine);
   m_engine = std::make_unique<amuse::Engine>(*m_voxAllocator);
   m_engine->setVolume(0.7f);

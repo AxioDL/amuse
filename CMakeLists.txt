@@ -21,7 +21,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/boo AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}
   add_subdirectory(athena)
 endif()
 
-option(AMUSE_BUILD_EDITOR "Build Amuse with editor enabled (includes VST)" OFF)
+option(AMUSE_BUILD_EDITOR "Build Amuse with editor enabled (includes VST)" ON)
 
 add_library(amuse
   lib/AudioGroup.cpp
